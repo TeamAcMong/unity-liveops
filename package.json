@@ -1,0 +1,28 @@
+{
+  "name": "com.dreamtech.liveops",
+  "version": "0.1.0",
+  "displayName": "DreamTech LiveOps",
+  "description": "Nền live-ops lắp ráp kiểu Lego cho game mobile: đồng hồ server chống vặn giờ máy, lịch event (lặp lại, danh sách JSON từ remote config, ghép lịch), vòng đời từng đợt event theo id, cộng điểm chống trùng, quà giữa đợt và cuối đợt không mất không phát trùng, kết quả chờ UI báo. Core thuần C# không phụ thuộc engine hay thư viện ngoài; nơi lưu, kho đồ, điều kiện tham gia và luật quà đều cắm qua port.",
+  "unity": "2022.3",
+  "license": "MIT",
+  "documentationUrl": "https://github.com/TeamAcMong/unity-liveops/blob/main/Packages/com.dreamtech.liveops/README.md",
+  "changelogUrl": "https://github.com/TeamAcMong/unity-liveops/blob/main/Packages/com.dreamtech.liveops/CHANGELOG.md",
+  "licensesUrl": "https://github.com/TeamAcMong/unity-liveops/blob/main/LICENSE",
+  "author": {
+    "name": "DreamTech",
+    "url": "https://github.com/TeamAcMong"
+  },
+  "keywords": [
+    "liveops",
+    "live-event",
+    "season",
+    "calendar",
+    "server-time",
+    "battle-pass"
+  ],
+  "dependencies": {
+    "com.unity.modules.imgui": "1.0.0",
+    "com.unity.modules.jsonserialize": "1.0.0",
+    "com.unity.modules.unitywebrequest": "1.0.0"
+  }
+}
