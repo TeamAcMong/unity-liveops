@@ -1,0 +1,17 @@
+{
+    "name": "DreamTech.LiveOps.Demo",
+    "rootNamespace": "DreamTech.LiveOps.Demo",
+    "references": [
+        "DreamTech.LiveOps",
+        "DreamTech.LiveOps.Unity"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": false,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
