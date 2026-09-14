@@ -227,10 +227,19 @@ namespace DreamTech.LiveOps.Editor
 
         // ------------------------------------------------------------------------------------------------------------ IHubHost
 
-        /// <summary>Id sai → cảnh báo nêu id + nơi tra id hợp lệ rồi hiện Tổng quan (không ném: id có thể là của bản cũ).</summary>
-        public void Navigate(string sectionId)
+        /// <summary>
+        /// Id sai → cảnh báo nêu id + nơi tra id hợp lệ rồi hiện Tổng quan (không ném: id có thể là của bản cũ). Internal + cài
+        /// tường minh <see cref="IHubHost.Navigate"/>: lớp cửa sổ là public, cài ngầm sẽ biến điều hướng thành API public của
+        /// package ngoài mục 3 (game chỉ được mở hub, không điều khiển màn).
+        /// </summary>
+        internal void Navigate(string sectionId)
         {
             ShowSection(sectionId);
+        }
+
+        void IHubHost.Navigate(string sectionId)
+        {
+            Navigate(sectionId);
         }
 
         string IHubHost.GetSectionViewState(string sectionId)
@@ -431,9 +440,9 @@ namespace DreamTech.LiveOps.Editor
                     hubRoot.styleSheets.Add(loaded);
                     continue;
                 }
-                // Sheet của khung thiếu = package hỏng → nói đúng đường dẫn. Sheet của gói khác (feedback/controls/timeline) chưa có
-                // ở bản dev dựng dở thì im lặng — probe CLI liệt kê riêng.
-                if (sheet.IsShellOwned)
+                // Sheet bắt buộc thiếu = package hỏng → nói đúng đường dẫn (8.1 bước 2). Sheet chưa bắt buộc (nhánh tạm ở
+                // LiveOpsHubPaths.ShellStyleSheetLoadOrder) thì im lặng — probe CLI liệt kê riêng.
+                if (sheet.IsRequired)
                 {
                     Debug.LogWarning(string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.ShellMissingStyleSheetWarningFormat, sheet.Path));
                 }

@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.IO;
 using System.Text.RegularExpressions;
 using NUnit.Framework;
 using UnityEditor;
@@ -14,9 +15,11 @@ namespace DreamTech.LiveOps.Editor.Tests
     /// Cửa sổ hub thật (UI, không -nographics): trình tự CreateGUI 8.1, mọi màn dựng không ném ở các ngữ cảnh, màn ném không kéo
     /// sập cửa sổ, thiếu UXML không trắng cửa sổ, id sai về Tổng quan, trạng thái cửa sổ sống qua serialize, mở từ menu.
     /// <para>
-    /// Ngữ cảnh (không asset / asset rỗng / mẫu / kiểm cũ / đang kiểm) ở W2 chưa có phiên lịch: mỗi test chạy registry thật (6 màn
-    /// giữ chỗ) VÀ một registry giả cùng id/tầng mang health của ngữ cảnh đó, để khung được kiểm với đủ tổ hợp dấu/badge/ô chặn
-    /// mà màn thật sẽ phát ra khi G-SESSION nối dữ liệu.
+    /// Ngữ cảnh (không asset / asset rỗng / mẫu / kiểm cũ / đang kiểm) ở W2 chưa có phiên lịch: 6 màn thật là màn giữ chỗ không đọc
+    /// dữ liệu, nên phần "registry thật" giống nhau ở mọi ngữ cảnh. Phần khác nhau giữa các ngữ cảnh là registry giả cùng id/tầng
+    /// mang health của ngữ cảnh đó — khung (rail, ô chặn, badge tầng, element sống còn) được kiểm với đúng tổ hợp dấu mà màn thật
+    /// sẽ phát ra. Dữ liệu thật của từng ngữ cảnh do G-SESSION nối (W3): đề xuất cho G-SESSION cùng quyền ghi file này và probe ở
+    /// plan/w2/contract-changes-G-SHELL.md (CC-SHELL-1) — chưa được duyệt thì các test này KHÔNG chứng minh màn thật chạy với dữ liệu.
     /// </para>
     /// </summary>
     [TestFixture]
@@ -146,6 +149,40 @@ namespace DreamTech.LiveOps.Editor.Tests
             Assert.Greater(title.layout.width, 0f, "Label lỗi phải thật sự có kích thước trên cửa sổ");
             Assert.Greater(title.layout.height, 0f);
             Assert.IsNull(window.Rail, "không có bố cục thì không dựng rail nửa vời");
+            LogAssert.NoUnexpectedReceived();
+        }
+
+        [Test]
+        public void MissingUxml_RevealTarget_IsExistingPhysicalLocation()
+        {
+            // Card thiếu UXML hiện đúng lúc file không có: nút "Mở thư mục package" phải mở một chỗ CÓ trên đĩa (đường vật lý), không
+            // đưa đường ảo Packages/… của chính file đang thiếu cho Finder.
+            string uiFolder = Path.GetDirectoryName(LiveOpsHubPaths.ShellUxml).Replace('\\', '/');
+            string missingTarget = LiveOpsHubFailureView.ResolveRevealPath(uiFolder + "/khong-co-file-nay.uxml");
+            Assert.IsTrue(Path.IsPathRooted(missingTarget), "đường vật lý tuyệt đối: " + missingTarget);
+            Assert.IsTrue(Directory.Exists(missingTarget), "file thiếu → thư mục gần nhất còn tồn tại: " + missingTarget);
+            Assert.AreEqual("UI", Path.GetFileName(missingTarget), "thư mục gần nhất là thư mục file phải nằm");
+
+            string existingTarget = LiveOpsHubFailureView.ResolveRevealPath(LiveOpsHubPaths.ShellUxml);
+            Assert.IsTrue(File.Exists(existingTarget), "file còn (bố cục thiếu element) → mở đúng file: " + existingTarget);
+            Assert.AreEqual(string.Empty, LiveOpsHubFailureView.ResolveRevealPath(string.Empty));
+        }
+
+        [UnityTest]
+        public IEnumerator StatusBar_WithoutSession_HidesMarkByClass()
+        {
+            _scope = LiveOpsHubWindowTestScope.Open();
+            yield return _scope.WaitForLayout();
+            LiveOpsHubStatusBar statusBar = _scope.Window.StatusBar;
+
+            // W2 chưa có phiên: status bar trống và dấu ẩn bằng class (không style inline) — vòng rỗng không kèm câu bị đọc thành trạng thái thật.
+            Assert.IsTrue(statusBar.LeftMark.ClassListContains(LiveOpsHubClassNames.StatusMarkHidden));
+            Assert.AreEqual(Visibility.Hidden, statusBar.LeftMark.resolvedStyle.visibility);
+
+            statusBar.SetLeft(HealthState.Ok, "Kiểm lúc 08:46:58 UTC", string.Empty);
+            yield return LiveOpsHubWindowTestScope.WaitFrames(2);
+            Assert.IsFalse(statusBar.LeftMark.ClassListContains(LiveOpsHubClassNames.StatusMarkHidden));
+            Assert.AreEqual(Visibility.Visible, statusBar.LeftMark.resolvedStyle.visibility, "có câu trạng thái thì dấu hiện");
             LogAssert.NoUnexpectedReceived();
         }
 
@@ -318,22 +355,57 @@ namespace DreamTech.LiveOps.Editor.Tests
 
         private IEnumerator AssertRequiredElements(HubTestContext context)
         {
+            // Registry thật (6 màn giữ chỗ — chưa đọc dữ liệu nên như nhau ở mọi ngữ cảnh W2).
             _scope = LiveOpsHubWindowTestScope.Open();
             yield return _scope.WaitForLayout();
+            AssertShellAndSectionElements(_scope, context + " (registry)");
+            _scope.Dispose();
+
+            // Health của ngữ cảnh: rail dựng dấu/badge/ô chặn của ngữ cảnh mà element sống còn của khung và của màn vẫn đủ.
+            List<FakeHubSection> fakes = ContextSections(context);
+            _scope = LiveOpsHubWindowTestScope.Open(FakeHubSection.AsSections(fakes));
+            yield return _scope.WaitForLayout();
             LiveOpsHubWindow window = _scope.Window;
-            foreach (string elementName in LiveOpsHubPaths.RequiredShellElementNames)
+            AssertShellAndSectionElements(_scope, context + " (health ngữ cảnh)");
+
+            List<VisualElement> stageRows = window.Rail.Element.Query(className: LiveOpsHubClassNames.RailStageRow).ToList();
+            Assert.AreEqual(4, stageRows.Count, context + ": 4 tầng P1");
+            Label checkBadge = stageRows[2].Q<Label>(className: LiveOpsHubClassNames.RailBadge);
+            VisualElement blockerHost = window.rootVisualElement.Q(LiveOpsHubPaths.ShellElementNames.RailBlockerHost);
+            switch (context)
             {
-                Assert.IsNotNull(window.rootVisualElement.Q(elementName), context + ": khung thiếu element '" + elementName + "'");
-            }
-            foreach (IHubSection section in _scope.Sections)
-            {
-                window.Navigate(section.Id);
-                foreach (string elementName in section.RequiredElementNames)
-                {
-                    Assert.IsNotNull(window.SectionBody.Q(elementName), context + ": màn '" + section.Id + "' thiếu element '" + elementName + "'");
-                }
+                case HubTestContext.NoAsset:
+                    Assert.IsNull(window.Rail.BlockerElement, "không asset: không có gì bị chặn — không ô chặn");
+                    Assert.AreEqual(LiveOpsHubStrings.ShellRailNotMeasuredBadge, checkBadge.text, "không asset: KIỂM là vòng rỗng \"chưa kiểm\"");
+                    Assert.AreEqual(0, blockerHost.childCount);
+                    break;
+                case HubTestContext.DesignSample:
+                    Assert.IsNotNull(window.Rail.BlockerElement, "mẫu thiết kế (Hình 4): KIỂM Blocked → có ô chặn");
+                    Assert.IsTrue(blockerHost.Contains(window.Rail.BlockerElement), "ô chặn nằm trong element sống còn " + LiveOpsHubPaths.ShellElementNames.RailBlockerHost);
+                    Assert.AreEqual("2 bị bỏ", checkBadge.text, "mẫu thiết kế: badge KIỂM \"2 bị bỏ\"");
+                    Assert.AreEqual("2 bị bỏ", stageRows[1].Q<Label>(className: LiveOpsHubClassNames.RailBadge).text, "mẫu thiết kế: badge LÊN LỊCH");
+                    Assert.AreEqual("chặn", stageRows[3].Q<Label>(className: LiveOpsHubClassNames.RailBadge).text, "mẫu thiết kế: badge XUẤT");
+                    break;
             }
             LogAssert.NoUnexpectedReceived();
+        }
+
+        private static void AssertShellAndSectionElements(LiveOpsHubWindowTestScope scope, string label)
+        {
+            LiveOpsHubWindow window = scope.Window;
+            foreach (string elementName in LiveOpsHubPaths.RequiredShellElementNames)
+            {
+                Assert.IsNotNull(window.rootVisualElement.Q(elementName), label + ": khung thiếu element '" + elementName + "'");
+            }
+            foreach (IHubSection section in scope.Sections)
+            {
+                window.Navigate(section.Id);
+                Assert.IsFalse(window.IsSectionFailed(section.Id), label + ": màn " + section.Id + " ném khi dựng");
+                foreach (string elementName in section.RequiredElementNames)
+                {
+                    Assert.IsNotNull(window.SectionBody.Q(elementName), label + ": màn '" + section.Id + "' thiếu element '" + elementName + "'");
+                }
+            }
         }
 
         private static void ShowEverySection(LiveOpsHubWindow window, string label)

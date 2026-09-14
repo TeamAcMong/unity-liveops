@@ -31,6 +31,7 @@ namespace DreamTech.LiveOps.Editor
 
         // Status bar
         internal const string StatusMark = "liveops-hub-status-mark";
+        internal const string StatusMarkHidden = "liveops-hub-status-mark--hidden";
         internal const string StatusText = "liveops-hub-status-text";
 
         // Note đầu thân (đang biên dịch)

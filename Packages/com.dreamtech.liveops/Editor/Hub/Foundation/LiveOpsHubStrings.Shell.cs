@@ -31,10 +31,8 @@ namespace DreamTech.LiveOps.Editor
         internal const string ShellExportTitle = "Xuất JSON";
         internal const string ShellExportSubtitle = "JSON cho key liveops_calendar, so với lần đăng";
 
-        // INTERIM(G-SHELLPOLISH): lý do health + thân của màn giữ chỗ (mục 12 I-2) — xoá cùng InterimPlaceholderSection.
+        // INTERIM(G-SHELLPOLISH): lý do health + dòng đầu thân của màn giữ chỗ (mục 12 I-2) — xoá cùng InterimPlaceholderSection.
         internal const string InterimPlaceholderReason = "Màn này chưa dựng ở bản dev";
-        // INTERIM(G-SHELLPOLISH): câu "trống không phải là đạt" của thân giữ chỗ ([FD §4] trạng thái trống).
-        internal const string InterimPlaceholderNotPassedNote = "Vòng rỗng không phải là đạt: màn này chưa có dữ liệu để kết luận.";
 
         // Rail — [FD §3.5]
         internal const string ShellRailCaption = "ĐƯỜNG ĐI CỦA LỊCH";

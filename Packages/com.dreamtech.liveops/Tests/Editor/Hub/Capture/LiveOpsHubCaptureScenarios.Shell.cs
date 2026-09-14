@@ -67,7 +67,9 @@ namespace DreamTech.LiveOps.Editor.Tests
 
         /// <summary>
         /// Hình 2 ([FD §2.4]): bảng 640 px — cột HealthState 84 · Dấu 36 · Hàng tầng 168 · Dòng section 136 · Việc cần làm 200, hàng
-        /// 36 px; dưới là hàng giai đoạn đợt. Dựng bằng đúng class của rail/hàng phát hiện trong cửa sổ hub (có token hai skin), ảnh cắt
+        /// 36 px; dưới là hàng Summary (dải tóm tắt) và hàng giai đoạn đợt (4 tag pha + tag "bị bỏ"). Cửa sổ 1280×760 rồi cắt theo
+        /// bảng thay vì cửa sổ 640×300 của bảng 9.5: hub có minSize 620×420 và rail 196 px chiếm chỗ bảng; cửa sổ riêng cần file
+        /// ngoài bảng quyền ghi (plan/w2/contract-changes-G-SHELL.md CC-SHELL-4). Dựng bằng đúng class của rail/hàng phát hiện trong cửa sổ hub (có token hai skin), ảnh cắt
         /// theo bảng. Kích thước hình học là style inline của code chụp — không phải UI sản phẩm.
         /// </summary>
         private static EditorWindow OpenStateMarksGallery()
@@ -108,13 +110,90 @@ namespace DreamTech.LiveOps.Editor.Tests
                 "Không ở Play Mode"));
             table.Add(CreateStateRow(HealthState.Ok, "Ok", LiveOpsHubStrings.StageCaptionConfigure, string.Empty, LiveOpsHubStrings.ShellOverviewTitle, string.Empty));
 
+            table.Add(CreateSummaryRow());
+
             VisualElement phaseRow = CreateTableRow(36f, true);
+            phaseRow.Add(CreateRowCaption("Giai đoạn đợt"));
             phaseRow.Add(CreatePhaseTag(LiveEventPhase.Active, false, "Đang chạy"));
             phaseRow.Add(CreatePhaseTag(LiveEventPhase.Upcoming, false, "Sắp tới"));
             phaseRow.Add(CreatePhaseTag(LiveEventPhase.Ended, false, "Đã khép"));
             phaseRow.Add(CreatePhaseTag(LiveEventPhase.Ended, true, "Chờ hiện kết quả"));
+            phaseRow.Add(CreateDroppedTag());
             table.Add(phaseRow);
             return table;
+        }
+
+        private const float SummaryClusterSpacing = 11f;
+
+        /// <summary>
+        /// Hàng "Summary" của Hình 2 ([FD §2.4]): dải cao 24, padding 0 8, viền 1, bo 3, nền toolbar; năm cụm dấu 7 + số, cách nhau
+        /// 10–12 px. Màu nền/viền lấy qua class ô chặn rail (token hai skin — style inline không đọc được var()); kích thước ghi đè inline
+        /// vì đây là dựng hình cho ảnh chụp, không phải UI sản phẩm.
+        /// </summary>
+        private static VisualElement CreateSummaryRow()
+        {
+            VisualElement row = CreateTableRow(36f, true);
+            row.Add(CreateRowCaption("Summary"));
+
+            VisualElement strip = new VisualElement();
+            strip.AddToClassList(LiveOpsHubClassNames.RailBlocker);
+            strip.style.flexDirection = FlexDirection.Row;
+            strip.style.alignItems = Align.Center;
+            strip.style.height = 24;
+            strip.style.marginLeft = 0;
+            strip.style.marginRight = 0;
+            strip.style.marginTop = 0;
+            strip.style.marginBottom = 0;
+            strip.style.paddingTop = 0;
+            strip.style.paddingBottom = 0;
+            strip.style.paddingLeft = 8;
+            strip.style.paddingRight = 8;
+            strip.Add(CreateSummaryCluster(HealthState.Blocked, "2 bị bỏ", false));
+            strip.Add(CreateSummaryCluster(HealthState.Warning, "1 mất tiến độ", true));
+            strip.Add(CreateSummaryCluster(HealthState.Warning, "2 nên xem", true));
+            strip.Add(CreateSummaryCluster(HealthState.NotMeasured, "1 chưa kiểm", true));
+            strip.Add(CreateSummaryCluster(HealthState.Ok, "6 luật đã qua", true));
+            row.Add(strip);
+            return row;
+        }
+
+        private static VisualElement CreateSummaryCluster(HealthState state, string text, bool hasSpacingBefore)
+        {
+            VisualElement cluster = new VisualElement();
+            cluster.style.flexDirection = FlexDirection.Row;
+            cluster.style.alignItems = Align.Center;
+            if (hasSpacingBefore) cluster.style.marginLeft = SummaryClusterSpacing;
+            LiveOpsStateMark mark = new LiveOpsStateMark { Size = LiveOpsStateMark.MarkSize.Small };
+            mark.SetHealth(state);
+            cluster.Add(mark);
+            Label label = new Label(text);
+            label.style.marginLeft = 4;
+            if (state != HealthState.Ok) LiveOpsHubStyle.SetStateText(label, state);
+            cluster.Add(label);
+            return cluster;
+        }
+
+        /// <summary>Tag pha "bị bỏ" của Hình 2: dấu Blocked 7 + chữ blocked-text — đợt bị bỏ là hậu quả, không phải một pha của vòng đời.</summary>
+        private static VisualElement CreateDroppedTag()
+        {
+            VisualElement tag = new VisualElement();
+            tag.style.flexDirection = FlexDirection.Row;
+            tag.style.alignItems = Align.Center;
+            LiveOpsStateMark mark = new LiveOpsStateMark { Size = LiveOpsStateMark.MarkSize.Small };
+            mark.SetHealth(HealthState.Blocked);
+            tag.Add(mark);
+            Label label = new Label("bị bỏ");
+            label.style.marginLeft = 6;
+            LiveOpsHubStyle.SetStateText(label, HealthState.Blocked);
+            tag.Add(label);
+            return tag;
+        }
+
+        private static VisualElement CreateRowCaption(string text)
+        {
+            Label caption = new Label(text);
+            caption.AddToClassList(LiveOpsHubClassNames.Caption);
+            return CreateCell(0, caption);
         }
 
         private static readonly float[] ColumnWidths = { 84f, 36f, 168f, 136f, 200f };
@@ -194,7 +273,7 @@ namespace DreamTech.LiveOps.Editor.Tests
             VisualElement tag = new VisualElement();
             tag.style.flexDirection = FlexDirection.Row;
             tag.style.alignItems = Align.Center;
-            tag.style.marginRight = 16;
+            tag.style.marginRight = 12;
             LiveOpsStateMark mark = new LiveOpsStateMark();
             mark.SetPhase(phase, isPendingResult);
             tag.Add(mark);
