@@ -46,6 +46,51 @@ namespace DreamTech.LiveOps.Unity.Tests
             Assert.AreEqual("Mục thứ 4: Đợt event phải kết thúc sau khi bắt đầu: backwards — bỏ qua.",
                              WithoutRuntimeParameterSuffix(result.Problems[2]));
             Assert.AreEqual("Đợt 'overlap' chồng giờ với 'ok' cùng loại 'hunt' — bỏ 'overlap'.", result.Problems[3]);
+
+            // Mục mang HAI lỗi: 0.1.0 chỉ báo lỗi kiểm trước (startUtc → endUtc → id → loại → end <= start). Bộ biên dịch mới
+            // chọn lý do chính theo đúng thứ tự này (V-7 "khớp 0.1.0, khoá bằng golden") — nếu đảo thứ tự kiểm thì câu Problems
+            // của mục nhiều lỗi đổi dù từng lỗi riêng lẻ vẫn ra đúng câu. Gộp vào test này thay vì thêm test để giữ đúng số 7
+            // test golden / 13 test Unity của nghiệm thu G-GOLDEN.
+            const string multiFaultJson = "{\"events\":[" +
+                                           "{\"type\":\"hunt\",\"startUtc\":\"14/09/2026\",\"endUtc\":\"2026-09-15T00:00:00Z\"}," +
+                                           "{\"id\":\"both-dates\",\"type\":\"hunt\",\"startUtc\":\"hôm nay\",\"endUtc\":\"mai\"}," +
+                                           "{\"id\":\"bad-end\",\"type\":\"hunt\",\"startUtc\":\"2026-09-14T00:00:00Z\",\"endUtc\":\"mai\"}," +
+                                           "{\"id\":\"a#b\",\"type\":\"hunt\",\"startUtc\":\"2026-09-14T00:00:00Z\",\"endUtc\":\"mai\"}," +
+                                           "{\"type\":\"hunt\",\"startUtc\":\"2026-09-25T00:00:00Z\",\"endUtc\":\"2026-09-24T00:00:00Z\"}," +
+                                           "{\"id\":\"no-type\",\"startUtc\":\"2026-09-25T00:00:00Z\",\"endUtc\":\"2026-09-24T00:00:00Z\"}," +
+                                           "{\"id\":\"a#b\",\"startUtc\":\"2026-09-14T00:00:00Z\",\"endUtc\":\"2026-09-15T00:00:00Z\"}," +
+                                           "{\"id\":\"typed\",\"type\":\"hunt#x\",\"startUtc\":\"2026-09-25T00:00:00Z\",\"endUtc\":\"2026-09-24T00:00:00Z\"}," +
+                                           "{\"id\":\"line\\nbreak\",\"type\":\"hunt\",\"startUtc\":\"2026-09-14T00:00:00Z\",\"endUtc\":\"2026-09-15T00:00:00Z\"}" +
+                                           "]}";
+
+            LiveEventCalendarParseResult multiFaultResult = JsonLiveEventCalendarParser.Parse(multiFaultJson);
+
+            Assert.AreEqual(0, multiFaultResult.Calendar.Instances.Count, "Cả 9 mục đều hỏng.");
+            Assert.AreEqual(9, multiFaultResult.Problems.Count, string.Join("\n", multiFaultResult.Problems));
+
+            // Thiếu id + startUtc hỏng → giờ thắng; id thiếu vẫn in trong ngoặc là ''.
+            Assert.AreEqual("Mục thứ 1 (''): startUtc không phải giờ ISO 8601: '14/09/2026' — bỏ qua.", multiFaultResult.Problems[0]);
+            // Hỏng cả hai giờ → chỉ báo startUtc.
+            Assert.AreEqual("Mục thứ 2 ('both-dates'): startUtc không phải giờ ISO 8601: 'hôm nay' — bỏ qua.", multiFaultResult.Problems[1]);
+            // Nhánh endUtc hỏng (không test nào khác chạm).
+            Assert.AreEqual("Mục thứ 3 ('bad-end'): endUtc không phải giờ ISO 8601: 'mai' — bỏ qua.", multiFaultResult.Problems[2]);
+            // Id chứa '#' + endUtc hỏng → giờ thắng id.
+            Assert.AreEqual("Mục thứ 4 ('a#b'): endUtc không phải giờ ISO 8601: 'mai' — bỏ qua.", multiFaultResult.Problems[3]);
+            // Thiếu id + end < start → id thắng giờ ngược.
+            Assert.AreEqual("Mục thứ 5: Event id không được rỗng. — bỏ qua.",
+                             WithoutRuntimeParameterSuffix(multiFaultResult.Problems[4]));
+            // Thiếu loại + end < start → loại thắng giờ ngược.
+            Assert.AreEqual("Mục thứ 6: Loại event không được rỗng. — bỏ qua.",
+                             WithoutRuntimeParameterSuffix(multiFaultResult.Problems[5]));
+            // Id chứa '#' + thiếu loại → id thắng loại.
+            Assert.AreEqual("Mục thứ 7: Event id không được chứa '#' hay xuống dòng: a#b — bỏ qua.",
+                             WithoutRuntimeParameterSuffix(multiFaultResult.Problems[6]));
+            // Loại chứa '#' + end < start → loại thắng giờ ngược.
+            Assert.AreEqual("Mục thứ 8: Loại event không được chứa '#' hay xuống dòng: hunt#x — bỏ qua.",
+                             WithoutRuntimeParameterSuffix(multiFaultResult.Problems[7]));
+            // Xuống dòng trong id: câu in nguyên ký tự xuống dòng của id.
+            Assert.AreEqual("Mục thứ 9: Event id không được chứa '#' hay xuống dòng: line\nbreak — bỏ qua.",
+                             WithoutRuntimeParameterSuffix(multiFaultResult.Problems[8]));
         }
 
         [Test]
@@ -96,6 +141,25 @@ namespace DreamTech.LiveOps.Unity.Tests
             // Trùng id bị loại TRƯỚC khi xét chồng giờ (LiveEventCalendar dựng candidates rồi mới sort+overlap) — thứ tự này là hành vi khoá.
             Assert.AreEqual("Trùng id 'a' ở mục thứ 2 — giữ mục xuất hiện trước.", result.Problems[0]);
             Assert.AreEqual("Đợt 'b' chồng giờ với 'a' cùng loại 'hunt' — bỏ 'b'.", result.Problems[1]);
+
+            // Bẫy vị trí của 0.1.0: câu trùng id đánh số trong danh sách ĐÃ LỌC mục hỏng (FixedLiveEventCalendar chỉ thấy
+            // các instance parser dựng được), không phải vị trí trong JSON. Ở đây 'a' thứ hai là mục JSON thứ 3 nhưng câu nói
+            // "mục thứ 2". Bộ biên dịch mới đánh SourceIndex theo JSON — nếu dùng thẳng SourceIndex + 1 cho ProblemText thì
+            // câu đổi; khoá lại để G-UNITY phải giữ cách đánh số cũ trong câu Problems.
+            const string brokenBeforeDuplicateJson = "{\"events\":[" +
+                                                      "{\"id\":\"bad-date\",\"type\":\"hunt\",\"startUtc\":\"14/09/2026\",\"endUtc\":\"2026-09-15T00:00:00Z\"}," +
+                                                      "{\"id\":\"a\",\"type\":\"hunt\",\"startUtc\":\"2026-09-14T00:00:00Z\",\"endUtc\":\"2026-09-15T00:00:00Z\"}," +
+                                                      "{\"id\":\"a\",\"type\":\"hunt\",\"startUtc\":\"2026-09-16T00:00:00Z\",\"endUtc\":\"2026-09-17T00:00:00Z\"}" +
+                                                      "]}";
+
+            LiveEventCalendarParseResult brokenBeforeDuplicateResult = JsonLiveEventCalendarParser.Parse(brokenBeforeDuplicateJson);
+
+            Assert.AreEqual(1, brokenBeforeDuplicateResult.Calendar.Instances.Count);
+            Assert.AreEqual("a", brokenBeforeDuplicateResult.Calendar.Instances[0].EventId);
+            Assert.AreEqual(2, brokenBeforeDuplicateResult.Problems.Count, string.Join("\n", brokenBeforeDuplicateResult.Problems));
+            Assert.AreEqual("Mục thứ 1 ('bad-date'): startUtc không phải giờ ISO 8601: '14/09/2026' — bỏ qua.",
+                             brokenBeforeDuplicateResult.Problems[0]);
+            Assert.AreEqual("Trùng id 'a' ở mục thứ 2 — giữ mục xuất hiện trước.", brokenBeforeDuplicateResult.Problems[1]);
         }
 
         [Test]
