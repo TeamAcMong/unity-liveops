@@ -5,6 +5,7 @@
         "DreamTech.LiveOps",
         "DreamTech.LiveOps.Unity",
         "DreamTech.LiveOps.Editor",
+        "DreamTech.LiveOps.Tests.Support",
         "UnityEngine.TestRunner",
         "UnityEditor.TestRunner"
     ],
