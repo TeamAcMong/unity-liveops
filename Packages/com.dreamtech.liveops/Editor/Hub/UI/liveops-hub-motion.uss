@@ -1,0 +1,64 @@
+/*
+ * liveops-hub-motion.uss — MỌI transition của hub + biến thể giảm chuyển động. Nạp CUỐI CÙNG vào root clone
+ * (theme → components → shell → feedback → controls → timeline → motion).
+ *
+ * Vì sao một file riêng nạp cuối ([FD §2.13]): USS không có !important và selector * không cộng specificity, nên không
+ * viết được ".liveops-hub--no-motion *". Mỗi thành phần có transition phải khai kèm biến thể --no-motion của chính nó;
+ * gom về một file nạp sau cùng thì biến thể thắng nhờ thứ tự khi cùng specificity, và gói thêm transition mới chỉ sửa
+ * một chỗ. File chỉ khai thuộc tính transition-* — trạng thái hiện/ẩn (opacity, translate) nằm ở sheet của thành phần.
+ *
+ * Luật: transition chỉ cho thứ xuất hiện hoặc biến mất; hover/nhấn/chọn đổi tức thì như control gốc; không bao giờ
+ * transition width hay left (layout lại mỗi khung).
+ */
+
+/* Toast ra: 90ms ease-in (opacity + trượt xuống 8px). */
+.liveops-hub-toast {
+    transition-property: opacity, translate;
+    transition-duration: 90ms, 90ms;
+    transition-timing-function: ease-in, ease-in;
+}
+
+/* Toast vào: 120ms ease-out. Khai trên class --visible để hướng vào và ra có nhịp khác nhau. */
+.liveops-hub-toast.liveops-hub-toast--visible {
+    transition-duration: 120ms, 120ms;
+    transition-timing-function: ease-out, ease-out;
+}
+
+/* Hover card: hiện 80ms (chờ 500ms và ẩn sau 100ms do C# hẹn giờ — không phải transition-delay, để rời chuột huỷ được). */
+.liveops-hub-hover-card {
+    transition-property: opacity;
+    transition-duration: 80ms;
+    transition-timing-function: ease-out;
+}
+
+/* Drawer inspector khi cửa sổ hẹp: trượt vào 150ms. */
+.liveops-hub-drawer {
+    transition-property: translate;
+    transition-duration: 150ms;
+    transition-timing-function: ease-out-cubic;
+}
+
+/* Hàng luật khi tới từ Lịch ("Mở luật …"): nháy nền một lần 300ms. */
+.liveops-hub-row--flash {
+    transition-property: background-color;
+    transition-duration: 300ms;
+    transition-timing-function: ease-out;
+}
+
+.liveops-hub-palette {
+    transition-property: opacity;
+    transition-duration: 80ms;
+    transition-timing-function: ease-out;
+}
+
+/* Giảm chuyển động (EditorPrefs LiveOpsHub.ReduceMotion → class trên root). Selector có specificity ≥ selector gốc của
+   từng thành phần và đứng sau trong file nạp cuối, nên luôn thắng. */
+.liveops-hub--no-motion .liveops-hub-toast,
+.liveops-hub--no-motion .liveops-hub-toast.liveops-hub-toast--visible,
+.liveops-hub--no-motion .liveops-hub-hover-card,
+.liveops-hub--no-motion .liveops-hub-drawer,
+.liveops-hub--no-motion .liveops-hub-row--flash,
+.liveops-hub--no-motion .liveops-hub-palette {
+    transition-duration: 0s;
+    transition-delay: 0s;
+}

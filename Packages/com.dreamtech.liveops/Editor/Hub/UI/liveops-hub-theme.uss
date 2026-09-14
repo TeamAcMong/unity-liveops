@@ -1,0 +1,104 @@
+/*
+ * liveops-hub-theme.uss — token hai skin của LiveOps Hub ([FD §2.1–§2.8], kế hoạch 8.10). Nạp ĐẦU TIÊN vào root clone.
+ *
+ * Vì sao token riêng thay cho --unity-colors-error-text/warning-text: error-text Dark #D32222 trên #383838 chỉ 2,24:1,
+ * Light error-text/warning-text gần đen nên dấu trạng thái không nổi ([FD §2.3]). Mọi màu nền/viền khác dùng thẳng
+ * biến Unity để tự đổi theo skin.
+ *
+ * Skin: token khai trên .liveops-hub-root (Dark), ghi đè trong .liveops-hub-root.liveops-hub--skin-light. Không @media,
+ * không tháo/gắn sheet lúc chạy — C# chỉ bật class skin khi probe --liveops-hub-skin-probe đổi (CustomStyleResolvedEvent).
+ *
+ * Custom property KHÔNG kế thừa ([API §12.2]): element tự vẽ (lane, minimap, JSON view, cycle bar) khai lại token trên
+ * selector của chính nó bằng var() — không đọc thẳng token của root qua customStyle.
+ *
+ * Đây là file DUY NHẤT được ghi màu trần (uss-lint.py chặn ở file khác).
+ */
+
+.liveops-hub-root {
+    /* Probe skin: đọc lại màu nền cửa sổ để biết Unity đã đổi Theme khi hub không có focus. */
+    --liveops-hub-skin-probe: var(--unity-colors-window-background);
+
+    /* Trạng thái — Dark ([FD §2.3], tương phản đo trên nền thật). */
+    --liveops-hub-color-blocked-text: #FF8080;
+    --liveops-hub-color-blocked-fill: #F05454;
+    --liveops-hub-color-warning-text: #F4BC02;
+    --liveops-hub-color-warning-fill: #F4BC02;
+    /* Quiet = chữ × 0,6 quy ra màu đặc trên cửa sổ #383838 (vòng rỗng 3,87:1). */
+    --liveops-hub-color-quiet: #949494;
+    --liveops-hub-color-focus: #7BAEFA;
+    /* Link không dùng --unity-colors-link-text (#4C7EFF chỉ 3,20:1 trên #383838). */
+    --liveops-hub-color-link: #7BAEFA;
+    --liveops-hub-color-now: #E6E6E6;
+    --liveops-hub-color-on-selection: #FFFFFF;
+    /* Tint nền dòng lỗi/cảnh báo = fill × 0,16 — USS không nhân alpha vào var() nên khai sẵn màu có alpha. */
+    --liveops-hub-color-blocked-tint: rgba(240, 84, 84, 0.16);
+    --liveops-hub-color-warning-tint: rgba(244, 188, 2, 0.16);
+    /* Nền mờ palette: giá trị cố định cho hai skin ([FD §2.2]) — khai ở đây để sheet feedback không ghi màu trần. */
+    --liveops-hub-scrim-color: rgba(0, 0, 0, 0.45);
+
+    /* Tám màu loại event ([FD §2.5]) — không đỏ/cam/vàng/xanh lá thuần để không lẫn màu sức khoẻ. */
+    --liveops-hub-event-color-0: #5096DE;
+    --liveops-hub-event-color-1: #2FB5C8;
+    --liveops-hub-event-color-2: #3BAA8F;
+    --liveops-hub-event-color-3: #8288E6;
+    --liveops-hub-event-color-4: #AD7BE0;
+    --liveops-hub-event-color-5: #D06BB8;
+    --liveops-hub-event-color-6: #7F9BB3;
+    --liveops-hub-event-color-7: #B88A9E;
+
+    /* Cú pháp JSON ([FD §2.6]); dấu câu dùng màu chữ nên không có token. */
+    --liveops-hub-json-key: #8FB8E8;
+    --liveops-hub-json-string: #B5CEA8;
+    --liveops-hub-json-number: #C8A2E0;
+    --liveops-hub-json-literal: #7FC4C4;
+
+    /* Màu phụ timeline ([FD §2.7]). */
+    --liveops-hub-timeline-weekend: rgba(255, 255, 255, 0.03);
+    --liveops-hub-timeline-today: rgba(44, 93, 135, 0.12);
+    --liveops-hub-timeline-grid: rgba(255, 255, 255, 0.06);
+    --liveops-hub-timeline-grid-monday: rgba(255, 255, 255, 0.14);
+
+    /* Spacing ([FD §2.8]) — nhịp chính 8px; USS không có gap nên dùng làm margin của phần tử đứng sau. */
+    --liveops-hub-space-2: 2px;
+    --liveops-hub-space-4: 4px;
+    --liveops-hub-space-6: 6px;
+    --liveops-hub-space-8: 8px;
+    --liveops-hub-space-10: 10px;
+    --liveops-hub-space-12: 12px;
+    --liveops-hub-space-16: 16px;
+}
+
+.liveops-hub-root.liveops-hub--skin-light {
+    --liveops-hub-color-blocked-text: #780000;
+    --liveops-hub-color-blocked-fill: #A80000;
+    --liveops-hub-color-warning-text: #4F3600;
+    --liveops-hub-color-warning-fill: #6E4E00;
+    /* Quiet Light trên cửa sổ #C8C8C8; trên rail #A5A5A5 shell dùng --unity-colors-default-text × 0,6 riêng nếu cần. */
+    --liveops-hub-color-quiet: #555555;
+    --liveops-hub-color-focus: #1D5087;
+    --liveops-hub-color-link: #1D5087;
+    --liveops-hub-color-now: #1A1A1A;
+    --liveops-hub-color-on-selection: #FFFFFF;
+    --liveops-hub-color-blocked-tint: rgba(168, 0, 0, 0.16);
+    --liveops-hub-color-warning-tint: rgba(110, 78, 0, 0.16);
+    --liveops-hub-scrim-color: rgba(0, 0, 0, 0.45);
+
+    --liveops-hub-event-color-0: #2F6DB5;
+    --liveops-hub-event-color-1: #13798A;
+    --liveops-hub-event-color-2: #1E7A60;
+    --liveops-hub-event-color-3: #4F55C2;
+    --liveops-hub-event-color-4: #7A45B5;
+    --liveops-hub-event-color-5: #A23C8A;
+    --liveops-hub-event-color-6: #4F6A82;
+    --liveops-hub-event-color-7: #8A5A70;
+
+    --liveops-hub-json-key: #1F4E8C;
+    --liveops-hub-json-string: #3F6B28;
+    --liveops-hub-json-number: #6A3D9A;
+    --liveops-hub-json-literal: #1E6B6B;
+
+    --liveops-hub-timeline-weekend: rgba(0, 0, 0, 0.05);
+    --liveops-hub-timeline-today: rgba(58, 114, 176, 0.12);
+    --liveops-hub-timeline-grid: rgba(0, 0, 0, 0.08);
+    --liveops-hub-timeline-grid-monday: rgba(0, 0, 0, 0.18);
+}

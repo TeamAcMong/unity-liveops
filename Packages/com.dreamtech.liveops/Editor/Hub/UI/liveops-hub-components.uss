@@ -1,0 +1,519 @@
+/*
+ * liveops-hub-components.uss — thành phần dùng chung của LiveOps Hub ([FD §2.4, §2.8–§2.16]). Nạp sau theme.
+ *
+ * Luật: không màu trần (mọi màu qua token theme hoặc --unity-colors-*), không gap/:last-child/:nth-child/@media
+ * (2022.3 không có — khoảng cách bằng margin của phần tử đứng sau, hàng cuối bằng class --last). Hình dạng dấu trạng
+ * thái nằm hoàn toàn ở đây: C# chỉ đổi class (LiveOpsStateMark, LiveOpsHubStyle).
+ */
+
+/* ---------------------------------------------------------------- Dấu trạng thái (họ tròn) — [FD §2.4] */
+
+.liveops-hub-state-mark {
+    width: 8px;
+    height: 8px;
+    flex-grow: 0;
+    flex-shrink: 0;
+    align-self: center;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Vạch cắt luôn là con của dấu (test StateMark_Blocked_HasBarChild) — chỉ hiện ở Blocked và lõi của "Chờ hiện kết quả". */
+.liveops-hub-state-mark__bar {
+    display: none;
+    flex-shrink: 0;
+}
+
+/* Ok yên lặng: chấm 4px + margin 2px (chiếm 8px để hàng không nhảy khi đổi trạng thái). */
+.liveops-hub-state-mark--ok {
+    width: 4px;
+    height: 4px;
+    margin: 2px;
+    border-radius: 2px;
+    background-color: var(--liveops-hub-color-quiet);
+}
+
+/* Warning: thoi 6px (vuông xoay 45°, bo 1px). */
+.liveops-hub-state-mark--warning {
+    width: 6px;
+    height: 6px;
+    margin: 1px;
+    border-radius: 1px;
+    rotate: 45deg;
+    background-color: var(--liveops-hub-color-warning-fill);
+}
+
+/* NotMeasured: vòng rỗng viền 2px — không bao giờ trông giống Ok (test StateMark_NotMeasured_HasVisibleBorder). */
+.liveops-hub-state-mark--not-measured {
+    width: 8px;
+    height: 8px;
+    border-width: 2px;
+    border-radius: 4px;
+    border-color: var(--liveops-hub-color-quiet);
+}
+
+/* Blocked: tròn đặc + vạch cắt trắng 4×2 (biển cấm); luôn ≥ 8px kể cả bản nhỏ. */
+.liveops-hub-state-mark--blocked {
+    width: 8px;
+    height: 8px;
+    border-radius: 4px;
+    background-color: var(--liveops-hub-color-blocked-fill);
+}
+
+.liveops-hub-state-mark--blocked > .liveops-hub-state-mark__bar {
+    display: flex;
+    width: 4px;
+    height: 2px;
+    background-color: var(--liveops-hub-color-on-selection);
+}
+
+/* Bản 7px (rail, dải tóm tắt). Blocked không có bản nhỏ. */
+.liveops-hub-state-mark--small.liveops-hub-state-mark--ok {
+    margin: 1.5px;
+}
+
+.liveops-hub-state-mark--small.liveops-hub-state-mark--warning {
+    width: 5px;
+    height: 5px;
+}
+
+.liveops-hub-state-mark--small.liveops-hub-state-mark--not-measured {
+    width: 7px;
+    height: 7px;
+    border-radius: 3.5px;
+}
+
+/* Bản 12px (card lỗi, trạng thái trống). */
+.liveops-hub-state-mark--large.liveops-hub-state-mark--ok {
+    width: 6px;
+    height: 6px;
+    margin: 3px;
+    border-radius: 3px;
+}
+
+.liveops-hub-state-mark--large.liveops-hub-state-mark--warning {
+    width: 9px;
+    height: 9px;
+    margin: 1.5px;
+}
+
+.liveops-hub-state-mark--large.liveops-hub-state-mark--not-measured {
+    width: 12px;
+    height: 12px;
+    border-radius: 6px;
+}
+
+.liveops-hub-state-mark--large.liveops-hub-state-mark--blocked {
+    width: 12px;
+    height: 12px;
+    border-radius: 6px;
+}
+
+.liveops-hub-state-mark--large.liveops-hub-state-mark--blocked > .liveops-hub-state-mark__bar {
+    width: 6px;
+}
+
+/* ---------------------------------------------------------------- Giai đoạn đợt (họ vuông/gạch, màu chữ) — [FD §2.4] */
+
+.liveops-hub-state-mark.liveops-hub-phase--running {
+    width: 7px;
+    height: 7px;
+    border-radius: 1px;
+    background-color: var(--unity-colors-default-text);
+}
+
+.liveops-hub-state-mark.liveops-hub-phase--upcoming {
+    width: 7px;
+    height: 7px;
+    border-width: 1.5px;
+    border-radius: 1px;
+    border-color: var(--unity-colors-default-text);
+}
+
+.liveops-hub-state-mark.liveops-hub-phase--pending {
+    width: 7px;
+    height: 7px;
+    border-width: 1.5px;
+    border-radius: 1px;
+    border-color: var(--unity-colors-default-text);
+}
+
+.liveops-hub-state-mark.liveops-hub-phase--pending > .liveops-hub-state-mark__bar {
+    display: flex;
+    width: 2px;
+    height: 2px;
+    background-color: var(--unity-colors-default-text);
+}
+
+.liveops-hub-state-mark.liveops-hub-phase--ended {
+    width: 7px;
+    height: 2px;
+    opacity: 0.7;
+    background-color: var(--unity-colors-default-text);
+}
+
+/* ---------------------------------------------------------------- Họ fill / text — LiveOpsHubStyle gỡ cả hai họ trước khi gắn */
+
+.liveops-hub-fill--ok {
+    background-color: var(--liveops-hub-color-quiet);
+}
+
+.liveops-hub-fill--warning {
+    background-color: var(--liveops-hub-color-warning-fill);
+}
+
+.liveops-hub-fill--blocked {
+    background-color: var(--liveops-hub-color-blocked-fill);
+}
+
+/* Viền 2px như dấu NotMeasured: 1px trên swatch/thanh mảnh gần như biến mất, fill NotMeasured trông như Ok ([FD §2.4]). */
+.liveops-hub-fill--not-measured {
+    border-width: 2px;
+    border-color: var(--liveops-hub-color-quiet);
+}
+
+.liveops-hub-text--ok {
+    color: var(--unity-colors-default-text);
+}
+
+/* Chữ trạng thái luôn opacity 1 — × 0,7 thì blocked-text trên toolbar còn 3,00:1 ([FD §2.3]). */
+.liveops-hub-text--warning {
+    color: var(--liveops-hub-color-warning-text);
+    opacity: 1;
+}
+
+.liveops-hub-text--blocked {
+    color: var(--liveops-hub-color-blocked-text);
+    opacity: 1;
+}
+
+.liveops-hub-text--quiet {
+    color: var(--liveops-hub-color-quiet);
+}
+
+/* Trên hàng đang chọn chữ trạng thái thành trắng (Dark); Light giữ màu token khi danh sách mất focus vì trắng trên
+   highlight-inactive #AEAEAE chỉ 2,22:1 ([FD §2.3]). */
+.unity-collection-view__item--selected .liveops-hub-text--blocked,
+.unity-collection-view__item--selected .liveops-hub-text--warning {
+    color: var(--liveops-hub-color-on-selection);
+}
+
+.liveops-hub--skin-light .unity-collection-view__item--selected .liveops-hub-text--blocked {
+    color: var(--liveops-hub-color-blocked-text);
+}
+
+.liveops-hub--skin-light .unity-collection-view__item--selected .liveops-hub-text--warning {
+    color: var(--liveops-hub-color-warning-text);
+}
+
+.liveops-hub--skin-light .liveops-hub-list--has-focus .unity-collection-view__item--selected .liveops-hub-text--blocked,
+.liveops-hub--skin-light .liveops-hub-list--has-focus .unity-collection-view__item--selected .liveops-hub-text--warning {
+    color: var(--liveops-hub-color-on-selection);
+}
+
+/* ---------------------------------------------------------------- Nút + slot có lý do — [FD §2.10, §2.16] */
+
+.liveops-hub-button {
+    min-width: 54px;
+    height: 18px;
+    padding: 0 7px;
+    margin-left: 4px;
+    font-size: 11px;
+}
+
+.liveops-hub-button--first {
+    margin-left: 0;
+}
+
+/* Nút chính không tô nền, chỉ chữ đậm. */
+.liveops-hub-button--primary {
+    -unity-font-style: bold;
+}
+
+/* Nút nguy hiểm chỉ đổi màu chữ; Dark đặt trên nền toolbar (#FF8080 trên #585858 chỉ 2,93:1). */
+.liveops-hub-button--danger {
+    color: var(--liveops-hub-color-blocked-text);
+    background-color: var(--unity-colors-toolbar-background);
+}
+
+.liveops-hub--skin-light .liveops-hub-button--danger {
+    background-color: var(--unity-colors-button-background);
+}
+
+.liveops-hub-button-slot {
+    flex-direction: row;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+.liveops-hub-button-reason {
+    display: none;
+    font-size: 10px;
+    margin-right: 2px;
+}
+
+.liveops-hub-button-slot--blocked > .liveops-hub-button-reason {
+    display: flex;
+}
+
+/* ---------------------------------------------------------------- Card, metric, key-value, tag */
+
+.liveops-hub-card {
+    border-width: 1px;
+    border-radius: 3px;
+    border-color: var(--unity-colors-window-border);
+    margin-bottom: var(--liveops-hub-space-8);
+}
+
+.liveops-hub-card-header {
+    flex-direction: row;
+    align-items: center;
+    height: 24px;
+    padding: 0 8px;
+    background-color: var(--unity-colors-toolbar-background);
+    border-bottom-width: 1px;
+    border-bottom-color: var(--unity-colors-window-border);
+    border-top-left-radius: 2px;
+    border-top-right-radius: 2px;
+}
+
+.liveops-hub-card--collapsed > .liveops-hub-card-header {
+    border-bottom-width: 0;
+}
+
+.liveops-hub-card-header--clickable:hover {
+    background-color: var(--unity-colors-highlight-background-hover);
+}
+
+.liveops-hub-metric {
+    flex-grow: 1;
+    flex-basis: 132px;
+    min-width: 132px;
+    padding: 6px 8px;
+    margin-right: 6px;
+    border-width: 1px;
+    border-radius: 3px;
+    border-color: var(--unity-colors-window-border);
+    background-color: var(--unity-colors-toolbar-background);
+}
+
+/* Caption HOA tiếng Việt tối thiểu 10px + letter-spacing để không cắt dấu chồng ("Ể", "Ị"). */
+.liveops-hub-metric-caption {
+    font-size: 10px;
+    -unity-font-style: bold;
+    letter-spacing: 0.5px;
+    opacity: 0.7;
+}
+
+.liveops-hub-metric-value {
+    font-size: 18px;
+    -unity-font-style: bold;
+}
+
+.liveops-hub-metric-unit {
+    font-size: 10px;
+    margin-left: 2px;
+}
+
+.liveops-hub-metric-foot {
+    font-size: 10px;
+    opacity: 0.82;
+}
+
+.liveops-hub-key-value {
+    flex-direction: row;
+    align-items: center;
+    min-height: 20px;
+}
+
+.liveops-hub-key-value-key {
+    width: 96px;
+    flex-shrink: 0;
+    font-size: 10px;
+    opacity: 0.7;
+}
+
+.liveops-hub-tag {
+    flex-direction: row;
+    align-items: center;
+    height: 18px;
+    padding: 0 6px;
+    border-width: 1px;
+    border-radius: 3px;
+    border-color: var(--unity-colors-window-border);
+    -unity-text-align: middle-left;
+}
+
+.liveops-hub-caption {
+    font-size: 10px;
+    -unity-font-style: bold;
+    letter-spacing: 0.5px;
+    opacity: 0.7;
+}
+
+/* Mono chỉ cho ASCII (id, ISO, JSON, sha): RobotoMono thiếu ⌘ ⇧ ⌫ → ([API §12.3]). */
+.liveops-hub-mono {
+    -unity-font-definition: resource("Fonts/RobotoMono/RobotoMono-Regular SDF.asset");
+}
+
+.liveops-hub-helpbox-actions {
+    flex-direction: row;
+    justify-content: flex-end;
+    margin-top: var(--liveops-hub-space-4);
+}
+
+/* ---------------------------------------------------------------- Hàng phát hiện, hàng danh sách */
+
+.liveops-hub-finding-row {
+    flex-direction: row;
+    align-items: center;
+    min-height: 22px;
+    padding-left: 8px;
+}
+
+/* Sọc 3px thay 3px padding để chữ không xê dịch giữa hàng có và không có sọc. */
+.liveops-hub-finding-stripe--blocked {
+    border-left-width: 3px;
+    border-left-color: var(--liveops-hub-color-blocked-fill);
+    padding-left: 5px;
+}
+
+.liveops-hub-finding-stripe--warning {
+    border-left-width: 3px;
+    border-left-color: var(--liveops-hub-color-warning-fill);
+    padding-left: 5px;
+}
+
+.liveops-hub-finding-stripe--not-measured {
+    border-left-width: 3px;
+    border-left-color: var(--liveops-hub-color-quiet);
+    padding-left: 5px;
+}
+
+.liveops-hub-row--last {
+    border-bottom-width: 0;
+}
+
+/* Active (thứ đang dùng thật, vd "đang là bản so") = viền trái 3px màu chữ — khác Selected (nền) và Focus (viền 1px). */
+.liveops-hub-row--active {
+    border-left-width: 3px;
+    border-left-color: var(--unity-colors-default-text);
+}
+
+.liveops-hub-row--flash {
+    background-color: var(--unity-colors-highlight-background-hover);
+}
+
+/* ---------------------------------------------------------------- Placeholder phủ TextField — [FD §2.11] */
+
+.liveops-hub-placeholder {
+    position: absolute;
+    left: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    padding-left: 2px;
+    opacity: 0.7;
+    -unity-text-align: middle-left;
+}
+
+.liveops-hub-placeholder--hidden {
+    display: none;
+}
+
+/* ---------------------------------------------------------------- Chevron, swatch, màu loại, icon */
+
+/* Mũi tên 5×5 viền trên + phải 1,5px; hướng bằng rotate (phải 45°, trái −135°, xuống 135°, lên −45°). */
+.liveops-hub-chevron {
+    width: 5px;
+    height: 5px;
+    flex-shrink: 0;
+    align-self: center;
+    border-top-width: 1.5px;
+    border-right-width: 1.5px;
+    border-color: var(--unity-colors-default-text);
+    rotate: 45deg;
+}
+
+.liveops-hub-chevron--right {
+    rotate: 45deg;
+}
+
+.liveops-hub-chevron--left {
+    rotate: -135deg;
+}
+
+.liveops-hub-chevron--down {
+    rotate: 135deg;
+}
+
+.liveops-hub-chevron--up {
+    rotate: -45deg;
+}
+
+.liveops-hub-swatch {
+    width: 9px;
+    height: 9px;
+    flex-shrink: 0;
+    border-radius: 2px;
+}
+
+.liveops-hub-event-color-0 {
+    background-color: var(--liveops-hub-event-color-0);
+}
+
+.liveops-hub-event-color-1 {
+    background-color: var(--liveops-hub-event-color-1);
+}
+
+.liveops-hub-event-color-2 {
+    background-color: var(--liveops-hub-event-color-2);
+}
+
+.liveops-hub-event-color-3 {
+    background-color: var(--liveops-hub-event-color-3);
+}
+
+.liveops-hub-event-color-4 {
+    background-color: var(--liveops-hub-event-color-4);
+}
+
+.liveops-hub-event-color-5 {
+    background-color: var(--liveops-hub-event-color-5);
+}
+
+.liveops-hub-event-color-6 {
+    background-color: var(--liveops-hub-event-color-6);
+}
+
+.liveops-hub-event-color-7 {
+    background-color: var(--liveops-hub-event-color-7);
+}
+
+.liveops-hub-icon {
+    flex-shrink: 0;
+}
+
+.liveops-hub-icon--10 {
+    width: 10px;
+    height: 10px;
+}
+
+.liveops-hub-icon--12 {
+    width: 12px;
+    height: 12px;
+}
+
+.liveops-hub-icon--14 {
+    width: 14px;
+    height: 14px;
+}
+
+.liveops-hub-icon--16 {
+    width: 16px;
+    height: 16px;
+}
+
+.liveops-hub-spinner {
+    align-self: center;
+}
