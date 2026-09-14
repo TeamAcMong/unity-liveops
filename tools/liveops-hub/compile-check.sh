@@ -186,8 +186,11 @@ for version in $versions; do
   rm -f "$version_output"/*.dll
 
   # Chỉ DLL module (không facade UnityEngine.dll/UnityEditor.dll): facade trùng type với module sinh CS0433.
+  # File trung gian PHẢI khác tên với $version_output/editor.references — khối biên dịch phần "editor" bên dưới ghi
+  # đè đúng cái tên đó bằng `>` trước khi `cat` nó (redirection của compound command mở/cắt file trước khi lệnh trong
+  # khối chạy), nên trùng tên làm editor_references_file luôn đọc ra rỗng ngay khi có Editor/ (G-FIX-W0-1, SK-1).
   engine_references_file=$version_output/engine.references
-  editor_references_file=$version_output/editor.references
+  editor_references_file=$version_output/editor-base.references
   # Shim netfx (mscorlib, System, System.Core...) chuyển kiểu về netstandard như Unity làm cho mọi assembly không phải
   # noEngineReferences; thiếu thì DLL build cho .NET Framework (nunit.framework.dll) báo CS0012 "mscorlib chưa tham chiếu".
   {
