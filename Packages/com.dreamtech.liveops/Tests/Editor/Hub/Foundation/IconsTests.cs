@@ -3,6 +3,7 @@ using NUnit.Framework;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.TestTools;
+using UnityEngine.UIElements;
 
 namespace DreamTech.LiveOps.Editor.Tests
 {
@@ -83,6 +84,30 @@ namespace DreamTech.LiveOps.Editor.Tests
             Assert.IsTrue(image.ClassListContains(LiveOpsHubClassNames.IconSize14));
             Assert.IsNotNull(image.image);
             Assert.AreEqual("WaitSpin00", LiveOpsHubIcons.SpinnerFrameName(12));
+            LogAssert.NoUnexpectedReceived();
+        }
+
+        [Test]
+        public void Spinner_StartStopAndAdvanceWrapsFrames()
+        {
+            // Nhịp 83 ms gắn với panel nên test gọi Advance trực tiếp — chờ lịch thật vừa chậm vừa phụ thuộc có cửa sổ.
+            LiveOpsSpinner spinner = new LiveOpsSpinner();
+            Assert.IsTrue(spinner.IsSpinning, "spinner mới tạo là đang quay — nơi dựng không phải gọi Start lần nữa");
+            Assert.AreEqual(0, spinner.FrameIndex);
+            Assert.AreEqual(LiveOpsHubIcons.Get(LiveOpsHubIcons.SpinnerFrameName(0)), spinner.image);
+            Assert.AreEqual(PickingMode.Ignore, spinner.pickingMode, "spinner nằm trên nút/hàng — không được nuốt click");
+
+            spinner.Stop();
+            Assert.IsFalse(spinner.IsSpinning);
+            spinner.Start();
+            Assert.IsTrue(spinner.IsSpinning, "Start khi chưa có panel chỉ bật cờ, không ném vì chưa có lịch");
+
+            spinner.Advance();
+            Assert.AreEqual(1, spinner.FrameIndex);
+            Assert.AreEqual(LiveOpsHubIcons.Get(LiveOpsHubIcons.SpinnerFrameName(1)), spinner.image, "mỗi nhịp phải đổi texture, không chỉ đổi chỉ số");
+            for (int step = 1; step < LiveOpsHubIcons.SpinnerFrames; step++) spinner.Advance();
+            Assert.AreEqual(0, spinner.FrameIndex, "sau khung 11 quay về WaitSpin00 — vượt 11 là tên icon không tồn tại");
+            Assert.AreEqual(LiveOpsHubIcons.Get(LiveOpsHubIcons.SpinnerFrameName(0)), spinner.image);
             LogAssert.NoUnexpectedReceived();
         }
     }

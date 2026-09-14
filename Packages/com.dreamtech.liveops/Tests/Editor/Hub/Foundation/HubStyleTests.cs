@@ -127,6 +127,54 @@ namespace DreamTech.LiveOps.Editor.Tests
             Assert.AreEqual(LiveOpsHubPaths.CalendarIconName, PipelineStages.IconNameOf(PipelineStage.Schedule));
         }
 
+        [Test]
+        public void Placeholder_HiddenOnlyWhenFieldHasValue_RefreshAfterSetValueWithoutNotify()
+        {
+            TextField field = new TextField();
+            LiveOpsPlaceholder placeholder = LiveOpsPlaceholder.Attach(field, "vd: weekly-pass");
+
+            Assert.AreSame(field, placeholder.Field);
+            Assert.IsTrue(field.Contains(placeholder), "placeholder phải nằm trong ô để phủ đúng vùng nhập");
+            Assert.AreEqual(PickingMode.Ignore, placeholder.pickingMode, "Label bắt click sẽ chặn focus và IME của ô");
+            Assert.IsFalse(placeholder.ClassListContains(LiveOpsHubClassNames.PlaceholderHidden), "ô trống thì hiện gợi ý");
+
+            // SetValueWithoutNotify không bắn ChangeEvent — placeholder chỉ biết khi nơi gán gọi Refresh.
+            field.SetValueWithoutNotify("weekly-pass");
+            Assert.IsFalse(placeholder.ClassListContains(LiveOpsHubClassNames.PlaceholderHidden));
+            placeholder.Refresh();
+            Assert.IsTrue(placeholder.ClassListContains(LiveOpsHubClassNames.PlaceholderHidden), "ô có giá trị thì ẩn gợi ý — không chồng chữ");
+
+            field.SetValueWithoutNotify(string.Empty);
+            placeholder.Refresh();
+            Assert.IsFalse(placeholder.ClassListContains(LiveOpsHubClassNames.PlaceholderHidden), "xoá hết giá trị thì gợi ý quay lại");
+
+            TextField prefilledField = new TextField { value = "summer-2026" };
+            Label uxmlPlaceholder = new Label("vd: weekly-pass");
+            LiveOpsPlaceholder.TrackExisting(prefilledField, uxmlPlaceholder);
+            Assert.AreEqual(PickingMode.Ignore, uxmlPlaceholder.pickingMode, "UXML quên picking-mode thì vẫn ép Ignore");
+            Assert.IsTrue(uxmlPlaceholder.ClassListContains(LiveOpsHubClassNames.Placeholder));
+            Assert.IsTrue(uxmlPlaceholder.ClassListContains(LiveOpsHubClassNames.PlaceholderHidden), "ô đã có giá trị lúc gắn thì ẩn ngay");
+            Assert.Throws<ArgumentNullException>(() => LiveOpsPlaceholder.Attach(null, "gợi ý"));
+        }
+
+        [Test]
+        public void Chevron_DirectionChange_RemovesPreviousClass()
+        {
+            LiveOpsChevron chevron = new LiveOpsChevron(LiveOpsChevron.ChevronDirection.Down);
+            Assert.IsTrue(chevron.ClassListContains(LiveOpsHubClassNames.Chevron));
+            Assert.AreEqual(PickingMode.Ignore, chevron.pickingMode, "mũi tên không được chặn click của hàng chứa nó");
+            CollectionAssert.AreEqual(new[] { LiveOpsHubClassNames.ChevronDown }, ClassesWithPrefix(chevron, "liveops-hub-chevron--"));
+
+            chevron.Direction = LiveOpsChevron.ChevronDirection.Left;
+            Assert.AreEqual(LiveOpsChevron.ChevronDirection.Left, chevron.Direction);
+            CollectionAssert.AreEqual(new[] { LiveOpsHubClassNames.ChevronLeft }, ClassesWithPrefix(chevron, "liveops-hub-chevron--"),
+                "đổi hướng phải gỡ class cũ — mang hai class hướng thì góc xoay do thứ tự rule USS quyết");
+
+            chevron.Direction = LiveOpsChevron.ChevronDirection.Left;
+            CollectionAssert.AreEqual(new[] { LiveOpsHubClassNames.ChevronLeft }, ClassesWithPrefix(chevron, "liveops-hub-chevron--"), "gán lại cùng hướng không nhân đôi class");
+            Assert.AreEqual(LiveOpsHubClassNames.ChevronRight, ClassesWithPrefix(new LiveOpsChevron(), "liveops-hub-chevron--")[0], "mặc định chỉ sang phải");
+        }
+
         private static List<string> StateFamilyClasses(VisualElement element)
         {
             List<string> result = ClassesWithPrefix(element, "liveops-hub-fill--");

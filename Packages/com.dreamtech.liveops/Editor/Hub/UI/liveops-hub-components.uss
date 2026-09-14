@@ -166,8 +166,9 @@
     background-color: var(--liveops-hub-color-blocked-fill);
 }
 
+/* Viền 2px như dấu NotMeasured: 1px trên swatch/thanh mảnh gần như biến mất, fill NotMeasured trông như Ok ([FD §2.4]). */
 .liveops-hub-fill--not-measured {
-    border-width: 1px;
+    border-width: 2px;
     border-color: var(--liveops-hub-color-quiet);
 }
 
