@@ -131,6 +131,9 @@ for version in $versions; do
     exit 3
   fi
   mkdir -p "$output_directory"
+  # Dọn ảnh/đo/log cũ trước khi chụp — nhãn = tên gói (9.6) nên chạy lại sau khi sửa dùng cùng thư mục; nếu không dọn,
+  # ảnh cũ của lần chụp trước vẫn đủ để qua bước kiểm "đủ ảnh" dù lần chụp này thật ra lỗi (F8).
+  rm -f "$output_directory"/*.png "$output_directory"/*.json "$output_directory/capture.log"
   unity_status=0
   "${slot_command[@]}" || unity_status=$?
   if [ "$unity_status" != 0 ]; then

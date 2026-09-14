@@ -500,9 +500,9 @@ class CSharpLinter(object):
             if in_runtime_unity and re.search(r"\bUnityEditor\b", code):
                 report(line_number, "runtime-forbidden", ERROR, "runtime Unity không được đụng UnityEditor (build game sẽ lỗi)")
             if in_package:
-                if re.search(r"\bResources\s*\.\s*Load\b", code):
-                    report(line_number, "package-forbidden", ERROR, "package không Resources.Load (đường dẫn thuộc game)")
-                if re.search(r"\busing\s+System\s*\.\s*Linq\b", code):
+                if re.search(r"\bResources\s*\.\s*Load\w*", code):
+                    report(line_number, "package-forbidden", ERROR, "package không Resources.Load* (đường dẫn thuộc game)")
+                if re.search(r"\busing\s+System\s*\.\s*Linq\b", code) or re.search(r"\bSystem\s*\.\s*Linq\b", code):
                     report(line_number, "package-forbidden", ERROR, "không dùng System.Linq trong package (cấp phát ẩn, luật package)")
                 if re.search(r"\bFindAnyObjectByType\b", code):
                     report(line_number, "package-forbidden", ERROR, "FindAnyObjectByType không có ở mọi bản 2022.3")

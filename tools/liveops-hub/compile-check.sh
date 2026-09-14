@@ -75,7 +75,7 @@ version_defines() {
   local year minor
   for year in 2017 2018 2019 2020 2021 2022 2023; do
     local last_minor=4
-    case "$year" in 2020|2021|2022) last_minor=3;; 2023) last_minor=2;; esac
+    case "$year" in 2020|2021|2022|2023) last_minor=3;; esac
     for minor in $(seq 1 "$last_minor"); do
       if [ "$target_major" -gt "$year" ] || { [ "$target_major" = "$year" ] && [ "$minor" -le "$target_minor" ]; }; then
         defines="$defines;UNITY_${year}_${minor}_OR_NEWER"
@@ -242,7 +242,9 @@ for version in $versions; do
     } > "$version_output/test-base.references"
 
     list_sources "$package/Tests/Editor/Support" > "$version_output/support.sources"
-    { echo "-r:$netstandard"; echo "-r:$core_dll"; } > "$version_output/support.references"
+    # Tham chiếu nunit như asmdef thật của Tests.Support (kế hoạch 5.6/V-4: LiveOpsDocumentAssert dùng
+    # NUnit.Framework.Assert) — thiếu dòng này compile-check xanh giả trong khi asmdef thật đỏ (F10).
+    { echo "-r:$netstandard"; echo "-r:$core_dll"; echo "-r:$test_references/nunit.framework.dll"; } > "$version_output/support.references"
     compile_assembly "$version" DreamTech.LiveOps.Tests.Support "$test_defines" "$version_output/support.references" "" "$version_output/support.sources" || true
     support_reference=""
     if [ -f "$support_dll" ]; then support_reference="-r:$support_dll"; fi
