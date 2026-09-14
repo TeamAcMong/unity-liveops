@@ -104,6 +104,86 @@ namespace DreamTech.LiveOps.Tests
         }
 
         [Test]
+        public void ReadableTimeWithFractionalSeconds_KeepsFraction()
+        {
+            LiveEventCalendarDocument document = new LiveEventCalendarDocumentBuilder()
+                .WithRecurringRule(new RecurringLiveEventRule("sky-race", "2026-01-05T00:00:00.6Z", "", 24, 20, "k"))
+                .WithFixedEvent(new FixedLiveEventEntry("entry-a", "a", "lava-quest", "2026-09-10T00:00:00.2Z", "2026-09-10T00:00:00.7Z", "k"))
+                .WithFixedEvent(new FixedLiveEventEntry("entry-b", "b", "lava-quest", "2026-09-11T07:30:00.1234567+07:00", "2026-09-12T00:00:00.500Z", "k"))
+                .WithFixedEvent(new FixedLiveEventEntry("entry-c", "c", "lava-quest", "2026-09-13T00:00:00.000Z", "2026-09-14T00:00:00.0000001Z", "k"))
+                .Build();
+
+            string text = LiveEventCalendarJsonWriter.Write(document, LiveEventCalendarJsonFormat.Version2).Text;
+
+            StringAssert.Contains("\"anchorUtc\": \"2026-01-05T00:00:00.6Z\",", text, "Neo không được lùi 0,6 giây — cả dãy lần chạy sẽ lệch.");
+            StringAssert.Contains("\"startUtc\": \"2026-09-10T00:00:00.2Z\",", text);
+            StringAssert.Contains("\"endUtc\": \"2026-09-10T00:00:00.7Z\",", text);
+            StringAssert.Contains("\"startUtc\": \"2026-09-11T00:30:00.1234567Z\",", text, "Múi đổi về Z, giữ đủ 7 chữ số lẻ.");
+            StringAssert.Contains("\"endUtc\": \"2026-09-12T00:00:00.5Z\",", text, "Số 0 cuối của phần lẻ bỏ đi.");
+            StringAssert.Contains("\"startUtc\": \"2026-09-13T00:00:00Z\",", text, "Phần lẻ toàn 0 là giờ tròn giây → dạng chuẩn.");
+            StringAssert.Contains("\"endUtc\": \"2026-09-14T00:00:00.0000001Z\",", text, "Một tick cũng là thời điểm khác.");
+        }
+
+        [Test]
+        public void FractionalSeconds_WrittenJsonCompilesLikeDraft_AndIsByteFixedPoint()
+        {
+            // Đúng ca V-6 (c): nháp giữ đợt (0,2 → 0,7 giây); nếu bộ ghi cắt phần lẻ thì JSON có bắt đầu = kết thúc và game bỏ đợt.
+            LiveEventCalendarDocument draft = new LiveEventCalendarDocumentBuilder()
+                .WithRecurringRule(new RecurringLiveEventRule("sky-race", "2026-01-05T00:00:00.6Z", "", 24, 20, "k"))
+                .WithFixedEvent(new FixedLiveEventEntry("entry-a", "a", "lava-quest", "2026-09-10T00:00:00.2Z", "2026-09-10T00:00:00.7Z", "k"))
+                .Build();
+            LiveEventCalendarJsonText json = LiveEventCalendarJsonWriter.Write(draft, LiveEventCalendarJsonFormat.Version2);
+
+            // Dựng lại tài liệu từ đúng chuỗi giờ đã ghi (bộ đọc JSON của game ở RU, assembly test thuần không tham chiếu).
+            LiveEventCalendarDocument fromWrittenJson = new LiveEventCalendarDocumentBuilder()
+                .WithRecurringRule(new RecurringLiveEventRule("sky-race",
+                    WrittenStringValue(json, LiveEventCalendarItemKind.RecurringRule, "sky-race", "anchorUtc"), "sky-race-", 24, 20, "k"))
+                .WithFixedEvent(new FixedLiveEventEntry("entry-a", "a", "lava-quest",
+                    WrittenStringValue(json, LiveEventCalendarItemKind.FixedEvent, "entry-a", "startUtc"),
+                    WrittenStringValue(json, LiveEventCalendarItemKind.FixedEvent, "entry-a", "endUtc"), "k"))
+                .Build();
+
+            LiveEventCalendarCompilation draftCompilation = LiveEventCalendarCompiler.CompileInExportOrder(draft);
+            LiveEventCalendarCompilation jsonCompilation = LiveEventCalendarCompiler.Compile(fromWrittenJson);
+            Assert.AreEqual(draftCompilation.EntryCount, jsonCompilation.EntryCount);
+            for (int index = 0; index < draftCompilation.EntryCount; index++)
+            {
+                LiveEventCalendarEntryOutcome draftOutcome = draftCompilation.Entries[index];
+                LiveEventCalendarEntryOutcome jsonOutcome = jsonCompilation.Entries[index];
+                Assert.AreEqual(draftOutcome.EventId, jsonOutcome.EventId, "mục " + index);
+                Assert.AreEqual(draftOutcome.IsKept, jsonOutcome.IsKept, "mục " + index);
+                Assert.AreEqual(draftOutcome.DropReason, jsonOutcome.DropReason, "mục " + index);
+            }
+            Assert.IsTrue(jsonCompilation.TryGetFixedOutcome("entry-a", out LiveEventCalendarEntryOutcome kept) && kept.IsKept,
+                "Đợt 0,2 → 0,7 giây phải được game giữ như nháp.");
+
+            DateTime fromUtc = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+            DateTime toUtc = new DateTime(2026, 1, 20, 0, 0, 0, DateTimeKind.Utc);
+            IReadOnlyList<LiveEventInstance> draftInstances = draftCompilation.GetInstancesInRange("sky-race", fromUtc, toUtc);
+            IReadOnlyList<LiveEventInstance> jsonInstances = jsonCompilation.GetInstancesInRange("sky-race", fromUtc, toUtc);
+            Assert.AreEqual(draftInstances.Count, jsonInstances.Count);
+            Assert.Greater(draftInstances.Count, 0);
+            for (int index = 0; index < draftInstances.Count; index++)
+            {
+                Assert.AreEqual(draftInstances[index].StartUtc, jsonInstances[index].StartUtc, "lần chạy " + index);
+            }
+
+            CollectionAssert.AreEqual(json.GetUtf8Bytes(),
+                LiveEventCalendarJsonWriter.Write(fromWrittenJson, LiveEventCalendarJsonFormat.Version2).GetUtf8Bytes(),
+                "Ghi → đọc → ghi phải ra đúng byte cũ (mục 5.6 phép so 1).");
+        }
+
+        private static string WrittenStringValue(LiveEventCalendarJsonText json, LiveEventCalendarItemKind kind, string itemKey, string fieldName)
+        {
+            Assert.IsTrue(json.TryGetFieldLine(kind, itemKey, fieldName, out int lineNumber), fieldName);
+            string lineText = json.Lines[lineNumber - 1].Text;
+            const string separator = "\": \"";
+            int valueStart = lineText.IndexOf(separator, StringComparison.Ordinal) + separator.Length;
+            int valueEnd = lineText.LastIndexOf('"');
+            return lineText.Substring(valueStart, valueEnd - valueStart);
+        }
+
+        [Test]
         public void MissingConfigKey_WritesTypeDefault()
         {
             LiveEventCalendarJsonText json = LiveEventCalendarJsonWriter.Write(LiveOpsDesignSample.Document, LiveEventCalendarJsonFormat.Version2);
@@ -343,6 +423,7 @@ namespace DreamTech.LiveOps.Tests
                 .WithEventType(new LiveEventTypeDefinition("sky-race", "Đua trên trời", 4, false, "sky_race_v4"))
                 .WithRecurringRule(new RecurringLiveEventRule("sky-race", "2026-01-05T07:30+07:00", "", -24, -1, ""))
                 .WithFixedEvent(new FixedLiveEventEntry("entry-a", "Istanbul-i", "sky-race", "2026-09-10T00:00:00Z", "2026-9-11", ""))
+                .WithFixedEvent(new FixedLiveEventEntry("entry-b", "fraction", "sky-race", "2026-09-12T07:30:00.25Z", "2026-09-13T00:00:00Z", ""))
                 .Build();
 
             CultureInfo originalCulture = Thread.CurrentThread.CurrentCulture;
@@ -354,9 +435,24 @@ namespace DreamTech.LiveOps.Tests
                 byte[] invariantSampleBytes = LiveEventCalendarJsonWriter.Write(LiveOpsDesignSample.Document, LiveEventCalendarJsonFormat.Version2).GetUtf8Bytes();
                 StringAssert.Contains("\"periodHours\": -24,", Utf8WithoutByteOrderMark.GetString(invariantBytes));
 
-                foreach (string cultureName in new[] { "vi-VN", "fr-FR", "en-US", "tr-TR" })
+                // vi-VN/fr-FR/en-US/tr-TR là culture thật của người dùng, nhưng dấu âm và dấu phân cách giờ của cả bốn trùng
+                // Invariant (đo trên Mono 2022.3 và .NET 9) — riêng chúng không bắt được việc bỏ InvariantCulture. Culture
+                // đối nghịch tất định (không phụ thuộc dữ liệu ICU/Mono của máy) mới làm test đỏ khi bỏ InvariantCulture ở
+                // FormatInteger hoặc ở định dạng giờ.
+                CultureInfo adversarialCulture = CreateAdversarialCulture();
+                Assert.AreEqual("~24", (-24).ToString(adversarialCulture), "Culture đối nghịch phải thật sự đổi dấu âm.");
+                // Cố ý định dạng theo culture đối nghịch (không Invariant): đây là phép đo chính culture đó, không phải đường ghi.
+                const string timeOfDayFormat = "HH:mm:ss";
+                Assert.AreEqual("07.30.00", new DateTime(2026, 1, 5, 7, 30, 0).ToString(timeOfDayFormat, adversarialCulture),
+                    "Culture đối nghịch phải thật sự đổi dấu phân cách giờ.");
+
+                var cultures = new List<CultureInfo>();
+                foreach (string cultureName in new[] { "vi-VN", "fr-FR", "en-US", "tr-TR" }) cultures.Add(new CultureInfo(cultureName));
+                cultures.Add(adversarialCulture);
+
+                foreach (CultureInfo culture in cultures)
                 {
-                    var culture = new CultureInfo(cultureName);
+                    string cultureName = culture.Name.Length > 0 ? culture.Name : "adversarial-invariant-clone";
                     Thread.CurrentThread.CurrentCulture = culture;
                     Thread.CurrentThread.CurrentUICulture = culture;
 
@@ -373,6 +469,18 @@ namespace DreamTech.LiveOps.Tests
                 Thread.CurrentThread.CurrentCulture = originalCulture;
                 Thread.CurrentThread.CurrentUICulture = originalUserInterfaceCulture;
             }
+        }
+
+        /// <summary>
+        /// Bản sao Invariant với dấu âm "~" và dấu phân cách giờ "." — vì sao: ':' trong chuỗi định dạng giờ và dấu âm của
+        /// int.ToString() đều lấy từ culture; một đường ghi quên InvariantCulture sẽ ra "~24" / "07.30.00Z" và lệch byte.
+        /// </summary>
+        internal static CultureInfo CreateAdversarialCulture()
+        {
+            CultureInfo culture = (CultureInfo)CultureInfo.InvariantCulture.Clone();
+            culture.NumberFormat.NegativeSign = "~";
+            culture.DateTimeFormat.TimeSeparator = ".";
+            return culture;
         }
 
         // ----- Một dòng, object đứng riêng -----

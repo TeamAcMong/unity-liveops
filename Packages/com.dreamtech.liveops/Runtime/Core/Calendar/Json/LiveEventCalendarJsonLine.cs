@@ -7,7 +7,9 @@ namespace DreamTech.LiveOps
     /// </summary>
     public sealed class LiveEventCalendarJsonLine
     {
-        public LiveEventCalendarJsonLine(int number, string text, LiveEventCalendarItemKind? itemKind, string itemKey, string fieldName)
+        // internal như ctor của LiveEventCalendarJsonText: dòng chỉ bộ ghi dựng, để Number/Text/mục luôn khớp đúng chuỗi đã
+        // ghi. Mục 3 không khai ctor; bên ngoài cần dòng thì gọi LiveEventCalendarJsonWriter.Write.
+        internal LiveEventCalendarJsonLine(int number, string text, LiveEventCalendarItemKind? itemKind, string itemKey, string fieldName)
         {
             Number = number;
             Text = text ?? string.Empty;

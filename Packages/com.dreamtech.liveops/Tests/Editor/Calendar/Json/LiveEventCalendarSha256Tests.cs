@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.Text;
 using System.Threading;
@@ -82,12 +83,19 @@ namespace DreamTech.LiveOps.Tests
             CultureInfo originalCulture = Thread.CurrentThread.CurrentCulture;
             try
             {
-                // tr-TR đổi quy tắc hoa/thường của "I" — hex phải không đổi.
-                foreach (string cultureName in new[] { "tr-TR", "fr-FR", "vi-VN" })
+                // Canh gác, không phải phép phân biệt: hex lấy từ bảng tra cố định, và cả byte.ToString("x2") của .NET/Mono
+                // cũng không đọc culture (tr-TR chỉ đổi 'I'/'i', không chạm a–f) — không culture nào làm test này đỏ với cài
+                // đặt hiện có. Giữ để một cài đặt sau này đi qua culture (ghép chuỗi số thập phân, ToUpper/ToLower theo
+                // culture) vẫn phải ra đúng vector trên culture thật và culture đối nghịch tất định.
+                var cultures = new List<CultureInfo>();
+                foreach (string cultureName in new[] { "tr-TR", "fr-FR", "vi-VN" }) cultures.Add(new CultureInfo(cultureName));
+                cultures.Add(LiveEventCalendarJsonWriterTests.CreateAdversarialCulture());
+
+                foreach (CultureInfo culture in cultures)
                 {
-                    Thread.CurrentThread.CurrentCulture = new CultureInfo(cultureName);
+                    Thread.CurrentThread.CurrentCulture = culture;
                     Assert.AreEqual("ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
-                        LiveEventCalendarSha256.ComputeHex(bytes), cultureName);
+                        LiveEventCalendarSha256.ComputeHex(bytes), culture.Name.Length > 0 ? culture.Name : "adversarial-invariant-clone");
                 }
             }
             finally
