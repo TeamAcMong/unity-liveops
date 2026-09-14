@@ -157,15 +157,19 @@ namespace DreamTech.LiveOps.Unity.Tests
         {
             // SP-11 (cổng W1): mảng vắng → null, "recurring": null / [] → mảng rỗng; JsonUtility NÉM với chuỗi chỉ khoảng trắng nên
             // parser phải chặn trước FromJson. Khứ hồi định dạng 1 dựa vào đúng hai điều này.
+            // Hai ca null/[] KHÔNG có "version" là ca khoá được SP-11: parser chỉ dựa vào recurring != null khi thiếu version, nên
+            // JsonUtility mà trả null cho "recurring": null thì FormatVersion rơi về 1 và test đỏ. Ca có version:2 thì không phân biệt được.
             string[] noRuleJsons =
             {
                 "{\"events\":[]}",
+                "{\"recurring\":null,\"events\":[]}",
+                "{\"recurring\":[],\"events\":[]}",
                 "{\"version\":2,\"recurring\":null,\"events\":[]}",
                 "{\"version\":2,\"recurring\":[],\"events\":[]}",
                 LiveEventCalendarJsonWriter.Write(LiveOpsDesignSample.Document, LiveEventCalendarJsonFormat.Version1).Text,
                 LiveEventCalendarJsonWriter.Write(LiveEventCalendarDocument.Empty, LiveEventCalendarJsonFormat.Version2).Text,
             };
-            int[] expectedFormatVersions = { 1, 2, 2, 1, 2 };
+            int[] expectedFormatVersions = { 1, 2, 2, 2, 2, 1, 2 };
             for (int index = 0; index < noRuleJsons.Length; index++)
             {
                 LiveEventCalendarDocumentParseResult read = JsonLiveEventCalendarParser.ParseDocument(noRuleJsons[index]);

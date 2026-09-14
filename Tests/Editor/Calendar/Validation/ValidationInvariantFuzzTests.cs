@@ -127,6 +127,7 @@ namespace DreamTech.LiveOps.Tests
             int multiFaultCount = 0;
             int laterStartFirstDuplicateCount = 0;
             int duplicateOfDroppedKeptCount = 0;
+            int forcedDuplicateOfDroppedKeptCount = 0;
             int fractionalTimeCount = 0;
             int offsetTimeCount = 0;
             int whitespaceOnlyTimeCount = 0;
@@ -148,7 +149,9 @@ namespace DreamTech.LiveOps.Tests
 
                 if (document.FixedEvents.Count == 0 && document.RecurringRules.Count == 0) emptyDocumentCount++;
                 laterStartFirstDuplicateCount += CountLaterStartFirstDuplicates(document, compilation);
-                duplicateOfDroppedKeptCount += CountDuplicatesOfDroppedEntriesKept(compilation);
+                duplicateOfDroppedKeptCount += CountDuplicatesOfDroppedEntriesKept(compilation, string.Empty);
+                forcedDuplicateOfDroppedKeptCount += CountDuplicatesOfDroppedEntriesKept(compilation, LiveOpsRandomDocuments.DuplicateOfDroppedEventIdPrefix);
+                AssertForcedDuplicateOfDroppedNeverDroppedAsDuplicate(LiveOpsRandomDocuments.Label(documentIndex), compilation, document);
                 for (int index = 0; index < document.FixedEvents.Count; index++)
                 {
                     FixedLiveEventEntry entry = document.FixedEvents[index];
@@ -164,6 +167,9 @@ namespace DreamTech.LiveOps.Tests
             Assert.Greater(multiFaultCount, 0, "Bộ sinh phải tạo mục nhiều lỗi (AdditionalItemReasons).");
             Assert.Greater(laterStartFirstDuplicateCount, 0, "Bộ sinh phải tạo trùng id mà đợt bắt đầu muộn đứng trước trong asset.");
             Assert.Greater(duplicateOfDroppedKeptCount, 0, "Bộ sinh phải tạo trùng id với đợt đã bị bỏ vì lỗi cấp mục (đợt sau được giữ).");
+            // Đếm chung ở trên có thể xanh nhờ đợt ngẫu nhiên tình cờ trùng id — đòi chính kịch bản bắt buộc tạo ra ca này.
+            Assert.Greater(forcedDuplicateOfDroppedKeptCount, 0,
+                "Kịch bản bắt buộc '" + LiveOpsRandomDocuments.DuplicateOfDroppedEventIdPrefix + "' phải tự tạo trùng id với đợt đứng trước đã bị bỏ.");
             Assert.Greater(fractionalTimeCount, 0, "Bộ sinh phải tạo giờ có phần lẻ giây (V-19).");
             Assert.Greater(offsetTimeCount, 0, "Bộ sinh phải tạo giờ có múi khác Z.");
             Assert.Greater(whitespaceOnlyTimeCount, 0, "Bộ sinh phải tạo giờ chỉ có khoảng trắng.");
@@ -251,7 +257,11 @@ namespace DreamTech.LiveOps.Tests
             return count;
         }
 
-        private static int CountDuplicatesOfDroppedEntriesKept(LiveEventCalendarCompilation compilation)
+        /// <summary>
+        /// Đợt được giữ dù trùng id với một đợt ĐỨNG TRƯỚC trong thứ tự xuất đã bị bỏ vì giờ hỏng. <paramref name="requiredIdPrefix"/>
+        /// rỗng = đếm mọi id; khác rỗng = chỉ đếm id của kịch bản bắt buộc.
+        /// </summary>
+        private static int CountDuplicatesOfDroppedEntriesKept(LiveEventCalendarCompilation compilation, string requiredIdPrefix)
         {
             var droppedItemLevelIds = new HashSet<string>(StringComparer.Ordinal);
             int count = 0;
@@ -260,6 +270,7 @@ namespace DreamTech.LiveOps.Tests
             {
                 LiveEventCalendarEntryOutcome outcome = entries[index];
                 if (outcome.Kind != LiveEventCalendarEntryKind.FixedEvent) continue;
+                if (!outcome.EventId.StartsWith(requiredIdPrefix, StringComparison.Ordinal)) continue;
                 bool itemLevelDropped = outcome.DropReason == LiveEventCalendarDropReason.UnreadableStartUtc ||
                                         outcome.DropReason == LiveEventCalendarDropReason.UnreadableEndUtc;
                 if (itemLevelDropped)
@@ -270,6 +281,24 @@ namespace DreamTech.LiveOps.Tests
                 if (outcome.IsKept && droppedItemLevelIds.Contains(outcome.EventId)) count++;
             }
             return count;
+        }
+
+        /// <summary>
+        /// Đợt bị bỏ vì giờ hỏng không tồn tại với runtime, nên đợt cùng id của kịch bản bắt buộc KHÔNG BAO GIỜ được bị bỏ vì
+        /// trùng id (bị bỏ vì chồng giờ hay bị luật lặp che thì vẫn hợp lệ — đợt ngẫu nhiên cùng loại có thể nằm đè lên).
+        /// </summary>
+        private static void AssertForcedDuplicateOfDroppedNeverDroppedAsDuplicate(string label, LiveEventCalendarCompilation compilation,
+            LiveEventCalendarDocument document)
+        {
+            IReadOnlyList<LiveEventCalendarEntryOutcome> entries = compilation.Entries;
+            for (int index = 0; index < entries.Count; index++)
+            {
+                LiveEventCalendarEntryOutcome outcome = entries[index];
+                if (outcome.Kind != LiveEventCalendarEntryKind.FixedEvent) continue;
+                if (!outcome.EventId.StartsWith(LiveOpsRandomDocuments.DuplicateOfDroppedEventIdPrefix, StringComparison.Ordinal)) continue;
+                Assert.AreNotEqual(LiveEventCalendarDropReason.DuplicateEventId, outcome.DropReason,
+                    label + ": '" + outcome.EventId + "' bị bỏ vì trùng id với đợt đã bị bỏ vì giờ hỏng.\n" + LiveOpsRandomDocuments.Describe(document));
+            }
         }
 
         private static bool IsItemLevelValid(FixedLiveEventEntry entry, out DateTime startUtc)

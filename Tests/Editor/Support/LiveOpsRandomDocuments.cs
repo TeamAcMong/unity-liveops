@@ -13,8 +13,10 @@ namespace DreamTech.LiveOps.Tests
     ///
     /// <para>Mỗi tài liệu CHỦ Ý chứa thứ bộ ghi/parser/validator dễ làm sai: giờ có phần lẻ giây, giờ có múi khác Z, giờ hỏng
     /// (kể cả chuỗi chỉ có khoảng trắng), mục nhiều lỗi (id có '#' + kết thúc trước bắt đầu; giờ hỏng + id rỗng), trùng id mà
-    /// đợt bắt đầu MUỘN đứng trước trong asset, trùng id với đợt đã bị bỏ vì lỗi cấp mục, trùng id + chồng giờ, luật lặp hỏng
-    /// và luật thứ hai cùng loại, id có dạng lần lặp của luật (bị che theo id), ký tự cần escape và ký tự không ASCII.</para>
+    /// đợt bắt đầu MUỘN đứng trước trong asset, trùng id với đợt ĐỨNG TRƯỚC trong thứ tự xuất đã bị bỏ vì lỗi cấp mục, trùng id
+    /// + chồng giờ, luật lặp hỏng và luật thứ hai cùng loại, id có dạng lần lặp của luật (bị che theo id), ký tự cần escape
+    /// (nháy, gạch chéo ngược, tab, xuống dòng, ký tự điều khiển) và ký tự không ASCII (tiếng Việt, emoji = cặp surrogate) —
+    /// hai thứ sau nằm ở configKey, field bộ ghi thật sự ghi ra JSON, không chỉ ở tên hiển thị của loại.</para>
     /// </summary>
     public static class LiveOpsRandomDocuments
     {
@@ -23,6 +25,12 @@ namespace DreamTech.LiveOps.Tests
 
         /// <summary>Số tài liệu mỗi fuzz chạy (mục 5.6, 6.1: 200 tài liệu seed cố định).</summary>
         public const int DocumentCount = 200;
+
+        /// <summary>
+        /// Tiền tố id của cặp đợt ở kịch bản bắt buộc "trùng id với đợt đứng trước đã bị bỏ". Test phủ dùng nó để đòi chính kịch
+        /// bản này đóng góp ca đó — đếm chung mọi tài liệu thì ca có thể chỉ đạt nhờ đợt ngẫu nhiên tình cờ trùng id.
+        /// </summary>
+        public const string DuplicateOfDroppedEventIdPrefix = "forced-after-dropped-";
 
         // Số kịch bản bắt buộc xoay vòng theo chỉ số tài liệu: mỗi kịch bản xuất hiện đều trong 200 tài liệu, không phụ thuộc may rủi.
         private const int ForcedScenarioCount = 6;
@@ -54,7 +62,10 @@ namespace DreamTech.LiveOps.Tests
 
         private static readonly string[] DisplayNames = { string.Empty, "Nhiệm vụ dung nham", "Đua \"trên\" trời", "Săn\tkho báu 🔥", "back\\slash" };
 
-        private static readonly string[] ConfigKeys = { string.Empty, string.Empty, "lava_quest_v2", "hunt_bonus", "khoá\\riêng", "quote\"key", "chuông\u0007" };
+        // Tab và emoji (cặp surrogate) phải nằm ở đây chứ không chỉ ở DisplayNames: bộ ghi JSON không ghi loại, nên chỉ field được
+        // ghi ra (configKey của luật và đợt) mới đưa chúng qua bộ ghi, bộ dò cú pháp và JsonUtility.
+        private static readonly string[] ConfigKeys =
+            { string.Empty, string.Empty, "lava_quest_v2", "hunt_bonus", "khoá\\riêng", "quote\"key", "chuông\u0007", "săn\tkho", "lửa 🔥" };
 
         private static readonly string[] IdPrefixes = { string.Empty, string.Empty, string.Empty, "pass-", "race-", "bad#", "new\nline-" };
 
@@ -288,14 +299,16 @@ namespace DreamTech.LiveOps.Tests
                     }
                     case 3:
                     {
-                        // Trùng id với đợt ĐÃ BỊ BỎ vì lỗi cấp mục: không phải trùng (runtime không thấy đợt hỏng), đợt sau được giữ.
-                        string sharedId = "forced-after-dropped-" + _documentIndex.ToString(CultureInfo.InvariantCulture);
-                        FixedLiveEventEntry dropped = new FixedLiveEventEntry(NextEntryKey(), sharedId, eventType, "2026-10-3",
-                            RenderReadableTime(baseUtc.AddDays(1), allowFraction: false), string.Empty);
+                        // Trùng id với đợt ĐỨNG TRƯỚC (theo thứ tự xuất) đã bị bỏ vì lỗi cấp mục: không phải trùng (runtime không
+                        // thấy đợt hỏng), đợt sau được giữ. Lỗi đặt ở endUtc chứ không ở startUtc: đợt có startUtc không đọc được bị
+                        // thứ tự xuất xếp CUỐI, tức đứng SAU đợt được giữ — ca "đứng trước" sẽ không bao giờ xảy ra. Vị trí trong
+                        // asset để ngẫu nhiên: thứ tự xuất theo startUtc quyết định ai đứng trước, không phải thứ tự asset.
+                        string sharedId = DuplicateOfDroppedEventIdPrefix + _documentIndex.ToString(CultureInfo.InvariantCulture);
+                        FixedLiveEventEntry dropped = new FixedLiveEventEntry(NextEntryKey(), sharedId, eventType,
+                            RenderReadableTime(baseUtc, allowFraction: true), _random.Pick(UnreadableTimeTexts), string.Empty);
                         FixedLiveEventEntry kept = Entry(sharedId, eventType, baseUtc.AddDays(40), baseUtc.AddDays(41));
-                        int droppedPosition = _random.NextInt(_fixedEvents.Count + 1);
-                        _fixedEvents.Insert(droppedPosition, dropped);
-                        _fixedEvents.Insert(droppedPosition + 1 + _random.NextInt(_fixedEvents.Count - droppedPosition), kept);
+                        InsertAtRandomPosition(dropped);
+                        InsertAtRandomPosition(kept);
                         break;
                     }
                     case 4:
