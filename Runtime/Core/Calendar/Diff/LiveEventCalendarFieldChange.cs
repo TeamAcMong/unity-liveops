@@ -9,7 +9,8 @@ namespace DreamTech.LiveOps
     /// </summary>
     public sealed class LiveEventCalendarFieldChange
     {
-        public LiveEventCalendarFieldChange(string fieldName, string beforeText, string afterText)
+        // internal: mục 3 chỉ khai property — field đổi chỉ sinh từ LiveEventCalendarDiff.
+        internal LiveEventCalendarFieldChange(string fieldName, string beforeText, string afterText)
         {
             if (string.IsNullOrEmpty(fieldName)) throw new ArgumentException("fieldName không được rỗng.", nameof(fieldName));
 

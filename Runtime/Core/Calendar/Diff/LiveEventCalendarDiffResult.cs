@@ -9,7 +9,8 @@ namespace DreamTech.LiveOps
     /// </summary>
     public sealed class LiveEventCalendarDiffResult
     {
-        public LiveEventCalendarDiffResult(IReadOnlyList<LiveEventCalendarChange> changes, int keptCount)
+        // internal: như LiveEventCalendarChange — kết quả chỉ sinh từ LiveEventCalendarDiff để số đếm và danh sách luôn khớp nhau.
+        internal LiveEventCalendarDiffResult(IReadOnlyList<LiveEventCalendarChange> changes, int keptCount)
         {
             if (keptCount < 0) throw new ArgumentOutOfRangeException(nameof(keptCount), "Số mục giữ nguyên không được âm.");
 

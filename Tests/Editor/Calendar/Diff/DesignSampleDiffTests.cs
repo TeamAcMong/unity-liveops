@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using NUnit.Framework;
 
 namespace DreamTech.LiveOps.Tests
@@ -168,18 +169,55 @@ namespace DreamTech.LiveOps.Tests
                 .WithFixedEvent(new FixedLiveEventEntry("published-4", "star-tournament-2026-10", "star-tournament", "2026-10-03T00:00:00Z", "2026-10-06T00:00:00Z", "star_tournament_v1"))
                 .Build();
 
-            // Chốt bản dựng tay vẫn khớp chuỗi đã đăng của fixture: mọi giá trị đều phải xuất hiện đúng nguyên văn trong JSON.
-            foreach (FixedLiveEventEntry entry in baseline.FixedEvents)
-            {
-                StringAssert.Contains("\"id\": \"" + entry.EventId + "\"", LiveOpsDesignSample.PublishedSnapshotJson);
-                StringAssert.Contains("\"endUtc\": \"" + entry.EndUtcText + "\"", LiveOpsDesignSample.PublishedSnapshotJson);
-                StringAssert.Contains("\"configKey\": \"" + entry.ConfigKey + "\"", LiveOpsDesignSample.PublishedSnapshotJson);
-            }
+            // Chốt bản dựng tay vẫn khớp chuỗi đã đăng của fixture: MỖI mục phải hiện thành đúng khối JSON đủ mọi field, theo đúng
+            // thứ tự, và số mục phải bằng số khối trong JSON — sửa fixture (thêm/bớt mục, đổi giờ, đổi loại) là test đỏ ở đây,
+            // không âm thầm làm diff mẫu so với một bản so khác bản đã đăng.
+            string json = LiveOpsDesignSample.PublishedSnapshotJson;
+            int searchFrom = 0;
             foreach (RecurringLiveEventRule rule in baseline.RecurringRules)
             {
-                StringAssert.Contains("\"idPrefix\": \"" + rule.IdPrefix + "\"", LiveOpsDesignSample.PublishedSnapshotJson);
+                searchFrom = AssertBlockAfter(json, searchFrom,
+                    "    {\n" +
+                    "      \"type\": \"" + rule.EventType + "\",\n" +
+                    "      \"anchorUtc\": \"" + rule.AnchorUtcText + "\",\n" +
+                    "      \"idPrefix\": \"" + rule.IdPrefix + "\",\n" +
+                    "      \"periodHours\": " + rule.PeriodHours.ToString(CultureInfo.InvariantCulture) + ",\n" +
+                    "      \"activeHours\": " + rule.ActiveHours.ToString(CultureInfo.InvariantCulture) + ",\n" +
+                    "      \"configKey\": \"" + rule.ConfigKey + "\"\n" +
+                    "    }");
             }
+            foreach (FixedLiveEventEntry entry in baseline.FixedEvents)
+            {
+                searchFrom = AssertBlockAfter(json, searchFrom,
+                    "    {\n" +
+                    "      \"id\": \"" + entry.EventId + "\",\n" +
+                    "      \"type\": \"" + entry.EventType + "\",\n" +
+                    "      \"startUtc\": \"" + entry.StartUtcText + "\",\n" +
+                    "      \"endUtc\": \"" + entry.EndUtcText + "\",\n" +
+                    "      \"configKey\": \"" + entry.ConfigKey + "\"\n" +
+                    "    }");
+            }
+            Assert.AreEqual(baseline.RecurringRules.Count, CountOccurrences(json, "\"anchorUtc\": "), "Số luật lặp của bản so = số luật trong JSON đã đăng.");
+            Assert.AreEqual(baseline.FixedEvents.Count, CountOccurrences(json, "\"id\": "), "Số đợt cố định của bản so = số đợt trong JSON đã đăng.");
             return baseline;
+        }
+
+        private static int AssertBlockAfter(string json, int searchFrom, string block)
+        {
+            int position = json.IndexOf(block, searchFrom, StringComparison.Ordinal);
+            Assert.GreaterOrEqual(position, 0, "Khối không có (hoặc sai thứ tự) trong PublishedSnapshotJson:\n" + block);
+            return position + block.Length;
+        }
+
+        private static int CountOccurrences(string text, string value)
+        {
+            int count = 0;
+            for (int position = text.IndexOf(value, StringComparison.Ordinal); position >= 0;
+                 position = text.IndexOf(value, position + value.Length, StringComparison.Ordinal))
+            {
+                count++;
+            }
+            return count;
         }
 
         /// <summary>Mô phỏng "xuất JSON rồi đọc lại": bỏ loại, ghi configKey/tiền tố hiệu lực, EntryKey mới.</summary>
