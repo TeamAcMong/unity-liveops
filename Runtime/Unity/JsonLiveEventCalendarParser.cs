@@ -166,7 +166,7 @@ namespace DreamTech.LiveOps.Unity
             var problems = new List<string>();
             if (string.IsNullOrWhiteSpace(json))
             {
-                return new LiveEventCalendarDocumentParseResult(LiveEventCalendarDocument.Empty, 0, true, true, string.Empty, problems);
+                return new LiveEventCalendarDocumentParseResult(LiveEventCalendarDocument.Empty, 0, true, true, false, string.Empty, problems);
             }
 
             CalendarDocument source;
@@ -180,7 +180,7 @@ namespace DreamTech.LiveOps.Unity
                 // ArgumentException. Bắt mọi Exception vì lời hứa "dữ liệu remote hỏng không làm game crash" không được
                 // phụ thuộc loại exception của một bản Unity chưa đo.
                 problems.Add("JSON lịch event hỏng: " + exception.Message);
-                return new LiveEventCalendarDocumentParseResult(LiveEventCalendarDocument.Empty, 0, false, false, exception.Message, problems);
+                return new LiveEventCalendarDocumentParseResult(LiveEventCalendarDocument.Empty, 0, false, false, false, exception.Message, problems);
             }
 
             // FromJson chỉ trả null với chuỗi rỗng/null (đã chặn ở trên) — vẫn kiểm null thay vì dựa exception (SP-11).
@@ -188,7 +188,7 @@ namespace DreamTech.LiveOps.Unity
             {
                 int missingFormatVersion = source != null && source.version > 0 ? source.version : 1;
                 problems.Add("JSON lịch event thiếu mảng \"events\".");
-                return new LiveEventCalendarDocumentParseResult(LiveEventCalendarDocument.Empty, missingFormatVersion, true, false, string.Empty,
+                return new LiveEventCalendarDocumentParseResult(LiveEventCalendarDocument.Empty, missingFormatVersion, true, false, true, string.Empty,
                     problems);
             }
 
@@ -222,7 +222,7 @@ namespace DreamTech.LiveOps.Unity
                 }
             }
 
-            return new LiveEventCalendarDocumentParseResult(builder.Build(), formatVersion, true, false, string.Empty, problems);
+            return new LiveEventCalendarDocumentParseResult(builder.Build(), formatVersion, true, false, false, string.Empty, problems);
         }
 
         /// <summary>
@@ -269,7 +269,9 @@ namespace DreamTech.LiveOps.Unity
         /// </summary>
         private static LiveEventCalendarParseResult CompileReadResult(LiveEventCalendarDocumentParseResult readResult)
         {
-            if (readResult.IsBlank || !readResult.IsReadable)
+            // Thiếu cả hai mảng cũng về Empty: 0.1.0 trả đúng tham chiếu FixedLiveEventCalendar.Empty cho "{}", còn biên dịch
+            // tài liệu rỗng dựng một FixedLiveEventCalendar mới — game so tham chiếu sẽ đổi hành vi dù lịch vẫn rỗng.
+            if (readResult.IsBlank || !readResult.IsReadable || readResult.IsMissingCalendarArrays)
             {
                 return LiveEventCalendarParseResult.Empty(readResult.Problems, readResult.FormatVersion);
             }
