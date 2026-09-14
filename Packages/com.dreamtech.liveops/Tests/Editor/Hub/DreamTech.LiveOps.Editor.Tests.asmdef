@@ -1,0 +1,26 @@
+{
+    "name": "DreamTech.LiveOps.Editor.Tests",
+    "rootNamespace": "DreamTech.LiveOps.Editor.Tests",
+    "references": [
+        "DreamTech.LiveOps",
+        "DreamTech.LiveOps.Unity",
+        "DreamTech.LiveOps.Editor",
+        "UnityEngine.TestRunner",
+        "UnityEditor.TestRunner"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": true,
+    "precompiledReferences": [
+        "nunit.framework.dll"
+    ],
+    "autoReferenced": false,
+    "defineConstraints": [
+        "UNITY_INCLUDE_TESTS"
+    ],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
