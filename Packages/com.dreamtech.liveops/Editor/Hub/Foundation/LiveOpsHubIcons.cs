@@ -24,6 +24,13 @@ namespace DreamTech.LiveOps.Editor
             "Clipboard", "TestPassed", "TestFailed", "Error", "Info", "UpArrow",
         };
 
+        // Tên mà LoadIconForSkin (đường của IconContent) thấy ở cả 2022.3 và 6000.6 cả hai skin ([API §12.8]) nhưng
+        // FindTexture không thấy. Thêm tên vào đây chỉ khi đã đo ở hai bản — tên thiếu làm IconContent log Error.
+        private static readonly HashSet<string> IconContentVerifiedNames = new HashSet<string>(StringComparer.Ordinal)
+        {
+            "clear",
+        };
+
         private static readonly Dictionary<IconCacheKey, Texture> Cache = new Dictionary<IconCacheKey, Texture>();
 
         private static readonly string[] DesignNames = BuildDesignNames();
@@ -110,12 +117,23 @@ namespace DreamTech.LiveOps.Editor
             }
 
             // FindTexture không log khi trượt (khác IconContent) — tên thiếu ở một bản không làm fail test của bản đó.
-            if (darkSkin && !NamesWithoutDarkVariant.Contains(name))
+            bool useDarkVariant = darkSkin && !NamesWithoutDarkVariant.Contains(name);
+            if (useDarkVariant)
             {
                 Texture dark = EditorGUIUtility.FindTexture(LiveOpsHubPaths.DarkIconPrefix + name);
                 if (dark != null) return dark;
             }
-            return EditorGUIUtility.FindTexture(name);
+            Texture found = EditorGUIUtility.FindTexture(name);
+            if (found != null) return found;
+
+            // FindTexture không thấy một số icon nằm ngoài thư mục Icons/ của bundle (vd "clear", đo ở 6000.6). Chỉ tên đã
+            // kiểm tồn tại ở CẢ HAI bản mới được qua IconContent — với tên đó IconContent không log; tên lạ vẫn trả null.
+            if (IconContentVerifiedNames.Contains(name))
+            {
+                // Tên có sẵn d_ trả đúng bản tối ở mọi skin ([API §7.1]) — chọn skin theo tham số, không theo Editor.
+                return EditorGUIUtility.IconContent(useDarkVariant ? LiveOpsHubPaths.DarkIconPrefix + name : name).image;
+            }
+            return null;
         }
 
         private static Texture LoadPackagePng(string name, bool darkSkin)
