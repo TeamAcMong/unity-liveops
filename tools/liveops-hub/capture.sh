@@ -6,11 +6,18 @@
 # test Editor, G-SHELL); script này chỉ lo slot, hạn giờ, thư mục ra và chạy đo. KHÔNG -nographics (layout NaN, ảnh một
 # màu [API §12.5]) và KHÔNG -quit (lệnh tự EditorApplication.Exit sau khi chụp xong).
 #
+# Skin (SP-4, cổng W0 lượt 2): gọi `InternalEditorUtility.SwitchSkinAndRepaintAllViews()` giữa phiên batch làm Editor treo
+# ở cả hai bản và ghi đè skin của máy — lệnh chụp KHÔNG được đổi skin. Mỗi skin là MỘT lượt Unity riêng; trước lượt, script
+# đặt EditorPrefs `UserSkin` (1 = dark, 0 = light) rồi khôi phục giá trị cũ ngay sau lượt và trong trap. Pref này nằm trong
+# plist dùng chung cho MỌI bản Unity trên máy (kể cả Unity GUI user đang mở), nên mọi lượt đặt skin chạy tuần tự dưới một khoá
+# riêng `<thư mục slot>/skin-preference/` (không song song, kể cả khi hai capture.sh chạy ở hai slot); khoá ghi giá trị gốc để
+# lượt sau gặp khoá mồ côi (capture.sh bị kill -9) vẫn trả được skin cho user.
+#
 # Cách dùng:
 #   capture.sh --unity 6000|2022|all --scenarios "<id,id,…>|registered" --label <nhãn>
 #              [--project <đường dẫn>] [--repository <worktree>] [--skins dark,light] [--output <thư mục gốc>]
 #              [--timeout GIÂY] [--no-measure] [--dry-run]
-# Ra: <output>/<nhãn>/<bản Unity>/<id>-<skin>.png + <id>-<skin>.json (+ capture.log, measurements.json)
+# Ra: <output>/<nhãn>/<bản Unity>/<id>-<skin>.png + <id>-<skin>.json (+ capture-<skin>.log, measurements.json)
 # Mặc định output ~/.cache/unity-liveops/captures; project 6000 = worktree, 2022 = ~/.cache/unity-liveops/temp-2022/<gói>.
 # --dry-run in đúng lệnh sẽ chạy rồi thoát 0. Thoát: 0 đạt; 1 Unity lỗi, thiếu ảnh hoặc số đo lệch; 2 dùng sai; 3 đĩa < 5 GB.
 
@@ -22,6 +29,10 @@ readonly PACKAGE_RELATIVE_PATH=Packages/com.dreamtech.liveops
 readonly CAPTURE_METHOD=DreamTech.LiveOps.Editor.Tests.LiveOpsHubCaptureCommand.CaptureFromCommandLine
 readonly DEFAULT_CAPTURE_TIMEOUT_SECONDS=900
 readonly MINIMUM_FREE_GIGABYTES=5
+readonly SKIN_LOCK_POLL_SECONDS=2
+# Biến môi trường chỉ để tự kiểm công cụ trên một domain giả — không đổi khi chụp thật (Unity đọc đúng domain này).
+readonly UNITY_PREFERENCES_DOMAIN=${LIVEOPS_UNITY_PREFERENCES_DOMAIN:-com.unity3d.UnityEditor5.x}
+readonly SKIN_LOCK_DIRECTORY=${LIVEOPS_UNITY_SLOT_DIRECTORY:-$HOME/.cache/unity-liveops/slots}/skin-preference
 
 script_directory=$(cd "$(dirname "$0")" && pwd)
 repository=${REPOSITORY:-}
@@ -98,7 +109,70 @@ quote_command() {
   echo "${quoted# }"
 }
 
+# ---- Khoá + pref skin ------------------------------------------------------------------------------------------------
+# Giá trị pref gốc lưu dạng chữ: "<số>" hoặc "absent" (khoá chưa có — khôi phục bằng cách xoá khoá, không ghi 0).
+read_user_skin() {
+  defaults read "$UNITY_PREFERENCES_DOMAIN" UserSkin 2>/dev/null || echo absent
+}
+
+write_user_skin() {
+  if [ "$1" = absent ]; then
+    defaults delete "$UNITY_PREFERENCES_DOMAIN" UserSkin >/dev/null 2>&1 || true
+  else
+    defaults write "$UNITY_PREFERENCES_DOMAIN" UserSkin -int "$1"
+  fi
+}
+
+holding_skin_lock=0
+release_skin_lock() {
+  [ "$holding_skin_lock" = 1 ] || return 0
+  local original
+  original=$(cat "$SKIN_LOCK_DIRECTORY/original-user-skin" 2>/dev/null || echo "")
+  if [ -n "$original" ]; then
+    write_user_skin "$original"
+    echo "capture.sh: trả UserSkin về $original" >&2
+  fi
+  rm -rf "$SKIN_LOCK_DIRECTORY"
+  holding_skin_lock=0
+}
+
+# Chờ khoá tới khi lấy được; khoá của pid đã chết thì khôi phục pref gốc nó ghi lại rồi mới dọn (không để user kẹt skin sai).
+acquire_skin_lock() {
+  mkdir -p "$(dirname "$SKIN_LOCK_DIRECTORY")"
+  local waited=0 owner_pid stale_original
+  while ! mkdir "$SKIN_LOCK_DIRECTORY" 2>/dev/null; do
+    owner_pid=$(cat "$SKIN_LOCK_DIRECTORY/pid" 2>/dev/null || echo "")
+    # Khoá không có pid mà đã quá 1 phút = tiến trình chết giữa mkdir và ghi pid (lúc đó pref chưa bị đổi).
+    if { [ -n "$owner_pid" ] && ! kill -0 "$owner_pid" 2>/dev/null; } ||
+       { [ -z "$owner_pid" ] && [ -n "$(find "$SKIN_LOCK_DIRECTORY" -maxdepth 0 -mmin +1 2>/dev/null)" ]; }; then
+      stale_original=$(cat "$SKIN_LOCK_DIRECTORY/original-user-skin" 2>/dev/null || echo "")
+      if [ -n "$stale_original" ]; then
+        write_user_skin "$stale_original"
+        echo "capture.sh: khoá skin mồ côi của pid $owner_pid — đã trả UserSkin về $stale_original" >&2
+      fi
+      rm -rf "$SKIN_LOCK_DIRECTORY"
+      continue
+    fi
+    if [ "$waited" = 0 ]; then
+      echo "capture.sh: chờ khoá skin (đang giữ bởi pid ${owner_pid:-?})" >&2
+    fi
+    sleep "$SKIN_LOCK_POLL_SECONDS"
+    waited=$((waited + SKIN_LOCK_POLL_SECONDS))
+  done
+  holding_skin_lock=1
+  echo "$$" > "$SKIN_LOCK_DIRECTORY/pid"
+  read_user_skin > "$SKIN_LOCK_DIRECTORY/original-user-skin"
+}
+
+on_signal() {
+  release_skin_lock
+  exit 130
+}
+trap release_skin_lock EXIT
+trap on_signal INT TERM
+
 overall_status=0
+IFS=',' read -r -a skin_list <<< "$skins"
 for version in $versions; do
   if [ "$version" = 6000 ]; then
     unity_binary=$UNITY_6000; unity_label=6000.6; default_project=$repository
@@ -107,45 +181,66 @@ for version in $versions; do
   fi
   project=${project_override:-$default_project}
   output_directory=$output_root/$label/$unity_label
-  capture_command=("$unity_binary" -batchmode -projectPath "$project"
-    -executeMethod "$CAPTURE_METHOD"
-    -liveopsCaptureOut "$output_directory" -liveopsCaptureScenarios "$scenarios" -liveopsCaptureSkins "$skins"
-    -logFile "$output_directory/capture.log")
-  slot_command=("$script_directory/unity-slot.sh" --timeout "$timeout_seconds" --label "capture $label $unity_label" -- "${capture_command[@]}")
 
-  if [ "$dry_run" = 1 ]; then
+  if [ "$dry_run" = 0 ]; then
+    [ -x "$unity_binary" ] || fail_usage "thiếu Unity ở $unity_binary"
+    [ -d "$project" ] || fail_usage "không thấy project $project"
+    free_gigabytes=$(df -g /System/Volumes/Data | awk 'NR==2 {print $4}')
+    if [ "${free_gigabytes:-0}" -lt "$MINIMUM_FREE_GIGABYTES" ]; then
+      echo "LỖI: ổ đĩa còn ${free_gigabytes} GB (< $MINIMUM_FREE_GIGABYTES GB) — không mở Unity" >&2
+      exit 3
+    fi
+    mkdir -p "$output_directory"
+    # Dọn ảnh/đo/log cũ trước khi chụp — nhãn = tên gói (9.6) nên chạy lại sau khi sửa dùng cùng thư mục; nếu không dọn,
+    # ảnh cũ của lần chụp trước vẫn đủ để qua bước kiểm "đủ ảnh" dù lần chụp này thật ra lỗi (F8).
+    rm -f "$output_directory"/*.png "$output_directory"/*.json "$output_directory"/capture*.log
+  else
     echo "# capture $unity_label → $output_directory"
     echo "mkdir -p $(printf '%q' "$output_directory")"
-    quote_command "${slot_command[@]}"
+  fi
+
+  version_failed=0
+  for skin in "${skin_list[@]}"; do
+    if [ "$skin" = dark ]; then skin_value=1; else skin_value=0; fi
+    log_file=$output_directory/capture-$skin.log
+    capture_command=("$unity_binary" -batchmode -projectPath "$project"
+      -executeMethod "$CAPTURE_METHOD"
+      -liveopsCaptureOut "$output_directory" -liveopsCaptureScenarios "$scenarios" -liveopsCaptureSkins "$skin"
+      -logFile "$log_file")
+    slot_command=("$script_directory/unity-slot.sh" --timeout "$timeout_seconds" --label "capture $label $unity_label $skin" -- "${capture_command[@]}")
+
+    if [ "$dry_run" = 1 ]; then
+      echo "# khoá $SKIN_LOCK_DIRECTORY; lưu UserSkin cũ; khôi phục sau lượt + trong trap"
+      quote_command defaults write "$UNITY_PREFERENCES_DOMAIN" UserSkin -int "$skin_value"
+      quote_command "${slot_command[@]}"
+      continue
+    fi
+
+    acquire_skin_lock
+    write_user_skin "$skin_value"
+    unity_status=0
+    "${slot_command[@]}" || unity_status=$?
+    release_skin_lock
+    if [ "$unity_status" != 0 ]; then
+      echo "LỖI: chụp $unity_label skin $skin thoát $unity_status — xem $log_file"
+      grep -n "LIVEOPS CAPTURE\|error CS\|Exception" "$log_file" 2>/dev/null | head -n 20 | sed 's/^/   /'
+      version_failed=1
+    fi
+  done
+
+  if [ "$dry_run" = 1 ]; then
     if [ "$measure" = 1 ]; then
       quote_command python3 "$script_directory/measure-capture.py" "$output_directory"
     fi
     continue
   fi
-
-  [ -x "$unity_binary" ] || fail_usage "thiếu Unity ở $unity_binary"
-  [ -d "$project" ] || fail_usage "không thấy project $project"
-  free_gigabytes=$(df -g /System/Volumes/Data | awk 'NR==2 {print $4}')
-  if [ "${free_gigabytes:-0}" -lt "$MINIMUM_FREE_GIGABYTES" ]; then
-    echo "LỖI: ổ đĩa còn ${free_gigabytes} GB (< $MINIMUM_FREE_GIGABYTES GB) — không mở Unity" >&2
-    exit 3
-  fi
-  mkdir -p "$output_directory"
-  # Dọn ảnh/đo/log cũ trước khi chụp — nhãn = tên gói (9.6) nên chạy lại sau khi sửa dùng cùng thư mục; nếu không dọn,
-  # ảnh cũ của lần chụp trước vẫn đủ để qua bước kiểm "đủ ảnh" dù lần chụp này thật ra lỗi (F8).
-  rm -f "$output_directory"/*.png "$output_directory"/*.json "$output_directory/capture.log"
-  unity_status=0
-  "${slot_command[@]}" || unity_status=$?
-  if [ "$unity_status" != 0 ]; then
-    echo "LỖI: chụp $unity_label thoát $unity_status — xem $output_directory/capture.log"
-    grep -n "LIVEOPS CAPTURE\|error CS\|Exception" "$output_directory/capture.log" 2>/dev/null | head -n 20 | sed 's/^/   /'
+  if [ "$version_failed" = 1 ]; then
     overall_status=1
     continue
   fi
   if [ "$scenarios" != registered ]; then
     missing=0
     IFS=',' read -r -a scenario_list <<< "$scenarios"
-    IFS=',' read -r -a skin_list <<< "$skins"
     for scenario in "${scenario_list[@]}"; do
       for skin in "${skin_list[@]}"; do
         if [ ! -s "$output_directory/$scenario-$skin.png" ]; then

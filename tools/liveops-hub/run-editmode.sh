@@ -6,7 +6,7 @@
 # kết luận từ XML + log chứ không từ exit code.
 # Category (mục 9.1): LiveOpsHub.Logic chạy được -nographics; LiveOpsHub.UI PHẢI chạy không -nographics (layout NaN, không
 # vẽ, không nhận phím). Test cũ không gắn category tính là Logic. `all` chạy mọi test, không -nographics.
-# Cú pháp lọc category của UTF 1.1.33 chốt ở SP-15: mặc định dùng -testCategory ("!LiveOpsHub.UI" cho Logic);
+# Cú pháp lọc đã xác nhận ở SP-15 (UTF 1.1.33 + 1.8.0: -testCategory phủ định, -testFilter regex, kết hợp cả hai): mặc định dùng -testCategory ("!LiveOpsHub.UI" cho Logic);
 # --category-mode fixture là phương án dự phòng (lọc bằng tên fixture chứa ".Hub." thay category).
 #
 # Cách dùng:
