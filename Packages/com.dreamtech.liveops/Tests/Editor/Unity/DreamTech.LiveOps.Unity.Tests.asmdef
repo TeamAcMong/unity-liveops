@@ -4,6 +4,7 @@
     "references": [
         "DreamTech.LiveOps",
         "DreamTech.LiveOps.Unity",
+        "DreamTech.LiveOps.Tests.Support",
         "UnityEngine.TestRunner",
         "UnityEditor.TestRunner"
     ],
