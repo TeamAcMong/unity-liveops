@@ -164,6 +164,11 @@ namespace DreamTech.LiveOps.Editor
         {
             return JsonLiveEventCalendarParser.Parse(json);
         }
+
+        public LiveEventCalendarDocumentParseResult ReadBackDocument(string json)
+        {
+            return JsonLiveEventCalendarParser.ParseDocument(json);
+        }
     }
 
     /// <summary>(V-16) Mặc định: nạp UXML/USS từ AssetDatabase theo đường dẫn của <c>LiveOpsHubPaths</c>.</summary>

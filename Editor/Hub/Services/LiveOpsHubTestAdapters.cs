@@ -160,6 +160,15 @@ namespace DreamTech.LiveOps.Editor
             LastRewrittenText = rewritten ?? string.Empty;
             return JsonLiveEventCalendarParser.Parse(rewritten);
         }
+
+        public LiveEventCalendarDocumentParseResult ReadBackDocument(string json)
+        {
+            // Cùng bước viết lại với ReadBack: kịch bản "parser không đọc được" phải hỏng ở cả hai đường, không thì luồng Dán
+            // thấy JSON đọc được trong khi bước kiểm xuất báo hỏng.
+            string rewritten = _rewriteBeforeRead(json);
+            LastRewrittenText = rewritten ?? string.Empty;
+            return JsonLiveEventCalendarParser.ParseDocument(rewritten);
+        }
     }
 
     /// <summary>
