@@ -242,9 +242,12 @@ for version in $versions; do
     } > "$version_output/test-base.references"
 
     list_sources "$package/Tests/Editor/Support" > "$version_output/support.sources"
-    # Tham chiếu nunit như asmdef thật của Tests.Support (kế hoạch 5.6/V-4: LiveOpsDocumentAssert dùng
-    # NUnit.Framework.Assert) — thiếu dòng này compile-check xanh giả trong khi asmdef thật đỏ (F10).
-    { echo "-r:$netstandard"; echo "-r:$core_dll"; echo "-r:$test_references/nunit.framework.dll"; } > "$version_output/support.references"
+    # Tham chiếu ĐÚNG như asmdef thật của Tests.Support: `references` chỉ có DreamTech.LiveOps, `overrideReferences` false,
+    # nền Editor, không noEngineReferences → Unity cho module UnityEngine*/UnityEditor* nhưng KHÔNG cho nunit.framework.dll
+    # (DLL của com.unity.ext.nunit chỉ vào assembly khai tên nó). Bản trước thêm nunit ở đây nên Support lỡ dùng
+    # NUnit.Framework vẫn COMPILE CHECK OK trong khi Unity báo CS0246 (G-FIX-W1-1, L2). Kế hoạch 5.6/V-4 không cần NUnit
+    # ở Support: LiveOpsDocumentAssert ném InvalidOperationException có thông điệp, NUnit tự báo fail từ exception đó.
+    { cat "$editor_references_file"; echo "-r:$core_dll"; } > "$version_output/support.references"
     compile_assembly "$version" DreamTech.LiveOps.Tests.Support "$test_defines" "$version_output/support.references" "" "$version_output/support.sources" || true
     support_reference=""
     if [ -f "$support_dll" ]; then support_reference="-r:$support_dll"; fi
