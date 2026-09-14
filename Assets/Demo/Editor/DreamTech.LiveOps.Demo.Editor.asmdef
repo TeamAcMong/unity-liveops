@@ -2,6 +2,8 @@
     "name": "DreamTech.LiveOps.Demo.Editor",
     "rootNamespace": "DreamTech.LiveOps.Demo.EditorTools",
     "references": [
+        "DreamTech.LiveOps",
+        "DreamTech.LiveOps.Unity",
         "DreamTech.LiveOps.Demo"
     ],
     "includePlatforms": [
