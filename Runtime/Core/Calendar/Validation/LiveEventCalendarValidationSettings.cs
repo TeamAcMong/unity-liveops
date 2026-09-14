@@ -6,10 +6,11 @@ namespace DreamTech.LiveOps
     public sealed class LiveEventCalendarValidationSettings
     {
         /// <summary>Khoảng trống giữa hai đợt cùng loại dài hơn mức này thì "Nên xem" (người chơi mất thói quen quay lại).</summary>
-        public static readonly TimeSpan DefaultLongGapThreshold = TimeSpan.FromDays(7);
+        /// <remarks>internal: ngoài chữ ký mục 3 — nơi khác đọc mặc định qua <see cref="Default"/>.</remarks>
+        internal static readonly TimeSpan DefaultLongGapThreshold = TimeSpan.FromDays(7);
 
         /// <summary>Chỉ nhắc khoảng trống kết thúc trong 30 ngày qua trở đi — khoảng trống lâu trong quá khứ không còn sửa được.</summary>
-        public static readonly TimeSpan DefaultLongGapLookback = TimeSpan.FromDays(30);
+        internal static readonly TimeSpan DefaultLongGapLookback = TimeSpan.FromDays(30);
 
         private static readonly LiveEventCalendarValidationSettings DefaultSettings = new LiveEventCalendarValidationSettings();
 

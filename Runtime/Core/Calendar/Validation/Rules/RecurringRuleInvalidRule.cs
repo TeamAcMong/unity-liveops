@@ -85,7 +85,9 @@ namespace DreamTech.LiveOps
                     FormatHours(rule.PeriodHours), null, null);
                 repairKind = LiveEventCalendarRepairKind.Proposal;
             }
-            else if (InvalidIdentifierRule.TryDescribeDefect(rule.EffectiveIdPrefix, out _) && rule.EffectiveIdPrefix.Length > 0)
+            // Chỉ báo "prefix" khi designer TỰ ghi tiền tố và chính nó hỏng. Tiền tố rỗng thì bộ biên dịch kiểm tiền tố tự thay
+            // "<loại>-": nếu nó hỏng thì là do loại hỏng — báo "prefix" sẽ trỏ Editor vào ô tiền tố người dùng chưa từng nhập.
+            else if (rule.IdPrefix.Length > 0 && InvalidIdentifierRule.TryDescribeDefect(rule.IdPrefix, out _))
             {
                 detailCode = LiveEventCalendarDetailCodes.PrefixInvalid;
                 foundText = rule.IdPrefix;
