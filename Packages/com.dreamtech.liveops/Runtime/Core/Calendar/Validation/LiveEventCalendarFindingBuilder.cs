@@ -11,6 +11,10 @@ namespace DreamTech.LiveOps
     public sealed class LiveEventCalendarFindingBuilder
     {
         /// <summary>Ngăn cách khi <c>FoundText</c>/<c>ExpectedText</c> mang nhiều giá trị thô (vd giờ bắt đầu và kết thúc cùng hỏng).</summary>
+        /// <remarks>
+        /// public ngoài chữ ký mục 3 (ghi ở contract-changes-G-VALIDATOR-A): Editor dựng câu từ giá trị thô (vd "&lt;start&gt; →
+        /// &lt;end&gt;") phải tách đúng ký hiệu core đã nối — để internal thì Editor phải chép tay chuỗi này và lệch im lặng khi đổi.
+        /// </remarks>
         public const string ValueSeparator = " · ";
 
         private static readonly LiveEventCalendarRepair[] NoRepairs = Array.Empty<LiveEventCalendarRepair>();

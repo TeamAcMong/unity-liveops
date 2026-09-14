@@ -82,6 +82,27 @@ namespace DreamTech.LiveOps.Tests
         }
 
         [Test]
+        public void TypeInvalid_EmptyPrefix_ReportsTypeNotPrefix()
+        {
+            LiveEventCalendarDocument document = RulesOnly(
+                new RecurringLiveEventRule("race#1", Anchor, string.Empty, 24, 20, string.Empty),
+                new RecurringLiveEventRule("ra\nce", Anchor, string.Empty, 24, 20, string.Empty),
+                new RecurringLiveEventRule("both#bad", Anchor, "bad#", 24, 20, string.Empty));
+
+            IReadOnlyList<LiveEventCalendarFinding> findings = ValidationTestFixtures.Evaluate(new RecurringRuleInvalidRule(), document).Findings;
+
+            // Tiền tố rỗng tự thay bằng "<loại>-" nên hỏng theo loại — lỗi thật (và ô cần sửa) là loại, không phải tiền tố.
+            Assert.AreEqual(3, findings.Count);
+            Assert.AreEqual(LiveEventCalendarDetailCodes.TypeInvalid, findings[0].DetailCode);
+            Assert.AreEqual("race#1", findings[0].FoundText);
+            Assert.AreEqual(LiveEventCalendarDetailCodes.TypeInvalid, findings[1].DetailCode);
+            Assert.AreEqual("ra\nce", findings[1].FoundText);
+            // Tiền tố tự ghi và hỏng: bộ biên dịch kiểm tiền tố trước loại, nên mã theo đúng thứ tự đó.
+            Assert.AreEqual(LiveEventCalendarDetailCodes.PrefixInvalid, findings[2].DetailCode);
+            Assert.AreEqual("bad#", findings[2].FoundText);
+        }
+
+        [Test]
         public void SecondRuleSameType_DuplicateType_FirstKept()
         {
             LiveEventCalendarDocument document = RulesOnly(

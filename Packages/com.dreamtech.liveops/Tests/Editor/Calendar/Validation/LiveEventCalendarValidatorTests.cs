@@ -247,23 +247,39 @@ namespace DreamTech.LiveOps.Tests
                     .Build(),
             };
 
-            int findingCount = 0;
+            // Số phát hiện của luật 1–8 theo từng ngữ cảnh (mẫu, nhiều lỗi, luật lặp hỏng, bị che, loại chưa khai + remote). Khoá
+            // đúng số chứ không "> n": luật dùng mã chưa khai thì builder ném → luật thành Failed với 0 phát hiện, số tụt mà
+            // không vòng lặp nào thấy mã lạ. Chỉ đếm luật 1–8 để luật 9–12 thật (G-VALIDATOR-B) thêm phát hiện không làm đỏ test này.
+            int[] expectedRulesOneToEightFindingCounts = { 2, 7, 7, 2, 4 };
+            IReadOnlyList<string> ruleIds = LiveEventCalendarRuleIds.All;
+            int rulesOneToEightCount = 0;
+            while (ruleIds[rulesOneToEightCount] != LiveEventCalendarRuleIds.UnknownEventType) rulesOneToEightCount++;
+            rulesOneToEightCount++;
+
             for (int contextIndex = 0; contextIndex < contexts.Count; contextIndex++)
             {
                 LiveEventCalendarCheckReport report = LiveEventCalendarValidator.Default.Check(contexts[contextIndex]);
+                int rulesOneToEightFindingCount = 0;
                 for (int resultIndex = 0; resultIndex < report.RuleResults.Count; resultIndex++)
                 {
-                    IReadOnlyList<LiveEventCalendarFinding> findings = report.RuleResults[resultIndex].Findings;
+                    LiveEventCalendarRuleResult result = report.RuleResults[resultIndex];
+                    Assert.AreEqual(ruleIds[resultIndex], result.RuleId, "Kết quả luật phải theo thứ tự RuleIds.All.");
+                    // Luật ném (kể cả do mã biến thể chưa khai) bị CheckRun nuốt thành Failed — phải chặn ở đây, không thì mất dấu.
+                    Assert.AreNotEqual(LiveEventCalendarRuleOutcome.Failed, result.Outcome,
+                        "Ngữ cảnh " + contextIndex + " · " + result.RuleId + ": " + result.ExceptionTypeName + " " + result.ExceptionMessage);
+
+                    IReadOnlyList<LiveEventCalendarFinding> findings = result.Findings;
                     for (int findingIndex = 0; findingIndex < findings.Count; findingIndex++)
                     {
                         LiveEventCalendarFinding finding = findings[findingIndex];
                         CollectionAssert.Contains(LiveEventCalendarDetailCodes.ForRule(finding.RuleId), finding.DetailCode,
                             finding.RuleId + " · " + finding.TargetId);
-                        findingCount++;
                     }
+                    if (resultIndex < rulesOneToEightCount) rulesOneToEightFindingCount += findings.Count;
                 }
+                Assert.AreEqual(expectedRulesOneToEightFindingCounts[contextIndex], rulesOneToEightFindingCount,
+                    "Ngữ cảnh " + contextIndex + ": số phát hiện luật 1–8 lệch — bộ fixture phải chạm đủ biến thể.");
             }
-            Assert.Greater(findingCount, 15, "Bộ fixture phải chạm nhiều biến thể, không chỉ vài phát hiện của mẫu.");
         }
 
         [Test]
@@ -390,7 +406,14 @@ namespace DreamTech.LiveOps.Tests
         {
             LiveEventCalendarCheckReport report = LiveEventCalendarValidator.Default.Check(ValidationTestFixtures.ContextFor(LiveOpsDesignSample.Document));
 
-            Assert.AreEqual(2, report.Findings.Count);
+            // Đếm riêng nhóm Bị bỏ: luật 10/11 thật (G-VALIDATOR-B) thêm 2 phát hiện Nên xem trên mẫu (mục 6.2) — chúng xếp sau
+            // Bị bỏ nên thứ tự hai hàng đầu không đổi, còn tổng Findings.Count thì đổi.
+            int droppedFindingCount = 0;
+            for (int index = 0; index < report.Findings.Count; index++)
+            {
+                if (report.Findings[index].Consequence == LiveEventCalendarConsequence.Dropped) droppedFindingCount++;
+            }
+            Assert.AreEqual(2, droppedFindingCount);
             Assert.AreEqual("hunt-0916-bonus", report.Findings[0].TargetId, "Cùng Bị bỏ: 16/9 trước 1/10.");
             Assert.AreEqual("lava-quest-2026-10", report.Findings[1].TargetId);
             Assert.AreEqual(1, report.FindingsForTarget(LiveEventCalendarTargetKind.FixedEvent, LiveOpsDesignSample.HuntBonusEntryKey).Count);
