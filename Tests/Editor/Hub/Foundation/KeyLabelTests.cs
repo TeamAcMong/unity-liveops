@@ -1,4 +1,5 @@
 using NUnit.Framework;
+using UnityEngine;
 
 namespace DreamTech.LiveOps.Editor.Tests
 {
@@ -33,6 +34,14 @@ namespace DreamTech.LiveOps.Editor.Tests
         {
             // Id có trong ShortcutManager nhưng không gán phím trên macOS ([API §6.2], S-8): không được in "⌘" cụt.
             string frameSelected = LiveOpsHubKeyLabels.For("Main Menu/Edit/Frame Selected");
+            if (Application.platform == RuntimePlatform.OSXEditor)
+            {
+                // Đo ở hai bản trên macOS: id có nhưng binding rỗng — khẳng định đúng rỗng, vì mọi nhãn khác rỗng ở đây
+                // (kể cả kết thúc bằng chữ/số) đều là helper tự bịa phím.
+                Assert.AreEqual(string.Empty, frameSelected, "Frame Selected không có phím trên macOS — nhãn phải rỗng");
+                return;
+            }
+
             string trimmed = frameSelected.Trim();
             Assert.IsFalse(trimmed == "⌘" || trimmed == "Cmd" || trimmed == "Ctrl+",
                 "nhãn chỉ có ký hiệu modifier mà không có phím là nhãn sai: '" + frameSelected + "'");
