@@ -217,10 +217,10 @@ namespace DreamTech.LiveOps.Tests
 
             Assert.AreEqual(LiveOpsDesignSample.PublishedByteCount, snapshotBytes.Length);
             Assert.AreEqual(stamp.ByteCount, snapshotBytes.Length);
-            using (System.Security.Cryptography.SHA256 sha256 = System.Security.Cryptography.SHA256.Create())
+            using (System.Security.Cryptography.SHA256 hashAlgorithm = System.Security.Cryptography.SHA256.Create())
             {
-                string hexText = BitConverter.ToString(sha256.ComputeHash(snapshotBytes)).Replace("-", string.Empty).ToLowerInvariant();
-                Assert.AreEqual(stamp.Sha256Hex, hexText);
+                string hashHexadecimalText = BitConverter.ToString(hashAlgorithm.ComputeHash(snapshotBytes)).Replace("-", string.Empty).ToLowerInvariant();
+                Assert.AreEqual(stamp.Sha256Hex, hashHexadecimalText);
             }
             Assert.AreEqual("DatHoUnityDev", stamp.Publisher);
             Assert.AreEqual("mở lava-quest tháng 9", stamp.Note);

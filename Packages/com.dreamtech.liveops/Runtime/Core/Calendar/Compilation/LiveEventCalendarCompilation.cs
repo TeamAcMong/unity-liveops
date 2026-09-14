@@ -31,7 +31,9 @@ namespace DreamTech.LiveOps
                 LiveEventCalendarEntryOutcome outcome = entries[index];
                 if (outcome.IsKept) keptCount++;
                 if (outcome.Kind == LiveEventCalendarEntryKind.FixedEvent) _fixedOutcomeIndexByEntryKey[outcome.EntryKey] = index;
-                else _recurringOutcomeIndexByType[outcome.EntryKey] = index;
+                // Nhiều luật cùng loại: outcome của luật ĐỨNG TRƯỚC — cùng luật mà LiveEventCalendarDocument.TryGetRecurringRule
+                // trả và SetRecurringRuleEdit thay, nên hub đọc lý do bỏ/giữ của đúng luật đang hiện.
+                else if (!_recurringOutcomeIndexByType.ContainsKey(outcome.EntryKey)) _recurringOutcomeIndexByType.Add(outcome.EntryKey, index);
             }
             KeptCount = keptCount;
             DroppedCount = entries.Count - keptCount;
