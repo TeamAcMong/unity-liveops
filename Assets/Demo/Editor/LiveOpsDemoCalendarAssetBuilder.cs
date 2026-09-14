@@ -15,7 +15,14 @@ namespace DreamTech.LiveOps.Demo.EditorTools
     ///
     /// <para>Vì sao dữ liệu chép lại thay vì gọi <c>LiveOpsDesignSample</c>: fixture đó nằm trong assembly test (chỉ Editor, cần
     /// <c>UNITY_INCLUDE_TESTS</c>), demo không được phụ thuộc test. Để hai bản không lệch im lặng, builder tự kiểm số byte + SHA-256
-    /// của JSON nháp và của bản đã đăng với đúng hằng mà test package khoá — lệch thì ném, lệnh dòng lệnh thoát 1.</para>
+    /// của JSON nháp và của bản đã đăng với đúng hằng mà test package khoá — lệch thì ném, lệnh dòng lệnh thoát 1.
+    ///
+    /// <para><b>Phạm vi phép kiểm này chỉ tới những gì thật sự xuất ra JSON</b> — luật lặp (idPrefix/anchor/period/active/configKey)
+    /// và đợt cố định (id/type/start/end/configKey). Các field KHÔNG vào JSON — <c>displayName</c>/<c>colorSlot</c>/<c>requiresJoin</c>
+    /// của <see cref="LiveEventTypeDefinition"/>, <c>entryKey</c> của đợt cố định, <c>publisher</c>/<c>note</c>/<c>publishedUtc</c> của
+    /// dấu đã đăng — không đi qua hash nên có thể lệch <c>LiveOpsDesignSample</c> mà builder không báo; sửa các field đó ở
+    /// <see cref="AddEventTypes"/>/<see cref="CreateSampleDocument"/>/<see cref="CreatePublishedDocument"/> thì phải tự đối chiếu tay
+    /// với <c>LiveOpsDesignSample.Document</c> (Packages/com.dreamtech.liveops/Tests/Editor/Support).</para>
     /// </summary>
     public static class LiveOpsDemoCalendarAssetBuilder
     {
@@ -97,7 +104,7 @@ namespace DreamTech.LiveOps.Demo.EditorTools
         }
 
         /// <summary>Nháp hiện tại của dữ liệu mẫu — xuất định dạng 2 ra đúng <c>plan/sample_format2.json</c>.</summary>
-        public static LiveEventCalendarDocument CreateSampleDocument()
+        private static LiveEventCalendarDocument CreateSampleDocument()
         {
             LiveEventCalendarJsonText published = LiveEventCalendarJsonWriter.Write(CreatePublishedDocument(), LiveEventCalendarJsonFormat.Version2);
 
