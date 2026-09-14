@@ -65,14 +65,14 @@ namespace DreamTech.LiveOps
 
         private static uint Fnv1a32(string text)
         {
-            byte[] utf8 = Encoding.UTF8.GetBytes(text);
+            byte[] textBytes = Encoding.UTF8.GetBytes(text);
             const uint offsetBasis = 2166136261;
             const uint prime = 16777619;
 
             uint hash = offsetBasis;
-            for (int index = 0; index < utf8.Length; index++)
+            for (int index = 0; index < textBytes.Length; index++)
             {
-                hash ^= utf8[index];
+                hash ^= textBytes[index];
                 hash *= prime;
             }
             return hash;

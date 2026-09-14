@@ -118,6 +118,52 @@ namespace DreamTech.LiveOps.Tests
             Assert.AreEqual("2026-09-15T00:00:00Z", westernOffsetText);
         }
 
+        [TestCase("2026-10-3T07:00+07:00", "2026-10-03T00:00:00Z")]      // F7: thiếu số 0 + múi dương
+        [TestCase("2026-10-3T07:00:30+07:00", "2026-10-03T00:00:30Z")]
+        [TestCase("2026-9-30T20:30-03:30", "2026-10-01T00:00:00Z")]       // múi âm, qua ngày + qua tháng
+        [TestCase("2026-1-1T05:00+07:00", "2025-12-31T22:00:00Z")]        // múi dương lùi về năm trước
+        [TestCase("2026-10-3T07:00-00:00", "2026-10-03T07:00:00Z")]
+        [TestCase("2026-10-3T23:59+14:00", "2026-10-03T09:59:00Z")]        // múi xa nhất DateTimeOffset nhận
+        [TestCase("2026-10-3T07:00Z", "2026-10-03T07:00:00Z")]
+        [TestCase("2026-10-3T07:00z", "2026-10-03T07:00:00Z")]
+        [TestCase("  2026-10-3T07:00+07:00  ", "2026-10-03T00:00:00Z")]
+        public void TryNormalize_MissingLeadingZeroWithZone_PadsAndConvertsToUtc(string text, string expectedCanonicalText)
+        {
+            Assert.IsTrue(LiveEventUtcText.TryNormalize(text, out string canonicalText), text);
+            Assert.AreEqual(expectedCanonicalText, canonicalText, text);
+            Assert.IsTrue(LiveEventUtcText.TryParse(canonicalText, out _), "Kết quả chuẩn hoá phải đọc lại được.");
+        }
+
+        [TestCase("2026-10-3T07:00+15:00")]   // quá ±14:00 — DateTimeOffset không có múi này
+        [TestCase("2026-10-3T07:00+07")]
+        [TestCase("2026-10-3T+07:00")]        // có múi mà không có giờ
+        [TestCase("2026-10-3T07:00+07:00Z")]
+        [TestCase("0001-1-1T00:00+01:00")]    // trừ múi ra ngoài khoảng DateTime: false, không ném
+        [TestCase("3/10/2026T07:00+07:00")]
+        public void TryNormalize_BadZone_ReturnsFalseNeverThrows(string text)
+        {
+            bool normalized = true;
+            Assert.DoesNotThrow(() => normalized = LiveEventUtcText.TryNormalize(text, out _), text);
+            Assert.IsFalse(normalized, text);
+        }
+
+        [Test]
+        public void TryNormalize_EveryParser010Format_MatchesTryParse()
+        {
+            // Chuỗi parser 0.1.0 đọc được thì chuẩn hoá = Format(TryParse(...)) — không đổi thời điểm game đang thấy.
+            string[] readableTexts =
+            {
+                "2026-09-15T00:00:00Z", "2026-09-15T07:00:00+07:00", "2026-09-14T20:30:00-03:30", "2026-09-15T00:00:00.0000000Z",
+                "2026-09-15T00:00Z", "2026-09-15T00:00:00", "2026-09-15T00:00:00.0", "2026-09-15T00:00",
+            };
+            foreach (string text in readableTexts)
+            {
+                Assert.IsTrue(LiveEventUtcText.TryParse(text, out DateTime utc), text);
+                Assert.IsTrue(LiveEventUtcText.TryNormalize(text, out string canonicalText), text);
+                Assert.AreEqual(LiveEventUtcText.Format(utc), canonicalText, text);
+            }
+        }
+
         [Test]
         public void TryParseDateAndTime_TreatsInputAsUtc()
         {

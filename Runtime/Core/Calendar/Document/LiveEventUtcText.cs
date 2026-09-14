@@ -27,6 +27,10 @@ namespace DreamTech.LiveOps
         // TimeSpan.TryParseExact dùng bộ định dạng riêng (không phải DateTime): "hh" 2 chữ số, dấu ':' phải escape.
         private static readonly string[] TimeSpanOnlyFormats = { "hh\\:mm", "hh\\:mm\\:ss" };
 
+        private static readonly string[] OffsetFormats = { "hh\\:mm" };
+        private static readonly char[] OffsetSigns = { '+', '-' };
+        private static readonly TimeSpan MaximumOffset = TimeSpan.FromHours(14);
+
         public static bool TryParse(string text, out DateTime utc)
         {
             utc = default;
@@ -65,7 +69,7 @@ namespace DreamTech.LiveOps
             if (separatorIndex < 0) separatorIndex = trimmed.IndexOf(' ');
 
             string datePart = separatorIndex >= 0 ? trimmed.Substring(0, separatorIndex) : trimmed;
-            string timePart = separatorIndex >= 0 ? trimmed.Substring(separatorIndex + 1).TrimEnd('Z', 'z') : null;
+            string timePart = separatorIndex >= 0 ? trimmed.Substring(separatorIndex + 1) : null;
 
             if (!DateTime.TryParseExact(datePart, DateOnlyFormats, CultureInfo.InvariantCulture, DateTimeStyles.None,
                                         out DateTime dateOnly))
@@ -73,14 +77,55 @@ namespace DreamTech.LiveOps
                 return false;
             }
 
+            // Tách múi giờ TRƯỚC khi đọc phần giờ: "07:00+07:00" không khớp định dạng TimeSpan nào, nên nếu đọc cả cụm thì chuỗi
+            // thiếu số 0 mà có múi ("2026-10-3T07:00+07:00") bị coi là không chuẩn hoá được dù thời điểm hoàn toàn rõ.
+            TimeSpan offset = TimeSpan.Zero;
+            if (!string.IsNullOrEmpty(timePart) && !TrySplitZone(timePart, out timePart, out offset)) return false;
+
             TimeSpan timeOfDay = TimeSpan.Zero;
             if (!string.IsNullOrEmpty(timePart) &&
-                !TimeSpan.TryParseExact(timePart, new[] { "hh\\:mm", "hh\\:mm\\:ss" }, CultureInfo.InvariantCulture, out timeOfDay))
+                !TimeSpan.TryParseExact(timePart, TimeSpanOnlyFormats, CultureInfo.InvariantCulture, out timeOfDay))
             {
                 return false;
             }
 
-            canonicalText = Format(DateTime.SpecifyKind(dateOnly.Date + timeOfDay, DateTimeKind.Utc));
+            // Giờ địa phương − múi = UTC. Sát mép khoảng DateTime thì phép trừ ra ngoài khoảng: coi là không chuẩn hoá được
+            // (TryParse/DateTimeOffset cũng từ chối), không để ném từ một hàm Try.
+            long utcTicks = dateOnly.Date.Ticks + timeOfDay.Ticks - offset.Ticks;
+            if (utcTicks < DateTime.MinValue.Ticks || utcTicks > DateTime.MaxValue.Ticks) return false;
+
+            canonicalText = Format(new DateTime(utcTicks, DateTimeKind.Utc));
+            return true;
+        }
+
+        // Đuôi múi hợp lệ: "Z"/"z" hoặc "+hh:mm"/"-hh:mm" tới ±14:00 (giới hạn của DateTimeOffset). Không có đuôi = UTC, như
+        // AssumeUniversal của TryParse. Phần giờ không bao giờ chứa '+'/'-', nên dấu đầu tiên gặp là đầu múi.
+        private static bool TrySplitZone(string timeWithZone, out string timeOfDayText, out TimeSpan offset)
+        {
+            offset = TimeSpan.Zero;
+            timeOfDayText = timeWithZone;
+
+            char lastCharacter = timeWithZone[timeWithZone.Length - 1];
+            if (lastCharacter == 'Z' || lastCharacter == 'z')
+            {
+                timeOfDayText = timeWithZone.Substring(0, timeWithZone.Length - 1);
+                return true;
+            }
+
+            int signIndex = timeWithZone.IndexOfAny(OffsetSigns);
+            if (signIndex < 0) return true;
+            // Có múi mà không có giờ ("2026-10-3T+07:00") là gõ dở, không đoán 00:00 theo múi đó.
+            if (signIndex == 0) return false;
+
+            string offsetText = timeWithZone.Substring(signIndex + 1);
+            if (!TimeSpan.TryParseExact(offsetText, OffsetFormats, CultureInfo.InvariantCulture, out TimeSpan offsetMagnitude) ||
+                offsetMagnitude > MaximumOffset)
+            {
+                return false;
+            }
+
+            timeOfDayText = timeWithZone.Substring(0, signIndex);
+            offset = timeWithZone[signIndex] == '-' ? offsetMagnitude.Negate() : offsetMagnitude;
             return true;
         }
 
