@@ -37,11 +37,10 @@ namespace DreamTech.LiveOps
             new RecurringRuleInvalidRule(),
             new ShadowedByRecurringRule(),
             new UnknownEventTypeRule(),
-            // INTERIM(G-VALIDATOR-B): luật 9–12 giữ chỗ NotMeasured("rule-not-built") tới khi có luật thật.
-            new NotYetImplementedRule(LiveEventCalendarRuleIds.RunningEventIdChanged, LiveEventCalendarConsequence.ProgressLost),
-            new NotYetImplementedRule(LiveEventCalendarRuleIds.ConfigKeyMissing, LiveEventCalendarConsequence.ShouldReview),
-            new NotYetImplementedRule(LiveEventCalendarRuleIds.LongGapBetweenEvents, LiveEventCalendarConsequence.ShouldReview),
-            new NotYetImplementedRule(LiveEventCalendarRuleIds.RemoteSnapshotDrift, LiveEventCalendarConsequence.ShouldReview),
+            new RunningEventIdChangedRule(),
+            new ConfigKeyMissingRule(),
+            new LongGapBetweenEventsRule(),
+            new RemoteSnapshotDriftRule(),
         });
 
         private readonly ILiveEventCalendarRule[] _rules;
