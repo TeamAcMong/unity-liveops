@@ -5,9 +5,8 @@ namespace DreamTech.LiveOps.Tests
     /// <summary>
     /// Tài liệu lịch mẫu dùng làm fixture cho mọi test của package — đúng dữ liệu ở mục "0.1 Dữ liệu mẫu" của kế
     /// hoạch P1: 5 loại, 2 luật, 6 đợt cố định, 1 dấu đã đăng. BÂY GIỜ = 13/9/2026 08:47 UTC; lần đăng gần nhất
-    /// 11/9/2026 16:20 UTC (TRƯỚC khi nháp hiện tại đổi tiền tố weekly-pass "weekly-pass-" → "pass-" và dời kết
-    /// thúc lava-quest-2026-09b 19/9 → 20/9 — hai khác biệt đó chỉ nằm ở <see cref="Document"/>, không nằm ở dấu
-    /// đã đăng bên trong nó).
+    /// 11/9/2026 16:20 UTC (TRƯỚC năm thay đổi của nháp — xem <see cref="PublishedSnapshotJson"/>; các thay đổi đó chỉ
+    /// nằm ở <see cref="Document"/>, không nằm ở dấu đã đăng bên trong nó).
     /// </summary>
     public static class LiveOpsDesignSample
     {
@@ -23,10 +22,20 @@ namespace DreamTech.LiveOps.Tests
         public const string LavaQuestLateEntryKey = "entry-lava-quest-2026-10";
         public const string StarTournamentEntryKey = "entry-star-tournament-2026-10";
 
-        public const int PublishedByteCount = 1419;
-        public const string PublishedSha256Hex = "40ee205af07e0a499b490780fb6950d85c76820138b1dedf36c02918fd44059f";
+        public const int PublishedByteCount = 1425;
+        public const string PublishedSha256Hex = "5eecb84064b0b21a9d587c3d95e3a471f78c38595216415aba016f3e58702696";
 
-        /// <summary>Đúng nội dung bản đã đăng 11/9 16:20 (định dạng 2) — tiền tố weekly-pass còn "weekly-pass-", lava-quest-2026-09b còn kết thúc 19/9, chưa có hunt-0916-bonus.</summary>
+        /// <summary>Người đăng + ghi chú của dấu 11/9 16:20 — đúng hàng mẫu "Các lần đã đăng" [SD2 §3.9].</summary>
+        public const string PublishedPublisher = "DatHoUnityDev";
+        public const string PublishedNote = "mở lava-quest tháng 9";
+
+        /// <summary>
+        /// Đúng nội dung bản đã đăng 11/9 16:20 (định dạng 2) — khác nháp đúng 5 chỗ của diff mẫu (mục 6.3, [SD2 §0]):
+        /// tiền tố weekly-pass còn "weekly-pass-", hunt-0914 còn configKey "hunt_v1" (nháp kế thừa hunt_default),
+        /// lava-quest-2026-09b còn kết thúc 19/9, lava-quest-2026-10 còn endUtc chuẩn "2026-10-03T00:00:00Z" (nháp gõ hỏng
+        /// "2026-10-3"), chưa có hunt-0916-bonus. <see cref="PublishedByteCount"/>/<see cref="PublishedSha256Hex"/> tính trên
+        /// đúng chuỗi này (UTF-8, không LF cuối) — test <c>DesignSample_PublishedStamp_MatchesSnapshotBytes</c> khoá lại.
+        /// </summary>
         public static readonly string PublishedSnapshotJson =
             "{\n" +
             "  \"version\": 2,\n" +
@@ -61,7 +70,7 @@ namespace DreamTech.LiveOps.Tests
             "      \"type\": \"treasure-hunt\",\n" +
             "      \"startUtc\": \"2026-09-14T00:00:00Z\",\n" +
             "      \"endUtc\": \"2026-09-17T00:00:00Z\",\n" +
-            "      \"configKey\": \"hunt_default\"\n" +
+            "      \"configKey\": \"hunt_v1\"\n" +
             "    },\n" +
             "    {\n" +
             "      \"id\": \"lava-quest-2026-09b\",\n" +
@@ -74,7 +83,7 @@ namespace DreamTech.LiveOps.Tests
             "      \"id\": \"lava-quest-2026-10\",\n" +
             "      \"type\": \"lava-quest\",\n" +
             "      \"startUtc\": \"2026-10-01T00:00:00Z\",\n" +
-            "      \"endUtc\": \"2026-10-3\",\n" +
+            "      \"endUtc\": \"2026-10-03T00:00:00Z\",\n" +
             "      \"configKey\": \"lava_quest_v2\"\n" +
             "    },\n" +
             "    {\n" +
@@ -187,8 +196,8 @@ namespace DreamTech.LiveOps.Tests
                     "2026-10-01T00:00:00Z", "2026-10-3", "lava_quest_v2"))
                 .WithFixedEvent(new FixedLiveEventEntry(StarTournamentEntryKey, "star-tournament-2026-10", "star-tournament",
                     "2026-10-03T00:00:00Z", "2026-10-06T00:00:00Z", "star_tournament_v1"))
-                .WithPublishedStamp(new PublishedCalendarStamp("2026-09-11T16:20:00Z", "dreamtech", PublishedSha256Hex,
-                    PublishedByteCount, 2, string.Empty, PublishedSnapshotJson))
+                .WithPublishedStamp(new PublishedCalendarStamp("2026-09-11T16:20:00Z", PublishedPublisher, PublishedSha256Hex,
+                    PublishedByteCount, 2, PublishedNote, PublishedSnapshotJson))
                 .Build();
         }
 
