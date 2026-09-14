@@ -10,12 +10,13 @@ namespace DreamTech.LiveOps.Unity
     public sealed class LiveEventCalendarDocumentParseResult
     {
         internal LiveEventCalendarDocumentParseResult(LiveEventCalendarDocument document, int formatVersion, bool isReadable,
-            bool isBlank, string readErrorText, IReadOnlyList<string> problems)
+            bool isBlank, bool isMissingCalendarArrays, string readErrorText, IReadOnlyList<string> problems)
         {
             Document = document ?? throw new ArgumentNullException(nameof(document));
             FormatVersion = formatVersion;
             IsReadable = isReadable;
             IsBlank = isBlank;
+            IsMissingCalendarArrays = isMissingCalendarArrays;
             ReadErrorText = readErrorText ?? string.Empty;
             Problems = problems ?? throw new ArgumentNullException(nameof(problems));
         }
@@ -46,5 +47,12 @@ namespace DreamTech.LiveOps.Unity
 
         /// <summary>JSON null/chỉ khoảng trắng — remote config chưa có key, không phải lỗi (hành vi 0.1.0).</summary>
         internal bool IsBlank { get; }
+
+        /// <summary>
+        /// JSON đọc được nhưng không có cả <c>events</c> lẫn <c>recurring</c> (vd <c>{}</c>). Cần cờ riêng vì 0.1.0 trả đúng
+        /// tham chiếu <see cref="FixedLiveEventCalendar.Empty"/> cho ca này; biên dịch tài liệu rỗng sẽ dựng lịch rỗng MỚI
+        /// và game đang so tham chiếu sẽ hiểu nhầm là "có lịch".
+        /// </summary>
+        internal bool IsMissingCalendarArrays { get; }
     }
 }

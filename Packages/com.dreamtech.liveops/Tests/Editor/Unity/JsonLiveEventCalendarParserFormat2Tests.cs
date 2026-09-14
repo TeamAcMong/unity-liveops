@@ -105,6 +105,8 @@ namespace DreamTech.LiveOps.Unity.Tests
                 Assert.AreEqual("JSON lịch event thiếu mảng \"events\".", result.Problems[0], json);
                 Assert.AreEqual(0, result.Calendar.Instances.Count, json);
                 Assert.AreEqual(0, result.RecurringCalendars.Count, json);
+                Assert.AreSame(FixedLiveEventCalendar.Empty, result.Calendar,
+                    json + " — 0.1.0 trả đúng tham chiếu Empty, game so tham chiếu được; không được dựng lịch rỗng mới.");
             }
         }
 
