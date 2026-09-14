@@ -128,6 +128,34 @@ namespace DreamTech.LiveOps.Editor.Tests
         }
 
         [Test]
+        public void RewritingReadBack_DocumentRunsRealParserOnRewrittenText()
+        {
+            // Không viết lại: tài liệu giữ nguyên văn giờ hỏng (không biên dịch nên đợt không bị bỏ) — đúng cái JSON viết.
+            LiveEventCalendarDocumentParseResult direct = new GameParserLiveOpsHubJsonReadBack().ReadBackDocument(OneEventWithBrokenEnd);
+            Assert.IsTrue(direct.IsReadable);
+            Assert.AreEqual(1, direct.Document.FixedEvents.Count);
+            Assert.AreEqual("2026-10-3", direct.Document.FixedEvents[0].EndUtcText);
+
+            // Viết lại giờ trước khi đọc: parser THẬT đọc chuỗi đã viết lại — seam không giả tài liệu.
+            var fixing = new RewritingLiveOpsHubJsonReadBack(text => text.Replace("\"2026-10-3\"", "\"2026-10-03T00:00:00Z\""));
+            LiveEventCalendarDocumentParseResult fixedResult = fixing.ReadBackDocument(OneEventWithBrokenEnd);
+            Assert.IsTrue(fixedResult.IsReadable);
+            Assert.AreEqual(1, fixedResult.Document.FixedEvents.Count);
+            Assert.AreEqual("lava-quest-2026-10", fixedResult.Document.FixedEvents[0].EventId);
+            Assert.AreEqual("2026-10-03T00:00:00Z", fixedResult.Document.FixedEvents[0].EndUtcText);
+            StringAssert.Contains("2026-10-03T00:00:00Z", fixing.LastRewrittenText);
+
+            // Kịch bản (h): thay cả chuỗi bằng JSON sai cú pháp — parser thật báo không đọc được, tài liệu rỗng, cùng lý do như gọi thẳng.
+            var breaking = new RewritingLiveOpsHubJsonReadBack(text => "{ not json");
+            LiveEventCalendarDocumentParseResult brokenResult = breaking.ReadBackDocument(OneEventWithBrokenEnd);
+            LiveEventCalendarDocumentParseResult brokenDirect = JsonLiveEventCalendarParser.ParseDocument("{ not json");
+            Assert.IsFalse(brokenResult.IsReadable);
+            Assert.AreEqual(0, brokenResult.Document.FixedEvents.Count);
+            Assert.AreEqual("{ not json", breaking.LastRewrittenText);
+            CollectionAssert.AreEqual(brokenDirect.Problems, brokenResult.Problems);
+        }
+
+        [Test]
         public void RewritingReadBack_NullRewrite_Throws()
         {
             Assert.Throws<ArgumentNullException>(() => new RewritingLiveOpsHubJsonReadBack(null));

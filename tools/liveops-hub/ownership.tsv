@@ -3,6 +3,8 @@
 # package	<gói>	<đợt>	<cỡ>	<phụ thuộc, phẩy; - khi không có>
 # file	<đường dẫn từ gốc repo, glob * ** được>	<gói theo thứ tự tạo → sửa, phẩy; * = mọi gói>	<ghi chú>
 # directory	<thư mục mới>	<gói chủ>	<đợt>
+# (đóng cổng W1, V-20) G-DIFF→G-VALIDATOR-A và G-HUBKIT→G-UNITY là phụ thuộc CÙNG ĐỢT có thật, đã merge ở cổng W1;
+#   check-ownership.py --wave-deps báo đúng 2 lỗi này có chủ đích. Lỗi thứ ba trở đi là thật.
 # region	<vùng>	<họ=gói,...;...>	(tham khảo: LiveOpsHubStrings/ClassNames/Paths.<Vùng>.cs, LiveOpsHubCaptureScenarios.<Vùng>.cs)
 package	G-TOOLS	W0	M	-
 package	G-GOLDEN	W0	S	-
@@ -12,9 +14,9 @@ package	G-SKELETON	W0	S	-
 package	G-HUBBASE	W1	L	G-SKELETON,G-SPIKE-A
 package	G-VALIDATOR-A	W1	L	G-CORE
 package	G-JSON	W1	M	G-CORE,G-SPIKE-A
-package	G-DIFF	W1	M	G-CORE
+package	G-DIFF	W1	M	G-CORE,G-VALIDATOR-A
 package	G-UNITY	W1	M	G-CORE,G-GOLDEN,G-SPIKE-A
-package	G-HUBKIT	W1	M	G-SKELETON,G-CORE
+package	G-HUBKIT	W1	M	G-SKELETON,G-CORE,G-UNITY
 package	G-SPIKE-B	W1	M	G-SPIKE-A
 package	G-SHELL	W2	L	G-HUBBASE,G-HUBKIT
 package	G-FEEDBACK	W2	M	G-HUBBASE,G-HUBKIT,G-SPIKE-A
@@ -180,7 +182,7 @@ file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubStrings.Feed
 file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubStrings.Findings.cs	G-FINDINGTEXT	G-FINDINGTEXT vùng Findings
 file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubStrings.Foundation.cs	G-HUBBASE	G-HUBBASE vùng Foundation
 file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubStrings.Inspector.cs	G-INSPECTOR	G-INSPECTOR vùng Inspector
-file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubStrings.Kit.cs	G-HUBKIT	G-HUBKIT vùng Kit
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubStrings.Kit.cs	G-HUBKIT,G-PASTE,G-ACCEPT	G-HUBKIT vùng Kit; G-PASTE hoặc G-ACCEPT được bỏ hằng KitActionNotBuiltInDevBuild khi hết người dùng (C-4, V-20)
 file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubStrings.Overview.cs	G-OVERVIEW,G-SHELLPOLISH	G-OVERVIEW vùng Overview; G-SHELLPOLISH vùng Overview
 file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubStrings.Paste.cs	G-PASTE	G-PASTE vùng Paste
 file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubStrings.Recurring.cs	G-RECURRING,G-RECURRING-JSON	G-RECURRING vùng Recurring; G-RECURRING-JSON vùng Recurring
@@ -286,18 +288,18 @@ file	Packages/com.dreamtech.liveops/Editor/Hub/Services/LiveOpsHubCalendarSessio
 file	Packages/com.dreamtech.liveops/Editor/Hub/Services/LiveOpsHubCheckState.cs	G-SESSION	G-SESSION tạo
 file	Packages/com.dreamtech.liveops/Editor/Hub/Services/LiveOpsHubDiskConflict.cs	G-SESSION	G-SESSION tạo
 file	Packages/com.dreamtech.liveops/Editor/Hub/Services/LiveOpsHubEditOutcome.cs	G-SESSION	G-SESSION tạo
-file	Packages/com.dreamtech.liveops/Editor/Hub/Services/LiveOpsHubEditorAdapters.cs	G-HUBKIT	G-HUBKIT tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Services/LiveOpsHubEditorAdapters.cs	G-HUBKIT,G-FIX-W1-2	G-HUBKIT tạo; G-FIX-W1-2 thêm ReadBackDocument (C-1, V-20)
 file	Packages/com.dreamtech.liveops/Editor/Hub/Services/LiveOpsHubExportGate.cs	G-EXPORTGATE	G-EXPORTGATE tạo
 file	Packages/com.dreamtech.liveops/Editor/Hub/Services/LiveOpsHubNavigation.cs	G-HUBKIT	G-HUBKIT tạo
 file	Packages/com.dreamtech.liveops/Editor/Hub/Services/LiveOpsHubPasteRunningJsonAction.cs	G-PASTE	G-PASTE tạo
-file	Packages/com.dreamtech.liveops/Editor/Hub/Services/LiveOpsHubPorts.cs	G-HUBKIT	G-HUBKIT tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Services/LiveOpsHubPorts.cs	G-HUBKIT,G-FIX-W1-2	G-HUBKIT tạo; G-FIX-W1-2 thêm ReadBackDocument (C-1, V-20)
 file	Packages/com.dreamtech.liveops/Editor/Hub/Services/LiveOpsHubPreviewSample.cs	G-PREVIEW	G-PREVIEW tạo
 file	Packages/com.dreamtech.liveops/Editor/Hub/Services/LiveOpsHubPublishState.cs	G-SESSION	G-SESSION tạo
 file	Packages/com.dreamtech.liveops/Editor/Hub/Services/LiveOpsHubRemoteSnapshot.cs	G-SESSION	G-SESSION tạo
 file	Packages/com.dreamtech.liveops/Editor/Hub/Services/LiveOpsHubSectionBus.cs	G-HUBKIT	G-HUBKIT tạo
 file	Packages/com.dreamtech.liveops/Editor/Hub/Services/LiveOpsHubServices.cs	G-SESSION	G-SESSION tạo
 file	Packages/com.dreamtech.liveops/Editor/Hub/Services/LiveOpsHubServicesBuilder.cs	G-SESSION,G-PASTE	G-SESSION tạo; G-PASTE sửa
-file	Packages/com.dreamtech.liveops/Editor/Hub/Services/LiveOpsHubTestAdapters.cs	G-HUBKIT	G-HUBKIT tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Services/LiveOpsHubTestAdapters.cs	G-HUBKIT,G-FIX-W1-2	G-HUBKIT tạo; G-FIX-W1-2 thêm ReadBackDocument (C-1, V-20)
 file	Packages/com.dreamtech.liveops/Editor/Hub/Services/LiveOpsJsonSyntaxLocator.cs	G-HUBKIT	G-HUBKIT tạo
 file	Packages/com.dreamtech.liveops/Editor/Hub/Shell/IHubHost.cs	G-SHELL,G-SESSION	G-SHELL tạo; G-SESSION sửa
 file	Packages/com.dreamtech.liveops/Editor/Hub/Shell/IHubSection.cs	G-SHELL	G-SHELL tạo
@@ -509,7 +511,7 @@ file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Services/PreviewSampleTests
 file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Services/PublishStateTests.cs	G-SESSION	G-SESSION tạo
 file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Services/RemoteSnapshotTests.cs	G-SESSION	G-SESSION tạo
 file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Services/SectionBusTests.cs	G-HUBKIT	G-HUBKIT tạo
-file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Services/TestAdaptersTests.cs	G-HUBKIT	G-HUBKIT tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Services/TestAdaptersTests.cs	G-HUBKIT,G-FIX-W1-2,G-PASTE	G-HUBKIT tạo; G-FIX-W1-2 thêm test ReadBackDocument (C-1); G-PASTE được bỏ hai test Interim_* cùng tham chiếu action tạm (C-3, V-20)
 file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Services/ToastModelTests.cs	G-HUBKIT	G-HUBKIT tạo
 file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Shell/HubDiskConflictTests.cs	G-SHELLPOLISH	G-SHELLPOLISH tạo
 file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Shell/HubHostIntegrationTests.cs	G-HOSTUI	G-HOSTUI tạo

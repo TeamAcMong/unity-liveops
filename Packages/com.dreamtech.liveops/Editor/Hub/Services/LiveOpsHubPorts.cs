@@ -75,15 +75,17 @@ namespace DreamTech.LiveOps.Editor
     /// (V-16) Đọc lại JSON bằng đúng parser của game. Seam để kịch bản (h) "parser không đọc được" và "parser lệch" dựng được
     /// bằng cách viết lại ĐẦU VÀO rồi vẫn chạy parser thật (<see cref="RewritingLiveOpsHubJsonReadBack"/>) — không giả kết
     /// quả parser, vì giả kết quả thì không còn kiểm đường game.
-    /// <para>
-    /// Chưa có <c>ReadBackDocument(string) → LiveEventCalendarDocumentParseResult</c> của mục 3: kiểu kết quả đó do G-UNITY
-    /// tạo cùng đợt W1 nên gói này không compile được với nó (V-9). Đề xuất thêm ở cổng W1 sau khi merge — xem báo cáo
-    /// <c>contract-changes-G-HUBKIT.md</c>.
-    /// </para>
     /// </summary>
     internal interface ILiveOpsHubJsonReadBack
     {
+        /// <summary>Đọc và biên dịch như game: lịch game sẽ chạy + lý do bỏ từng mục.</summary>
         LiveEventCalendarParseResult ReadBack(string json);
+
+        /// <summary>
+        /// Đọc thành tài liệu, KHÔNG biên dịch: luồng Dán/đọc lại cần thấy đúng cái JSON viết (kể cả mục hỏng) và biết
+        /// JSON có đọc được không, mà vẫn phải đi qua đúng bước đọc của parser game.
+        /// </summary>
+        LiveEventCalendarDocumentParseResult ReadBackDocument(string json);
     }
 
     /// <summary>(V-16) Nạp UXML/USS của hub — kịch bản h28b "thiếu UXML" thay bằng <see cref="MissingPathsLiveOpsHubLayoutLoader"/>.</summary>
