@@ -12,7 +12,10 @@ namespace DreamTech.LiveOps
     {
         private static readonly LiveEventCalendarFieldChange[] NoFields = Array.Empty<LiveEventCalendarFieldChange>();
 
-        public LiveEventCalendarChange(LiveEventCalendarChangeKind kind, LiveEventCalendarItemKind itemKind, string itemId,
+        // internal: mục 3 không khai constructor — hàng diff chỉ sinh từ LiveEventCalendarDiff, để mọi hàng Editor nhận được
+        // đều khớp thuật toán hậu quả (hàng dựng tay có thể mang tổ hợp thuật toán không bao giờ sinh, vd Bị bỏ mà bắt buộc xem).
+        // Test cần hàng diff thì dựng hai tài liệu rồi gọi Compare/CompareByEntryKey.
+        internal LiveEventCalendarChange(LiveEventCalendarChangeKind kind, LiveEventCalendarItemKind itemKind, string itemId,
             string entryKey, IReadOnlyList<LiveEventCalendarFieldChange> fields, LiveEventCalendarConsequence consequence,
             string runningEventIdBefore, string runningEventIdAfter, DateTime? runningEventEndUtc, bool willBeDropped,
             string fingerprint)
@@ -45,7 +48,11 @@ namespace DreamTech.LiveOps
         /// <summary>EntryKey của đợt cố định trong nháp (để chọn + căn khung); "" với luật, loại và đợt đã xoá khỏi nháp.</summary>
         public string EntryKey { get; }
 
-        /// <summary>Rỗng với <see cref="LiveEventCalendarChangeKind.Added"/> và <see cref="LiveEventCalendarChangeKind.Removed"/>.</summary>
+        /// <summary>
+        /// Rỗng với <see cref="LiveEventCalendarChangeKind.Added"/> và <see cref="LiveEventCalendarChangeKind.Removed"/>. Cũng rỗng
+        /// với <see cref="LiveEventCalendarChangeKind.Changed"/> khi không field nào đổi mà chỉ trạng thái giữ/bỏ của bộ biên dịch
+        /// đổi (vd đợt mới chen lên làm đợt đang chạy bị chồng giờ → <see cref="WillBeDropped"/>) — người chơi vẫn thấy khác.
+        /// </summary>
         public IReadOnlyList<LiveEventCalendarFieldChange> Fields { get; }
 
         public LiveEventCalendarConsequence Consequence { get; }
@@ -56,7 +63,10 @@ namespace DreamTech.LiveOps
         /// <summary>Id đợt đang chạy (theo bản so) của mục lúc so, vd "weekly-pass-35"; "" khi mục không có đợt đang chạy.</summary>
         public string RunningEventIdBefore { get; }
 
-        /// <summary>Id mà bản ghi đang chạy sẽ theo sau thay đổi (vd "pass-35"); "" nếu đợt đó biến mất khỏi lịch.</summary>
+        /// <summary>
+        /// Id người chơi sẽ thấy thay vào trên CÙNG loại sau thay đổi (vd "pass-35", hoặc id mới khi đổi id đợt cố định đang
+        /// chạy); "" khi loại đó không còn đợt thay vào — xoá, đổi loại, dời ra ngoài khung, hoặc mục bị bộ biên dịch bỏ.
+        /// </summary>
         public string RunningEventIdAfter { get; }
 
         /// <summary>Giờ kết thúc của đợt đang chạy theo bản so — bản ghi người chơi vẫn khép ở giờ này nếu mất đợt.</summary>

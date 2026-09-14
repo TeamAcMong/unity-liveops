@@ -63,6 +63,70 @@ namespace DreamTech.LiveOps.Tests
             Assert.AreEqual(0, result.ReviewRequiredCount);
         }
 
+        [TestCase("overlapped-by-new-fixed-event")]
+        [TestCase("shadowed-by-new-recurring-rule")]
+        public void PublishedKeptEntry_DroppedInDraftBecauseOfAnotherEntry_IsDroppedNotKept(string scenario)
+        {
+            // Đợt đang chạy KHÔNG đổi field nào; mục khác thêm vào làm bộ biên dịch bỏ nó → người chơi mất đợt, không phải "Giữ".
+            LiveEventCalendarDocument baseline = Document(Running());
+            LiveEventCalendarDocument draft = scenario == "overlapped-by-new-fixed-event"
+                // Bắt đầu sớm hơn nên được giữ; đợt đang chạy (bắt đầu muộn hơn) bị bỏ vì chồng giờ cùng loại.
+                ? Document(Running(), new FixedLiveEventEntry(AddedKey, "quest-0911", QuestType, "2026-09-11T00:00:00Z", "2026-09-14T00:00:00Z", "quest_v1"))
+                : Document(new[] { new RecurringLiveEventRule(QuestType, WeeklyAnchor, "quest-r-", 24, 24, "quest_v1") }, Running());
+
+            foreach (LiveEventCalendarDiffResult result in new[]
+                     {
+                         LiveEventCalendarDiff.Compare(baseline, draft, NowUtc),
+                         LiveEventCalendarDiff.CompareByEntryKey(baseline, draft, NowUtc),
+                     })
+            {
+                Assert.AreEqual(0, result.KeptCount, scenario + ": " + string.Join(" | ", result.Changes));
+                Assert.AreEqual(2, result.ChangeCount);
+                LiveEventCalendarChange running = FindChange(result, RunningId);
+                Assert.AreEqual(LiveEventCalendarChangeKind.Changed, running.Kind);
+                Assert.AreEqual(0, running.Fields.Count, "Không field nào đổi — chỉ trạng thái giữ/bỏ.");
+                Assert.AreEqual(LiveEventCalendarConsequence.Dropped, running.Consequence);
+                Assert.IsTrue(running.WillBeDropped);
+                Assert.AreEqual(RunningId, running.RunningEventIdBefore);
+                Assert.AreEqual(string.Empty, running.RunningEventIdAfter, "Đợt bị bỏ không còn trên lịch.");
+                Assert.AreEqual(Utc(2026, 9, 15), running.RunningEventEndUtc);
+                Assert.AreEqual(LiveEventCalendarConsequence.Dropped, result.Changes[0].Consequence, "Hàng Bị bỏ đứng đầu card.");
+            }
+
+            // Chiều ngược lại: gỡ mục chen vào làm đợt từng bị bỏ quay lại lịch — người chơi thấy đợt mới, cũng không phải "Giữ".
+            LiveEventCalendarDiffResult revived = LiveEventCalendarDiff.Compare(draft, baseline, NowUtc);
+            LiveEventCalendarChange revivedRunning = FindChange(revived, RunningId);
+            Assert.AreEqual(LiveEventCalendarChangeKind.Changed, revivedRunning.Kind);
+            Assert.AreEqual(0, revivedRunning.Fields.Count);
+            Assert.AreEqual(LiveEventCalendarConsequence.Safe, revivedRunning.Consequence, "Như thêm mục mới hợp lệ.");
+            Assert.IsFalse(revivedRunning.WillBeDropped);
+            Assert.AreEqual(0, revived.KeptCount);
+        }
+
+        [Test]
+        public void PublishedKeptRecurringRule_DroppedInDraftByEarlierDuplicate_IsDroppedNotKept()
+        {
+            // Bản so: luật đầu hỏng (chu kỳ 0) nên luật thứ hai cùng loại được giữ. Nháp sửa luật đầu cho hợp lệ → luật đầu được
+            // giữ, luật thứ hai (field y hệt bản so) bị bỏ vì trùng loại.
+            RecurringLiveEventRule brokenFirst = WeeklyRule().WithPeriodHours(0);
+            LiveEventCalendarDocument baseline = Document(new[] { brokenFirst, WeeklyRule() });
+            LiveEventCalendarDocument draft = Document(new[] { WeeklyRule().WithActiveHours(100), WeeklyRule() });
+
+            LiveEventCalendarDiffResult result = LiveEventCalendarDiff.Compare(baseline, draft, NowUtc);
+
+            Assert.AreEqual(0, result.KeptCount, string.Join(" | ", result.Changes));
+            LiveEventCalendarChange droppedSecond = null;
+            foreach (LiveEventCalendarChange change in result.Changes)
+            {
+                if (change.Fields.Count == 0) droppedSecond = change;
+            }
+            Assert.IsNotNull(droppedSecond, string.Join(" | ", result.Changes));
+            Assert.AreEqual(LiveEventCalendarItemKind.RecurringRule, droppedSecond.ItemKind);
+            Assert.AreEqual(LiveEventCalendarChangeKind.Changed, droppedSecond.Kind);
+            Assert.AreEqual(LiveEventCalendarConsequence.Dropped, droppedSecond.Consequence);
+            Assert.IsTrue(droppedSecond.WillBeDropped);
+        }
+
         // ----- Hàng 2: đợt cố định đang chạy bị xoá / đổi id / đổi loại / dời ra ngoài khung tìm -----
 
         [TestCase("removed")]
@@ -89,7 +153,8 @@ namespace DreamTech.LiveOps.Tests
             Assert.IsTrue(change.IsReviewRequired);
             Assert.AreEqual(RunningId, change.RunningEventIdBefore);
             Assert.AreEqual(Utc(2026, 9, 15), change.RunningEventEndUtc);
-            if (scenario == "removed" || scenario == "moved-out") Assert.AreEqual(string.Empty, change.RunningEventIdAfter);
+            // Đổi loại: đợt nằm ở làn khác, bản ghi tìm theo loại cũ không thấy — không có id "thay vào" trên cùng làn.
+            if (scenario != "renamed") Assert.AreEqual(string.Empty, change.RunningEventIdAfter, scenario);
             if (scenario == "renamed") Assert.AreEqual("quest-0912-renamed", change.RunningEventIdAfter);
             if (scenario == "removed")
             {
@@ -219,6 +284,7 @@ namespace DreamTech.LiveOps.Tests
         // ----- Hàng 8: đợt đã khép đổi id / id của đợt đã khép bị dùng lại -----
 
         [TestCase("renamed")]
+        [TestCase("renamed-published")]
         [TestCase("reopened-same-id")]
         [TestCase("reused-by-new-entry")]
         public void EndedEvent_RenamedOrIdReused_ShouldReview(string scenario)
@@ -228,6 +294,15 @@ namespace DreamTech.LiveOps.Tests
             string expectedItemId = EndedId;
             switch (scenario)
             {
+                case "renamed-published":
+                    // Bản đã đăng (danh tính theo id): cùng thao tác đổi id hiện thành xoá + thêm — cả hai nửa Nên xem.
+                    result = LiveEventCalendarDiff.Compare(saved, Document(Ended().WithEventId("quest-0901-renamed")), NowUtc);
+                    Assert.AreEqual(1, result.AddedCount);
+                    Assert.AreEqual(1, result.RemovedCount);
+                    Assert.AreEqual(LiveEventCalendarConsequence.ShouldReview, FindChange(result, LiveEventCalendarChangeKind.Removed).Consequence,
+                        "Nửa xoá id cũ.");
+                    expectedItemId = "quest-0901-renamed";
+                    break;
                 case "renamed":
                     expectedItemId = "quest-0901-renamed";
                     result = LiveEventCalendarDiff.CompareByEntryKey(saved, Document(Ended().WithEventId(expectedItemId)), NowUtc);
@@ -244,11 +319,30 @@ namespace DreamTech.LiveOps.Tests
                     break;
             }
 
-            LiveEventCalendarChange change = scenario == "reused-by-new-entry"
+            LiveEventCalendarChange change = scenario == "reused-by-new-entry" || scenario == "renamed-published"
                 ? FindChange(result, LiveEventCalendarChangeKind.Added)
                 : SingleChange(result);
             Assert.AreEqual(expectedItemId, change.ItemId);
             Assert.AreEqual(LiveEventCalendarConsequence.ShouldReview, change.Consequence, scenario + ": RetiredEventIds chặn người đã chơi vào lại.");
+        }
+
+        [TestCase("removed")]
+        [TestCase("removed-and-other-window-added")]
+        public void EndedEvent_RemovedInPublishedDiff_Safe(string scenario)
+        {
+            // Xoá đợt đã khép là dọn lịch thường ngày (S-27, Q-14): chỉ khi nháp có mục cùng loại + cùng khung (dấu hiệu đổi id)
+            // mới thành Nên xem. Thêm một đợt đã khép khác khung không phải đổi id.
+            LiveEventCalendarDocument draft = scenario == "removed"
+                ? Document()
+                : Document(new FixedLiveEventEntry(AddedKey, "quest-0902", QuestType, "2026-09-02T00:00:00Z", "2026-09-06T00:00:00Z", "quest_v1"));
+
+            LiveEventCalendarDiffResult result = LiveEventCalendarDiff.Compare(Document(Ended()), draft, NowUtc);
+
+            Assert.AreEqual(scenario == "removed" ? 1 : 2, result.ChangeCount, string.Join(" | ", result.Changes));
+            foreach (LiveEventCalendarChange change in result.Changes)
+            {
+                Assert.AreEqual(LiveEventCalendarConsequence.Safe, change.Consequence, scenario + ": " + change);
+            }
         }
 
         // ----- Hàng 9: an toàn -----
@@ -387,8 +481,11 @@ namespace DreamTech.LiveOps.Tests
         public void Changes_SortedByConsequenceThenItemKindThenTime()
         {
             RecurringLiveEventRule rule = WeeklyRule();
-            LiveEventCalendarDocument baseline = Document(new[] { rule }, Running(), Upcoming(), Ended());
-            LiveEventCalendarDocument draft = Document(new[] { rule.WithIdPrefix("pass-") },
+            // Luật giờ vàng: mỗi tuần một giờ từ thứ Hai 00:00 — lúc now (Chủ nhật) không chạy, nên đổi activeHours là An toàn.
+            // Neo tháng 1 SỚM hơn mọi đợt cố định an toàn: nếu khoá thời gian đứng trước khoá loại mục thì luật sẽ nhảy lên đầu nhóm.
+            var bonusHourRule = new RecurringLiveEventRule("bonus-hour", WeeklyAnchor, "bonus-hour-", 168, 1, "bonus_hour_v1");
+            LiveEventCalendarDocument baseline = Document(new[] { rule, bonusHourRule }, Running(), Upcoming(), Ended());
+            LiveEventCalendarDocument draft = Document(new[] { rule.WithIdPrefix("pass-"), bonusHourRule.WithActiveHours(2) },
                 Running().WithTimes(RunningStart, "2026-09-16T00:00:00Z"),
                 Upcoming().WithConfigKey("quest_v2"),
                 Ended().WithTimes(EndedStart, "broken"),
@@ -405,6 +502,7 @@ namespace DreamTech.LiveOps.Tests
                 "ShouldReview:" + UpcomingId,
                 "Safe:" + RunningId,
                 "Safe:quest-0930",
+                "Safe:bonus-hour",
             }, actualOrder);
         }
 

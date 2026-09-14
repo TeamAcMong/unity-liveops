@@ -79,6 +79,7 @@ namespace DreamTech.LiveOps
                 ? (Func<FixedLiveEventEntry, string>)(entry => entry.EntryKey)
                 : entry => entry.EventId;
             List<ItemPair<FixedLiveEventEntry>> pairs = PairItems(beforeSide.ExportOrderedFixedEvents, afterSide.ExportOrderedFixedEvents, identityOf);
+            HashSet<int> endedRenamePairIndexes = compareByEntryKey ? new HashSet<int>() : FindEndedRenamePairIndexes(beforeSide, pairs);
 
             int keptCount = 0;
             for (int index = 0; index < pairs.Count; index++)
@@ -89,7 +90,11 @@ namespace DreamTech.LiveOps
                 List<LiveEventCalendarFieldChange> fields = beforeEntry != null && afterEntry != null
                     ? FixedFieldChanges(beforeSide.Document, beforeEntry, afterSide.Document, afterEntry)
                     : new List<LiveEventCalendarFieldChange>();
-                if (beforeEntry != null && afterEntry != null && fields.Count == 0)
+                // Field y hệt nhưng bộ biên dịch giữ ở một phía và bỏ ở phía kia (vd đợt mới chen lên làm đợt đang chạy bị
+                // chồng giờ) không phải "Giữ": người chơi thấy khác, nên phải thành một hàng dù không field nào đổi.
+                bool keptStateChanged = beforeEntry != null && afterEntry != null &&
+                                        beforeSide.IsFixedEventKept(beforeEntry) != afterSide.IsFixedEventKept(afterEntry);
+                if (beforeEntry != null && afterEntry != null && fields.Count == 0 && !keptStateChanged)
                 {
                     keptCount++;
                     continue;
@@ -97,7 +102,8 @@ namespace DreamTech.LiveOps
 
                 LiveEventCalendarChangeKind kind = afterEntry == null ? LiveEventCalendarChangeKind.Removed
                     : beforeEntry == null ? LiveEventCalendarChangeKind.Added : LiveEventCalendarChangeKind.Changed;
-                LiveEventCalendarChange change = ClassifyFixedEvent(beforeSide, afterSide, nowUtc, kind, beforeEntry, afterEntry, fields);
+                LiveEventCalendarChange change = ClassifyFixedEvent(beforeSide, afterSide, nowUtc, kind, beforeEntry, afterEntry, fields,
+                    endedRenamePairIndexes.Contains(index));
 
                 FixedLiveEventEntry timeSource = afterEntry ?? beforeEntry;
                 DateTime sortTime = timeSource.TryGetStartUtc(out DateTime startUtc) ? startUtc : DateTime.MaxValue;
@@ -120,10 +126,14 @@ namespace DreamTech.LiveOps
         }
 
         private static LiveEventCalendarChange ClassifyFixedEvent(ComparisonSide beforeSide, ComparisonSide afterSide, DateTime nowUtc,
-            LiveEventCalendarChangeKind kind, FixedLiveEventEntry beforeEntry, FixedLiveEventEntry afterEntry, List<LiveEventCalendarFieldChange> fields)
+            LiveEventCalendarChangeKind kind, FixedLiveEventEntry beforeEntry, FixedLiveEventEntry afterEntry, List<LiveEventCalendarFieldChange> fields,
+            bool isHalfOfEndedRename)
         {
             bool afterKept = afterEntry != null && afterSide.IsFixedEventKept(afterEntry);
             bool willBeDropped = afterEntry != null && !afterKept;
+            bool idChanged = HasField(fields, FieldId);
+            bool typeChanged = HasField(fields, FieldType);
+            bool configKeyChanged = HasField(fields, FieldConfigKey);
 
             LiveEventInstance runningBefore = beforeEntry != null ? beforeSide.FindRunningFixedInstance(beforeEntry) : null;
             string runningIdAfter = string.Empty;
@@ -131,8 +141,16 @@ namespace DreamTech.LiveOps
             if (runningBefore != null)
             {
                 followed = afterSide.FindFollowedInstance(runningBefore);
-                if (followed != null) runningIdAfter = followed.EventId;
-                else if (afterKept && afterSide.IsRunningFixedEvent(afterEntry)) runningIdAfter = afterEntry.EventId;
+                if (followed != null)
+                {
+                    runningIdAfter = followed.EventId;
+                }
+                else if (afterKept && !typeChanged && afterSide.IsRunningFixedEvent(afterEntry))
+                {
+                    // Chỉ nêu id thay vào khi đợt còn trên CÙNG làn (đổi id): đổi loại thì đợt nằm ở làn khác, bản ghi tìm theo
+                    // loại cũ không bao giờ thấy — hàng "quest-0912 → quest-0912" cho một hàng Mất tiến độ là nói sai.
+                    runningIdAfter = afterEntry.EventId;
+                }
             }
 
             LiveEventCalendarConsequence consequence = LiveEventCalendarConsequence.Safe;
@@ -142,9 +160,6 @@ namespace DreamTech.LiveOps
             }
             else
             {
-                bool idChanged = HasField(fields, FieldId);
-                bool typeChanged = HasField(fields, FieldType);
-                bool configKeyChanged = HasField(fields, FieldConfigKey);
                 FixedEventPhase beforePhase = beforeEntry != null ? beforeSide.PhaseOf(beforeEntry) : FixedEventPhase.NotInGame;
 
                 if (runningBefore != null)
@@ -163,6 +178,10 @@ namespace DreamTech.LiveOps
                     if (idChanged || !afterSide.HasEnded(afterEntry)) consequence = LiveEventCalendarConsequence.ShouldReview;
                 }
 
+                // Bản đã đăng (danh tính theo id): đổi id đợt đã khép hiện thành xoá + thêm — cả hai nửa mang hậu quả của hàng
+                // "đổi id" để kết quả không tuỳ cách ghép danh tính.
+                if (isHalfOfEndedRename) consequence = Worst(consequence, LiveEventCalendarConsequence.ShouldReview);
+
                 // Mục nháp dùng lại id của một đợt đã khép trong bản so: người đã chơi đợt cũ bị AlreadyFinished, không vào được.
                 if (afterEntry != null && !afterSide.HasEnded(afterEntry) && beforeSide.IsEndedFixedEventId(afterEntry.EventId))
                 {
@@ -177,6 +196,40 @@ namespace DreamTech.LiveOps
                 runningBefore != null ? runningBefore.EventId : string.Empty, runningIdAfter,
                 runningBefore != null ? runningBefore.EndUtc : (DateTime?)null, willBeDropped,
                 FixedFingerprint(fingerprintSide.Document, identitySource));
+        }
+
+        /// <summary>
+        /// Chỉ ở <see cref="Compare"/>: JSON không mang EntryKey nên đổi id một đợt đã khép hiện thành "xoá id cũ + thêm id
+        /// mới". Nhận ra đúng thao tác đó bằng dấu hiệu: một mục chỉ có ở bản so, đã khép, và một mục chỉ có ở nháp cùng loại,
+        /// cùng nguyên văn startUtc/endUtc (đợt đã khép không kéo được giờ, nên đổi id giữ nguyên khung). Vì sao không coi mọi
+        /// lần xoá đợt đã khép là Nên xem: xoá đợt đã khép là dọn lịch thường ngày, không hỏi (S-27, Q-14). Ghép một-một theo
+        /// thứ tự để hai lần đổi id cùng khung không cùng dồn vào một mục.
+        /// </summary>
+        private static HashSet<int> FindEndedRenamePairIndexes(ComparisonSide beforeSide, List<ItemPair<FixedLiveEventEntry>> pairs)
+        {
+            var result = new HashSet<int>();
+            for (int removedIndex = 0; removedIndex < pairs.Count; removedIndex++)
+            {
+                FixedLiveEventEntry removedEntry = pairs[removedIndex].Before;
+                if (removedEntry == null || pairs[removedIndex].After != null) continue;
+                if (beforeSide.PhaseOf(removedEntry) != FixedEventPhase.Ended) continue;
+
+                for (int addedIndex = 0; addedIndex < pairs.Count; addedIndex++)
+                {
+                    FixedLiveEventEntry addedEntry = pairs[addedIndex].After;
+                    if (addedEntry == null || pairs[addedIndex].Before != null || result.Contains(addedIndex)) continue;
+                    if (!string.Equals(addedEntry.EventType, removedEntry.EventType, StringComparison.Ordinal) ||
+                        !string.Equals(addedEntry.StartUtcText, removedEntry.StartUtcText, StringComparison.Ordinal) ||
+                        !string.Equals(addedEntry.EndUtcText, removedEntry.EndUtcText, StringComparison.Ordinal))
+                    {
+                        continue;
+                    }
+                    result.Add(removedIndex);
+                    result.Add(addedIndex);
+                    break;
+                }
+            }
+            return result;
         }
 
         private static string FixedFingerprint(LiveEventCalendarDocument document, FixedLiveEventEntry entry)
@@ -201,7 +254,10 @@ namespace DreamTech.LiveOps
                 List<LiveEventCalendarFieldChange> fields = beforeRule != null && afterRule != null
                     ? RecurringFieldChanges(beforeSide.Document, beforeRule, afterSide.Document, afterRule)
                     : new List<LiveEventCalendarFieldChange>();
-                if (beforeRule != null && afterRule != null && fields.Count == 0)
+                // Như đợt cố định: field y hệt nhưng trạng thái giữ/bỏ đổi (vd luật trùng loại mới chen lên trước) vẫn là một hàng.
+                bool keptStateChanged = beforeRule != null && afterRule != null &&
+                                        beforeSide.IsRecurringRuleKept(beforeRule) != afterSide.IsRecurringRuleKept(afterRule);
+                if (beforeRule != null && afterRule != null && fields.Count == 0 && !keptStateChanged)
                 {
                     keptCount++;
                     continue;
