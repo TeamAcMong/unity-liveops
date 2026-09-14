@@ -95,6 +95,25 @@ namespace DreamTech.LiveOps.Editor
             return builder.ToString();
         }
 
+        /// <summary>
+        /// Chỗ mở trong Finder/Explorer cho nút "Mở thư mục package": file nếu còn trên đĩa, không thì thư mục gần nhất còn tồn tại
+        /// chứa nó (thường là <c>Editor/Hub/UI</c> — đúng chỗ file phải nằm). Vì sao không đưa thẳng đường dẫn dự án: card thiếu
+        /// UXML hiện ĐÚNG lúc file không có, và đường ảo <c>Packages/…</c> không có trên đĩa khi package cài bằng <c>file:</c> hay
+        /// git — reveal đường đó thì nút không mở gì.
+        /// </summary>
+        internal static string ResolveRevealPath(string projectPath)
+        {
+            if (string.IsNullOrEmpty(projectPath)) return string.Empty;
+            string physicalPath = FileUtil.GetPhysicalPath(projectPath);
+            string candidate = Path.GetFullPath(string.IsNullOrEmpty(physicalPath) ? projectPath : physicalPath);
+            if (File.Exists(candidate)) return candidate;
+            while (!string.IsNullOrEmpty(candidate) && !Directory.Exists(candidate))
+            {
+                candidate = Path.GetDirectoryName(candidate);
+            }
+            return candidate ?? string.Empty;
+        }
+
         private static VisualElement ShowWindowFailure(VisualElement windowRoot, string title, string body, string pathToReveal,
             ILiveOpsHubLayoutLoader layoutLoader, ILiveOpsHubClipboard clipboard, ILiveOpsHubFileDialog fileDialog)
         {
@@ -110,7 +129,8 @@ namespace DreamTech.LiveOps.Editor
             {
                 foreach (LiveOpsHubPaths.ShellStyleSheet sheet in LiveOpsHubPaths.ShellStyleSheetLoadOrder)
                 {
-                    if (!sheet.IsShellOwned) continue;
+                    // Nạp mọi sheet còn có (không lọc theo IsRequired): card lỗi chỉ cần token + khung, sheet thiếu thì bỏ qua im
+                    // lặng — cửa sổ đang ở màn lỗi, thêm cảnh báo stylesheet chỉ che mất lỗi thật.
                     StyleSheet loaded = layoutLoader.LoadStyleSheet(sheet.Path);
                     if (loaded != null) hubRoot.styleSheets.Add(loaded);
                 }
@@ -131,7 +151,7 @@ namespace DreamTech.LiveOps.Editor
 
             string errorText = title + "\n" + body;
             VisualElement actions = CreateActions();
-            actions.Add(CreateButton(RevealButtonName, LiveOpsHubStrings.ShellOpenPackageFolderButton, () => fileDialog.Reveal(pathToReveal), true));
+            actions.Add(CreateButton(RevealButtonName, LiveOpsHubStrings.ShellOpenPackageFolderButton, () => fileDialog.Reveal(ResolveRevealPath(pathToReveal)), true));
             actions.Add(CreateButton(CopyButtonName, LiveOpsHubStrings.ShellCopyErrorButton, () => clipboard.Text = errorText, false));
             card.Add(actions);
             hubRoot.Add(card);

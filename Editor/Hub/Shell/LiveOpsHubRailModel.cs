@@ -188,20 +188,104 @@ namespace DreamTech.LiveOps.Editor
                     {
                         return new BadgeFacts(countParts[0], WorstCountState(summary), false, string.Join(LiveOpsHubStrings.ShellRailPartSeparator, countParts));
                     }
-                    string badge = FirstBadgeWithState(facts, facts.State);
-                    return new BadgeFacts(badge, facts.State, false, JoinReasons(facts.Rows));
+                    IReadOnlyList<string> sectionParts = StageCountParts(facts.Rows);
+                    if (sectionParts.Count == 0) return new BadgeFacts(string.Empty, facts.State, false, JoinReasons(facts.Rows));
+                    return new BadgeFacts(sectionParts[0], facts.State, false, string.Join(LiveOpsHubStrings.ShellRailPartSeparator, sectionParts));
                 }
             }
         }
 
-        private static string FirstBadgeWithState(StageFacts facts, HealthState state)
+        /// <summary>
+        /// Danh sách đếm của tầng không có bộ tổng hợp riêng (LÊN LỊCH, XUẤT) gộp từ badge các màn trong tầng — [FD §3.5] "badge tầng
+        /// nêu mức xấu nhất trước; tooltip hàng tầng liệt kê đủ '2 bị bỏ · 1 mất tiến độ · 2 nên xem'". Badge đúng một format đếm của
+        /// rail ("{0} bị bỏ"…) thì cộng dồn theo loại (Lịch "1 bị bỏ" + Luật lặp "1 bị bỏ" = "2 bị bỏ"); badge khác ("chặn", "1 cần
+        /// xem") giữ nguyên, trùng chữ chỉ ghi một lần. Thứ tự: màn Blocked trước Warning trước NotMeasured, trong cùng mức theo thứ
+        /// tự rail. Vì sao gộp từ chữ badge: <see cref="SectionHealth"/> (hợp đồng W1) chỉ mang badge dạng chữ, số đếm theo đích nằm ở
+        /// phiên (G-SESSION) — màn phát badge bằng chính các format đếm của rail thì tầng cộng đúng.
+        /// </summary>
+        internal static IReadOnlyList<string> StageCountParts(IReadOnlyList<LiveOpsHubRailSectionRow> rows)
         {
-            // Badge của màn đầu tiên mang mức nặng nhất ("2 bị bỏ" của Lịch, "chặn" của Xuất JSON) — chính màn đó quyết định dấu tầng.
-            foreach (LiveOpsHubRailSectionRow row in facts.Rows)
+            List<StageCountEntry> entries = new List<StageCountEntry>();
+            foreach (HealthState state in StageCountStateOrder)
             {
-                if (row.State == state && !string.IsNullOrEmpty(row.Badge)) return row.Badge;
+                foreach (LiveOpsHubRailSectionRow row in rows)
+                {
+                    if (row.State != state || string.IsNullOrEmpty(row.Badge)) continue;
+                    AddStageCount(entries, row.Badge);
+                }
             }
-            return string.Empty;
+
+            List<string> parts = new List<string>(entries.Count);
+            foreach (StageCountEntry entry in entries)
+            {
+                parts.Add(entry.Format == null ? entry.Text : string.Format(CultureInfo.InvariantCulture, entry.Format, entry.Count));
+            }
+            return parts;
+        }
+
+        private static readonly HealthState[] StageCountStateOrder = { HealthState.Blocked, HealthState.Warning, HealthState.NotMeasured };
+
+        private static readonly string[] StageCountFormats =
+        {
+            LiveOpsHubStrings.ShellRailDroppedCountFormat,
+            LiveOpsHubStrings.ShellRailProgressLostCountFormat,
+            LiveOpsHubStrings.ShellRailShouldReviewCountFormat,
+            LiveOpsHubStrings.ShellRailNotMeasuredCountFormat,
+        };
+
+        private static void AddStageCount(List<StageCountEntry> entries, string badge)
+        {
+            string matchedFormat = null;
+            int count = 0;
+            foreach (string format in StageCountFormats)
+            {
+                if (TryReadCount(badge, format, out count))
+                {
+                    matchedFormat = format;
+                    break;
+                }
+            }
+
+            foreach (StageCountEntry entry in entries)
+            {
+                if (matchedFormat != null && string.Equals(entry.Format, matchedFormat, StringComparison.Ordinal))
+                {
+                    entry.Count += count;
+                    return;
+                }
+                if (matchedFormat == null && entry.Format == null && string.Equals(entry.Text, badge, StringComparison.Ordinal)) return;
+            }
+            entries.Add(new StageCountEntry(badge, matchedFormat, count));
+        }
+
+        /// <summary>"12 bị bỏ" với format "{0} bị bỏ" → 12. Chỉ nhận số nguyên dương viết liền ở đầu, đuôi khớp nguyên văn.</summary>
+        private static bool TryReadCount(string badge, string format, out int count)
+        {
+            count = 0;
+            const string placeholder = "{0}";
+            if (!format.StartsWith(placeholder, StringComparison.Ordinal)) return false;
+            string suffix = format.Substring(placeholder.Length);
+            if (!badge.EndsWith(suffix, StringComparison.Ordinal) || badge.Length == suffix.Length) return false;
+            string number = badge.Substring(0, badge.Length - suffix.Length);
+            foreach (char character in number)
+            {
+                if (character < '0' || character > '9') return false;
+            }
+            return int.TryParse(number, NumberStyles.None, CultureInfo.InvariantCulture, out count) && count > 0;
+        }
+
+        private sealed class StageCountEntry
+        {
+            public StageCountEntry(string text, string format, int count)
+            {
+                Text = text;
+                Format = format;
+                Count = count;
+            }
+
+            public string Text { get; }
+            public string Format { get; }
+            public int Count { get; set; }
         }
 
         private static string StaleTooltipPrefix(SectionHealth staleSource)

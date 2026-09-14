@@ -169,7 +169,7 @@
     visibility: hidden;
 }
 
-/* Active: nền chọn (mất focus = inactive), chữ trắng đậm, thanh trái 2px (padding bù 2px để nhãn không lệch). */
+/* Active: nền chọn (mất focus = inactive), chữ đậm, thanh trái 2px (padding bù 2px để nhãn không lệch). */
 .liveops-hub-rail-row--active {
     background-color: var(--unity-colors-highlight-background-inactive);
     border-left-width: 2px;
@@ -186,9 +186,15 @@
     background-color: var(--unity-colors-highlight-background);
 }
 
+/* Chữ trắng chỉ khi rail có focus (nền highlight). Mất focus (nền highlight-inactive) thì chữ màu thường, đậm — Hình 3 hàng
+   rail "active + vùng rail mất focus"; ở Light trắng trên #AEAEAE chỉ 2,22:1 ([FD §2.3]), mà đây là trạng thái thường gặp nhất
+   (người dùng đang làm việc ở cột nội dung). */
 .liveops-hub-rail-row--active > .liveops-hub-rail-row-label {
-    color: var(--liveops-hub-color-on-selection);
     -unity-font-style: bold;
+}
+
+.liveops-hub-rail--has-focus .liveops-hub-rail-row--active > .liveops-hub-rail-row-label {
+    color: var(--liveops-hub-color-on-selection);
 }
 
 .liveops-hub--skin-light .liveops-hub-rail-row--active {
@@ -362,6 +368,11 @@
 
 .liveops-hub-status-mark {
     margin-right: 6px;
+}
+
+/* Chưa có câu trạng thái thì ẩn dấu nhưng giữ chỗ — một vòng rỗng không kèm lý do sẽ bị đọc thành trạng thái thật. */
+.liveops-hub-status-mark--hidden {
+    visibility: hidden;
 }
 
 .liveops-hub-status-right {

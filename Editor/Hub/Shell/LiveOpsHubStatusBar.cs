@@ -34,7 +34,9 @@ namespace DreamTech.LiveOps.Editor
         /// <param name="mark">null = không dấu (câu tự đứng được, vd "Chưa kiểm lần nào — F5 để kiểm" đã nói lý do).</param>
         public void SetLeft(HealthState? mark, string text, string tooltip)
         {
-            LeftMark.visible = mark.HasValue;
+            // Ẩn bằng class, không bằng setter visible (setter ghi style.visibility inline — trạng thái luôn bằng class [FD §2.14]).
+            // visibility: hidden giữ chỗ 7 px để chữ không nhảy khi dấu bật/tắt.
+            LeftMark.EnableInClassList(LiveOpsHubClassNames.StatusMarkHidden, !mark.HasValue);
             if (mark.HasValue) LeftMark.SetHealth(mark.Value);
             LeftLabel.text = text ?? string.Empty;
             LeftLabel.tooltip = string.IsNullOrEmpty(tooltip) ? LeftLabel.text : tooltip;

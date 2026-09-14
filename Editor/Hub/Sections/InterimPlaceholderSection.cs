@@ -6,8 +6,8 @@ namespace DreamTech.LiveOps.Editor
 {
     /// <summary>
     /// Màn chưa dựng: tiêu đề và subtitle thật trên section header, health NotMeasured có lý do (rail đủ 6 màn, mỗi màn vòng
-    /// rỗng kèm câu nói vì sao — không bao giờ trông như "ổn"), thân là trạng thái trống ([FD §4]: vì sao trống · trống không
-    /// phải là đạt).
+    /// rỗng kèm câu nói vì sao — không bao giờ trông như "ổn"), thân là trạng thái trống ([FD §4]): dòng đầu nói vì sao trống,
+    /// dòng sau là subtitle thật của màn.
     /// </summary>
     // INTERIM(G-SHELLPOLISH): lớp gốc của 6 màn giữ chỗ ở bản dev (mục 12 I-2) — mỗi gói màn W4 thay lớp gốc bằng màn thật,
     // G-SHELLPOLISH (W5) xoá file này; màn nào còn kế thừa thì compile đỏ, không lọt thành màn trống âm thầm.
@@ -51,7 +51,9 @@ namespace DreamTech.LiveOps.Editor
             title.AddToClassList(LiveOpsHubClassNames.EmptyTitle);
             body.Add(title);
 
-            Label reason = new Label(LiveOpsHubStrings.InterimPlaceholderNotPassedNote) { name = ReasonElementName };
+            // Dòng dưới là subtitle thật của màn (mục 12 I-2: thân rỗng có tiêu đề + subtitle thật) — nói màn này sẽ làm gì mà không
+            // thêm câu tạm nào ngoài sổ INTERIM (hằng tạm duy nhất là InterimPlaceholderReason, G-SHELLPOLISH gỡ theo sổ).
+            Label reason = new Label(Subtitle) { name = ReasonElementName };
             reason.AddToClassList(LiveOpsHubClassNames.EmptyBody);
             body.Add(reason);
             return body;

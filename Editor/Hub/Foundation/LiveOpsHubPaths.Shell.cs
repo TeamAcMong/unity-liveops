@@ -53,6 +53,10 @@ namespace DreamTech.LiveOps.Editor
             new ShellStyleSheet(ThemeUss, true),
             new ShellStyleSheet(ComponentsUss, true),
             new ShellStyleSheet(ShellUss, true),
+            // INTERIM(G-SHELLPOLISH): ba sheet của gói khác (feedback G-FEEDBACK W2, controls G-CONTROLS W2, timeline G-TIMELINE-VIEW
+            // W3) chưa bắt buộc — bản dev dựng dở chưa có file nên cửa sổ không cảnh báo (mọi test UI assert không log lạ), probe chỉ
+            // ghi chú. G-SHELLPOLISH (W5, khi cả ba đã có) đổi ba cờ thành true: bản cài thiếu sheet nào cũng LogWarning đúng đường
+            // dẫn (8.1 bước 2) và probe báo lỗi.
             new ShellStyleSheet(FeedbackUss, false),
             new ShellStyleSheet(ControlsUss, false),
             new ShellStyleSheet(TimelineUss, false),
@@ -60,19 +64,19 @@ namespace DreamTech.LiveOps.Editor
         });
 
         /// <summary>
-        /// Một stylesheet của khung. <see cref="IsShellOwned"/> = false khi sheet do gói khác tạo (feedback, controls, timeline):
-        /// cửa sổ không cảnh báo khi sheet đó chưa có trên đĩa ở bản dev đang dựng dở; probe CLI vẫn liệt kê.
+        /// Một stylesheet của khung. <see cref="IsRequired"/> = thiếu trên đĩa là package hỏng: cửa sổ <c>LogWarning</c> nêu đường
+        /// dẫn, probe CLI báo lỗi. false chỉ cho sheet chưa tới lượt gói tạo ở bản dev (nhánh tạm có dấu INTERIM ở trên).
         /// </summary>
         internal sealed class ShellStyleSheet
         {
-            public ShellStyleSheet(string path, bool isShellOwned)
+            public ShellStyleSheet(string path, bool isRequired)
             {
                 Path = path;
-                IsShellOwned = isShellOwned;
+                IsRequired = isRequired;
             }
 
             public string Path { get; }
-            public bool IsShellOwned { get; }
+            public bool IsRequired { get; }
         }
     }
 }

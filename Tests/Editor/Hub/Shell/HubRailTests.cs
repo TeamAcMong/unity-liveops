@@ -160,6 +160,28 @@ namespace DreamTech.LiveOps.Editor.Tests
         }
 
         [UnityTest]
+        public IEnumerator ActiveRow_WhiteLabelOnlyWhenRailHasFocus()
+        {
+            _scope = LiveOpsHubWindowTestScope.Open(sectionId: LiveOpsHubSections.Ids.Calendar);
+            yield return _scope.WaitForLayout();
+            LiveOpsHubRail rail = _scope.Window.Rail;
+            Label activeLabel = rail.GetRow(LiveOpsHubSections.Ids.Calendar).Q<Label>(className: LiveOpsHubClassNames.RailRowLabel);
+            Label idleLabel = rail.GetRow(LiveOpsHubSections.Ids.Overview).Q<Label>(className: LiveOpsHubClassNames.RailRowLabel);
+            rail.Element.RemoveFromClassList(LiveOpsHubClassNames.RailHasFocus);
+            yield return LiveOpsHubWindowTestScope.WaitFrames(2);
+
+            // Mất focus (nền highlight-inactive): chữ màu thường — ở Light trắng trên #AEAEAE chỉ 2,22:1 (Hình 3, [FD §2.3]).
+            Assert.AreNotEqual(Color.white, activeLabel.resolvedStyle.color, "hàng active khi rail mất focus không được chữ trắng");
+            Assert.AreEqual(idleLabel.resolvedStyle.color, activeLabel.resolvedStyle.color, "mất focus: chữ hàng active cùng màu chữ thường");
+            Assert.AreEqual(FontStyle.Bold, activeLabel.resolvedStyle.unityFontStyleAndWeight, "hàng active vẫn đậm khi mất focus");
+
+            rail.Element.AddToClassList(LiveOpsHubClassNames.RailHasFocus);
+            yield return LiveOpsHubWindowTestScope.WaitFrames(2);
+            Assert.AreEqual(Color.white, activeLabel.resolvedStyle.color, "rail có focus (nền highlight): chữ trắng");
+            LogAssert.NoUnexpectedReceived();
+        }
+
+        [UnityTest]
         public IEnumerator RefreshHealth_SameModel_DoesNotRebuildRows()
         {
             List<FakeHubSection> fakes = FakeHubSection.CreateRegistryShaped();

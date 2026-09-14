@@ -135,15 +135,37 @@ namespace DreamTech.LiveOps.Editor.Tests
         }
 
         [Test]
-        public void ScheduleStage_BadgeFromWorstSection_TooltipJoinsReasons()
+        public void ScheduleStage_BadgeWorstCountFirst_TooltipListsCounts()
         {
             LiveOpsHubRailStageRow schedule = Build(FakeHubSection.CreateDesignSampleShaped(), DesignSummary(), false).Stages[1];
 
             Assert.AreEqual(HealthState.Blocked, schedule.State, "dấu tầng = mức nặng nhất các màn trong tầng");
-            Assert.AreEqual("2 bị bỏ", schedule.Badge, "badge tầng làm việc lấy từ màn mang mức nặng nhất");
+            Assert.AreEqual("2 bị bỏ", schedule.Badge, "badge tầng nêu số của mức nặng nhất trước");
             Assert.AreEqual(HealthState.Blocked, schedule.BadgeState);
-            StringAssert.Contains("hunt-0916-bonus", schedule.BadgeTooltip);
-            StringAssert.Contains("weekly-pass đổi tiền tố", schedule.BadgeTooltip);
+            Assert.AreEqual("2 bị bỏ · 1 mất tiến độ", schedule.BadgeTooltip,
+                "tooltip hàng tầng là danh sách đếm [FD §3.5], không phải câu lý do của từng màn (câu đó ở tooltip hàng màn)");
+            StringAssert.Contains("hunt-0916-bonus", schedule.Rows[0].Tooltip, "câu lý do vẫn ở hàng màn Lịch");
+        }
+
+        [Test]
+        public void StageCounts_SameKindSummedAcrossSections_OtherBadgesKeptOnce()
+        {
+            List<FakeHubSection> sections = FakeHubSection.CreateRegistryShaped();
+            sections[2].Health = SectionHealth.Warning("2 nên xem", "hunt-0914 không tự khai configKey, lava-quest trống 11 ngày");
+            sections[3].Health = SectionHealth.Blocked("1 bị bỏ", "weekly-pass có chu kỳ 0");
+            LiveOpsHubRailStageRow schedule = Build(sections, null, false).Stages[1];
+
+            Assert.AreEqual("1 bị bỏ", schedule.Badge, "màn Blocked đứng trước dù đứng sau trên rail");
+            Assert.AreEqual("1 bị bỏ · 2 nên xem", schedule.BadgeTooltip);
+
+            sections[2].Health = SectionHealth.Blocked("1 bị bỏ", "hunt-0916-bonus chồng giờ");
+            Assert.AreEqual("2 bị bỏ", Build(sections, null, false).Stages[1].BadgeTooltip, "cùng loại đếm thì cộng dồn, không ghi \"1 bị bỏ · 1 bị bỏ\"");
+
+            List<FakeHubSection> export = FakeHubSection.CreateRegistryShaped();
+            export[5].Health = SectionHealth.Blocked("chặn", "Copy JSON bị khoá: 1 thay đổi bắt buộc chưa xem");
+            LiveOpsHubRailStageRow exportStage = Build(export, null, false).Stages[3];
+            Assert.AreEqual("chặn", exportStage.Badge, "badge không theo format đếm giữ nguyên chữ");
+            Assert.AreEqual("chặn", exportStage.BadgeTooltip);
         }
 
         [Test]
