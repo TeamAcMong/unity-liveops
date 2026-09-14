@@ -70,21 +70,26 @@ if [ "$remove" = 1 ]; then
   if ! git -C "$main_repository" worktree list --porcelain | grep -qx "worktree $worktree"; then
     echo "không có worktree $worktree"
   else
-    if [ "$force" != 1 ]; then
-      if [ -n "$(git -C "$worktree" status --porcelain)" ]; then
-        echo "LỖI: $worktree còn thay đổi chưa commit — dùng --force nếu chắc chắn bỏ" >&2
-        exit 1
-      fi
-      if [ -n "$(git -C "$main_repository" rev-list "$base_branch..$branch" 2>/dev/null)" ]; then
-        echo "LỖI: nhánh $branch có commit chưa vào $base_branch — dùng --force nếu chắc chắn bỏ" >&2
-        exit 1
-      fi
+    if [ "$force" != 1 ] && [ -n "$(git -C "$worktree" status --porcelain)" ]; then
+      echo "LỖI: $worktree còn thay đổi chưa commit — dùng --force nếu chắc chắn bỏ" >&2
+      exit 1
     fi
     git -C "$main_repository" worktree remove --force "$worktree"
     echo "đã xoá worktree $worktree"
   fi
+  # Kiểm nhánh chưa merge PHẢI chạy dù worktree đã bị gỡ tay từ trước (nhánh commit chưa vào base branch không đổi vì
+  # thiếu worktree) — nhánh trước đặt kiểm này trong khối "else" ở trên nên khi worktree không còn, branch -D chạy
+  # thẳng không kiểm gì (F7). `git branch -d` là lưới an toàn thứ hai: từ chối xoá nếu HEAD chưa merge nhánh này.
   if git -C "$main_repository" show-ref --verify --quiet "refs/heads/$branch"; then
-    git -C "$main_repository" branch -D "$branch" >/dev/null
+    if [ "$force" = 1 ]; then
+      git -C "$main_repository" branch -D "$branch" >/dev/null
+    else
+      if [ -n "$(git -C "$main_repository" rev-list "$base_branch..$branch" 2>/dev/null)" ]; then
+        echo "LỖI: nhánh $branch có commit chưa vào $base_branch — dùng --force nếu chắc chắn bỏ" >&2
+        exit 1
+      fi
+      git -C "$main_repository" branch -d "$branch" >/dev/null
+    fi
     echo "đã xoá nhánh $branch"
   fi
   git -C "$main_repository" worktree prune
