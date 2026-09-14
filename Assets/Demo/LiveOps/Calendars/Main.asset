@@ -1,0 +1,101 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bcf11dde3505c4070a2f12b1e2eb1881, type: 3}
+  m_Name: Main
+  m_EditorClassIdentifier: DreamTech.LiveOps.Unity::DreamTech.LiveOps.Unity.LiveEventCalendarAsset
+  schemaVersion: 1
+  remoteConfigKey: liveops_calendar
+  eventTypes:
+  - typeId: lava-quest
+    displayName: "Nhi\u1EC7m v\u1EE5 dung nham"
+    colorSlot: 0
+    requiresJoin: 0
+    defaultConfigKey: lava_quest_v2
+  - typeId: sky-race
+    displayName: "\u0110ua tr\xEAn tr\u1EDDi"
+    colorSlot: 4
+    requiresJoin: 0
+    defaultConfigKey: sky_race_v4
+  - typeId: star-tournament
+    displayName: "Gi\u1EA3i ng\xF4i sao"
+    colorSlot: 6
+    requiresJoin: 0
+    defaultConfigKey: star_tournament_v1
+  - typeId: treasure-hunt
+    displayName: "S\u0103n kho b\xE1u"
+    colorSlot: 7
+    requiresJoin: 1
+    defaultConfigKey: hunt_default
+  - typeId: weekly-pass
+    displayName: "Pass tu\u1EA7n"
+    colorSlot: 1
+    requiresJoin: 0
+    defaultConfigKey: weekly_pass_s3
+  recurringRules:
+  - eventType: weekly-pass
+    anchorUtc: 2026-01-05T00:00:00Z
+    idPrefix: pass-
+    periodHours: 168
+    activeHours: 168
+    configKey: weekly_pass_s3
+  - eventType: sky-race
+    anchorUtc: 2026-01-05T00:00:00Z
+    idPrefix: sky-race-
+    periodHours: 24
+    activeHours: 20
+    configKey: sky_race_v4
+  fixedEvents:
+  - entryKey: entry-lava-quest-2026-09a
+    eventId: lava-quest-2026-09a
+    eventType: lava-quest
+    startUtc: 2026-09-10T00:00:00Z
+    endUtc: 2026-09-13T00:00:00Z
+    configKey: lava_quest_v2
+  - entryKey: entry-hunt-0914
+    eventId: hunt-0914
+    eventType: treasure-hunt
+    startUtc: 2026-09-14T00:00:00Z
+    endUtc: 2026-09-17T00:00:00Z
+    configKey: 
+  - entryKey: entry-hunt-0916-bonus
+    eventId: hunt-0916-bonus
+    eventType: treasure-hunt
+    startUtc: 2026-09-16T12:00:00Z
+    endUtc: 2026-09-18T00:00:00Z
+    configKey: hunt_bonus
+  - entryKey: entry-lava-quest-2026-09b
+    eventId: lava-quest-2026-09b
+    eventType: lava-quest
+    startUtc: 2026-09-17T00:00:00Z
+    endUtc: 2026-09-20T00:00:00Z
+    configKey: lava_quest_v2
+  - entryKey: entry-lava-quest-2026-10
+    eventId: lava-quest-2026-10
+    eventType: lava-quest
+    startUtc: 2026-10-01T00:00:00Z
+    endUtc: 2026-10-3
+    configKey: lava_quest_v2
+  - entryKey: entry-star-tournament-2026-10
+    eventId: star-tournament-2026-10
+    eventType: star-tournament
+    startUtc: 2026-10-03T00:00:00Z
+    endUtc: 2026-10-06T00:00:00Z
+    configKey: star_tournament_v1
+  publishedStamps:
+  - publishedUtc: 2026-09-11T16:20:00Z
+    publisher: DatHoUnityDev
+    sha256: 5eecb84064b0b21a9d587c3d95e3a471f78c38595216415aba016f3e58702696
+    byteCount: 1425
+    formatVersion: 2
+    note: "m\u1EDF lava-quest th\xE1ng 9"
+    snapshotJson: "{\n  \"version\": 2,\n  \"recurring\": [\n    {\n      \"type\": \"weekly-pass\",\n      \"anchorUtc\": \"2026-01-05T00:00:00Z\",\n      \"idPrefix\": \"weekly-pass-\",\n      \"periodHours\": 168,\n      \"activeHours\": 168,\n      \"configKey\": \"weekly_pass_s3\"\n    },\n    {\n      \"type\": \"sky-race\",\n      \"anchorUtc\": \"2026-01-05T00:00:00Z\",\n      \"idPrefix\": \"sky-race-\",\n      \"periodHours\": 24,\n      \"activeHours\": 20,\n      \"configKey\": \"sky_race_v4\"\n    }\n  ],\n  \"events\": [\n    {\n      \"id\": \"lava-quest-2026-09a\",\n      \"type\": \"lava-quest\",\n      \"startUtc\": \"2026-09-10T00:00:00Z\",\n      \"endUtc\": \"2026-09-13T00:00:00Z\",\n      \"configKey\": \"lava_quest_v2\"\n    },\n    {\n      \"id\": \"hunt-0914\",\n      \"type\": \"treasure-hunt\",\n      \"startUtc\": \"2026-09-14T00:00:00Z\",\n      \"endUtc\": \"2026-09-17T00:00:00Z\",\n      \"configKey\": \"hunt_v1\"\n    },\n    {\n      \"id\": \"lava-quest-2026-09b\",\n      \"type\": \"lava-quest\",\n      \"startUtc\": \"2026-09-17T00:00:00Z\",\n      \"endUtc\": \"2026-09-19T00:00:00Z\",\n      \"configKey\": \"lava_quest_v2\"\n    },\n    {\n      \"id\": \"lava-quest-2026-10\",\n      \"type\": \"lava-quest\",\n      \"startUtc\": \"2026-10-01T00:00:00Z\",\n      \"endUtc\": \"2026-10-03T00:00:00Z\",\n      \"configKey\": \"lava_quest_v2\"\n    },\n    {\n      \"id\": \"star-tournament-2026-10\",\n      \"type\": \"star-tournament\",\n      \"startUtc\": \"2026-10-03T00:00:00Z\",\n      \"endUtc\": \"2026-10-06T00:00:00Z\",\n      \"configKey\": \"star_tournament_v1\"\n    }\n  ]\n}"
+  ignoredWarnings: []
