@@ -109,6 +109,26 @@ namespace DreamTech.LiveOps.Tests
         }
 
         [Test]
+        public void UndeclaredTypeEntry_SkippedBecauseUnknownTypeRuleDropsIt()
+        {
+            // lucky-spin chưa khai loại: bộ biên dịch giữ mục nhưng LiveOpsSystem không đăng ký loại nên game bỏ (luật 8 báo Bị bỏ).
+            LiveEventCalendarDocument document = new LiveEventCalendarDocumentBuilder()
+                .WithEventType(new LiveEventTypeDefinition("quest", "Quest", 0, false, "quest_default"))
+                .WithFixedEvent(new FixedLiveEventEntry("key-spin", "spin-0920", "lucky-spin", "2026-09-20T00:00:00Z", "2026-09-21T00:00:00Z", string.Empty))
+                .Build();
+            LiveEventCalendarCheckContext context = ValidationTestFixtures.ContextFor(document);
+            Assert.IsTrue(context.Compilation.TryGetFixedOutcome("key-spin", out LiveEventCalendarEntryOutcome outcome));
+            Assert.IsTrue(outcome.IsKept, "Tiền đề: bộ biên dịch không biết loại — chỉ luật 8 mới nói game bỏ.");
+
+            Assert.AreEqual(LiveEventCalendarRuleOutcome.Passed, new ConfigKeyMissingRule().Evaluate(context).Outcome,
+                "Một mục game bỏ không được ra thêm hàng Nên xem configKey rỗng.");
+
+            LiveEventCalendarCheckReport report = LiveEventCalendarValidator.Default.Check(context);
+            Assert.AreEqual(LiveEventCalendarRuleOutcome.Found, report.RuleResults[7].Outcome, "Luật 8 vẫn báo loại lạ.");
+            Assert.AreEqual(1, report.Findings.Count, "Đúng một phát hiện cho mục này.");
+        }
+
+        [Test]
         public void RecurringRuleInheriting_FoundOnRule()
         {
             LiveEventCalendarDocument document = new LiveEventCalendarDocumentBuilder()

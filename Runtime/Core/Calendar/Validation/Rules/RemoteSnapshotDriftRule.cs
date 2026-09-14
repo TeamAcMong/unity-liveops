@@ -7,13 +7,20 @@ namespace DreamTech.LiveOps
     /// <summary>
     /// Luật 12 <c>remote-snapshot-drift</c> (PD-31): JSON đang chạy đã dán có khác bản đã đăng không — so NGỮ NGHĨA, vì Firebase
     /// console có thể đổi khoảng trắng/xuống dòng/thứ tự key mà game vẫn đọc ra đúng lịch cũ; báo lệch giả làm người dùng mất
-    /// niềm tin vào dấu "Khớp dấu". Ba tầng, dừng ở tầng đầu tiên kết luận được:
+    /// niềm tin vào dấu "Khớp dấu". Thước đo là dấu đã đăng MỚI NHẤT (<see cref="LiveEventCalendarDocument.LatestStamp"/>), không
+    /// phải bản so đang chọn: <see cref="LiveEventCalendarCheckContext.PublishedBaseline"/> có thể là dấu cũ người dùng chọn để so
+    /// trong phiên, và so bản đang chạy với dấu cũ thì Firebase chạy bản cũ mà hub vẫn nói "khớp". Ba tầng, dừng ở tầng đầu tiên
+    /// kết luận được:
     /// <list type="number">
-    /// <item>Sha nguyên văn của bản dán = sha bộ ghi sinh ra cho bản so (đúng byte của dấu khi dấu do bộ ghi xuất) → Passed.</item>
-    /// <item>Viết lại chuẩn cả hai bằng <see cref="LiveEventCalendarJsonWriter"/> (định dạng 2) và so sha → bằng = Passed.</item>
-    /// <item>So từng mục theo object JSON chuẩn (đợt theo id, luật lặp theo loại — danh tính như diff, tự so không đi qua kiểu
-    /// của diff để validator không phụ thuộc gói diff): không mục nào khác (chỉ khác thứ tự đợt cùng giờ) → Passed; có → Found.</item>
+    /// <item>Sha nguyên văn của bản dán = sha của dấu mới nhất → Passed.</item>
+    /// <item>Viết lại chuẩn bản dán bằng <see cref="LiveEventCalendarJsonWriter"/> ra đúng sha của dấu (dấu định dạng 2 do bộ ghi
+    /// xuất) → Passed; rồi viết lại chuẩn cả bản dán lẫn tài liệu của dấu ở định dạng 2 và so sha → bằng = Passed.</item>
+    /// <item>So từng mục theo object JSON chuẩn VÀ kết quả biên dịch (đợt theo id, luật lặp theo loại — danh tính như diff, tự so
+    /// không đi qua kiểu của diff để validator không phụ thuộc gói diff): không mục nào khác → Passed; có → Found.</item>
     /// </list>
+    /// Tầng 2b/3 cần TÀI LIỆU của dấu mới nhất, mà core không có parser: luật chỉ dùng bản so khi bộ ghi viết bản so ra đúng sha của
+    /// dấu (tức bản so chính là dấu đó). Không chứng minh được thì NotMeasured <c>latest-stamp-not-loaded</c> — "chưa đo" thật thà
+    /// hơn một kết luận so với sai bản.
     /// Vì sao so object JSON chuẩn thay vì <c>CanonicalText</c> nguyên văn: bản dán "2026-09-10T00:00Z" và bản so
     /// "2026-09-10T00:00:00Z" là cùng một giờ — tầng 2 đã coi là bằng, tầng 3 phải cùng thước đo, không thì "sha khác nhưng 0 mục
     /// khác" ngược lại thành "1 mục khác" tuỳ cách gõ giờ.
@@ -25,6 +32,7 @@ namespace DreamTech.LiveOps
     internal sealed class RemoteSnapshotDriftRule : ILiveEventCalendarRule
     {
         public const string RemoteNotPastedReasonCode = "remote-not-pasted";
+        public const string LatestStampNotLoadedReasonCode = "latest-stamp-not-loaded";
 
         public string RuleId => LiveEventCalendarRuleIds.RemoteSnapshotDrift;
         public LiveEventCalendarConsequence Consequence => LiveEventCalendarConsequence.ShouldReview;
@@ -35,27 +43,50 @@ namespace DreamTech.LiveOps
             // Chưa dán thì chưa đo — không phải "khớp": luật này không bao giờ tính là đã qua khi thiếu bản remote.
             if (remote == null) return LiveEventCalendarRuleResult.NotMeasured(RuleId, RemoteNotPastedReasonCode);
 
+            PublishedCalendarStamp latestStamp = context.Document.LatestStamp;
             LiveEventCalendarDocument baseline = context.PublishedBaseline;
-            if (baseline == null)
+            if (latestStamp == null && baseline == null)
             {
                 int itemCount = remote.RecurringRules.Count + remote.FixedEvents.Count;
                 return Found(LiveEventCalendarDetailCodes.RemoteWithoutStamp, itemCount.ToString(CultureInfo.InvariantCulture), string.Empty);
             }
 
-            // Tầng 1 — định dạng của dấu mới nhất khi có (bản so thường là dấu đó); không có thì định dạng 2.
-            LiveEventCalendarJsonFormat stampFormat = StampFormatOf(context.Document);
-            LiveEventCalendarJsonText baselineInStampFormat = LiveEventCalendarJsonWriter.Write(baseline, stampFormat);
-            if (ShaEquals(context.RemoteSnapshotSha256Hex, baselineInStampFormat.Sha256Hex)) return LiveEventCalendarRuleResult.Passed(RuleId);
-
-            // Tầng 2 — luôn định dạng 2: định dạng 1 không ghi luật lặp, nên bản dán có luật lặp mà bản so không có sẽ "bằng" giả.
-            LiveEventCalendarJsonText baselineCanonical = stampFormat == LiveEventCalendarJsonFormat.Version2
-                ? baselineInStampFormat
-                : LiveEventCalendarJsonWriter.Write(baseline, LiveEventCalendarJsonFormat.Version2);
             LiveEventCalendarJsonText remoteCanonical = LiveEventCalendarJsonWriter.Write(remote, LiveEventCalendarJsonFormat.Version2);
-            if (ShaEquals(remoteCanonical.Sha256Hex, baselineCanonical.Sha256Hex)) return LiveEventCalendarRuleResult.Passed(RuleId);
+            LiveEventCalendarDocument stampDocument;
+            if (latestStamp != null)
+            {
+                // Tầng 1.
+                if (ShaEquals(context.RemoteSnapshotSha256Hex, latestStamp.Sha256Hex)) return LiveEventCalendarRuleResult.Passed(RuleId);
+
+                // Tầng 2a — không cần tài liệu của dấu: dấu định dạng 2 là đúng byte bộ ghi xuất, nên bản dán viết lại chuẩn ra đúng
+                // sha đó là cùng lịch. Không làm với dấu định dạng 1: định dạng 1 không ghi luật lặp, bản dán thêm luật lặp sẽ "bằng" giả.
+                LiveEventCalendarJsonFormat stampFormat = StampFormatOf(latestStamp);
+                if (stampFormat == LiveEventCalendarJsonFormat.Version2 && ShaEquals(remoteCanonical.Sha256Hex, latestStamp.Sha256Hex))
+                {
+                    return LiveEventCalendarRuleResult.Passed(RuleId);
+                }
+
+                stampDocument = baseline != null && ShaEquals(LiveEventCalendarJsonWriter.Write(baseline, stampFormat).Sha256Hex, latestStamp.Sha256Hex)
+                    ? baseline
+                    : null;
+                if (stampDocument == null) return LiveEventCalendarRuleResult.NotMeasured(RuleId, LatestStampNotLoadedReasonCode);
+            }
+            else
+            {
+                // Bản so không kèm dấu (context dựng tay ở công cụ/test): bản so là thước đo duy nhất có.
+                stampDocument = baseline;
+                if (ShaEquals(context.RemoteSnapshotSha256Hex, LiveEventCalendarJsonWriter.Write(baseline, LiveEventCalendarJsonFormat.Version2).Sha256Hex))
+                {
+                    return LiveEventCalendarRuleResult.Passed(RuleId);
+                }
+            }
+
+            // Tầng 2b — luôn định dạng 2 (cùng lý do định dạng 1 ở trên).
+            LiveEventCalendarJsonText stampCanonical = LiveEventCalendarJsonWriter.Write(stampDocument, LiveEventCalendarJsonFormat.Version2);
+            if (ShaEquals(remoteCanonical.Sha256Hex, stampCanonical.Sha256Hex)) return LiveEventCalendarRuleResult.Passed(RuleId);
 
             // Tầng 3.
-            List<string> differingItemIds = FindDifferingItems(baseline, remote);
+            List<string> differingItemIds = FindDifferingItems(stampDocument, remote);
             if (differingItemIds.Count == 0) return LiveEventCalendarRuleResult.Passed(RuleId);
 
             return Found(LiveEventCalendarDetailCodes.RemoteDiffers, string.Join(LiveEventCalendarFindingBuilder.ValueSeparator, differingItemIds),
@@ -77,42 +108,48 @@ namespace DreamTech.LiveOps
         {
             var differing = new List<string>();
 
-            var baselineRules = new ItemTexts();
-            var remoteRules = new ItemTexts();
-            for (int index = 0; index < baseline.RecurringRules.Count; index++)
-            {
-                RecurringLiveEventRule rule = baseline.RecurringRules[index];
-                baselineRules.Add(rule.EventType, LiveEventCalendarJsonWriter.WriteRecurringRuleObject(baseline, rule));
-            }
-            for (int index = 0; index < remote.RecurringRules.Count; index++)
-            {
-                RecurringLiveEventRule rule = remote.RecurringRules[index];
-                remoteRules.Add(rule.EventType, LiveEventCalendarJsonWriter.WriteRecurringRuleObject(remote, rule));
-            }
-            AppendDiffering(baselineRules, remoteRules, differing);
-
             // Thứ tự xuất cho cả hai phía: trùng id thì mục đứng trước thắng — so theo đúng thứ tự game nhận.
             LiveEventCalendarDocument orderedBaseline = LiveEventCalendarExportOrder.Apply(baseline);
             LiveEventCalendarDocument orderedRemote = LiveEventCalendarExportOrder.Apply(remote);
-            var baselineEvents = new ItemTexts();
-            var remoteEvents = new ItemTexts();
-            for (int index = 0; index < orderedBaseline.FixedEvents.Count; index++)
-            {
-                FixedLiveEventEntry entry = orderedBaseline.FixedEvents[index];
-                baselineEvents.Add(entry.EventId, LiveEventCalendarJsonWriter.WriteFixedEventObject(orderedBaseline, entry));
-            }
-            for (int index = 0; index < orderedRemote.FixedEvents.Count; index++)
-            {
-                FixedLiveEventEntry entry = orderedRemote.FixedEvents[index];
-                remoteEvents.Add(entry.EventId, LiveEventCalendarJsonWriter.WriteFixedEventObject(orderedRemote, entry));
-            }
-            AppendDiffering(baselineEvents, remoteEvents, differing);
+            ItemVersions baselineRules = new ItemVersions();
+            ItemVersions baselineEvents = new ItemVersions();
+            CollectItems(orderedBaseline, baselineRules, baselineEvents);
+            ItemVersions remoteRules = new ItemVersions();
+            ItemVersions remoteEvents = new ItemVersions();
+            CollectItems(orderedRemote, remoteRules, remoteEvents);
 
+            AppendDiffering(baselineRules, remoteRules, differing);
+            AppendDiffering(baselineEvents, remoteEvents, differing);
             return differing;
         }
 
-        /// <summary>Một danh tính khác khi số mục mang nó hoặc object chuẩn của bất kỳ mục nào (theo thứ tự) khác nhau.</summary>
-        private static void AppendDiffering(ItemTexts baselineItems, ItemTexts remoteItems, List<string> differing)
+        /// <summary>
+        /// Mỗi mục = object JSON chuẩn + game có giữ nó không (biên dịch thứ tự xuất). Vì sao cần cờ giữ: hai đợt cùng loại cùng giờ
+        /// bắt đầu chồng nhau, đảo thứ tự asset thì object từng id y nguyên nhưng game giữ đợt KHÁC (hoà giờ theo thứ tự danh sách,
+        /// đợt sau bị bỏ) — người chơi thấy lịch khác mà so object thì "không lệch".
+        /// </summary>
+        private static void CollectItems(LiveEventCalendarDocument orderedDocument, ItemVersions rules, ItemVersions events)
+        {
+            LiveEventCalendarCompilation compilation = LiveEventCalendarCompiler.Compile(orderedDocument);
+            IReadOnlyList<LiveEventCalendarEntryOutcome> entries = compilation.Entries;
+            for (int index = 0; index < entries.Count; index++)
+            {
+                LiveEventCalendarEntryOutcome outcome = entries[index];
+                if (outcome.Kind == LiveEventCalendarEntryKind.RecurringRule)
+                {
+                    RecurringLiveEventRule rule = orderedDocument.RecurringRules[outcome.SourceIndex];
+                    rules.Add(rule.EventType, LiveEventCalendarJsonWriter.WriteRecurringRuleObject(orderedDocument, rule), outcome.IsKept);
+                }
+                else
+                {
+                    FixedLiveEventEntry entry = orderedDocument.FixedEvents[outcome.SourceIndex];
+                    events.Add(entry.EventId, LiveEventCalendarJsonWriter.WriteFixedEventObject(orderedDocument, entry), outcome.IsKept);
+                }
+            }
+        }
+
+        /// <summary>Một danh tính khác khi số mục mang nó, hoặc object chuẩn / cờ giữ của bất kỳ mục nào (theo thứ tự) khác nhau.</summary>
+        private static void AppendDiffering(ItemVersions baselineItems, ItemVersions remoteItems, List<string> differing)
         {
             var identities = new List<string>(baselineItems.Identities);
             for (int index = 0; index < remoteItems.Identities.Count; index++)
@@ -123,21 +160,21 @@ namespace DreamTech.LiveOps
             for (int index = 0; index < identities.Count; index++)
             {
                 string identity = identities[index];
-                IReadOnlyList<string> baselineTexts = baselineItems.TextsOf(identity);
-                IReadOnlyList<string> remoteTexts = remoteItems.TextsOf(identity);
-                bool same = baselineTexts.Count == remoteTexts.Count;
-                for (int textIndex = 0; same && textIndex < baselineTexts.Count; textIndex++)
+                IReadOnlyList<ItemVersion> baselineVersions = baselineItems.VersionsOf(identity);
+                IReadOnlyList<ItemVersion> remoteVersions = remoteItems.VersionsOf(identity);
+                bool same = baselineVersions.Count == remoteVersions.Count;
+                for (int versionIndex = 0; same && versionIndex < baselineVersions.Count; versionIndex++)
                 {
-                    same = string.Equals(baselineTexts[textIndex], remoteTexts[textIndex], StringComparison.Ordinal);
+                    same = baselineVersions[versionIndex].IsKept == remoteVersions[versionIndex].IsKept &&
+                        string.Equals(baselineVersions[versionIndex].ObjectText, remoteVersions[versionIndex].ObjectText, StringComparison.Ordinal);
                 }
                 if (!same) differing.Add(identity);
             }
         }
 
-        private static LiveEventCalendarJsonFormat StampFormatOf(LiveEventCalendarDocument draft)
+        private static LiveEventCalendarJsonFormat StampFormatOf(PublishedCalendarStamp stamp)
         {
-            PublishedCalendarStamp stamp = draft.LatestStamp;
-            return stamp != null && stamp.FormatVersion == (int)LiveEventCalendarJsonFormat.Version1
+            return stamp.FormatVersion == (int)LiveEventCalendarJsonFormat.Version1
                 ? LiveEventCalendarJsonFormat.Version1
                 : LiveEventCalendarJsonFormat.Version2;
         }
@@ -148,30 +185,42 @@ namespace DreamTech.LiveOps
             return !string.IsNullOrEmpty(left) && string.Equals(left, right, StringComparison.OrdinalIgnoreCase);
         }
 
-        /// <summary>Object JSON chuẩn theo danh tính, giữ thứ tự gặp đầu tiên của danh tính.</summary>
-        private sealed class ItemTexts
+        private sealed class ItemVersion
         {
-            private static readonly string[] NoTexts = Array.Empty<string>();
-            private readonly Dictionary<string, List<string>> _textsByIdentity = new Dictionary<string, List<string>>(StringComparer.Ordinal);
+            public ItemVersion(string objectText, bool isKept)
+            {
+                ObjectText = objectText;
+                IsKept = isKept;
+            }
+
+            public string ObjectText { get; }
+            public bool IsKept { get; }
+        }
+
+        /// <summary>Các mục theo danh tính, giữ thứ tự gặp đầu tiên của danh tính.</summary>
+        private sealed class ItemVersions
+        {
+            private static readonly ItemVersion[] NoVersions = Array.Empty<ItemVersion>();
+            private readonly Dictionary<string, List<ItemVersion>> _versionsByIdentity = new Dictionary<string, List<ItemVersion>>(StringComparer.Ordinal);
 
             public List<string> Identities { get; } = new List<string>();
 
-            public void Add(string identity, string text)
+            public void Add(string identity, string objectText, bool isKept)
             {
-                if (!_textsByIdentity.TryGetValue(identity, out List<string> texts))
+                if (!_versionsByIdentity.TryGetValue(identity, out List<ItemVersion> versions))
                 {
-                    texts = new List<string>();
-                    _textsByIdentity.Add(identity, texts);
+                    versions = new List<ItemVersion>();
+                    _versionsByIdentity.Add(identity, versions);
                     Identities.Add(identity);
                 }
-                texts.Add(text);
+                versions.Add(new ItemVersion(objectText, isKept));
             }
 
-            public bool Contains(string identity) => _textsByIdentity.ContainsKey(identity);
+            public bool Contains(string identity) => _versionsByIdentity.ContainsKey(identity);
 
-            public IReadOnlyList<string> TextsOf(string identity)
+            public IReadOnlyList<ItemVersion> VersionsOf(string identity)
             {
-                return _textsByIdentity.TryGetValue(identity, out List<string> texts) ? texts : (IReadOnlyList<string>)NoTexts;
+                return _versionsByIdentity.TryGetValue(identity, out List<ItemVersion> versions) ? versions : (IReadOnlyList<ItemVersion>)NoVersions;
             }
         }
     }

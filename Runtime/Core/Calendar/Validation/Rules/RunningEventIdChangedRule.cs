@@ -17,8 +17,10 @@ namespace DreamTech.LiveOps
     /// <item><c>retyped</c> (chỉ đợt cố định): Found = loại mới, Expected = loại cũ.</item>
     /// <item><c>moved-out</c>, <c>ends-now</c>: Found = giờ mới "start · end", Expected = giờ đang chạy "start · end".</item>
     /// </list>
-    /// <c>RelatedId</c> = id đang chạy; <c>RangeStart/End</c> = khung đang chạy theo bản so (Fingerprint đổi khi sang đợt khác, nên
-    /// "để sau khi khép" không che nhầm lần lặp sau).
+    /// <c>RelatedId</c> = id đang chạy; <c>RangeStart/End</c> = khung đang chạy theo bản so.
+    /// <para>Luật là Decision (6.1), không phải Ignorable: ghi chú hẹn của "để sau khi khép" KHÔNG được ẩn phát hiện của đợt đang
+    /// chạy (xem <c>BuildFinding</c>). Hoàn về chỉ được hứa khi đã thử áp lên nháp và bản ghi tìm lại được đợt; không thì
+    /// phát hiện không mang lệnh sửa (người dùng tự xử lý mục chắn).</para>
     /// </summary>
     internal sealed class RunningEventIdChangedRule : ILiveEventCalendarRule
     {
@@ -120,8 +122,9 @@ namespace DreamTech.LiveOps
                     .WithActiveHours(baselineRule.ActiveHours)
                 : baselineRule;
 
+            LiveEventCalendarEdit revertEdit = FirstEditThatKeepsRunning(context, runningInstance, new SetRecurringRuleEdit(revertedRule));
             return BuildFinding(detailCode, LiveEventCalendarTargetKind.RecurringRule, eventType, eventType, runningInstance, foundText,
-                expectedText, new SetRecurringRuleEdit(revertedRule));
+                expectedText, revertEdit);
         }
 
         /// <summary>
@@ -182,27 +185,27 @@ namespace DreamTech.LiveOps
             string detailCode;
             string foundText;
             string expectedText;
-            LiveEventCalendarEdit revertEdit;
+            LiveEventCalendarEdit[] revertCandidates;
             if (followed != null)
             {
                 detailCode = LiveEventCalendarDetailCodes.RunningEndsNow;
                 foundText = TimeRangeText(followed.StartUtc, followed.EndUtc);
                 expectedText = runningRangeText;
-                revertEdit = RevertTimes(sameTypeEntry, baselineStartText, baselineEndText, runningInstance, context.Document, baselineEntry);
+                revertCandidates = new[] { RevertTimes(sameTypeEntry, baselineStartText, baselineEndText, runningInstance, context.Document, baselineEntry) };
             }
             else if (sameTypeEntry != null && IsKept(draftCompilation, sameTypeEntry))
             {
                 detailCode = LiveEventCalendarDetailCodes.RunningMovedOutOfWindow;
                 foundText = sameTypeEntry.StartUtcText + LiveEventCalendarFindingBuilder.ValueSeparator + sameTypeEntry.EndUtcText;
                 expectedText = runningRangeText;
-                revertEdit = new ReplaceFixedEventEdit(sameTypeEntry.WithTimes(baselineStartText, baselineEndText));
+                revertCandidates = new LiveEventCalendarEdit[] { new ReplaceFixedEventEdit(sameTypeEntry.WithTimes(baselineStartText, baselineEndText)) };
             }
             else if (sameTypeEntry == null && anyTypeEntry != null)
             {
                 detailCode = LiveEventCalendarDetailCodes.RunningRetyped;
                 foundText = anyTypeEntry.EventType;
                 expectedText = runningInstance.EventType;
-                revertEdit = new ReplaceFixedEventEdit(anyTypeEntry.WithEventType(runningInstance.EventType));
+                revertCandidates = new LiveEventCalendarEdit[] { new ReplaceFixedEventEdit(anyTypeEntry.WithEventType(runningInstance.EventType)) };
             }
             else
             {
@@ -210,12 +213,18 @@ namespace DreamTech.LiveOps
                 detailCode = LiveEventCalendarDetailCodes.RunningRemoved;
                 foundText = string.Empty;
                 expectedText = runningInstance.EventId;
-                revertEdit = RevertTimes(sameTypeEntry, baselineStartText, baselineEndText, runningInstance, context.Document, baselineEntry);
+                LiveEventCalendarEdit restoreEdit = RevertTimes(sameTypeEntry, baselineStartText, baselineEndText, runningInstance, context.Document, baselineEntry);
+                // Đổi id đợt đang chạy (cùng loại, cùng giờ): mục đổi tên vẫn giữ khung — thêm bản sao id cũ ở cuối asset sẽ bị bỏ vì
+                // chồng giờ với chính nó, nên trả id cũ về đúng mục đó trước.
+                FixedLiveEventEntry renamedEntry = sameTypeEntry == null ? FindRenamedEntry(draftEvents, baseline, runningInstance) : null;
+                revertCandidates = renamedEntry != null
+                    ? new[] { new ReplaceFixedEventEdit(renamedEntry.WithEventId(runningInstance.EventId)), restoreEdit }
+                    : new[] { restoreEdit };
             }
 
             string targetEntryKey = anyTypeEntry != null ? anyTypeEntry.EntryKey : string.Empty;
             return BuildFinding(detailCode, LiveEventCalendarTargetKind.FixedEvent, runningInstance.EventId, targetEntryKey, runningInstance,
-                foundText, expectedText, revertEdit);
+                foundText, expectedText, FirstEditThatKeepsRunning(context, runningInstance, revertCandidates));
         }
 
         /// <summary>Đưa giờ của mục nháp về giờ bản so; nháp không còn mục cùng id + loại thì thêm lại đúng đợt của bản so.</summary>
@@ -237,6 +246,43 @@ namespace DreamTech.LiveOps
             string entryKey = LiveEventCalendarSha256.ComputeHex(seed).Substring(0, EntryKeyLength);
             // Khoá băm đã có trong nháp (đã khôi phục một lần rồi đổi id tiếp): khoá mới ngẫu nhiên, không ghi đè mục khác.
             return draft.TryGetFixedEvent(entryKey, out _) ? FixedLiveEventEntry.CreateEntryKey() : entryKey;
+        }
+
+        /// <summary>
+        /// Mục nháp cùng loại, đúng khung đang chạy, mang id mà bản so không có — dấu hiệu đổi id tại chỗ. Id đã có trong bản so là
+        /// một đợt đã đăng khác, không được "đổi tên" nó thành đợt đang chạy.
+        /// </summary>
+        private static FixedLiveEventEntry FindRenamedEntry(IReadOnlyList<FixedLiveEventEntry> draftEvents, LiveEventCalendarDocument baseline,
+            LiveEventInstance runningInstance)
+        {
+            for (int index = 0; index < draftEvents.Count; index++)
+            {
+                FixedLiveEventEntry entry = draftEvents[index];
+                if (!string.Equals(entry.EventType, runningInstance.EventType, StringComparison.Ordinal)) continue;
+                if (!entry.TryGetStartUtc(out DateTime startUtc) || startUtc != runningInstance.StartUtc) continue;
+                if (!entry.TryGetEndUtc(out DateTime endUtc) || endUtc != runningInstance.EndUtc) continue;
+                if (FindFixedEntry(baseline.FixedEvents, entry.EventId, null) != null) continue;
+                return entry;
+            }
+            return null;
+        }
+
+        /// <summary>
+        /// Lệnh hoàn về đầu tiên mà áp lên nháp xong thì bản ghi tìm lại được đợt đang chạy và đợt chưa khép; <c>null</c> khi không
+        /// lệnh nào làm được. Vì sao phải thử thật: mục khôi phục vẫn có thể bị game bỏ vì lý do khác giờ (trùng id với mục loại khác
+        /// đứng trước, chồng giờ với mục mới) — nút "Quyết định" hứa hoàn về mà bấm xong vẫn Mất tiến độ là lời hứa rỗng.
+        /// </summary>
+        private static LiveEventCalendarEdit FirstEditThatKeepsRunning(LiveEventCalendarCheckContext context, LiveEventInstance runningInstance,
+            params LiveEventCalendarEdit[] candidates)
+        {
+            for (int index = 0; index < candidates.Length; index++)
+            {
+                if (!LiveEventCalendarEdits.TryApply(context.Document, candidates[index], out LiveEventCalendarDocument reverted)) continue;
+                LiveEventCalendarCompilation revertedCompilation = LiveEventCalendarCompiler.CompileInExportOrder(reverted);
+                LiveEventInstance followed = FindFollowedInstance(revertedCompilation, runningInstance, context.NowUtc);
+                if (followed != null && followed.EndUtc > context.NowUtc) return candidates[index];
+            }
+            return null;
         }
 
         private static bool IsKept(LiveEventCalendarCompilation compilation, FixedLiveEventEntry entry)
@@ -262,13 +308,26 @@ namespace DreamTech.LiveOps
         /// <summary>
         /// Hai lựa chọn "Quyết định…" (6.1): hoàn về bản đã đăng, hoặc hoàn về + ghi chú hẹn giờ tới lúc đợt khép để làm lại thay đổi
         /// khi không còn ai đang chơi dở. Không tách thành "giữ thay đổi": giữ là không làm gì — Editor có sẵn "Bỏ qua".
+        /// <paramref name="revertEdit"/> <c>null</c> (không lệnh hoàn về nào làm bản ghi tìm lại được đợt) → phát hiện không có lệnh
+        /// sửa: vẫn Mất tiến độ, vẫn chặn, nhưng không hứa điều không làm được.
         /// </summary>
         private LiveEventCalendarFinding BuildFinding(string detailCode, LiveEventCalendarTargetKind targetKind, string targetId,
             string targetEntryKey, LiveEventInstance runningInstance, string foundText, string expectedText, LiveEventCalendarEdit revertEdit)
         {
-            string runningStartText = LiveEventUtcText.Format(runningInstance.StartUtc);
+            var builder = new LiveEventCalendarFindingBuilder(RuleId, detailCode, Consequence, targetKind, targetId)
+                .WithTargetEntryKey(targetEntryKey)
+                .WithRelatedId(runningInstance.EventId)
+                .WithTexts(foundText, expectedText)
+                .WithRange(runningInstance.StartUtc, runningInstance.EndUtc)
+                .WithAnchor(runningInstance.StartUtc);
+            if (revertEdit == null) return builder.Build();
+
             string runningEndText = LiveEventUtcText.Format(runningInstance.EndUtc);
-            var reminder = new IgnoredCalendarWarning(RuleId, targetId, runningStartText, runningEndText, string.Empty, runningEndText);
+            // Khoảng của ghi chú BẮT ĐẦU ở lúc khép, mở phía sau — không phải khung đang chạy. CheckRun coi ghi chú chưa tới hạn khớp
+            // Fingerprint là "đã bỏ qua"; ghi khung đang chạy thì làm lại thay đổi trước giờ khép sẽ bị ẩn đúng lúc người chơi đang mất
+            // tiến độ. Phát hiện của đợt đang chạy lúc now luôn bắt đầu ≤ now < lúc khép nên không bao giờ khớp khi chưa tới hạn; tới
+            // hạn rồi thì đợt nối tiếp bắt đầu đúng lúc khép (lần lặp liền kề) khớp và mang cờ "đã tới hẹn" (S-22).
+            var reminder = new IgnoredCalendarWarning(RuleId, targetId, runningEndText, string.Empty, string.Empty, runningEndText);
 
             var repairs = new[]
             {
@@ -279,14 +338,7 @@ namespace DreamTech.LiveOps
                     runningInstance.StartUtc, runningInstance.EndUtc),
             };
 
-            return new LiveEventCalendarFindingBuilder(RuleId, detailCode, Consequence, targetKind, targetId)
-                .WithTargetEntryKey(targetEntryKey)
-                .WithRelatedId(runningInstance.EventId)
-                .WithTexts(foundText, expectedText)
-                .WithRange(runningInstance.StartUtc, runningInstance.EndUtc)
-                .WithAnchor(runningInstance.StartUtc)
-                .WithRepairs(LiveEventCalendarRepairKind.Decision, repairs)
-                .Build();
+            return builder.WithRepairs(LiveEventCalendarRepairKind.Decision, repairs).Build();
         }
 
         /// <summary>
