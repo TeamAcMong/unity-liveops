@@ -41,6 +41,7 @@ namespace DreamTech.LiveOps.Editor
         internal const string KitJsonSyntaxUnexpectedEnd = "JSON kết thúc giữa chừng";
         internal const string KitJsonSyntaxUnterminatedString = "chuỗi chưa đóng dấu nháy";
         internal const string KitJsonSyntaxUnexpectedCharacter = "ký tự không đúng chỗ";
+        internal const string KitJsonSyntaxByteOrderMark = "đầu JSON có ký tự BOM (U+FEFF) mà parser của game không đọc được — lưu lại dạng UTF-8 không BOM";
 
         // Lỗi lập trình của model thuần (ArgumentException) — không bao giờ do dữ liệu lịch hỏng.
         internal const string KitErrorSectionIdEmpty = "Id màn không được rỗng.";

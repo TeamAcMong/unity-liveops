@@ -18,6 +18,7 @@ namespace DreamTech.LiveOps.Editor
         public const string ReasonUnexpectedEnd = "unexpected-end";
         public const string ReasonUnterminatedString = "unterminated-string";
         public const string ReasonUnexpectedCharacter = "unexpected-character";
+        public const string ReasonByteOrderMark = "byte-order-mark";
 
         internal sealed class SyntaxError
         {
@@ -82,6 +83,7 @@ namespace DreamTech.LiveOps.Editor
                 case ReasonMissingComma: return LiveOpsHubStrings.KitJsonSyntaxMissingComma;
                 case ReasonUnexpectedEnd: return LiveOpsHubStrings.KitJsonSyntaxUnexpectedEnd;
                 case ReasonUnterminatedString: return LiveOpsHubStrings.KitJsonSyntaxUnterminatedString;
+                case ReasonByteOrderMark: return LiveOpsHubStrings.KitJsonSyntaxByteOrderMark;
                 default: return LiveOpsHubStrings.KitJsonSyntaxUnexpectedCharacter;
             }
         }
@@ -95,8 +97,10 @@ namespace DreamTech.LiveOps.Editor
             // trị trước) chứ không ở token kế — token kế thường đã sang dòng sau, báo ở đó làm người dùng tìm sai dòng.
             int lastValueEnd = 0;
             int index = 0;
-            // BOM đầu chuỗi (file lưu từ Notepad) không phải lỗi người dùng cần sửa tay.
-            if (text.Length > 0 && text[0] == '\uFEFF') index = 1;
+            // BOM đầu chuỗi (file lưu từ Notepad) là LỖI, không bỏ qua: JsonUtility — parser của game — ném "Invalid value" với
+            // BOM ở cả 2022.3 lẫn 6000.6 (probe G-UNITY). Bộ dò mà chấp nhận thì hub nói "JSON hợp lệ" trong khi game không đọc
+            // được; báo mã riêng để câu lỗi nói đúng chỗ phải sửa (lưu lại UTF-8 không BOM) thay vì "ký tự không đúng chỗ".
+            if (text.Length > 0 && text[0] == '\uFEFF') return Fail(0, ReasonByteOrderMark, out errorOffset, out reasonCode);
 
             while (true)
             {

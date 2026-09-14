@@ -139,10 +139,12 @@ namespace DreamTech.LiveOps.Editor.Tests
         }
 
         [Test]
-        public void LeadingByteOrderMark_Accepted()
+        public void LeadingByteOrderMark_ReportedAtLineOneColumnOne()
         {
-            string bom = ((char)0xFEFF).ToString();
-            Assert.IsFalse(LiveOpsJsonSyntaxLocator.TryFindFirstError(bom + "{\"a\": 1}", out _));
+            // JsonUtility (parser game) ném với BOM đầu chuỗi ở cả hai bản Unity — bộ dò phải báo lỗi, không được nói hợp lệ.
+            string byteOrderMark = ((char)0xFEFF).ToString();
+            AssertError(byteOrderMark + "{\"a\": 1}", 1, 1, LiveOpsJsonSyntaxLocator.ReasonByteOrderMark);
+            Assert.AreEqual(0, FindError(byteOrderMark + "{\"a\": 1}").Offset);
         }
 
         [Test]
@@ -171,6 +173,8 @@ namespace DreamTech.LiveOps.Editor.Tests
             Assert.AreEqual("Dòng 1, ký tự 1: JSON kết thúc giữa chừng", LiveOpsJsonSyntaxLocator.Describe(FindError("")));
             Assert.AreEqual("Dòng 1, ký tự 2: chuỗi chưa đóng dấu nháy", LiveOpsJsonSyntaxLocator.Describe(FindError("[\"a")));
             Assert.AreEqual("Dòng 1, ký tự 2: ký tự không đúng chỗ", LiveOpsJsonSyntaxLocator.Describe(FindError("[,]")));
+            Assert.AreEqual("Dòng 1, ký tự 1: đầu JSON có ký tự BOM (U+FEFF) mà parser của game không đọc được — lưu lại dạng UTF-8 không BOM",
+                LiveOpsJsonSyntaxLocator.Describe(FindError(((char)0xFEFF).ToString() + "{}")));
             Assert.AreEqual(string.Empty, LiveOpsJsonSyntaxLocator.Describe(null));
         }
     }

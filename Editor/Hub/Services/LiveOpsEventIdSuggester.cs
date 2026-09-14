@@ -10,7 +10,7 @@ namespace DreamTech.LiveOps.Editor
     /// id đang có (trùng id = game bỏ đợt sau).
     /// <para>
     /// Luật, theo thứ tự: lấy id gốc (<c>basedOnEventId</c>, không có thì id đợt cố định cùng loại có giờ bắt đầu gần
-    /// <c>startUtc</c> nhất); hậu tố <c>\d+[a-z]</c> → chữ kế; hậu tố <c>-MMdd</c> (tháng/ngày hợp lệ) → <c>-MMdd</c> của ngày bắt
+    /// <c>startUtc</c> nhất, ưu tiên id theo mẫu — xem <see cref="FindNearestSameTypeId"/>); hậu tố <c>\d+[a-z]</c> → chữ kế; hậu tố <c>-MMdd</c> (tháng/ngày hợp lệ) → <c>-MMdd</c> của ngày bắt
     /// đầu mới; hậu tố <c>\d+</c> → +1 giữ độ rộng; không khớp → <c>id-2</c>; trùng thì tăng tiếp theo cùng mẫu. Loại chưa có
     /// đợt nào thì gốc là <c>loại-MMdd</c> theo mẫu thiết kế (<c>hunt-0921</c>).
     /// </para>
@@ -50,30 +50,58 @@ namespace DreamTech.LiveOps.Editor
             return ids;
         }
 
-        /// <summary>Đợt cùng loại có giờ bắt đầu gần nhất; bằng nhau thì đợt đứng trước; không đọc được giờ thì lấy đợt cuối cùng loại.</summary>
+        /// <summary>
+        /// Đợt cùng loại có giờ bắt đầu gần nhất, ƯU TIÊN id theo mẫu (hậu tố chữ <c>\d+[a-z]</c>, <c>-MMdd</c>, số); chỉ khi
+        /// cả loại không có id theo mẫu mới lấy id gần nhất bất kỳ. Bằng khoảng cách thì đợt đứng trước; không đọc được giờ thì
+        /// lấy đợt cuối cùng loại (vẫn ưu tiên id theo mẫu).
+        /// <para>
+        /// Vì sao ưu tiên mẫu: đợt ngoại lệ đặt tên tay (<c>hunt-0916-bonus</c>) thường nằm sát đợt thường nên hay là đợt gần
+        /// nhất; lấy nó làm gốc thì chỉ ra <c>hunt-0916-bonus-2</c> — lệch thói quen đặt tên của team, trong khi thiết kế Thêm
+        /// đợt 21/9 điền sẵn <c>hunt-0921</c> (theo <c>hunt-0914</c>).
+        /// </para>
+        /// </summary>
         private static string FindNearestSameTypeId(LiveEventCalendarDocument document, string eventType, DateTime startUtc)
         {
-            string nearestId = null;
-            long nearestDistance = long.MaxValue;
-            string lastUnreadableId = null;
+            string nearestPatternedId = null;
+            long nearestPatternedDistance = long.MaxValue;
+            string nearestAnyId = null;
+            long nearestAnyDistance = long.MaxValue;
+            string lastUnreadablePatternedId = null;
+            string lastUnreadableAnyId = null;
             IReadOnlyList<FixedLiveEventEntry> fixedEvents = document.FixedEvents;
             for (int index = 0; index < fixedEvents.Count; index++)
             {
                 FixedLiveEventEntry entry = fixedEvents[index];
                 if (!string.Equals(entry.EventType, eventType, StringComparison.Ordinal) || entry.EventId.Length == 0) continue;
+                bool patterned = HasNamingPattern(entry.EventId);
                 if (!entry.TryGetStartUtc(out DateTime entryStartUtc))
                 {
-                    lastUnreadableId = entry.EventId;
+                    lastUnreadableAnyId = entry.EventId;
+                    if (patterned) lastUnreadablePatternedId = entry.EventId;
                     continue;
                 }
                 long distance = Math.Abs(entryStartUtc.Ticks - startUtc.Ticks);
-                if (distance < nearestDistance)
+                if (distance < nearestAnyDistance)
                 {
-                    nearestDistance = distance;
-                    nearestId = entry.EventId;
+                    nearestAnyDistance = distance;
+                    nearestAnyId = entry.EventId;
+                }
+                if (patterned && distance < nearestPatternedDistance)
+                {
+                    nearestPatternedDistance = distance;
+                    nearestPatternedId = entry.EventId;
                 }
             }
-            return nearestId ?? lastUnreadableId;
+            return nearestPatternedId ?? lastUnreadablePatternedId ?? nearestAnyId ?? lastUnreadableAnyId;
+        }
+
+        /// <summary>Id có hậu tố mà các luật đề xuất bên dưới biết nối tiếp (chữ, -MMdd, số) — khác với rơi về <c>id-2</c>. -MMdd kết thúc bằng chữ số nên nằm trong nhánh số.</summary>
+        private static bool HasNamingPattern(string eventId)
+        {
+            int lastIndex = eventId.Length - 1;
+            if (lastIndex < 0) return false;
+            if (lastIndex >= 1 && eventId[lastIndex] >= 'a' && eventId[lastIndex] <= 'z' && IsDigit(eventId[lastIndex - 1])) return true;
+            return IsDigit(eventId[lastIndex]);
         }
 
         private static bool TrySuggestNextLetter(string baseId, HashSet<string> existingIds, out string suggestion)

@@ -82,6 +82,14 @@ namespace DreamTech.LiveOps.Editor
     /// chính luật (neo, chu kỳ, thời gian chạy, tiền tố) như runtime sinh id. "Đã đăng" = bản so có đợt cùng id.
     /// Giờ không đọc được = đợt không đặt được lên lịch game = không đang chạy.
     /// </para>
+    /// <para>
+    /// Ngoại lệ có chủ đích (mục 7.4, "so bản so nếu có"): đổi tiền tố/neo/chu kỳ và xoá luật lặp lấy lần lặp đang chạy từ
+    /// luật cùng loại trong BẢN SO khi bản so có luật đó — người chơi đang giữ id của bản đã đăng, không phải id của nháp.
+    /// Tính trên nháp thì hoàn tiền tố về đúng bản đã đăng vẫn bị bắt gõ, và chữ phải gõ là id nháp (<c>pass-35</c>) chứ
+    /// không phải id người chơi có (<c>weekly-pass-35</c>). Bản so không bị lệnh sửa đụng tới nên vẫn giữ được lý do của
+    /// "tính trước khi sửa". Không có bản so hoặc bản so không có luật đó thì quay về nháp trước khi sửa (hỏi thừa an toàn
+    /// hơn bỏ sót).
+    /// </para>
     /// </summary>
     internal static class LiveOpsConfirmationPolicy
     {
@@ -120,11 +128,11 @@ namespace DreamTech.LiveOps.Editor
                 case LiveOpsEditOperation.RenameOrRetypeFixedEvent:
                     return DecideRenameOrRetypeFixedEvent(draftBefore, RequireAfter(draftAfter), now, targetKey);
                 case LiveOpsEditOperation.ChangeRecurringIdentity:
-                    return DecideChangeRecurringIdentity(draftBefore, RequireAfter(draftAfter), now, targetKey);
+                    return DecideChangeRecurringIdentity(draftBefore, RequireAfter(draftAfter), publishedBaseline, now, targetKey);
                 case LiveOpsEditOperation.ChangeRecurringActiveHours:
                     return DecideChangeRecurringActiveHours(draftBefore, RequireAfter(draftAfter), now, targetKey);
                 case LiveOpsEditOperation.RemoveRecurringRule:
-                    return DecideRemoveRecurringRule(draftBefore, now, targetKey);
+                    return DecideRemoveRecurringRule(draftBefore, publishedBaseline, now, targetKey);
                 case LiveOpsEditOperation.RemoveEventType:
                     return DecideRemoveEventType(draftBefore, targetKey);
                 case LiveOpsEditOperation.EditEventTypeFields:
@@ -229,10 +237,11 @@ namespace DreamTech.LiveOps.Editor
         }
 
         private static LiveOpsConfirmDecision DecideChangeRecurringIdentity(LiveEventCalendarDocument draftBefore,
-            LiveEventCalendarDocument draftAfter, DateTime now, string eventType)
+            LiveEventCalendarDocument draftAfter, LiveEventCalendarDocument publishedBaseline, DateTime now, string eventType)
         {
             if (!draftBefore.TryGetRecurringRule(eventType, out RecurringLiveEventRule before)) return Simple(LiveOpsConfirmRequirement.None, ReasonTargetMissing);
-            if (!TryGetRunningOccurrence(before, now, out LiveEventInstance running))
+            RecurringLiveEventRule reference = ReferenceRuleForPlayers(before, publishedBaseline, eventType);
+            if (!TryGetRunningOccurrence(reference, now, out LiveEventInstance running))
             {
                 return Simple(LiveOpsConfirmRequirement.None, ReasonNoRunningOccurrence);
             }
@@ -265,14 +274,29 @@ namespace DreamTech.LiveOps.Editor
             return new LiveOpsConfirmDecision(LiveOpsConfirmRequirement.Level1, ReasonShortensRunning, running.EventId, running.EndUtc, 0);
         }
 
-        private static LiveOpsConfirmDecision DecideRemoveRecurringRule(LiveEventCalendarDocument draftBefore, DateTime now, string eventType)
+        private static LiveOpsConfirmDecision DecideRemoveRecurringRule(LiveEventCalendarDocument draftBefore,
+            LiveEventCalendarDocument publishedBaseline, DateTime now, string eventType)
         {
             if (!draftBefore.TryGetRecurringRule(eventType, out RecurringLiveEventRule rule)) return Simple(LiveOpsConfirmRequirement.None, ReasonTargetMissing);
-            if (!TryGetRunningOccurrence(rule, now, out LiveEventInstance running))
+            RecurringLiveEventRule reference = ReferenceRuleForPlayers(rule, publishedBaseline, eventType);
+            if (!TryGetRunningOccurrence(reference, now, out LiveEventInstance running))
             {
                 return Simple(LiveOpsConfirmRequirement.None, ReasonNoRunningOccurrence);
             }
             return new LiveOpsConfirmDecision(LiveOpsConfirmRequirement.TypeToConfirm, ReasonRunning, running.EventId, running.EndUtc, 0);
+        }
+
+        /// <summary>
+        /// Luật sinh ra id người chơi đang giữ: luật cùng loại trong bản so nếu có (7.4), không thì luật trong nháp trước khi sửa.
+        /// </summary>
+        private static RecurringLiveEventRule ReferenceRuleForPlayers(RecurringLiveEventRule draftBeforeRule,
+            LiveEventCalendarDocument publishedBaseline, string eventType)
+        {
+            if (publishedBaseline != null && publishedBaseline.TryGetRecurringRule(eventType, out RecurringLiveEventRule publishedRule))
+            {
+                return publishedRule;
+            }
+            return draftBeforeRule;
         }
 
         private static LiveOpsConfirmDecision DecideRemoveEventType(LiveEventCalendarDocument draftBefore, string typeId)

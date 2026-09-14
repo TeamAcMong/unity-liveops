@@ -63,6 +63,16 @@ namespace DreamTech.LiveOps.Editor.Tests
             return builder.Build();
         }
 
+        private static LiveEventCalendarDocument PublishedWithRule(RecurringLiveEventRule rule)
+        {
+            return new LiveEventCalendarDocumentBuilder().WithRecurringRule(rule).Build();
+        }
+
+        private static LiveEventCalendarDocument DraftWithWeeklyPassPrefix(string idPrefix)
+        {
+            return Apply(Draft(), new SetRecurringRuleEdit(WeeklyPassRule.WithIdPrefix(idPrefix)));
+        }
+
         private static LiveEventCalendarDocument Apply(LiveEventCalendarDocument document, LiveEventCalendarEdit edit)
         {
             Assert.IsTrue(LiveEventCalendarEdits.TryApply(document, edit, out LiveEventCalendarDocument result), "lệnh sửa của fixture phải áp được");
@@ -238,6 +248,43 @@ namespace DreamTech.LiveOps.Editor.Tests
             AssertRequirement(decision, LiveOpsConfirmRequirement.None, LiveOpsConfirmationPolicy.ReasonRunningIdKept);
         }
 
+        [Test]
+        public void RecurringPrefix_RevertToPublished_None()
+        {
+            // Nháp đã ghi tiền tố pass-; bản đã đăng dùng weekly-pass-. Hoàn về weekly-pass- trả lại đúng id người chơi đang
+            // giữ (7.4 "so bản so nếu có") — không ai mất gì, không bắt gõ.
+            LiveEventCalendarDocument before = DraftWithWeeklyPassPrefix("pass-");
+            LiveEventCalendarDocument after = Draft();
+            LiveOpsConfirmDecision decision = LiveOpsConfirmationPolicy.Decide(LiveOpsEditOperation.ChangeRecurringIdentity, before, after,
+                PublishedWithRule(WeeklyPassRule), NowUtc, WeeklyPassType);
+            AssertRequirement(decision, LiveOpsConfirmRequirement.None, LiveOpsConfirmationPolicy.ReasonRunningIdKept);
+            Assert.AreEqual("weekly-pass-35", decision.RunningEventId);
+        }
+
+        [Test]
+        public void RecurringPrefix_WithBaseline_TypesPublishedRunningId()
+        {
+            // Nháp pass- → p-: người chơi vẫn đang giữ weekly-pass-35 của bản đã đăng — chữ phải gõ là id đó, không phải pass-35.
+            LiveEventCalendarDocument before = DraftWithWeeklyPassPrefix("pass-");
+            LiveEventCalendarDocument after = DraftWithWeeklyPassPrefix("p-");
+            LiveOpsConfirmDecision decision = LiveOpsConfirmationPolicy.Decide(LiveOpsEditOperation.ChangeRecurringIdentity, before, after,
+                PublishedWithRule(WeeklyPassRule), NowUtc, WeeklyPassType);
+            Assert.AreEqual(LiveOpsConfirmRequirement.TypeToConfirm, decision.Requirement);
+            Assert.AreEqual(LiveOpsConfirmationPolicy.ReasonRunning, decision.ReasonCode);
+            Assert.AreEqual("weekly-pass-35", decision.TypeToConfirmText);
+            Assert.AreEqual(new DateTime(2026, 9, 14, 0, 0, 0, DateTimeKind.Utc), decision.RunningEndUtc);
+        }
+
+        [Test]
+        public void RecurringPrefix_BaselineWithoutRule_UsesDraftBefore()
+        {
+            // Bản so có nhưng không có luật weekly-pass: quay về nháp trước khi sửa (hỏi thừa an toàn hơn bỏ sót).
+            LiveEventCalendarDocument after = DraftWithWeeklyPassPrefix("pass-");
+            LiveOpsConfirmDecision decision = Decide(LiveOpsEditOperation.ChangeRecurringIdentity, after, PublishedWith(EndedEntry), WeeklyPassType);
+            Assert.AreEqual(LiveOpsConfirmRequirement.TypeToConfirm, decision.Requirement);
+            Assert.AreEqual("weekly-pass-35", decision.TypeToConfirmText);
+        }
+
         // ── Đổi thời gian chạy của luật ─────────────────────────────────────────────────────────────────────────────
 
         [Test]
@@ -283,6 +330,25 @@ namespace DreamTech.LiveOps.Editor.Tests
             LiveOpsConfirmDecision decision = Decide(LiveOpsEditOperation.RemoveRecurringRule, null, null, WeeklyPassType);
             Assert.AreEqual(LiveOpsConfirmRequirement.TypeToConfirm, decision.Requirement);
             Assert.AreEqual("weekly-pass-35", decision.TypeToConfirmText);
+        }
+
+        [Test]
+        public void RemoveRule_WithBaseline_TypesPublishedRunningId()
+        {
+            LiveEventCalendarDocument before = DraftWithWeeklyPassPrefix("pass-");
+            LiveOpsConfirmDecision decision = LiveOpsConfirmationPolicy.Decide(LiveOpsEditOperation.RemoveRecurringRule, before, null,
+                PublishedWithRule(WeeklyPassRule), NowUtc, WeeklyPassType);
+            Assert.AreEqual(LiveOpsConfirmRequirement.TypeToConfirm, decision.Requirement);
+            Assert.AreEqual("weekly-pass-35", decision.TypeToConfirmText);
+        }
+
+        [Test]
+        public void RemoveRule_BaselineRuleNotRunning_None()
+        {
+            // Bản đã đăng không có lần lặp nào đang chạy (chạy 1 giờ mỗi ngày, lúc 08:47 đã khép) — người chơi không giữ id nào.
+            RecurringLiveEventRule publishedNotRunning = new RecurringLiveEventRule(WeeklyPassType, "2026-01-05T00:00:00Z", "weekly-pass-", 24, 1, "");
+            LiveOpsConfirmDecision decision = Decide(LiveOpsEditOperation.RemoveRecurringRule, null, PublishedWithRule(publishedNotRunning), WeeklyPassType);
+            AssertRequirement(decision, LiveOpsConfirmRequirement.None, LiveOpsConfirmationPolicy.ReasonNoRunningOccurrence);
         }
 
         // ── Loại ────────────────────────────────────────────────────────────────────────────────────────────────────
