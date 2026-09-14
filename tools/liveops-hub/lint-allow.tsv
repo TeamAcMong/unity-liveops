@@ -1,0 +1,9 @@
+# lint-allow.tsv — ngoại lệ CÓ CHỦ ĐÍCH của code-lint.py (mục 9.4). Rỗng lúc W0: mọi vi phạm đều là lỗi.
+# Mỗi dòng 4 cột cách nhau bằng TAB; thiếu lý do thì code-lint.py từ chối đọc file.
+#   <luật>          id luật in trong ngoặc vuông của code-lint.py (vd class-not-sealed, display-dialog, clock-direct)
+#   <glob>          đường dẫn từ gốc repo, glob kiểu fnmatch (`*` khớp cả '/'), vd Packages/com.dreamtech.liveops/Editor/Hub/Services/LiveOpsHubEditorAdapters.cs
+#   <ký hiệu|*>     tên lớp/định danh bị bắt (vd LiveEventCalendarEdit) hoặc * cho mọi ký hiệu của luật trong file đó
+#   <lý do>         vì sao ngoại lệ đúng (dẫn mục kế hoạch), vd "lớp gốc trừu tượng của họ lệnh đóng — mục 3.1"
+# Ví dụ (đã comment):
+# class-not-sealed	Packages/com.dreamtech.liveops/Editor/Hub/Dialogs/LiveOpsPopoverContent.cs	LiveOpsPopoverContent	lớp gốc popover không abstract được vì PopupWindowContent cần hàm mặc định — mục 3.3 (lớp abstract/static/sealed không cần dòng này)
+# clock-direct	Packages/com.dreamtech.liveops/Editor/Hub/Services/LiveOpsHubEditorAdapters.cs	*	adapter đồng hồ thật của Editor là nơi duy nhất đọc DateTime.UtcNow — mục 3.3

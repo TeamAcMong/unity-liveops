@@ -1,0 +1,7 @@
+<!-- lint-sample-path: Packages/com.dreamtech.liveops/Editor/Hub/UI/LiveOpsSample.uxml -->
+<!-- Mẫu đạt: UXML chỉ có name/class, chữ đặt từ C#. -->
+<ui:UXML xmlns:ui="UnityEngine.UIElements">
+    <ui:VisualElement name="liveops-hub-sample" class="liveops-hub-card">
+        <ui:Label name="sample-title" text="Calendar" />
+    </ui:VisualElement>
+</ui:UXML>

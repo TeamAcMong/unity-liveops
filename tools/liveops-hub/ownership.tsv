@@ -1,0 +1,628 @@
+# ownership.tsv — bản máy đọc của bảng quyền ghi (IMPLEMENTATION_PLAN mục 2, 10.3, 10.4, V-5).
+# Sinh tự động; cổng đợt sinh lại khi kế hoạch đổi. check-ownership.py và code-lint.py đọc file này.
+# package	<gói>	<đợt>	<cỡ>	<phụ thuộc, phẩy; - khi không có>
+# file	<đường dẫn từ gốc repo, glob * ** được>	<gói theo thứ tự tạo → sửa, phẩy; * = mọi gói>	<ghi chú>
+# directory	<thư mục mới>	<gói chủ>	<đợt>
+# region	<vùng>	<họ=gói,...;...>	(tham khảo: LiveOpsHubStrings/ClassNames/Paths.<Vùng>.cs, LiveOpsHubCaptureScenarios.<Vùng>.cs)
+package	G-TOOLS	W0	M	-
+package	G-GOLDEN	W0	S	-
+package	G-SPIKE-A	W0	M	-
+package	G-CORE	W0	L	-
+package	G-SKELETON	W0	S	-
+package	G-HUBBASE	W1	L	G-SKELETON,G-SPIKE-A
+package	G-VALIDATOR-A	W1	L	G-CORE
+package	G-JSON	W1	M	G-CORE,G-SPIKE-A
+package	G-DIFF	W1	M	G-CORE
+package	G-UNITY	W1	M	G-CORE,G-GOLDEN,G-SPIKE-A
+package	G-HUBKIT	W1	M	G-SKELETON,G-CORE
+package	G-SPIKE-B	W1	M	G-SPIKE-A
+package	G-SHELL	W2	L	G-HUBBASE,G-HUBKIT
+package	G-FEEDBACK	W2	M	G-HUBBASE,G-HUBKIT,G-SPIKE-A
+package	G-CONTROLS	W2	M	G-HUBBASE,G-JSON,G-SPIKE-A
+package	G-TIMELINE-MODEL	W2	M	G-HUBBASE,G-VALIDATOR-A,G-DIFF,G-SPIKE-A
+package	G-VALIDATOR-B	W2	M	G-VALIDATOR-A,G-JSON
+package	G-ROUNDTRIP	W2	M	G-UNITY,G-JSON,G-HUBKIT,G-VALIDATOR-A
+package	G-DEMO	W2	M	G-UNITY
+package	G-PREVIEW	W2	S	G-CORE,G-UNITY,G-HUBKIT
+package	G-FINDINGTEXT	W2	M	G-VALIDATOR-A,G-DIFF,G-HUBBASE
+package	G-EXPORTGATE	W2	M	G-VALIDATOR-A,G-JSON,G-DIFF,G-UNITY,G-HUBBASE,G-HUBKIT
+package	G-SESSION	W3	L	G-SHELL,G-FEEDBACK,G-HUBKIT,G-VALIDATOR-B,G-UNITY,G-JSON,G-DIFF,G-FINDINGTEXT,G-EXPORTGATE,G-SPIKE-A
+package	G-TIMELINE-VIEW	W3	L	G-TIMELINE-MODEL,G-CONTROLS,G-HUBBASE,G-FINDINGTEXT,G-SPIKE-A
+package	G-HOSTUI	W4	M	G-SESSION,G-FEEDBACK
+package	G-OVERVIEW	W4	M	G-SESSION,G-CONTROLS,G-FEEDBACK,G-EXPORTGATE,G-FINDINGTEXT
+package	G-EVENTTYPES	W4	M	G-SESSION,G-CONTROLS
+package	G-CALENDAR	W4	L	G-SESSION,G-TIMELINE-VIEW,G-CONTROLS,G-FEEDBACK
+package	G-RECURRING	W4	M	G-SESSION,G-CONTROLS,G-FEEDBACK
+package	G-VALIDATION	W4	M	G-SESSION,G-CONTROLS,G-FEEDBACK
+package	G-EXPORT	W4	L	G-SESSION,G-CONTROLS,G-FEEDBACK
+package	G-INSPECTOR	W4	S	G-SESSION
+package	G-CALENDAR-DEPTH	W5	L	G-CALENDAR,G-VALIDATION
+package	G-VALIDATION-DEPTH	W5	M	G-VALIDATION
+package	G-RECURRING-JSON	W5	S	G-RECURRING
+package	G-PASTE	W5	M	W4
+package	G-SHELLPOLISH	W5	M	G-HOSTUI,G-OVERVIEW,G-PREVIEW
+package	G-JOURNEY	W5	S	W4
+package	G-DOCS	W5	M	W4
+package	G-OPT-TIMELINE	W6	M	G-CALENDAR-DEPTH
+package	G-OPT-SHORTCUTHELP	W6	S	G-SHELLPOLISH
+package	G-ACCEPT	W7	M	-
+region	Foundation	strings=G-HUBBASE;classnames=G-HUBBASE;paths=G-HUBBASE	
+region	Kit	strings=G-HUBKIT;paths=G-HUBKIT	
+region	Shell	strings=G-SHELL,G-HOSTUI,G-SHELLPOLISH;classnames=G-SHELL,G-HOSTUI,G-SHELLPOLISH;paths=G-SHELL,G-HOSTUI,G-SHELLPOLISH;capture=G-SHELL,G-HOSTUI	
+region	Feedback	strings=G-FEEDBACK;classnames=G-FEEDBACK;paths=G-FEEDBACK;capture=G-FEEDBACK	
+region	Controls	strings=G-CONTROLS;classnames=G-CONTROLS;paths=G-CONTROLS;capture=G-CONTROLS	
+region	TimelineModel	strings=G-TIMELINE-MODEL;paths=G-TIMELINE-MODEL	
+region	Timeline	strings=G-TIMELINE-VIEW,G-OPT-TIMELINE;classnames=G-TIMELINE-VIEW,G-OPT-TIMELINE;paths=G-TIMELINE-VIEW,G-OPT-TIMELINE;capture=G-TIMELINE-VIEW,G-OPT-TIMELINE	
+region	Findings	strings=G-FINDINGTEXT;paths=G-FINDINGTEXT	
+region	ExportGate	strings=G-EXPORTGATE;paths=G-EXPORTGATE	
+region	Services	strings=G-SESSION;paths=G-SESSION	
+region	Overview	strings=G-OVERVIEW,G-SHELLPOLISH;classnames=G-OVERVIEW,G-SHELLPOLISH;paths=G-OVERVIEW,G-SHELLPOLISH;capture=G-OVERVIEW,G-SHELLPOLISH	
+region	EventTypes	strings=G-EVENTTYPES;classnames=G-EVENTTYPES;paths=G-EVENTTYPES;capture=G-EVENTTYPES	
+region	Calendar	strings=G-CALENDAR;classnames=G-CALENDAR;paths=G-CALENDAR;capture=G-CALENDAR	
+region	CalendarDepth	strings=G-CALENDAR-DEPTH;classnames=G-CALENDAR-DEPTH;paths=G-CALENDAR-DEPTH;capture=G-CALENDAR-DEPTH	
+region	Recurring	strings=G-RECURRING,G-RECURRING-JSON;classnames=G-RECURRING;paths=G-RECURRING;capture=G-RECURRING	
+region	RecurringJson	classnames=G-RECURRING-JSON;paths=G-RECURRING-JSON;capture=G-RECURRING-JSON	
+region	Validation	strings=G-VALIDATION;classnames=G-VALIDATION;paths=G-VALIDATION;capture=G-VALIDATION	
+region	ValidationDepth	strings=G-VALIDATION-DEPTH;classnames=G-VALIDATION-DEPTH;paths=G-VALIDATION-DEPTH;capture=G-VALIDATION-DEPTH	
+region	Export	strings=G-EXPORT;classnames=G-EXPORT;paths=G-EXPORT;capture=G-EXPORT	
+region	Paste	strings=G-PASTE;classnames=G-PASTE;paths=G-PASTE;capture=G-PASTE	
+region	Inspector	strings=G-INSPECTOR;classnames=G-INSPECTOR;paths=G-INSPECTOR	
+region	ShortcutHelp	strings=G-OPT-SHORTCUTHELP;classnames=G-OPT-SHORTCUTHELP;paths=G-OPT-SHORTCUTHELP;capture=G-OPT-SHORTCUTHELP	
+region	ShellPolish	capture=G-SHELLPOLISH	
+region	OptTimeline	capture=G-OPT-TIMELINE	
+file	.gitignore	G-TOOLS	G-TOOLS tạo
+file	Assets/Demo/Editor/DreamTech.LiveOps.Demo.Editor.asmdef	G-DEMO	G-DEMO tạo
+file	Assets/Demo/Editor/LiveOpsDemoCalendarAssetBuilder.cs	G-DEMO	G-DEMO tạo
+file	Assets/Demo/Editor/LiveOpsDemoSceneBuilder.cs	G-DEMO	G-DEMO tạo
+file	Assets/Demo/LiveOps/Calendars/Main.asset	G-DEMO	G-DEMO tạo
+file	Assets/Demo/LiveOpsDemo.unity	G-DEMO	G-DEMO tạo
+file	Assets/Demo/Scripts/LiveOpsDemo.cs	G-DEMO	G-DEMO tạo
+file	Assets/Demo/Tests/LiveOpsDemoSmokeTests.cs	G-DEMO	G-DEMO tạo
+file	CHANGELOG.md	G-DOCS,G-ACCEPT	G-DOCS tạo; G-ACCEPT sửa
+file	CLAUDE.md	G-DOCS	G-DOCS Q-10 user cho sửa — áp PROPOSED_CLAUDE_MD.md
+file	Packages/com.dreamtech.liveops/CHANGELOG.md	G-DOCS,G-ACCEPT	G-DOCS tạo; G-ACCEPT sửa
+file	Packages/com.dreamtech.liveops/CLAUDE.md	G-DOCS	G-DOCS Q-10 user cho sửa — áp PROPOSED_CLAUDE_MD.md
+file	Packages/com.dreamtech.liveops/Documentation/DESIGN_NOTES.md	G-DOCS	G-DOCS tạo
+file	Packages/com.dreamtech.liveops/Editor/AssemblyInfo.cs	G-SKELETON	G-SKELETON tạo
+file	Packages/com.dreamtech.liveops/Editor/DreamTech.LiveOps.Editor.asmdef	G-SKELETON	G-SKELETON tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Controls/LiveOpsButtonSlot.cs	G-HUBBASE	G-HUBBASE tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Controls/LiveOpsChevron.cs	G-HUBBASE	G-HUBBASE tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Controls/LiveOpsJsonView.cs	G-CONTROLS	G-CONTROLS tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Controls/LiveOpsPlaceholder.cs	G-HUBBASE	G-HUBBASE tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Controls/LiveOpsRuleCycleBar.cs	G-CONTROLS	G-CONTROLS tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Controls/LiveOpsSpinner.cs	G-HUBBASE	G-HUBBASE tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Controls/LiveOpsStateMark.cs	G-HUBBASE	G-HUBBASE tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Controls/LiveOpsTabStrip.cs	G-CONTROLS	G-CONTROLS tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Controls/LiveOpsTableSorting.cs	G-CONTROLS	G-CONTROLS tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Controls/LiveOpsUtcDateTimeField.cs	G-CONTROLS	G-CONTROLS tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Controls/Timeline/LiveOpsTimelineBar.cs	G-TIMELINE-VIEW,G-OPT-TIMELINE	G-TIMELINE-VIEW tạo; G-OPT-TIMELINE sửa
+file	Packages/com.dreamtech.liveops/Editor/Hub/Controls/Timeline/LiveOpsTimelineDragController.cs	G-TIMELINE-VIEW,G-OPT-TIMELINE	G-TIMELINE-VIEW tạo; G-OPT-TIMELINE sửa
+file	Packages/com.dreamtech.liveops/Editor/Hub/Controls/Timeline/LiveOpsTimelineElement.cs	G-TIMELINE-VIEW,G-OPT-TIMELINE	G-TIMELINE-VIEW tạo; G-OPT-TIMELINE sửa
+file	Packages/com.dreamtech.liveops/Editor/Hub/Controls/Timeline/LiveOpsTimelineGeometry.cs	G-TIMELINE-MODEL,G-OPT-TIMELINE	G-TIMELINE-MODEL tạo; G-OPT-TIMELINE sửa
+file	Packages/com.dreamtech.liveops/Editor/Hub/Controls/Timeline/LiveOpsTimelineHintLine.cs	G-TIMELINE-VIEW,G-OPT-TIMELINE	G-TIMELINE-VIEW tạo; G-OPT-TIMELINE sửa
+file	Packages/com.dreamtech.liveops/Editor/Hub/Controls/Timeline/LiveOpsTimelineInput.cs	G-TIMELINE-MODEL,G-OPT-TIMELINE	G-TIMELINE-MODEL tạo; G-OPT-TIMELINE sửa
+file	Packages/com.dreamtech.liveops/Editor/Hub/Controls/Timeline/LiveOpsTimelineIntent.cs	G-TIMELINE-MODEL,G-OPT-TIMELINE	G-TIMELINE-MODEL tạo; G-OPT-TIMELINE sửa
+file	Packages/com.dreamtech.liveops/Editor/Hub/Controls/Timeline/LiveOpsTimelineLane.cs	G-TIMELINE-VIEW,G-OPT-TIMELINE	G-TIMELINE-VIEW tạo; G-OPT-TIMELINE sửa
+file	Packages/com.dreamtech.liveops/Editor/Hub/Controls/Timeline/LiveOpsTimelineLegend.cs	G-TIMELINE-VIEW,G-OPT-TIMELINE	G-TIMELINE-VIEW tạo; G-OPT-TIMELINE sửa
+file	Packages/com.dreamtech.liveops/Editor/Hub/Controls/Timeline/LiveOpsTimelineMinimap.cs	G-TIMELINE-VIEW,G-OPT-TIMELINE	G-TIMELINE-VIEW tạo; G-OPT-TIMELINE sửa
+file	Packages/com.dreamtech.liveops/Editor/Hub/Controls/Timeline/LiveOpsTimelineModel.cs	G-TIMELINE-MODEL,G-OPT-TIMELINE	G-TIMELINE-MODEL tạo; G-OPT-TIMELINE sửa
+file	Packages/com.dreamtech.liveops/Editor/Hub/Controls/Timeline/LiveOpsTimelineRuler.cs	G-TIMELINE-VIEW,G-OPT-TIMELINE	G-TIMELINE-VIEW tạo; G-OPT-TIMELINE sửa
+file	Packages/com.dreamtech.liveops/Editor/Hub/Controls/Timeline/LiveOpsTimelineVertexBudget.cs	G-TIMELINE-MODEL,G-OPT-TIMELINE	G-TIMELINE-MODEL tạo; G-OPT-TIMELINE sửa
+file	Packages/com.dreamtech.liveops/Editor/Hub/Dialogs/LiveOpsConfirmContent.cs	G-FEEDBACK	G-FEEDBACK tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Dialogs/LiveOpsConfirmRequest.cs	G-HUBKIT	G-HUBKIT tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Dialogs/LiveOpsConfirmWindow.cs	G-FEEDBACK	G-FEEDBACK tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Dialogs/LiveOpsConfirmWindow.uss	G-FEEDBACK	G-FEEDBACK tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Dialogs/LiveOpsConfirmWindow.uxml	G-FEEDBACK	G-FEEDBACK tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Dialogs/LiveOpsConfirmationPolicy.cs	G-HUBKIT	G-HUBKIT tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Dialogs/LiveOpsPopoverContent.cs	G-FEEDBACK	G-FEEDBACK tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Dialogs/ModalLiveOpsHubConfirmationPresenter.cs	G-FEEDBACK	G-FEEDBACK tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Dialogs/PasteRunningJsonPopover.cs	G-PASTE	G-PASTE tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Dialogs/PasteRunningJsonPopover.uxml	G-PASTE	G-PASTE tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Dialogs/ShortcutHelpPopover.cs	G-OPT-SHORTCUTHELP	G-OPT-SHORTCUTHELP tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Dialogs/ShortcutHelpPopover.uxml	G-OPT-SHORTCUTHELP	G-OPT-SHORTCUTHELP tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Feedback/LiveOpsHoverCardHost.cs	G-FEEDBACK	G-FEEDBACK tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Feedback/LiveOpsHubUndoTracker.cs	G-FEEDBACK	G-FEEDBACK tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Feedback/LiveOpsOutcomeRecord.cs	G-HUBKIT	G-HUBKIT tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Feedback/LiveOpsOutcomeView.cs	G-FEEDBACK	G-FEEDBACK tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Feedback/LiveOpsToast.cs	G-FEEDBACK	G-FEEDBACK tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Feedback/LiveOpsToastModel.cs	G-HUBKIT	G-HUBKIT tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubClassNames.Calendar.cs	G-CALENDAR	G-CALENDAR vùng Calendar
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubClassNames.CalendarDepth.cs	G-CALENDAR-DEPTH	G-CALENDAR-DEPTH vùng CalendarDepth
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubClassNames.Controls.cs	G-CONTROLS	G-CONTROLS vùng Controls
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubClassNames.EventTypes.cs	G-EVENTTYPES	G-EVENTTYPES vùng EventTypes
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubClassNames.Export.cs	G-EXPORT	G-EXPORT vùng Export
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubClassNames.Feedback.cs	G-FEEDBACK	G-FEEDBACK vùng Feedback
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubClassNames.Foundation.cs	G-HUBBASE	G-HUBBASE vùng Foundation
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubClassNames.Inspector.cs	G-INSPECTOR	G-INSPECTOR vùng Inspector
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubClassNames.Overview.cs	G-OVERVIEW,G-SHELLPOLISH	G-OVERVIEW vùng Overview; G-SHELLPOLISH vùng Overview
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubClassNames.Paste.cs	G-PASTE	G-PASTE vùng Paste
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubClassNames.Recurring.cs	G-RECURRING	G-RECURRING vùng Recurring
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubClassNames.RecurringJson.cs	G-RECURRING-JSON	G-RECURRING-JSON vùng RecurringJson
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubClassNames.Shell.cs	G-SHELL,G-HOSTUI,G-SHELLPOLISH	G-SHELL vùng Shell; G-HOSTUI vùng Shell; G-SHELLPOLISH vùng Shell
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubClassNames.ShortcutHelp.cs	G-OPT-SHORTCUTHELP	G-OPT-SHORTCUTHELP vùng ShortcutHelp
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubClassNames.Timeline.cs	G-TIMELINE-VIEW,G-OPT-TIMELINE	G-TIMELINE-VIEW vùng Timeline; G-OPT-TIMELINE vùng Timeline
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubClassNames.Validation.cs	G-VALIDATION	G-VALIDATION vùng Validation
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubClassNames.ValidationDepth.cs	G-VALIDATION-DEPTH	G-VALIDATION-DEPTH vùng ValidationDepth
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubClassNames.cs	G-SKELETON	G-SKELETON tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubFormat.cs	G-HUBBASE	G-HUBBASE tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubIcons.cs	G-HUBBASE	G-HUBBASE tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubKeyLabels.cs	G-HUBBASE	G-HUBBASE tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubPaths.Calendar.cs	G-CALENDAR	G-CALENDAR vùng Calendar
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubPaths.CalendarDepth.cs	G-CALENDAR-DEPTH	G-CALENDAR-DEPTH vùng CalendarDepth
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubPaths.Controls.cs	G-CONTROLS	G-CONTROLS vùng Controls
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubPaths.EventTypes.cs	G-EVENTTYPES	G-EVENTTYPES vùng EventTypes
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubPaths.Export.cs	G-EXPORT	G-EXPORT vùng Export
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubPaths.ExportGate.cs	G-EXPORTGATE	G-EXPORTGATE vùng ExportGate
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubPaths.Feedback.cs	G-FEEDBACK	G-FEEDBACK vùng Feedback
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubPaths.Findings.cs	G-FINDINGTEXT	G-FINDINGTEXT vùng Findings
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubPaths.Foundation.cs	G-HUBBASE	G-HUBBASE vùng Foundation
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubPaths.Inspector.cs	G-INSPECTOR	G-INSPECTOR vùng Inspector
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubPaths.Kit.cs	G-HUBKIT	G-HUBKIT vùng Kit
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubPaths.Overview.cs	G-OVERVIEW,G-SHELLPOLISH	G-OVERVIEW vùng Overview; G-SHELLPOLISH vùng Overview
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubPaths.Paste.cs	G-PASTE	G-PASTE vùng Paste
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubPaths.Recurring.cs	G-RECURRING	G-RECURRING vùng Recurring
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubPaths.RecurringJson.cs	G-RECURRING-JSON	G-RECURRING-JSON vùng RecurringJson
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubPaths.Services.cs	G-SESSION	G-SESSION vùng Services
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubPaths.Shell.cs	G-SHELL,G-HOSTUI,G-SHELLPOLISH	G-SHELL vùng Shell; G-HOSTUI vùng Shell; G-SHELLPOLISH vùng Shell
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubPaths.ShortcutHelp.cs	G-OPT-SHORTCUTHELP	G-OPT-SHORTCUTHELP vùng ShortcutHelp
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubPaths.Timeline.cs	G-TIMELINE-VIEW,G-OPT-TIMELINE	G-TIMELINE-VIEW vùng Timeline; G-OPT-TIMELINE vùng Timeline
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubPaths.TimelineModel.cs	G-TIMELINE-MODEL	G-TIMELINE-MODEL vùng TimelineModel
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubPaths.Validation.cs	G-VALIDATION	G-VALIDATION vùng Validation
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubPaths.ValidationDepth.cs	G-VALIDATION-DEPTH	G-VALIDATION-DEPTH vùng ValidationDepth
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubPaths.cs	G-SKELETON	G-SKELETON tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubStrings.Calendar.cs	G-CALENDAR	G-CALENDAR vùng Calendar
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubStrings.CalendarDepth.cs	G-CALENDAR-DEPTH	G-CALENDAR-DEPTH vùng CalendarDepth
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubStrings.Controls.cs	G-CONTROLS	G-CONTROLS vùng Controls
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubStrings.EventTypes.cs	G-EVENTTYPES	G-EVENTTYPES vùng EventTypes
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubStrings.Export.cs	G-EXPORT	G-EXPORT vùng Export
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubStrings.ExportGate.cs	G-EXPORTGATE	G-EXPORTGATE vùng ExportGate
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubStrings.Feedback.cs	G-FEEDBACK	G-FEEDBACK vùng Feedback
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubStrings.Findings.cs	G-FINDINGTEXT	G-FINDINGTEXT vùng Findings
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubStrings.Foundation.cs	G-HUBBASE	G-HUBBASE vùng Foundation
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubStrings.Inspector.cs	G-INSPECTOR	G-INSPECTOR vùng Inspector
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubStrings.Kit.cs	G-HUBKIT	G-HUBKIT vùng Kit
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubStrings.Overview.cs	G-OVERVIEW,G-SHELLPOLISH	G-OVERVIEW vùng Overview; G-SHELLPOLISH vùng Overview
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubStrings.Paste.cs	G-PASTE	G-PASTE vùng Paste
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubStrings.Recurring.cs	G-RECURRING,G-RECURRING-JSON	G-RECURRING vùng Recurring; G-RECURRING-JSON vùng Recurring
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubStrings.Services.cs	G-SESSION	G-SESSION vùng Services
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubStrings.Shell.cs	G-SHELL,G-HOSTUI,G-SHELLPOLISH	G-SHELL vùng Shell; G-HOSTUI vùng Shell; G-SHELLPOLISH vùng Shell
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubStrings.ShortcutHelp.cs	G-OPT-SHORTCUTHELP	G-OPT-SHORTCUTHELP vùng ShortcutHelp
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubStrings.Timeline.cs	G-TIMELINE-VIEW,G-OPT-TIMELINE	G-TIMELINE-VIEW vùng Timeline; G-OPT-TIMELINE vùng Timeline
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubStrings.TimelineModel.cs	G-TIMELINE-MODEL	G-TIMELINE-MODEL vùng TimelineModel
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubStrings.Validation.cs	G-VALIDATION	G-VALIDATION vùng Validation
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubStrings.ValidationDepth.cs	G-VALIDATION-DEPTH	G-VALIDATION-DEPTH vùng ValidationDepth
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubStrings.cs	G-SKELETON	G-SKELETON tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubStyle.cs	G-HUBBASE	G-HUBBASE tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/PipelineStage.cs	G-HUBBASE	G-HUBBASE tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/SectionHealth.cs	G-HUBBASE	G-HUBBASE tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Icons/d_liveops-hub-calendar.png	G-HUBBASE	G-HUBBASE tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Icons/d_liveops-hub-calendar@2x.png	G-HUBBASE	G-HUBBASE tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Icons/d_liveops-hub-clipboard.png	G-HUBBASE	G-HUBBASE tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Icons/d_liveops-hub-clipboard@2x.png	G-HUBBASE	G-HUBBASE tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Icons/liveops-hub-calendar.png	G-HUBBASE	G-HUBBASE tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Icons/liveops-hub-calendar@2x.png	G-HUBBASE	G-HUBBASE tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Inspector/LiveEventCalendarAssetInspector.cs	G-INSPECTOR	G-INSPECTOR tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Palette/LiveOpsHubPalette.cs	G-FEEDBACK	G-FEEDBACK tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Palette/LiveOpsPaletteMatcher.cs	G-FEEDBACK	G-FEEDBACK tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Calendar/AddEventFlowModel.cs	G-CALENDAR	G-CALENDAR tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Calendar/AddEventPopover.cs	G-CALENDAR	G-CALENDAR tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Calendar/AddEventPopover.uxml	G-CALENDAR	G-CALENDAR tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Calendar/CalendarCommandHandler.cs	G-CALENDAR-DEPTH	G-CALENDAR-DEPTH tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Calendar/CalendarComparePane.cs	G-CALENDAR-DEPTH	G-CALENDAR-DEPTH tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Calendar/CalendarContextMenus.cs	G-CALENDAR-DEPTH,G-OPT-TIMELINE	G-CALENDAR-DEPTH tạo; G-OPT-TIMELINE sửa
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Calendar/CalendarDeleteFlow.cs	G-CALENDAR	G-CALENDAR tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Calendar/CalendarEventInspector.cs	G-CALENDAR,G-CALENDAR-DEPTH,G-OPT-TIMELINE	G-CALENDAR tạo; G-CALENDAR-DEPTH sửa; G-OPT-TIMELINE sửa
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Calendar/CalendarHoverCardContent.cs	G-CALENDAR-DEPTH	G-CALENDAR-DEPTH tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Calendar/CalendarInspectorModel.cs	G-CALENDAR	G-CALENDAR tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Calendar/CalendarListPane.cs	G-CALENDAR-DEPTH	G-CALENDAR-DEPTH tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Calendar/CalendarSection.cs	G-SHELL,G-SESSION,G-CALENDAR,G-CALENDAR-DEPTH	G-SHELL tạo; G-SESSION sửa; G-CALENDAR sửa; G-CALENDAR-DEPTH sửa
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Calendar/CalendarSection.uss	G-CALENDAR,G-CALENDAR-DEPTH	G-CALENDAR tạo; G-CALENDAR-DEPTH sửa
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Calendar/CalendarSection.uxml	G-CALENDAR,G-CALENDAR-DEPTH	G-CALENDAR tạo; G-CALENDAR-DEPTH sửa
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Calendar/CalendarTimelinePresenter.cs	G-CALENDAR,G-CALENDAR-DEPTH,G-OPT-TIMELINE	G-CALENDAR tạo; G-CALENDAR-DEPTH sửa; G-OPT-TIMELINE sửa
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Calendar/CalendarToolbar.cs	G-CALENDAR,G-CALENDAR-DEPTH	G-CALENDAR tạo; G-CALENDAR-DEPTH sửa
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/EventTypes/AddEventTypePopover.cs	G-EVENTTYPES	G-EVENTTYPES tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/EventTypes/EventTypeInspector.cs	G-EVENTTYPES	G-EVENTTYPES tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/EventTypes/EventTypeTable.cs	G-EVENTTYPES	G-EVENTTYPES tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/EventTypes/EventTypesModel.cs	G-EVENTTYPES	G-EVENTTYPES tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/EventTypes/EventTypesSection.cs	G-SHELL,G-SESSION,G-EVENTTYPES	G-SHELL tạo; G-SESSION sửa; G-EVENTTYPES sửa
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/EventTypes/EventTypesSection.uss	G-EVENTTYPES	G-EVENTTYPES tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/EventTypes/EventTypesSection.uxml	G-EVENTTYPES	G-EVENTTYPES tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Export/ExportDiffCard.cs	G-EXPORT	G-EXPORT tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Export/ExportDiffViewModel.cs	G-EXPORT	G-EXPORT tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Export/ExportGateCard.cs	G-EXPORT	G-EXPORT tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Export/ExportHistoryCard.cs	G-EXPORT	G-EXPORT tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Export/ExportHistoryModel.cs	G-EXPORT	G-EXPORT tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Export/ExportMetrics.cs	G-EXPORT	G-EXPORT tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Export/ExportSection.cs	G-SHELL,G-SESSION,G-EXPORT	G-SHELL tạo; G-SESSION sửa; G-EXPORT sửa
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Export/ExportSection.uss	G-EXPORT	G-EXPORT tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Export/ExportSection.uxml	G-EXPORT	G-EXPORT tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Export/ExportSessionState.cs	G-EXPORT	G-EXPORT tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Export/MarkPublishedModel.cs	G-EXPORT	G-EXPORT tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Export/MarkPublishedWindow.cs	G-EXPORT	G-EXPORT tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Export/MarkPublishedWindow.uss	G-EXPORT	G-EXPORT tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Export/MarkPublishedWindow.uxml	G-EXPORT	G-EXPORT tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/InterimPlaceholderSection.cs	G-SHELL,G-SHELLPOLISH	G-SHELL tạo; G-SHELLPOLISH xoá
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Overview/OverviewModel.cs	G-OVERVIEW	G-OVERVIEW tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Overview/OverviewNeedsActionList.cs	G-OVERVIEW	G-OVERVIEW tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Overview/OverviewPipelineFlow.cs	G-OVERVIEW	G-OVERVIEW tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Overview/OverviewRemoteKeyPopover.cs	G-SHELLPOLISH	G-SHELLPOLISH tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Overview/OverviewSection.cs	G-SHELL,G-SESSION,G-OVERVIEW,G-SHELLPOLISH	G-SHELL tạo; G-SESSION sửa; G-OVERVIEW sửa; G-SHELLPOLISH sửa
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Overview/OverviewSection.uss	G-OVERVIEW	G-OVERVIEW tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Overview/OverviewSection.uxml	G-OVERVIEW,G-SHELLPOLISH	G-OVERVIEW tạo; G-SHELLPOLISH sửa
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Overview/OverviewUpcomingTable.cs	G-OVERVIEW	G-OVERVIEW tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/RecurringRules/LiveOpsRulePresetLibrary.cs	G-RECURRING	G-RECURRING tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/RecurringRules/LiveOpsRulePresets.cs	G-RECURRING	G-RECURRING tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/RecurringRules/RecurringNextOccurrencesTable.cs	G-RECURRING	G-RECURRING tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/RecurringRules/RecurringPrefixDraft.cs	G-RECURRING	G-RECURRING tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/RecurringRules/RecurringRuleForm.cs	G-RECURRING,G-RECURRING-JSON	G-RECURRING tạo; G-RECURRING-JSON sửa
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/RecurringRules/RecurringRuleJsonFoldout.cs	G-RECURRING-JSON	G-RECURRING-JSON tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/RecurringRules/RecurringRuleList.cs	G-RECURRING	G-RECURRING tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/RecurringRules/RecurringRuleModel.cs	G-RECURRING	G-RECURRING tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/RecurringRules/RecurringRuleSentence.cs	G-RECURRING	G-RECURRING tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/RecurringRules/RecurringRulesSection.cs	G-SHELL,G-SESSION,G-RECURRING	G-SHELL tạo; G-SESSION sửa; G-RECURRING sửa
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/RecurringRules/RecurringRulesSection.uss	G-RECURRING	G-RECURRING tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/RecurringRules/RecurringRulesSection.uxml	G-RECURRING,G-RECURRING-JSON	G-RECURRING tạo; G-RECURRING-JSON sửa
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Validation/DecisionMenu.cs	G-VALIDATION-DEPTH	G-VALIDATION-DEPTH tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Validation/IgnoreWarningPopover.cs	G-VALIDATION-DEPTH	G-VALIDATION-DEPTH tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Validation/IgnoreWarningPopover.uxml	G-VALIDATION-DEPTH	G-VALIDATION-DEPTH tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Validation/ProposalPopover.cs	G-VALIDATION	G-VALIDATION tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Validation/ProposalPopover.uxml	G-VALIDATION	G-VALIDATION tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Validation/SafeRepairPreviewCard.cs	G-VALIDATION-DEPTH	G-VALIDATION-DEPTH tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Validation/ValidationDetailPane.cs	G-VALIDATION	G-VALIDATION tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Validation/ValidationFilter.cs	G-VALIDATION	G-VALIDATION tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Validation/ValidationFindingRow.cs	G-VALIDATION,G-VALIDATION-DEPTH	G-VALIDATION tạo; G-VALIDATION-DEPTH sửa
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Validation/ValidationGroupCard.cs	G-VALIDATION,G-VALIDATION-DEPTH	G-VALIDATION tạo; G-VALIDATION-DEPTH sửa
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Validation/ValidationSection.cs	G-SHELL,G-SESSION,G-VALIDATION,G-VALIDATION-DEPTH	G-SHELL tạo; G-SESSION sửa; G-VALIDATION sửa; G-VALIDATION-DEPTH sửa
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Validation/ValidationSection.uss	G-VALIDATION	G-VALIDATION tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Validation/ValidationSection.uxml	G-VALIDATION,G-VALIDATION-DEPTH	G-VALIDATION tạo; G-VALIDATION-DEPTH sửa
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Validation/ValidationViewModel.cs	G-VALIDATION,G-VALIDATION-DEPTH	G-VALIDATION tạo; G-VALIDATION-DEPTH sửa
+file	Packages/com.dreamtech.liveops/Editor/Hub/Services/InterimUnavailableHubActions.cs	G-HUBKIT,G-PASTE	G-HUBKIT tạo; G-PASTE xoá
+file	Packages/com.dreamtech.liveops/Editor/Hub/Services/LiveOpsCalendarAssetPostprocessor.cs	G-SESSION	G-SESSION tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Services/LiveOpsChangeText.cs	G-FINDINGTEXT	G-FINDINGTEXT tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Services/LiveOpsEventIdSuggester.cs	G-HUBKIT	G-HUBKIT tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Services/LiveOpsFindingText.cs	G-FINDINGTEXT	G-FINDINGTEXT tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Services/LiveOpsHubAssetLocator.cs	G-SESSION	G-SESSION tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Services/LiveOpsHubCalendarSession.cs	G-SESSION	G-SESSION tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Services/LiveOpsHubCheckState.cs	G-SESSION	G-SESSION tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Services/LiveOpsHubDiskConflict.cs	G-SESSION	G-SESSION tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Services/LiveOpsHubEditOutcome.cs	G-SESSION	G-SESSION tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Services/LiveOpsHubEditorAdapters.cs	G-HUBKIT	G-HUBKIT tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Services/LiveOpsHubExportGate.cs	G-EXPORTGATE	G-EXPORTGATE tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Services/LiveOpsHubNavigation.cs	G-HUBKIT	G-HUBKIT tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Services/LiveOpsHubPasteRunningJsonAction.cs	G-PASTE	G-PASTE tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Services/LiveOpsHubPorts.cs	G-HUBKIT	G-HUBKIT tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Services/LiveOpsHubPreviewSample.cs	G-PREVIEW	G-PREVIEW tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Services/LiveOpsHubPublishState.cs	G-SESSION	G-SESSION tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Services/LiveOpsHubRemoteSnapshot.cs	G-SESSION	G-SESSION tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Services/LiveOpsHubSectionBus.cs	G-HUBKIT	G-HUBKIT tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Services/LiveOpsHubServices.cs	G-SESSION	G-SESSION tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Services/LiveOpsHubServicesBuilder.cs	G-SESSION,G-PASTE	G-SESSION tạo; G-PASTE sửa
+file	Packages/com.dreamtech.liveops/Editor/Hub/Services/LiveOpsHubTestAdapters.cs	G-HUBKIT	G-HUBKIT tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Services/LiveOpsJsonSyntaxLocator.cs	G-HUBKIT	G-HUBKIT tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Shell/IHubHost.cs	G-SHELL,G-SESSION	G-SHELL tạo; G-SESSION sửa
+file	Packages/com.dreamtech.liveops/Editor/Hub/Shell/IHubSection.cs	G-SHELL	G-SHELL tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Shell/LiveOpsHealthThrottle.cs	G-SHELL	G-SHELL tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Shell/LiveOpsHubBreakpoints.cs	G-SHELL,G-SHELLPOLISH	G-SHELL tạo; G-SHELLPOLISH sửa
+file	Packages/com.dreamtech.liveops/Editor/Hub/Shell/LiveOpsHubDiskConflictBanner.cs	G-SHELLPOLISH	G-SHELLPOLISH tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Shell/LiveOpsHubFailureView.cs	G-SHELL	G-SHELL tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Shell/LiveOpsHubHeader.cs	G-SHELL,G-HOSTUI,G-SHELLPOLISH	G-SHELL tạo; G-HOSTUI sửa; G-SHELLPOLISH sửa
+file	Packages/com.dreamtech.liveops/Editor/Hub/Shell/LiveOpsHubHeaderChipModel.cs	G-HOSTUI	G-HOSTUI tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Shell/LiveOpsHubNarrowRailMenu.cs	G-SHELLPOLISH	G-SHELLPOLISH tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Shell/LiveOpsHubRail.cs	G-SHELL,G-HOSTUI,G-SHELLPOLISH	G-SHELL tạo; G-HOSTUI sửa; G-SHELLPOLISH sửa
+file	Packages/com.dreamtech.liveops/Editor/Hub/Shell/LiveOpsHubRailModel.cs	G-SHELL	G-SHELL tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Shell/LiveOpsHubSectionHeader.cs	G-SHELL	G-SHELL tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Shell/LiveOpsHubSections.cs	G-SHELL,G-SESSION	G-SHELL tạo; G-SESSION sửa
+file	Packages/com.dreamtech.liveops/Editor/Hub/Shell/LiveOpsHubShortcuts.cs	G-HOSTUI	G-HOSTUI tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Shell/LiveOpsHubSkin.cs	G-SHELL	G-SHELL tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Shell/LiveOpsHubStatusBar.cs	G-SHELL,G-HOSTUI	G-SHELL tạo; G-HOSTUI sửa
+file	Packages/com.dreamtech.liveops/Editor/Hub/Shell/LiveOpsHubStatusBarModel.cs	G-HOSTUI	G-HOSTUI tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Shell/LiveOpsHubWindow.cs	G-SHELL,G-SESSION,G-HOSTUI,G-SHELLPOLISH,G-OPT-SHORTCUTHELP	G-SHELL tạo; G-SESSION sửa; G-HOSTUI sửa; G-SHELLPOLISH sửa; G-OPT-SHORTCUTHELP sửa
+file	Packages/com.dreamtech.liveops/Editor/Hub/Shell/LiveOpsHubWindowState.cs	G-SHELL	G-SHELL tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/UI/LiveOpsHub.uxml	G-SHELL,G-HOSTUI,G-SHELLPOLISH	G-SHELL tạo; G-HOSTUI sửa; G-SHELLPOLISH sửa
+file	Packages/com.dreamtech.liveops/Editor/Hub/UI/liveops-hub-components.uss	G-HUBBASE	G-HUBBASE tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/UI/liveops-hub-controls.uss	G-CONTROLS	G-CONTROLS tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/UI/liveops-hub-feedback.uss	G-FEEDBACK	G-FEEDBACK tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/UI/liveops-hub-motion.uss	G-HUBBASE	G-HUBBASE tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/UI/liveops-hub-shell.uss	G-SHELL,G-HOSTUI,G-SHELLPOLISH	G-SHELL tạo; G-HOSTUI sửa; G-SHELLPOLISH sửa
+file	Packages/com.dreamtech.liveops/Editor/Hub/UI/liveops-hub-theme.uss	G-HUBBASE	G-HUBBASE tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/UI/liveops-hub-timeline.uss	G-TIMELINE-VIEW,G-OPT-TIMELINE	G-TIMELINE-VIEW tạo; G-OPT-TIMELINE sửa
+file	Packages/com.dreamtech.liveops/README.md	G-DOCS	G-DOCS tạo
+file	Packages/com.dreamtech.liveops/Runtime/Core/Calendar/Compilation/LiveEventCalendarCompilation.cs	G-CORE	G-CORE tạo
+file	Packages/com.dreamtech.liveops/Runtime/Core/Calendar/Compilation/LiveEventCalendarCompiler.cs	G-CORE	G-CORE tạo
+file	Packages/com.dreamtech.liveops/Runtime/Core/Calendar/Compilation/LiveEventCalendarDropReason.cs	G-CORE	G-CORE tạo
+file	Packages/com.dreamtech.liveops/Runtime/Core/Calendar/Compilation/LiveEventCalendarEntryOutcome.cs	G-CORE	G-CORE tạo
+file	Packages/com.dreamtech.liveops/Runtime/Core/Calendar/Diff/LiveEventCalendarChange.cs	G-DIFF	G-DIFF tạo
+file	Packages/com.dreamtech.liveops/Runtime/Core/Calendar/Diff/LiveEventCalendarChangeKind.cs	G-DIFF	G-DIFF tạo
+file	Packages/com.dreamtech.liveops/Runtime/Core/Calendar/Diff/LiveEventCalendarDiff.cs	G-DIFF	G-DIFF tạo
+file	Packages/com.dreamtech.liveops/Runtime/Core/Calendar/Diff/LiveEventCalendarDiffResult.cs	G-DIFF	G-DIFF tạo
+file	Packages/com.dreamtech.liveops/Runtime/Core/Calendar/Diff/LiveEventCalendarFieldChange.cs	G-DIFF	G-DIFF tạo
+file	Packages/com.dreamtech.liveops/Runtime/Core/Calendar/Document/FixedLiveEventEntry.cs	G-CORE	G-CORE tạo
+file	Packages/com.dreamtech.liveops/Runtime/Core/Calendar/Document/IgnoredCalendarWarning.cs	G-CORE	G-CORE tạo
+file	Packages/com.dreamtech.liveops/Runtime/Core/Calendar/Document/LiveEventCalendarDocument.cs	G-CORE	G-CORE tạo
+file	Packages/com.dreamtech.liveops/Runtime/Core/Calendar/Document/LiveEventCalendarDocumentBuilder.cs	G-CORE	G-CORE tạo
+file	Packages/com.dreamtech.liveops/Runtime/Core/Calendar/Document/LiveEventCalendarEdit.cs	G-CORE	G-CORE tạo
+file	Packages/com.dreamtech.liveops/Runtime/Core/Calendar/Document/LiveEventCalendarEdits.cs	G-CORE	G-CORE tạo
+file	Packages/com.dreamtech.liveops/Runtime/Core/Calendar/Document/LiveEventCalendarExportOrder.cs	G-CORE	G-CORE tạo
+file	Packages/com.dreamtech.liveops/Runtime/Core/Calendar/Document/LiveEventCalendarItemKind.cs	G-CORE	G-CORE tạo
+file	Packages/com.dreamtech.liveops/Runtime/Core/Calendar/Document/LiveEventTypeColorSlots.cs	G-CORE	G-CORE tạo
+file	Packages/com.dreamtech.liveops/Runtime/Core/Calendar/Document/LiveEventTypeDefinition.cs	G-CORE	G-CORE tạo
+file	Packages/com.dreamtech.liveops/Runtime/Core/Calendar/Document/LiveEventUtcText.cs	G-CORE	G-CORE tạo
+file	Packages/com.dreamtech.liveops/Runtime/Core/Calendar/Document/PublishedCalendarStamp.cs	G-CORE	G-CORE tạo
+file	Packages/com.dreamtech.liveops/Runtime/Core/Calendar/Document/RecurringLiveEventRule.cs	G-CORE	G-CORE tạo
+file	Packages/com.dreamtech.liveops/Runtime/Core/Calendar/Json/LiveEventCalendarJsonFormat.cs	G-JSON	G-JSON tạo
+file	Packages/com.dreamtech.liveops/Runtime/Core/Calendar/Json/LiveEventCalendarJsonLine.cs	G-JSON	G-JSON tạo
+file	Packages/com.dreamtech.liveops/Runtime/Core/Calendar/Json/LiveEventCalendarJsonText.cs	G-JSON	G-JSON tạo
+file	Packages/com.dreamtech.liveops/Runtime/Core/Calendar/Json/LiveEventCalendarJsonWriter.cs	G-JSON	G-JSON tạo
+file	Packages/com.dreamtech.liveops/Runtime/Core/Calendar/Json/LiveEventCalendarSha256.cs	G-JSON	G-JSON tạo
+file	Packages/com.dreamtech.liveops/Runtime/Core/Calendar/Validation/ILiveEventCalendarRule.cs	G-VALIDATOR-A	G-VALIDATOR-A tạo
+file	Packages/com.dreamtech.liveops/Runtime/Core/Calendar/Validation/LiveEventCalendarCheckContext.cs	G-VALIDATOR-A	G-VALIDATOR-A tạo
+file	Packages/com.dreamtech.liveops/Runtime/Core/Calendar/Validation/LiveEventCalendarCheckReport.cs	G-VALIDATOR-A	G-VALIDATOR-A tạo
+file	Packages/com.dreamtech.liveops/Runtime/Core/Calendar/Validation/LiveEventCalendarCheckRun.cs	G-VALIDATOR-A	G-VALIDATOR-A tạo
+file	Packages/com.dreamtech.liveops/Runtime/Core/Calendar/Validation/LiveEventCalendarCheckSummary.cs	G-VALIDATOR-A	G-VALIDATOR-A tạo
+file	Packages/com.dreamtech.liveops/Runtime/Core/Calendar/Validation/LiveEventCalendarConsequence.cs	G-VALIDATOR-A	G-VALIDATOR-A tạo
+file	Packages/com.dreamtech.liveops/Runtime/Core/Calendar/Validation/LiveEventCalendarDetailCodes.cs	G-VALIDATOR-A	G-VALIDATOR-A tạo
+file	Packages/com.dreamtech.liveops/Runtime/Core/Calendar/Validation/LiveEventCalendarFinding.cs	G-VALIDATOR-A	G-VALIDATOR-A tạo
+file	Packages/com.dreamtech.liveops/Runtime/Core/Calendar/Validation/LiveEventCalendarFindingBuilder.cs	G-VALIDATOR-A	G-VALIDATOR-A tạo
+file	Packages/com.dreamtech.liveops/Runtime/Core/Calendar/Validation/LiveEventCalendarRepair.cs	G-VALIDATOR-A	G-VALIDATOR-A tạo
+file	Packages/com.dreamtech.liveops/Runtime/Core/Calendar/Validation/LiveEventCalendarRuleIds.cs	G-VALIDATOR-A	G-VALIDATOR-A tạo
+file	Packages/com.dreamtech.liveops/Runtime/Core/Calendar/Validation/LiveEventCalendarRuleResult.cs	G-VALIDATOR-A	G-VALIDATOR-A tạo
+file	Packages/com.dreamtech.liveops/Runtime/Core/Calendar/Validation/LiveEventCalendarValidationSettings.cs	G-VALIDATOR-A	G-VALIDATOR-A tạo
+file	Packages/com.dreamtech.liveops/Runtime/Core/Calendar/Validation/LiveEventCalendarValidator.cs	G-VALIDATOR-A,G-VALIDATOR-B	G-VALIDATOR-A tạo; G-VALIDATOR-B sửa
+file	Packages/com.dreamtech.liveops/Runtime/Core/Calendar/Validation/Rules/ConfigKeyMissingRule.cs	G-VALIDATOR-B	G-VALIDATOR-B tạo
+file	Packages/com.dreamtech.liveops/Runtime/Core/Calendar/Validation/Rules/DuplicateEventIdRule.cs	G-VALIDATOR-A	G-VALIDATOR-A tạo
+file	Packages/com.dreamtech.liveops/Runtime/Core/Calendar/Validation/Rules/EndBeforeStartRule.cs	G-VALIDATOR-A	G-VALIDATOR-A tạo
+file	Packages/com.dreamtech.liveops/Runtime/Core/Calendar/Validation/Rules/InvalidIdentifierRule.cs	G-VALIDATOR-A	G-VALIDATOR-A tạo
+file	Packages/com.dreamtech.liveops/Runtime/Core/Calendar/Validation/Rules/LongGapBetweenEventsRule.cs	G-VALIDATOR-B	G-VALIDATOR-B tạo
+file	Packages/com.dreamtech.liveops/Runtime/Core/Calendar/Validation/Rules/NotYetImplementedRule.cs	G-VALIDATOR-A,G-VALIDATOR-B	G-VALIDATOR-A tạo; G-VALIDATOR-B xoá
+file	Packages/com.dreamtech.liveops/Runtime/Core/Calendar/Validation/Rules/OverlapSameTypeRule.cs	G-VALIDATOR-A	G-VALIDATOR-A tạo
+file	Packages/com.dreamtech.liveops/Runtime/Core/Calendar/Validation/Rules/RecurringRuleInvalidRule.cs	G-VALIDATOR-A	G-VALIDATOR-A tạo
+file	Packages/com.dreamtech.liveops/Runtime/Core/Calendar/Validation/Rules/RemoteSnapshotDriftRule.cs	G-VALIDATOR-B	G-VALIDATOR-B tạo
+file	Packages/com.dreamtech.liveops/Runtime/Core/Calendar/Validation/Rules/RunningEventIdChangedRule.cs	G-VALIDATOR-B	G-VALIDATOR-B tạo
+file	Packages/com.dreamtech.liveops/Runtime/Core/Calendar/Validation/Rules/ShadowedByRecurringRule.cs	G-VALIDATOR-A	G-VALIDATOR-A tạo
+file	Packages/com.dreamtech.liveops/Runtime/Core/Calendar/Validation/Rules/UnknownEventTypeRule.cs	G-VALIDATOR-A	G-VALIDATOR-A tạo
+file	Packages/com.dreamtech.liveops/Runtime/Core/Calendar/Validation/Rules/UtcTimeFormatRule.cs	G-VALIDATOR-A	G-VALIDATOR-A tạo
+file	Packages/com.dreamtech.liveops/Runtime/Unity/Calendar/LiveEventCalendarAsset.cs	G-UNITY	G-UNITY tạo
+file	Packages/com.dreamtech.liveops/Runtime/Unity/Calendar/LiveEventCalendarAssetEntries.cs	G-UNITY	G-UNITY tạo
+file	Packages/com.dreamtech.liveops/Runtime/Unity/Calendar/LiveEventCalendarRemoteFailurePolicy.cs	G-UNITY	G-UNITY tạo
+file	Packages/com.dreamtech.liveops/Runtime/Unity/Calendar/LiveOpsSystemBuilderCalendarAssetExtensions.cs	G-UNITY	G-UNITY tạo
+file	Packages/com.dreamtech.liveops/Runtime/Unity/JsonLiveEventCalendarParser.cs	G-UNITY	G-UNITY tạo
+file	Packages/com.dreamtech.liveops/Runtime/Unity/LiveEventCalendarDocumentParseResult.cs	G-UNITY	G-UNITY tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Calendar/Diff/DesignSampleDiffTests.cs	G-DIFF	G-DIFF tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Calendar/Diff/LiveEventCalendarDiffTests.cs	G-DIFF	G-DIFF tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Calendar/Json/LiveEventCalendarJsonWriterTests.cs	G-JSON	G-JSON tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Calendar/Json/LiveEventCalendarSha256Tests.cs	G-JSON	G-JSON tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Calendar/LiveEventCalendarCompilerTests.cs	G-CORE	G-CORE tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Calendar/LiveEventCalendarDocumentTests.cs	G-CORE	G-CORE tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Calendar/LiveEventCalendarEditsTests.cs	G-CORE	G-CORE tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Calendar/LiveEventTypeColorSlotsTests.cs	G-CORE	G-CORE tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Calendar/LiveEventUtcTextTests.cs	G-CORE	G-CORE tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Calendar/Validation/ConfigKeyMissingRuleTests.cs	G-VALIDATOR-B	
+file	Packages/com.dreamtech.liveops/Tests/Editor/Calendar/Validation/DesignSampleCheckTests.cs	G-VALIDATOR-B	
+file	Packages/com.dreamtech.liveops/Tests/Editor/Calendar/Validation/DuplicateEventIdRuleTests.cs	G-VALIDATOR-A	
+file	Packages/com.dreamtech.liveops/Tests/Editor/Calendar/Validation/EndBeforeStartRuleTests.cs	G-VALIDATOR-A	
+file	Packages/com.dreamtech.liveops/Tests/Editor/Calendar/Validation/InvalidIdentifierRuleTests.cs	G-VALIDATOR-A	
+file	Packages/com.dreamtech.liveops/Tests/Editor/Calendar/Validation/LiveEventCalendarCheckSummaryTests.cs	G-VALIDATOR-A	
+file	Packages/com.dreamtech.liveops/Tests/Editor/Calendar/Validation/LiveEventCalendarValidatorTests.cs	G-VALIDATOR-A	
+file	Packages/com.dreamtech.liveops/Tests/Editor/Calendar/Validation/LongGapBetweenEventsRuleTests.cs	G-VALIDATOR-B	
+file	Packages/com.dreamtech.liveops/Tests/Editor/Calendar/Validation/OverlapSameTypeRuleTests.cs	G-VALIDATOR-A	
+file	Packages/com.dreamtech.liveops/Tests/Editor/Calendar/Validation/RecurringRuleInvalidRuleTests.cs	G-VALIDATOR-A	
+file	Packages/com.dreamtech.liveops/Tests/Editor/Calendar/Validation/RemoteSnapshotDriftRuleTests.cs	G-VALIDATOR-B	
+file	Packages/com.dreamtech.liveops/Tests/Editor/Calendar/Validation/RunningEventIdChangedRuleTests.cs	G-VALIDATOR-B	
+file	Packages/com.dreamtech.liveops/Tests/Editor/Calendar/Validation/ShadowedByRecurringRuleTests.cs	G-VALIDATOR-A	
+file	Packages/com.dreamtech.liveops/Tests/Editor/Calendar/Validation/UnknownEventTypeRuleTests.cs	G-VALIDATOR-A	
+file	Packages/com.dreamtech.liveops/Tests/Editor/Calendar/Validation/UtcTimeFormatRuleTests.cs	G-VALIDATOR-A	
+file	Packages/com.dreamtech.liveops/Tests/Editor/Calendar/Validation/ValidationInvariantFuzzTests.cs	G-ROUNDTRIP	G-ROUNDTRIP tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/DreamTech.LiveOps.Tests.asmdef	G-CORE	G-CORE tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Capture/CaptureCoverageTests.cs	G-ACCEPT	G-ACCEPT tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Capture/LiveOpsHubCaptureCommand.cs	G-SHELL	G-SHELL tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Capture/LiveOpsHubCaptureDeferrals.cs	G-ACCEPT	G-ACCEPT tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Capture/LiveOpsHubCaptureScenario.cs	G-SHELL	G-SHELL tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Capture/LiveOpsHubCaptureScenarioIds.Fix*.cs	G-FIX-W*	G-FIX-W* V-5 id kịch bản mới của gói sửa
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Capture/LiveOpsHubCaptureScenarioIds.cs	G-SKELETON	G-SKELETON tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Capture/LiveOpsHubCaptureScenarios.Calendar.cs	G-CALENDAR	G-CALENDAR vùng Calendar
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Capture/LiveOpsHubCaptureScenarios.CalendarDepth.cs	G-CALENDAR-DEPTH	G-CALENDAR-DEPTH vùng CalendarDepth
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Capture/LiveOpsHubCaptureScenarios.Controls.cs	G-CONTROLS	G-CONTROLS vùng Controls
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Capture/LiveOpsHubCaptureScenarios.EventTypes.cs	G-EVENTTYPES	G-EVENTTYPES vùng EventTypes
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Capture/LiveOpsHubCaptureScenarios.Export.cs	G-EXPORT	G-EXPORT vùng Export
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Capture/LiveOpsHubCaptureScenarios.Feedback.cs	G-FEEDBACK	G-FEEDBACK vùng Feedback
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Capture/LiveOpsHubCaptureScenarios.OptTimeline.cs	G-OPT-TIMELINE	G-OPT-TIMELINE vùng OptTimeline
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Capture/LiveOpsHubCaptureScenarios.Overview.cs	G-OVERVIEW,G-SHELLPOLISH	G-OVERVIEW vùng Overview; G-SHELLPOLISH vùng Overview
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Capture/LiveOpsHubCaptureScenarios.Paste.cs	G-PASTE	G-PASTE vùng Paste
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Capture/LiveOpsHubCaptureScenarios.Recurring.cs	G-RECURRING	G-RECURRING vùng Recurring
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Capture/LiveOpsHubCaptureScenarios.RecurringJson.cs	G-RECURRING-JSON	G-RECURRING-JSON vùng RecurringJson
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Capture/LiveOpsHubCaptureScenarios.Shell.cs	G-SHELL,G-HOSTUI	G-SHELL vùng Shell; G-HOSTUI vùng Shell
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Capture/LiveOpsHubCaptureScenarios.ShellPolish.cs	G-SHELLPOLISH	G-SHELLPOLISH vùng ShellPolish
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Capture/LiveOpsHubCaptureScenarios.ShortcutHelp.cs	G-OPT-SHORTCUTHELP	G-OPT-SHORTCUTHELP vùng ShortcutHelp
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Capture/LiveOpsHubCaptureScenarios.Timeline.cs	G-TIMELINE-VIEW,G-OPT-TIMELINE	G-TIMELINE-VIEW vùng Timeline; G-OPT-TIMELINE vùng Timeline
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Capture/LiveOpsHubCaptureScenarios.Validation.cs	G-VALIDATION	G-VALIDATION vùng Validation
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Capture/LiveOpsHubCaptureScenarios.ValidationDepth.cs	G-VALIDATION-DEPTH	G-VALIDATION-DEPTH vùng ValidationDepth
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Capture/LiveOpsHubCaptureScenarios.cs	G-SHELL	G-SHELL tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Controls/ControlsUxmlTests.cs	G-CONTROLS	G-CONTROLS tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Controls/JsonViewTests.cs	G-CONTROLS	G-CONTROLS tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Controls/RuleCycleBarTests.cs	G-CONTROLS	G-CONTROLS tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Controls/TabStripTests.cs	G-CONTROLS	G-CONTROLS tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Controls/UtcDateTimeFieldTests.cs	G-CONTROLS	G-CONTROLS tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Controls/Uxml/RuleCycleBar.uxml	G-CONTROLS	G-CONTROLS tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Controls/Uxml/TabStrip.uxml	G-CONTROLS	G-CONTROLS tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Controls/Uxml/UtcDateTimeField.uxml	G-CONTROLS	G-CONTROLS tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Dialogs/ConfirmRequestTests.cs	G-HUBKIT	G-HUBKIT tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Dialogs/LiveOpsConfirmationPolicyTests.cs	G-HUBKIT	G-HUBKIT tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/DreamTech.LiveOps.Editor.Tests.asmdef	G-SKELETON,G-HUBBASE	G-SKELETON tạo; G-HUBBASE sửa
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Feedback/ConfirmContentTests.cs	G-FEEDBACK	G-FEEDBACK tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Feedback/HoverCardTests.cs	G-FEEDBACK	G-FEEDBACK tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Feedback/PaletteMatcherTests.cs	G-FEEDBACK	G-FEEDBACK tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Feedback/PopoverTests.cs	G-FEEDBACK	G-FEEDBACK tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Feedback/ShortcutHelpTests.cs	G-OPT-SHORTCUTHELP	G-OPT-SHORTCUTHELP tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Feedback/ToastTests.cs	G-FEEDBACK	G-FEEDBACK tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Feedback/UndoTrackerTests.cs	G-FEEDBACK	G-FEEDBACK tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Foundation/EditorFontTests.cs	G-HUBBASE	G-HUBBASE tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Foundation/FormatTests.cs	G-HUBBASE	G-HUBBASE tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Foundation/HubStyleTests.cs	G-HUBBASE	G-HUBBASE tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Foundation/IconsTests.cs	G-HUBBASE	G-HUBBASE tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Foundation/KeyLabelTests.cs	G-HUBBASE	G-HUBBASE tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Foundation/StateMarkTests.cs	G-HUBBASE	G-HUBBASE tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Foundation/Uxml/StateMarkAttributes.uxml	G-HUBBASE	G-HUBBASE tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Inspector/LiveEventCalendarAssetInspectorTests.cs	G-INSPECTOR	G-INSPECTOR tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Journey/EndToEndJourneyTests.cs	G-JOURNEY	G-JOURNEY tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/LiveOpsHubProbeCommand.cs	G-SHELL	G-SHELL tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Sections/AddEventFlowModelTests.cs	G-CALENDAR	G-CALENDAR tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Sections/AddEventPopoverTests.cs	G-CALENDAR	G-CALENDAR tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Sections/CalendarCommandTests.cs	G-CALENDAR-DEPTH	G-CALENDAR-DEPTH tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Sections/CalendarContextMenusTests.cs	G-CALENDAR-DEPTH	G-CALENDAR-DEPTH tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Sections/CalendarDeleteFlowTests.cs	G-CALENDAR	G-CALENDAR tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Sections/CalendarDepthTests.cs	G-CALENDAR-DEPTH	G-CALENDAR-DEPTH tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Sections/CalendarInspectorModelTests.cs	G-CALENDAR	G-CALENDAR tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Sections/CalendarPresenterTests.cs	G-CALENDAR	G-CALENDAR tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Sections/CalendarSectionTests.cs	G-CALENDAR	G-CALENDAR tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Sections/EventTypesModelTests.cs	G-EVENTTYPES	G-EVENTTYPES tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Sections/EventTypesSectionTests.cs	G-EVENTTYPES	G-EVENTTYPES tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Sections/ExportDiffViewModelTests.cs	G-EXPORT	G-EXPORT tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Sections/ExportHistoryModelTests.cs	G-EXPORT	G-EXPORT tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Sections/ExportSectionTests.cs	G-EXPORT	G-EXPORT tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Sections/MarkPublishedModelTests.cs	G-EXPORT	G-EXPORT tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Sections/OverviewModelTests.cs	G-OVERVIEW	G-OVERVIEW tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Sections/OverviewSectionTests.cs	G-OVERVIEW	G-OVERVIEW tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Sections/ProposalPopoverTests.cs	G-VALIDATION	G-VALIDATION tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Sections/RecurringJsonFoldoutTests.cs	G-RECURRING-JSON	G-RECURRING-JSON tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Sections/RecurringPrefixDraftTests.cs	G-RECURRING	G-RECURRING tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Sections/RecurringRuleModelTests.cs	G-RECURRING	G-RECURRING tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Sections/RecurringRulesSectionTests.cs	G-RECURRING	G-RECURRING tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Sections/SectionTestScope.cs	G-SHELL	G-SHELL tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Sections/ValidationDepthTests.cs	G-VALIDATION-DEPTH	G-VALIDATION-DEPTH tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Sections/ValidationSectionTests.cs	G-VALIDATION	G-VALIDATION tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Sections/ValidationViewModelTests.cs	G-VALIDATION	G-VALIDATION tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Services/AssetLocatorTests.cs	G-SESSION	G-SESSION tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Services/CalendarSessionTests.cs	G-SESSION	G-SESSION tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Services/CheckStateStaleTests.cs	G-SESSION	G-SESSION tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Services/CheckStateTests.cs	G-SESSION	G-SESSION tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Services/DiskChangeTests.cs	G-SESSION	G-SESSION tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Services/EventIdSuggesterTests.cs	G-HUBKIT	G-HUBKIT tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Services/ExportGateTests.cs	G-EXPORTGATE	G-EXPORTGATE tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Services/FindingRoutingTests.cs	G-SESSION	G-SESSION tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Services/JsonSyntaxLocatorTests.cs	G-HUBKIT	G-HUBKIT tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Services/JsonWriterSyntaxFuzzTests.cs	G-ROUNDTRIP	G-ROUNDTRIP tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Services/LiveOpsChangeTextTests.cs	G-FINDINGTEXT	G-FINDINGTEXT tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Services/LiveOpsFindingTextTests.cs	G-FINDINGTEXT	G-FINDINGTEXT tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Services/NavigationTests.cs	G-HUBKIT	G-HUBKIT tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Services/PasteRunningJsonTests.cs	G-PASTE	G-PASTE tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Services/PreviewSampleTests.cs	G-PREVIEW	G-PREVIEW tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Services/PublishStateTests.cs	G-SESSION	G-SESSION tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Services/RemoteSnapshotTests.cs	G-SESSION	G-SESSION tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Services/SectionBusTests.cs	G-HUBKIT	G-HUBKIT tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Services/TestAdaptersTests.cs	G-HUBKIT	G-HUBKIT tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Services/ToastModelTests.cs	G-HUBKIT	G-HUBKIT tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Shell/HubDiskConflictTests.cs	G-SHELLPOLISH	G-SHELLPOLISH tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Shell/HubHostIntegrationTests.cs	G-HOSTUI	G-HOSTUI tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Shell/HubLayoutTests.cs	G-SHELL	G-SHELL tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Shell/HubMenuTests.cs	G-SHELLPOLISH	G-SHELLPOLISH tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Shell/HubNarrowTests.cs	G-SHELLPOLISH	G-SHELLPOLISH tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Shell/HubRailTests.cs	G-SHELL	G-SHELL tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Shell/HubSectionContractTests.cs	G-SHELL	G-SHELL tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Shell/HubShortcutTests.cs	G-HOSTUI	G-HOSTUI tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Shell/HubSkinTests.cs	G-SHELL	G-SHELL tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Shell/HubWindowTests.cs	G-SHELL	G-SHELL tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Shell/LiveOpsHubHeaderChipModelTests.cs	G-HOSTUI	G-HOSTUI tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Shell/LiveOpsHubRailModelTests.cs	G-SHELL	G-SHELL tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Shell/LiveOpsHubStatusBarModelTests.cs	G-HOSTUI	G-HOSTUI tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Support/FakeHubSection.cs	G-SHELL	G-SHELL tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Support/LiveOpsHubTestCategories.cs	G-SKELETON	G-SKELETON tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Support/LiveOpsHubTestServices.cs	G-SESSION	G-SESSION tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Support/LiveOpsHubWindowTestScope.cs	G-SHELL	G-SHELL tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Timeline/TimelineGeometryTests.cs	G-TIMELINE-MODEL	G-TIMELINE-MODEL tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Timeline/TimelineInteractionTests.cs	G-TIMELINE-VIEW	G-TIMELINE-VIEW tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Timeline/TimelineModelTests.cs	G-TIMELINE-MODEL	G-TIMELINE-MODEL tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Timeline/TimelineMultiSelectTests.cs	G-OPT-TIMELINE	G-OPT-TIMELINE tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Timeline/TimelineUxmlTests.cs	G-TIMELINE-VIEW	G-TIMELINE-VIEW tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Timeline/TimelineVertexBudgetEstimateTests.cs	G-TIMELINE-MODEL	G-TIMELINE-MODEL tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Timeline/TimelineVertexBudgetRenderTests.cs	G-TIMELINE-VIEW	G-TIMELINE-VIEW tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Timeline/Uxml/TimelineZoomLevel.uxml	G-TIMELINE-VIEW	G-TIMELINE-VIEW tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Support/DreamTech.LiveOps.Tests.Support.asmdef	G-CORE	G-CORE tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Support/LiveOpsDesignSample.cs	G-CORE	G-CORE tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Support/LiveOpsDocumentAssert.cs	G-CORE,G-ROUNDTRIP	G-CORE tạo; G-ROUNDTRIP sửa — 10.3 G-ROUNDTRIP (AreJsonEquivalent, V-4)
+file	Packages/com.dreamtech.liveops/Tests/Editor/Support/LiveOpsRandomDocuments.cs	G-ROUNDTRIP	G-ROUNDTRIP tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Unity/CalendarRoundTripTests.cs	G-ROUNDTRIP	G-ROUNDTRIP tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Unity/DreamTech.LiveOps.Unity.Tests.asmdef	G-UNITY	G-UNITY tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Unity/JsonLiveEventCalendarParserFormat2Tests.cs	G-UNITY	G-UNITY tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Unity/JsonLiveEventCalendarParserGoldenTests.cs	G-GOLDEN	G-GOLDEN tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Unity/JsonUtilityBehaviourTests.cs	G-UNITY	G-UNITY tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Unity/LiveEventCalendarAssetTests.cs	G-UNITY	G-UNITY tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Unity/LiveEventCalendarRemoteFailurePolicyTests.cs	G-UNITY	G-UNITY tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Unity/ReadmeSnippetCompileTests.cs	G-DOCS	G-DOCS tạo
+file	Packages/com.dreamtech.liveops/package.json	G-TOOLS	G-TOOLS tạo
+file	Packages/packages-lock.json	G-TOOLS	G-TOOLS Unity sinh lại khi PKG/package.json thêm uielements
+file	tools/liveops-hub/PROPOSED_CLAUDE_MD.md	G-TOOLS,G-DOCS	G-TOOLS tạo; G-DOCS sửa
+file	tools/liveops-hub/README.md	G-TOOLS	G-TOOLS tạo
+file	tools/liveops-hub/capture.sh	G-TOOLS	G-TOOLS tạo
+file	tools/liveops-hub/check-class-names.py	G-TOOLS	G-TOOLS tạo
+file	tools/liveops-hub/check-interim.sh	G-TOOLS	G-TOOLS tạo
+file	tools/liveops-hub/check-meta.sh	G-TOOLS	G-TOOLS tạo
+file	tools/liveops-hub/check-ownership.py	G-TOOLS	G-TOOLS tạo
+file	tools/liveops-hub/code-lint.py	G-TOOLS	G-TOOLS tạo
+file	tools/liveops-hub/compile-check.sh	G-TOOLS	G-TOOLS tạo
+file	tools/liveops-hub/contact-sheet.py	G-TOOLS	G-TOOLS tạo
+file	tools/liveops-hub/contract-changes.md	*	* mọi gói ghi yêu cầu đổi hợp đồng rồi dừng (10.1)
+file	tools/liveops-hub/contract-freeze-W3.md	G-SESSION	G-SESSION tạo — 10.3 G-SESSION
+file	tools/liveops-hub/lint-allow.tsv	G-TOOLS	G-TOOLS tạo — ngoại lệ lint mỗi gói thêm ở cổng đợt
+file	tools/liveops-hub/lint-samples/**	G-TOOLS	G-TOOLS tạo — bộ mẫu code-lint --self-test
+file	tools/liveops-hub/make-temp-project-2022.sh	G-TOOLS	G-TOOLS tạo
+file	tools/liveops-hub/make-worktree.sh	G-TOOLS	G-TOOLS tạo
+file	tools/liveops-hub/measure-capture.py	G-TOOLS	G-TOOLS tạo
+file	tools/liveops-hub/ownership.tsv	G-TOOLS	G-TOOLS tạo
+file	tools/liveops-hub/run-editmode.sh	G-TOOLS	G-TOOLS tạo
+file	tools/liveops-hub/run-playmode.sh	G-TOOLS	G-TOOLS tạo
+file	tools/liveops-hub/unity-slot.sh	G-TOOLS	G-TOOLS tạo
+file	tools/liveops-hub/uss-lint.py	G-TOOLS	G-TOOLS tạo
+directory	Packages/com.dreamtech.liveops/Runtime/Core/Calendar	G-CORE	W0
+directory	Packages/com.dreamtech.liveops/Runtime/Core/Calendar/Document	G-CORE	W0
+directory	Packages/com.dreamtech.liveops/Runtime/Core/Calendar/Compilation	G-CORE	W0
+directory	Packages/com.dreamtech.liveops/Tests/Editor/Support	G-CORE	W0
+directory	Packages/com.dreamtech.liveops/Tests/Editor/Calendar	G-CORE	W0
+directory	Packages/com.dreamtech.liveops/Editor	G-SKELETON	W0
+directory	Packages/com.dreamtech.liveops/Editor/Hub	G-SKELETON	W0
+directory	Packages/com.dreamtech.liveops/Editor/Hub/Foundation	G-SKELETON	W0
+directory	Packages/com.dreamtech.liveops/Tests/Editor/Hub	G-SKELETON	W0
+directory	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Support	G-SKELETON	W0
+directory	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Capture	G-SKELETON	W0
+directory	tools	G-TOOLS	W0
+directory	tools/liveops-hub	G-TOOLS	W0
+directory	Packages/com.dreamtech.liveops/Editor/Hub/Controls	G-HUBBASE	W1
+directory	Packages/com.dreamtech.liveops/Editor/Hub/UI	G-HUBBASE	W1
+directory	Packages/com.dreamtech.liveops/Editor/Hub/Icons	G-HUBBASE	W1
+directory	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Foundation	G-HUBBASE	W1
+directory	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Foundation/Uxml	G-HUBBASE	W1
+directory	Packages/com.dreamtech.liveops/Runtime/Core/Calendar/Validation	G-VALIDATOR-A	W1
+directory	Packages/com.dreamtech.liveops/Runtime/Core/Calendar/Validation/Rules	G-VALIDATOR-A	W1
+directory	Packages/com.dreamtech.liveops/Tests/Editor/Calendar/Validation	G-VALIDATOR-A	W1
+directory	Packages/com.dreamtech.liveops/Runtime/Core/Calendar/Json	G-JSON	W1
+directory	Packages/com.dreamtech.liveops/Tests/Editor/Calendar/Json	G-JSON	W1
+directory	Packages/com.dreamtech.liveops/Runtime/Core/Calendar/Diff	G-DIFF	W1
+directory	Packages/com.dreamtech.liveops/Tests/Editor/Calendar/Diff	G-DIFF	W1
+directory	Packages/com.dreamtech.liveops/Runtime/Unity/Calendar	G-UNITY	W1
+directory	Packages/com.dreamtech.liveops/Editor/Hub/Services	G-HUBKIT	W1
+directory	Packages/com.dreamtech.liveops/Editor/Hub/Dialogs	G-HUBKIT	W1
+directory	Packages/com.dreamtech.liveops/Editor/Hub/Feedback	G-HUBKIT	W1
+directory	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Services	G-HUBKIT	W1
+directory	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Dialogs	G-HUBKIT	W1
+directory	Packages/com.dreamtech.liveops/Editor/Hub/Shell	G-SHELL	W2
+directory	Packages/com.dreamtech.liveops/Editor/Hub/Sections	G-SHELL	W2
+directory	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Shell	G-SHELL	W2
+directory	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Sections	G-SHELL	W2
+directory	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Overview	G-SHELL	W2
+directory	Packages/com.dreamtech.liveops/Editor/Hub/Sections/EventTypes	G-SHELL	W2
+directory	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Calendar	G-SHELL	W2
+directory	Packages/com.dreamtech.liveops/Editor/Hub/Sections/RecurringRules	G-SHELL	W2
+directory	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Validation	G-SHELL	W2
+directory	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Export	G-SHELL	W2
+directory	Packages/com.dreamtech.liveops/Editor/Hub/Palette	G-FEEDBACK	W2
+directory	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Feedback	G-FEEDBACK	W2
+directory	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Controls	G-CONTROLS	W2
+directory	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Controls/Uxml	G-CONTROLS	W2
+directory	Packages/com.dreamtech.liveops/Editor/Hub/Controls/Timeline	G-TIMELINE-MODEL	W2
+directory	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Timeline	G-TIMELINE-MODEL	W2
+directory	Assets/Demo/LiveOps	G-DEMO	W2
+directory	Assets/Demo/LiveOps/Calendars	G-DEMO	W2
+directory	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Timeline/Uxml	G-TIMELINE-VIEW	W3
+directory	Packages/com.dreamtech.liveops/Editor/Hub/Inspector	G-INSPECTOR	W4
+directory	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Inspector	G-INSPECTOR	W4
+directory	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Journey	G-JOURNEY	W5
+directory	tools/liveops-hub/lint-samples/**	G-TOOLS	W0

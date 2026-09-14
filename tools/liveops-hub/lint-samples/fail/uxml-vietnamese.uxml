@@ -1,0 +1,8 @@
+<!-- lint-sample-path: Packages/com.dreamtech.liveops/Editor/Hub/Sections/Overview/OverviewSample.uxml -->
+<!-- Mẫu vi phạm: chữ tiếng Việt đặt trong UXML. -->
+<!-- lint-expect: uxml-vietnamese-text -->
+<!-- lint-expect: uxml-vietnamese-text -->
+<ui:UXML xmlns:ui="UnityEngine.UIElements">
+    <ui:Label name="overview-title" text="Tổng quan" />
+    <ui:Button name="overview-check" text="Check" tooltip="Kiểm lại tất cả" />
+</ui:UXML>
