@@ -48,7 +48,11 @@ def resolve_repository(explicit):
             return os.path.realpath(top_level)
     except (subprocess.CalledProcessError, OSError):
         pass
-    return os.path.realpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".."))
+    # Không rơi về repo chứa script: script của G-TOOLS được gọi bằng đường dẫn tuyệt đối từ cwd bất kỳ, rơi về đó thì kiểm
+    # nhầm worktree G-TOOLS và báo xanh giả cho gói khác.
+    print("%s: thư mục hiện tại không thuộc repo có %s — truyền --repository <worktree>"
+          % (os.path.basename(__file__), PACKAGE_PREFIX), file=sys.stderr)
+    sys.exit(2)
 
 
 def strip_css_comments(text):
@@ -81,6 +85,7 @@ def main():
     parser.add_argument("--strict", action="store_true")
     arguments = parser.parse_args()
     repository = resolve_repository(arguments.repository)
+    print("check-class-names.py: repository=%s" % repository, file=sys.stderr)
 
     constants = []  # (file, dòng, tên, giá trị, vùng)
     class_names_directory = os.path.join(repository, CLASS_NAMES_DIRECTORY)

@@ -368,7 +368,9 @@ DATETIME_NOW = re.compile(r"\bDateTime\s*\.\s*(?:Now|UtcNow)\b")
 STRING_COMPARISON_CALL = re.compile(r"\.\s*(Equals|StartsWith|EndsWith|IndexOf|Compare)\s*\(\s*(\"|[A-Za-z_])")
 PARSE_WITHOUT_CULTURE = re.compile(r"\b(?:int|long|short|double|float|decimal|DateTime|DateTimeOffset|TimeSpan)\s*\.\s*(?:Parse|TryParse|ParseExact|TryParseExact)\s*\(")
 FORMAT_TO_STRING = re.compile(r"\.\s*ToString\s*\(\s*\"")
-STYLE_ASSIGNMENT = re.compile(r"\.\s*style\s*\.\s*\w+\s*(?:=(?!=)|\+=|-=)")
+# Hai dạng: `x.style.width =` và `style.width =` trần trong custom control (lớp kế thừa VisualElement tự gán style của
+# chính nó — chỗ phổ biến nhất của FD §2.14 mục 3–5). `[^\w.]` loại `mystyle.` và để dạng có dấu chấm cho nhánh đầu.
+STYLE_ASSIGNMENT = re.compile(r"(?:\.\s*|(?:^|(?<=[^\w.])))style\s*\.\s*\w+\s*(?:=(?!=)|\+=|-=)")
 UI_TEST_TRIGGER = re.compile(r"\bEditorWindow\b|\bpanel\b|\bSendEvent\s*\(")
 UI_CATEGORY_MARK = re.compile(r"Category\s*\(\s*LiveOpsHubTestCategories\s*\.\s*UI\s*\)")
 INTERIM_IDENTIFIER_DECLARATION = re.compile(r"\b(?:const\s+\w+|static\s+readonly\s+\w+|class|struct)\s+(Interim\w*)")
@@ -663,19 +665,50 @@ def lint_uxml(relative_path, text, allow_list):
 
 # ------------------------------------------------------------------------------------------------------------- chạy
 
-def resolve_repository(explicit):
-    if explicit:
-        return os.path.realpath(explicit)
-    environment_repository = os.environ.get("REPOSITORY")
-    if environment_repository:
-        return os.path.realpath(environment_repository)
+class UsageError(Exception):
+    pass
+
+
+def resolve_explicit_repository(explicit):
+    """--repository hoặc biến REPOSITORY; None khi không truyền."""
+    chosen = explicit or os.environ.get("REPOSITORY")
+    if not chosen:
+        return None
+    repository = os.path.realpath(chosen)
+    if not os.path.isdir(os.path.join(repository, PACKAGE_PREFIX)):
+        raise UsageError("--repository %s không chứa %s" % (repository, PACKAGE_PREFIX))
+    return repository
+
+
+def resolve_repository_from_working_directory():
+    """Repo của thư mục hiện tại khi nó có package; không thì None (KHÔNG rơi về repo chứa script).
+
+    Vì sao: cổng gói gọi script của G-TOOLS bằng đường dẫn tuyệt đối từ cwd bất kỳ; rơi về repo chứa script thì lint nhầm
+    worktree G-TOOLS và báo xanh giả cho gói khác.
+    """
     try:
         top_level = subprocess.check_output(["git", "rev-parse", "--show-toplevel"], stderr=subprocess.DEVNULL).decode().strip()
-        if os.path.isdir(os.path.join(top_level, PACKAGE_PREFIX)):
-            return os.path.realpath(top_level)
     except (subprocess.CalledProcessError, OSError):
-        pass
-    return os.path.realpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".."))
+        return None
+    if top_level and os.path.isdir(os.path.join(top_level, PACKAGE_PREFIX)):
+        return os.path.realpath(top_level)
+    return None
+
+
+def find_repository_of_file(path):
+    """Gốc repo chứa file = thư mục tổ tiên gần nhất có Packages/com.dreamtech.liveops; None khi file nằm ngoài mọi repo.
+
+    Vì sao theo chính file mà không theo cwd: file ở worktree khác cwd sẽ ra đường dẫn tương đối `../G-CORE/Packages/...`,
+    không khớp tiền tố nào, và mọi luật theo đường dẫn (core/package/editor/tests) bị bỏ âm thầm.
+    """
+    directory = os.path.dirname(os.path.realpath(path))
+    while True:
+        if os.path.isdir(os.path.join(directory, PACKAGE_PREFIX)):
+            return directory
+        parent = os.path.dirname(directory)
+        if parent == directory:
+            return None
+        directory = parent
 
 
 def collect_files(repository, paths):
@@ -683,7 +716,7 @@ def collect_files(repository, paths):
     targets = paths or [os.path.join(repository, PACKAGE_PREFIX)]
     for target in targets:
         absolute = target if os.path.isabs(target) else os.path.join(os.getcwd(), target)
-        if not os.path.exists(absolute):
+        if not os.path.exists(absolute) and repository:
             absolute = os.path.join(repository, target)
         if os.path.isdir(absolute):
             for directory, directory_names, files in os.walk(absolute):
@@ -694,6 +727,7 @@ def collect_files(repository, paths):
         elif os.path.isfile(absolute) and absolute.endswith((".cs", ".uxml")):
             collected.append(absolute)
         elif not os.path.exists(absolute):
+            # Chỉ cảnh báo: danh sách file lấy từ `git diff` của gói gỡ có cả file đã xoá (vd InterimUnavailableHubActions.cs).
             print("code-lint.py: bỏ qua đường dẫn không tồn tại %s" % target, file=sys.stderr)
     return sorted(set(os.path.realpath(path) for path in collected))
 
@@ -701,6 +735,23 @@ def collect_files(repository, paths):
 def relative_to_repository(repository, path):
     relative = os.path.relpath(path, repository)
     return relative.replace(os.sep, "/")
+
+
+class RepositoryContext(object):
+    """Allow list, bảng gói và modifier partial của MỘT repo — file ở worktree nào dùng bảng của worktree đó."""
+
+    def __init__(self, repository, tools_directory):
+        repository_tools = os.path.join(repository, "tools", "liveops-hub")
+        allow_path = os.path.join(repository_tools, "lint-allow.tsv")
+        ownership_path = os.path.join(repository_tools, "ownership.tsv")
+        if not os.path.isfile(allow_path):
+            allow_path = os.path.join(tools_directory, "lint-allow.tsv")
+        if not os.path.isfile(ownership_path):
+            ownership_path = os.path.join(tools_directory, "ownership.tsv")
+        self.allow_list = AllowList(allow_path)
+        known_packages = load_known_packages(ownership_path)
+        partial_modifiers = collect_partial_modifiers(os.path.join(repository, PACKAGE_PREFIX))
+        self.linter = CSharpLinter(self.allow_list, partial_modifiers, known_packages)
 
 
 def lint_text(relative_path, text, linter, allow_list):
@@ -788,7 +839,7 @@ def run_self_test(tools_directory):
 def main():
     parser = argparse.ArgumentParser(description="Lint luật package com.dreamtech.liveops (biết nhánh #if).")
     parser.add_argument("paths", nargs="*", help="file hoặc thư mục; mặc định toàn bộ package")
-    parser.add_argument("--repository", help="worktree (mặc định git top-level hoặc repo chứa script)")
+    parser.add_argument("--repository", help="worktree; mặc định: repo của từng file, không có file thì git top-level của cwd (phải có package)")
     parser.add_argument("--report-only", action="store_true", help="in phát hiện nhưng luôn thoát 0 (file 0.1.0 cũ ở cổng đợt)")
     parser.add_argument("--json", action="store_true", help="in JSON")
     parser.add_argument("--self-test", action="store_true", help="chạy bộ mẫu lint-samples/")
@@ -798,26 +849,37 @@ def main():
     if arguments.self_test:
         return run_self_test(tools_directory)
 
-    repository = resolve_repository(arguments.repository)
-    repository_tools = os.path.join(repository, "tools", "liveops-hub")
-    allow_path = os.path.join(repository_tools, "lint-allow.tsv")
-    ownership_path = os.path.join(repository_tools, "ownership.tsv")
-    if not os.path.isfile(allow_path):
-        allow_path = os.path.join(tools_directory, "lint-allow.tsv")
-    if not os.path.isfile(ownership_path):
-        ownership_path = os.path.join(tools_directory, "ownership.tsv")
-    allow_list = AllowList(allow_path)
-    known_packages = load_known_packages(ownership_path)
-    partial_modifiers = collect_partial_modifiers(os.path.join(repository, PACKAGE_PREFIX))
-    linter = CSharpLinter(allow_list, partial_modifiers, known_packages)
+    try:
+        explicit_repository = resolve_explicit_repository(arguments.repository)
+        default_repository = explicit_repository or resolve_repository_from_working_directory()
+        if not arguments.paths and not default_repository:
+            raise UsageError("thư mục hiện tại không thuộc repo có %s — truyền --repository <worktree> hoặc đường dẫn file"
+                             % PACKAGE_PREFIX)
+        files = collect_files(default_repository, arguments.paths)
+    except UsageError as error:
+        print("code-lint.py: %s" % error, file=sys.stderr)
+        return 2
 
     findings = []
-    files = collect_files(repository, arguments.paths)
+    contexts = {}
     for path in files:
-        relative_path = relative_to_repository(repository, path)
+        file_repository = find_repository_of_file(path)
+        if file_repository is None:
+            findings.append(Finding(path, 0, "file-outside-repository", ERROR,
+                                    "file không nằm trong repo nào có %s — luật theo đường dẫn không áp được" % PACKAGE_PREFIX))
+            continue
+        if explicit_repository and file_repository != explicit_repository:
+            findings.append(Finding(path, 0, "file-outside-repository", ERROR,
+                                    "file thuộc repo %s, không phải --repository %s" % (file_repository, explicit_repository)))
+            continue
+        if file_repository not in contexts:
+            contexts[file_repository] = RepositoryContext(file_repository, tools_directory)
+            print("code-lint.py: repository=%s" % file_repository, file=sys.stderr)
+        context = contexts[file_repository]
+        relative_path = relative_to_repository(file_repository, path)
         with open(path, encoding="utf-8-sig") as handle:
             text = handle.read()
-        findings.extend(lint_text(relative_path, text, linter, allow_list))
+        findings.extend(lint_text(relative_path, text, context.linter, context.allow_list))
     print_findings(findings, arguments.json)
     error_count = sum(1 for finding in findings if finding.severity == ERROR)
     warning_count = len(findings) - error_count

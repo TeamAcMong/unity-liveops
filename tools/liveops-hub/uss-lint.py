@@ -98,7 +98,23 @@ def resolve_repository(explicit):
             return os.path.realpath(top_level)
     except (subprocess.CalledProcessError, OSError):
         pass
-    return os.path.realpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".."))
+    # Không rơi về repo chứa script: script của G-TOOLS được gọi bằng đường dẫn tuyệt đối từ cwd bất kỳ, rơi về đó thì kiểm
+    # nhầm worktree G-TOOLS và báo xanh giả cho gói khác.
+    print("%s: thư mục hiện tại không thuộc repo có %s — truyền --repository <worktree>"
+          % (os.path.basename(__file__), PACKAGE_PREFIX), file=sys.stderr)
+    sys.exit(2)
+
+
+def find_repository_of_file(path):
+    """Thư mục tổ tiên gần nhất có Packages/com.dreamtech.liveops; None khi file nằm ngoài mọi repo."""
+    directory = os.path.dirname(os.path.realpath(path))
+    while True:
+        if os.path.isdir(os.path.join(directory, PACKAGE_PREFIX)):
+            return directory
+        parent = os.path.dirname(directory)
+        if parent == directory:
+            return None
+        directory = parent
 
 
 def collect(repository, paths):
@@ -106,7 +122,7 @@ def collect(repository, paths):
     files = []
     for target in targets:
         absolute = target if os.path.isabs(target) else os.path.abspath(target)
-        if not os.path.exists(absolute):
+        if not os.path.exists(absolute) and repository:
             absolute = os.path.join(repository, target)
         if os.path.isdir(absolute):
             for directory, directory_names, names in os.walk(absolute):
@@ -114,7 +130,7 @@ def collect(repository, paths):
                 files.extend(os.path.join(directory, name) for name in names if name.endswith(".uss"))
         elif absolute.endswith(".uss") and os.path.isfile(absolute):
             files.append(absolute)
-    return sorted(set(files))
+    return sorted(set(os.path.realpath(path) for path in files))
 
 
 SELF_TEST_BAD = """
@@ -171,11 +187,21 @@ def main():
     arguments = parser.parse_args()
     if arguments.self_test:
         return self_test()
-    repository = resolve_repository(arguments.repository)
+    # Có đường dẫn thì repo tính theo CHÍNH từng file (file ở worktree khác cwd không thành `../G-X/...`); không có thì
+    # --repository hoặc git top-level của cwd.
+    explicit = arguments.repository or os.environ.get("REPOSITORY")
+    repository = resolve_repository(arguments.repository) if (explicit or not arguments.paths) else None
+    if repository:
+        print("uss-lint.py: repository=%s" % repository, file=sys.stderr)
     files = collect(repository, arguments.paths)
     error_count = 0
     for path in files:
-        relative_path = os.path.relpath(path, repository).replace(os.sep, "/")
+        file_repository = find_repository_of_file(path)
+        if file_repository is None or (explicit and file_repository != repository):
+            print("%s:0: error file không thuộc %s có %s" % (path, repository or "repo nào", PACKAGE_PREFIX))
+            error_count += 1
+            continue
+        relative_path = os.path.relpath(path, file_repository).replace(os.sep, "/")
         with open(path, encoding="utf-8-sig") as handle:
             findings = lint_uss(relative_path, handle.read())
         for line_number, message in findings:

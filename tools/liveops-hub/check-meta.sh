@@ -18,7 +18,6 @@ set -euo pipefail
 readonly PACKAGE_RELATIVE_PATH=Packages/com.dreamtech.liveops
 readonly DEMO_RELATIVE_PATH=Assets/Demo
 
-script_directory=$(cd "$(dirname "$0")" && pwd)
 repository=${REPOSITORY:-}
 
 while [ "$#" -gt 0 ]; do
@@ -35,8 +34,11 @@ if [ -n "$repository" ]; then
 elif top_level=$(git rev-parse --show-toplevel 2>/dev/null) && [ -d "$top_level/$PACKAGE_RELATIVE_PATH" ]; then
   repository=$top_level
 else
-  repository=$(cd "$script_directory/../.." && pwd -P)
+  echo "check-meta.sh: thư mục hiện tại không thuộc repo có $PACKAGE_RELATIVE_PATH — truyền --repository <worktree>" >&2
+  echo "  (không tự rơi về repo chứa script: gọi bằng đường dẫn tuyệt đối từ cwd khác sẽ kiểm nhầm worktree G-TOOLS)" >&2
+  exit 2
 fi
+echo "check-meta.sh: repository=$repository" >&2
 
 python3 - "$repository" "$PACKAGE_RELATIVE_PATH" "$DEMO_RELATIVE_PATH" <<'PYTHON'
 import os

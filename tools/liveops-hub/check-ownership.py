@@ -21,6 +21,7 @@ import subprocess
 import sys
 
 DEFAULT_BASE_BRANCH = "feature/liveops-hub-p1"
+PACKAGE_PREFIX = "Packages/com.dreamtech.liveops/"
 
 
 def glob_to_regex(pattern):
@@ -108,9 +109,15 @@ def resolve_repository(explicit):
     if os.environ.get("REPOSITORY"):
         return os.path.realpath(os.environ["REPOSITORY"])
     try:
-        return os.path.realpath(subprocess.check_output(["git", "rev-parse", "--show-toplevel"], stderr=subprocess.DEVNULL).decode().strip())
+        top_level = subprocess.check_output(["git", "rev-parse", "--show-toplevel"], stderr=subprocess.DEVNULL).decode().strip()
+        if top_level and os.path.isdir(os.path.join(top_level, PACKAGE_PREFIX)):
+            return os.path.realpath(top_level)
     except (subprocess.CalledProcessError, OSError):
-        return os.path.realpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".."))
+        pass
+    # Không rơi về repo chứa script (hoặc repo git bất kỳ của cwd): diff nhầm worktree thì báo xanh giả cho gói khác.
+    print("check-ownership.py: thư mục hiện tại không thuộc repo có %s — truyền --repository <worktree>" % PACKAGE_PREFIX,
+          file=sys.stderr)
+    sys.exit(2)
 
 
 def changed_paths(repository, base):
@@ -236,6 +243,7 @@ def main():
     if not arguments.package:
         parser.error("cần <gói> hoặc --wave-deps")
     repository = resolve_repository(arguments.repository)
+    print("check-ownership.py: repository=%s" % repository, file=sys.stderr)
     base = arguments.base
     if not base:
         try:

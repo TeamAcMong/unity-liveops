@@ -47,9 +47,14 @@ resolve_repository() {
   if top_level=$(git rev-parse --show-toplevel 2>/dev/null) && [ -d "$top_level/$PACKAGE_RELATIVE_PATH" ]; then
     echo "$top_level"; return
   fi
-  (cd "$script_directory/../.." && pwd -P)
+  return 1
 }
-repository=$(resolve_repository)
+if ! repository=$(resolve_repository); then
+  echo "make-temp-project-2022.sh: thư mục hiện tại không thuộc repo có $PACKAGE_RELATIVE_PATH — truyền --repository <worktree>" >&2
+  echo "  (không tự rơi về repo chứa script: gọi bằng đường dẫn tuyệt đối từ cwd khác sẽ kiểm nhầm worktree G-TOOLS)" >&2
+  exit 2
+fi
+echo "make-temp-project-2022.sh: repository=$repository" >&2
 [ -d "$repository/$PACKAGE_RELATIVE_PATH" ] || fail_usage "không thấy package ở $repository/$PACKAGE_RELATIVE_PATH"
 
 if [ -z "$name" ]; then

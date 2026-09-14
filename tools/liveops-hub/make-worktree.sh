@@ -18,7 +18,6 @@ set -euo pipefail
 
 readonly DEFAULT_BASE_BRANCH=feature/liveops-hub-p1
 
-script_directory=$(cd "$(dirname "$0")" && pwd)
 repository=${REPOSITORY:-}
 base_branch=$DEFAULT_BASE_BRANCH
 worktree_root=""
@@ -49,9 +48,17 @@ case "$package" in
   *) fail_usage "tên gói phải dạng G-<TÊN>, nhận '$package'";;
 esac
 
+# Không rơi về repo chứa script, và không nhận repo git bất kỳ của cwd: cwd ở project khác (vd u-icon-match) sẽ tạo
+# worktree của NHẦM repo. Chỉ nhận git top-level có package.
 if [ -z "$repository" ]; then
-  repository=$(git rev-parse --show-toplevel 2>/dev/null || (cd "$script_directory/../.." && pwd -P))
+  if top_level=$(git rev-parse --show-toplevel 2>/dev/null) && [ -d "$top_level/Packages/com.dreamtech.liveops" ]; then
+    repository=$top_level
+  else
+    fail_usage "thư mục hiện tại không thuộc repo có Packages/com.dreamtech.liveops — truyền --repository <repo hoặc worktree>"
+  fi
 fi
+[ -d "$repository/Packages/com.dreamtech.liveops" ] || fail_usage "--repository $repository không chứa Packages/com.dreamtech.liveops"
+echo "make-worktree.sh: repository=$repository" >&2
 # Repo chính = thư mục chứa .git chung (worktree nào gọi cũng ra cùng một nơi).
 common_git_directory=$(cd "$repository" && git rev-parse --path-format=absolute --git-common-dir)
 main_repository=$(dirname "$common_git_directory")

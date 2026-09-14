@@ -75,8 +75,11 @@ if [ -n "$repository" ]; then
 elif top_level=$(git rev-parse --show-toplevel 2>/dev/null) && [ -d "$top_level/$PACKAGE_RELATIVE_PATH" ]; then
   repository=$top_level
 else
-  repository=$(cd "$script_directory/../.." && pwd -P)
+  echo "capture.sh: thư mục hiện tại không thuộc repo có $PACKAGE_RELATIVE_PATH — truyền --repository <worktree>" >&2
+  echo "  (không tự rơi về repo chứa script: gọi bằng đường dẫn tuyệt đối từ cwd khác sẽ kiểm nhầm worktree G-TOOLS)" >&2
+  exit 2
 fi
+echo "capture.sh: repository=$repository" >&2
 
 package_name() {
   local branch

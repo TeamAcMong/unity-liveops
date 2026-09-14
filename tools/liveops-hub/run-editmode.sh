@@ -81,9 +81,14 @@ resolve_repository() {
   if top_level=$(git rev-parse --show-toplevel 2>/dev/null) && [ -d "$top_level/$PACKAGE_RELATIVE_PATH" ]; then
     echo "$top_level"; return
   fi
-  (cd "$script_directory/../.." && pwd -P)
+  return 1
 }
-repository=$(resolve_repository)
+if ! repository=$(resolve_repository); then
+  echo "run-editmode.sh: thư mục hiện tại không thuộc repo có $PACKAGE_RELATIVE_PATH — truyền --repository <worktree>" >&2
+  echo "  (không tự rơi về repo chứa script: gọi bằng đường dẫn tuyệt đối từ cwd khác sẽ kiểm nhầm worktree G-TOOLS)" >&2
+  exit 2
+fi
+echo "run-editmode.sh: repository=$repository" >&2
 
 package_name() {
   local branch

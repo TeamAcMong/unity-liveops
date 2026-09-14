@@ -16,7 +16,7 @@
 #
 # Cách dùng:
 #   compile-check.sh [--repository <worktree>] [--runtime-only] [--parts core,runtime,editor,tests] [--unity 2022|6000|all]
-# Kho mặc định: git top-level của thư mục hiện tại (nếu có Packages/com.dreamtech.liveops), không thì repo chứa script.
+# Kho mặc định: git top-level của thư mục hiện tại (nếu có Packages/com.dreamtech.liveops), không thì thoát 2 — in repository= ra stderr.
 # In "COMPILE CHECK OK" và thoát 0 khi mọi phần xanh; lỗi compile thoát 1; dùng sai hoặc thiếu công cụ thoát 2.
 
 set -euo pipefail
@@ -25,7 +25,6 @@ readonly UNITY_2022_CONTENTS=/Applications/Unity/Hub/Editor/2022.3.62f2/Unity.ap
 readonly UNITY_6000_CONTENTS=/Applications/Unity/Hub/Editor/6000.6.0f1/Unity.app/Contents
 readonly PACKAGE_RELATIVE_PATH=Packages/com.dreamtech.liveops
 
-script_directory=$(cd "$(dirname "$0")" && pwd)
 repository=${REPOSITORY:-}
 parts=${PARTS:-core,runtime,editor,tests}
 unity_selection=all
@@ -49,9 +48,14 @@ resolve_repository() {
   if top_level=$(git rev-parse --show-toplevel 2>/dev/null) && [ -d "$top_level/$PACKAGE_RELATIVE_PATH" ]; then
     echo "$top_level"; return
   fi
-  (cd "$script_directory/../.." && pwd -P)
+  return 1
 }
-repository=$(resolve_repository)
+if ! repository=$(resolve_repository); then
+  echo "compile-check.sh: thư mục hiện tại không thuộc repo có $PACKAGE_RELATIVE_PATH — truyền --repository <worktree>" >&2
+  echo "  (không tự rơi về repo chứa script: gọi bằng đường dẫn tuyệt đối từ cwd khác sẽ kiểm nhầm worktree G-TOOLS)" >&2
+  exit 2
+fi
+echo "compile-check.sh: repository=$repository" >&2
 package=$repository/$PACKAGE_RELATIVE_PATH
 [ -d "$package" ] || fail_usage "không thấy package ở $package"
 
