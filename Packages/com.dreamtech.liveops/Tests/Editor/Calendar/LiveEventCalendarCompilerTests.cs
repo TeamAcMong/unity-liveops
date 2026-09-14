@@ -321,6 +321,64 @@ namespace DreamTech.LiveOps.Tests
         }
 
         [Test]
+        public void DuplicateRecurringType_LookupCompilerAndEdit_AllPointAtFirstRule()
+        {
+            // F6: tra cứu tài liệu, tra outcome, luật game chạy và SetRecurringRuleEdit phải cùng chỉ một luật — luật đứng trước.
+            var document = new LiveEventCalendarDocumentBuilder()
+                .WithRecurringRule(new RecurringLiveEventRule("sky-race", "2026-01-05T00:00:00Z", "first-", 24, 20, ""))
+                .WithRecurringRule(new RecurringLiveEventRule("sky-race", "2026-01-06T00:00:00Z", "second-", 24, 20, ""))
+                .Build();
+
+            Assert.IsTrue(document.TryGetRecurringRule("sky-race", out RecurringLiveEventRule lookedUpRule));
+            Assert.AreEqual("first-", lookedUpRule.IdPrefix, "Tra cứu tài liệu = luật đứng trước.");
+
+            LiveEventCalendarCompilation compilation = LiveEventCalendarCompiler.Compile(document);
+            Assert.AreEqual("first-", compilation.RecurringCalendars[0].IdPrefix, "Bộ biên dịch giữ luật đứng trước.");
+            Assert.IsTrue(compilation.TryGetRecurringOutcome("sky-race", out LiveEventCalendarEntryOutcome outcome));
+            Assert.AreEqual(0, outcome.SourceIndex, "Outcome tra được là của luật đứng trước.");
+            Assert.IsTrue(outcome.IsKept);
+
+            var editedRule = new RecurringLiveEventRule("sky-race", "2026-01-07T00:00:00Z", "edited-", 24, 20, "");
+            Assert.IsTrue(LiveEventCalendarEdits.TryApply(document, new SetRecurringRuleEdit(editedRule), out LiveEventCalendarDocument edited));
+            Assert.AreEqual("edited-", edited.RecurringRules[0].IdPrefix, "Sửa thay luật đứng trước.");
+            Assert.AreEqual("second-", edited.RecurringRules[1].IdPrefix);
+            Assert.IsTrue(edited.TryGetRecurringRule("sky-race", out RecurringLiveEventRule lookedUpAfterEdit));
+            Assert.AreEqual("edited-", lookedUpAfterEdit.IdPrefix, "Sau khi sửa, tra cứu trả đúng luật vừa sửa.");
+
+            LiveEventCalendarCompilation editedCompilation = LiveEventCalendarCompiler.Compile(edited);
+            Assert.AreEqual("edited-", editedCompilation.RecurringCalendars[0].IdPrefix, "Game chạy đúng luật vừa sửa.");
+            Assert.IsTrue(editedCompilation.TryGetRecurringOutcome("sky-race", out LiveEventCalendarEntryOutcome editedOutcome));
+            Assert.AreEqual(0, editedOutcome.SourceIndex);
+            Assert.IsTrue(editedOutcome.IsKept);
+        }
+
+        [Test]
+        public void DuplicateRecurringType_FirstRuleInvalid_LookupsStayOnFirstRule()
+        {
+            // Luật đứng trước hỏng không "giữ chỗ" loại (như đợt hỏng không tính trùng id, V-7): game chạy luật sau. Tra cứu
+            // vẫn chỉ luật đứng trước để hub hiện lý do bỏ của luật người dùng cần sửa; sửa xong nó giành lại loại.
+            var document = new LiveEventCalendarDocumentBuilder()
+                .WithRecurringRule(new RecurringLiveEventRule("sky-race", "5/1/2026", "first-", 24, 20, ""))
+                .WithRecurringRule(new RecurringLiveEventRule("sky-race", "2026-01-06T00:00:00Z", "second-", 24, 20, ""))
+                .Build();
+
+            Assert.IsTrue(document.TryGetRecurringRule("sky-race", out RecurringLiveEventRule lookedUpRule));
+            Assert.AreEqual("first-", lookedUpRule.IdPrefix);
+
+            LiveEventCalendarCompilation compilation = LiveEventCalendarCompiler.Compile(document);
+            Assert.AreEqual("second-", compilation.RecurringCalendars[0].IdPrefix);
+            Assert.IsTrue(compilation.TryGetRecurringOutcome("sky-race", out LiveEventCalendarEntryOutcome outcome));
+            Assert.AreEqual(0, outcome.SourceIndex);
+            Assert.AreEqual(LiveEventCalendarDropReason.InvalidRecurringRule, outcome.DropReason);
+
+            RecurringLiveEventRule repairedRule = lookedUpRule.WithAnchor("2026-01-05T00:00:00Z");
+            Assert.IsTrue(LiveEventCalendarEdits.TryApply(document, new SetRecurringRuleEdit(repairedRule), out LiveEventCalendarDocument repaired));
+            LiveEventCalendarCompilation repairedCompilation = LiveEventCalendarCompiler.Compile(repaired);
+            Assert.AreEqual("first-", repairedCompilation.RecurringCalendars[0].IdPrefix);
+            Assert.AreEqual(LiveEventCalendarDropReason.DuplicateRecurringType, repairedCompilation.Entries[1].DropReason);
+        }
+
+        [Test]
         public void InvalidRecurring_PeriodZero_DroppedNeverThrows()
         {
             var document = new LiveEventCalendarDocumentBuilder()
@@ -617,9 +675,9 @@ namespace DreamTech.LiveOps.Tests
 
         private static List<string> EventIds(IReadOnlyList<LiveEventInstance> instances)
         {
-            var ids = new List<string>(instances.Count);
-            for (int index = 0; index < instances.Count; index++) ids.Add(instances[index].EventId);
-            return ids;
+            var eventIds = new List<string>(instances.Count);
+            for (int index = 0; index < instances.Count; index++) eventIds.Add(instances[index].EventId);
+            return eventIds;
         }
     }
 }

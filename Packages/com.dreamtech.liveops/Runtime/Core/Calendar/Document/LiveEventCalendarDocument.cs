@@ -39,8 +39,15 @@ namespace DreamTech.LiveOps
             _eventTypeById = new Dictionary<string, LiveEventTypeDefinition>(_eventTypes.Count, StringComparer.Ordinal);
             for (int index = 0; index < _eventTypes.Count; index++) _eventTypeById[_eventTypes[index].TypeId] = _eventTypes[index];
 
+            // Trùng loại (tài liệu dán vào có thể có): luật ĐỨNG TRƯỚC thắng — cùng luật với bộ biên dịch ("giữ luật đứng trước")
+            // và SetRecurringRuleEdit (thay luật đầu tiên), để hub tra ra, sửa và đọc outcome đúng MỘT luật. Ghi đè bằng
+            // indexer sẽ trả luật sau cùng, lệch khỏi luật game chạy và luật vừa sửa.
             _recurringRuleByType = new Dictionary<string, RecurringLiveEventRule>(_recurringRules.Count, StringComparer.Ordinal);
-            for (int index = 0; index < _recurringRules.Count; index++) _recurringRuleByType[_recurringRules[index].EventType] = _recurringRules[index];
+            for (int index = 0; index < _recurringRules.Count; index++)
+            {
+                RecurringLiveEventRule rule = _recurringRules[index];
+                if (!_recurringRuleByType.ContainsKey(rule.EventType)) _recurringRuleByType.Add(rule.EventType, rule);
+            }
 
             _fixedEventIndexByKey = new Dictionary<string, int>(_fixedEvents.Count, StringComparer.Ordinal);
             for (int index = 0; index < _fixedEvents.Count; index++) _fixedEventIndexByKey[_fixedEvents[index].EntryKey] = index;
