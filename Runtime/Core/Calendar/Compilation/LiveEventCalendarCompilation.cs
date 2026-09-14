@@ -89,8 +89,11 @@ namespace DreamTech.LiveOps
 
             var result = new List<LiveEventInstance>();
             var seenIds = new HashSet<string>(StringComparer.Ordinal);
-            long chunkTicks = recurringCalendar.Period.Ticks * (RecurringLiveEventCalendar.MaximumInstancesPerQuery / 2);
-            if (chunkTicks <= 0) chunkTicks = recurringCalendar.Period.Ticks;
+            // Mỗi khung dài nửa trần số đợt × chu kỳ nên một lượt hỏi không bao giờ chạm MaximumInstancesPerQuery. Chu kỳ rất
+            // dài (tới cả khoảng DateTime) thì phép nhân tràn long — khi đó một khung đã phủ hết mọi khoảng hỏi được.
+            long periodTicks = recurringCalendar.Period.Ticks;
+            int periodsPerChunk = RecurringLiveEventCalendar.MaximumInstancesPerQuery / 2;
+            long chunkTicks = periodTicks > long.MaxValue / periodsPerChunk ? long.MaxValue : periodTicks * periodsPerChunk;
 
             DateTime chunkStart = fromUtc;
             while (chunkStart < toUtc)

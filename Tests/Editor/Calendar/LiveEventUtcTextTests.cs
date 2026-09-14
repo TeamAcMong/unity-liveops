@@ -75,5 +75,55 @@ namespace DreamTech.LiveOps.Tests
         {
             Assert.IsFalse(LiveEventUtcText.TryParseDateAndTime("not-a-date", "08:47", out _));
         }
+
+        [Test]
+        public void TryParse_AcceptsEveryParser010Format()
+        {
+            // Đủ 6 định dạng của JsonLiveEventCalendarParser 0.1.0; không ghi múi = UTC, có múi thì đổi về UTC.
+            var expected = new DateTime(2026, 9, 15, 0, 0, 0, DateTimeKind.Utc);
+            string[] readableTexts =
+            {
+                "2026-09-15T00:00:00Z",          // yyyy-MM-dd'T'HH:mm:ssK
+                "2026-09-15T07:00:00+07:00",     // yyyy-MM-dd'T'HH:mm:ssK có múi
+                "2026-09-15T00:00:00.0000000Z",  // yyyy-MM-dd'T'HH:mm:ss.FFFFFFFK
+                "2026-09-15T00:00Z",             // yyyy-MM-dd'T'HH:mmK
+                "2026-09-15T00:00:00",           // yyyy-MM-dd'T'HH:mm:ss
+                "2026-09-15T00:00:00.0",         // yyyy-MM-dd'T'HH:mm:ss.FFFFFFF
+                "2026-09-15T00:00",              // yyyy-MM-dd'T'HH:mm
+                "  2026-09-15T00:00:00Z  ",      // 0.1.0 Trim trước khi đọc
+            };
+            foreach (string text in readableTexts)
+            {
+                Assert.IsTrue(LiveEventUtcText.TryParse(text, out DateTime utc), text);
+                Assert.AreEqual(expected, utc, text);
+                Assert.AreEqual(DateTimeKind.Utc, utc.Kind, text);
+            }
+        }
+
+        [Test]
+        public void TryParse_RejectsDateOnlyAndSpaceSeparator()
+        {
+            Assert.IsFalse(LiveEventUtcText.TryParse("2026-09-15", out _), "Chỉ có ngày: 0.1.0 không đọc.");
+            Assert.IsFalse(LiveEventUtcText.TryParse("2026-09-15 00:00:00", out _), "Dấu cách thay 'T': 0.1.0 không đọc.");
+            Assert.IsFalse(LiveEventUtcText.TryParse("15/09/2026", out _));
+        }
+
+        [Test]
+        public void TryNormalize_ConvertsOffsetToUtc()
+        {
+            Assert.IsTrue(LiveEventUtcText.TryNormalize("2026-09-15T07:00:00+07:00", out string canonicalText));
+            Assert.AreEqual("2026-09-15T00:00:00Z", canonicalText, "Cùng thời điểm, viết lại bằng Z.");
+
+            Assert.IsTrue(LiveEventUtcText.TryNormalize("2026-09-14T20:30-03:30", out string westernOffsetText));
+            Assert.AreEqual("2026-09-15T00:00:00Z", westernOffsetText);
+        }
+
+        [Test]
+        public void TryParseDateAndTime_TreatsInputAsUtc()
+        {
+            Assert.IsTrue(LiveEventUtcText.TryParseDateAndTime("2026-09-13", "08:47", out DateTime utc));
+            Assert.AreEqual(DateTimeKind.Utc, utc.Kind);
+            Assert.AreEqual("2026-09-13T08:47:00Z", LiveEventUtcText.Format(utc), "Ô giờ là giờ UTC, không cộng/trừ giờ máy.");
+        }
     }
 }

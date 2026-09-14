@@ -179,5 +179,179 @@ namespace DreamTech.LiveOps.Tests
             bool applied = LiveEventCalendarEdits.TryApply(document, new RemoveLatestPublishedStampEdit(), out LiveEventCalendarDocument result);
             Assert.IsFalse(applied);
         }
+
+        [Test]
+        public void RemoveRecurringRule_KnownType_RemovesOnlyThatRule()
+        {
+            LiveEventCalendarDocument document = LiveOpsDesignSample.Document;
+
+            bool applied = LiveEventCalendarEdits.TryApply(document, new RemoveRecurringRuleEdit("weekly-pass"), out LiveEventCalendarDocument result);
+
+            Assert.IsTrue(applied);
+            Assert.AreEqual(1, result.RecurringRules.Count);
+            Assert.AreEqual("sky-race", result.RecurringRules[0].EventType);
+            Assert.IsFalse(result.TryGetRecurringRule("weekly-pass", out _));
+            Assert.AreEqual(document.FixedEvents.Count, result.FixedEvents.Count);
+        }
+
+        [Test]
+        public void SetEventType_NewType_Appends_ExistingType_ReplacesInPlace()
+        {
+            LiveEventCalendarDocument document = LiveOpsDesignSample.Document;
+            int skyRaceIndex = IndexOfType(document, "sky-race");
+            LiveEventTypeDefinition recolored = document.EventTypes[skyRaceIndex].WithColorSlot(2);
+
+            Assert.IsTrue(LiveEventCalendarEdits.TryApply(document, new SetEventTypeEdit(recolored), out LiveEventCalendarDocument replaced));
+            Assert.AreEqual(document.EventTypes.Count, replaced.EventTypes.Count);
+            Assert.AreEqual(skyRaceIndex, IndexOfType(replaced, "sky-race"), "Thay loại không đổi thứ tự làn.");
+            Assert.AreEqual(2, replaced.EventTypes[skyRaceIndex].ColorSlot);
+
+            var luckySpin = new LiveEventTypeDefinition("lucky-spin", "Vòng quay", 5, false, "");
+            Assert.IsTrue(LiveEventCalendarEdits.TryApply(document, new SetEventTypeEdit(luckySpin), out LiveEventCalendarDocument appended));
+            Assert.AreEqual(document.EventTypes.Count + 1, appended.EventTypes.Count);
+            Assert.AreEqual("lucky-spin", appended.EventTypes[appended.EventTypes.Count - 1].TypeId);
+        }
+
+        [Test]
+        public void RemoveEventType_KnownType_RemovesDefinitionOnly_UnknownReturnsFalse()
+        {
+            LiveEventCalendarDocument document = LiveOpsDesignSample.Document;
+
+            Assert.IsTrue(LiveEventCalendarEdits.TryApply(document, new RemoveEventTypeEdit("star-tournament"), out LiveEventCalendarDocument result));
+            Assert.AreEqual(document.EventTypes.Count - 1, result.EventTypes.Count);
+            Assert.IsFalse(result.TryGetEventType("star-tournament", out _));
+            Assert.AreEqual(document.FixedEvents.Count, result.FixedEvents.Count, "Xoá định nghĩa loại không tự xoá đợt của loại đó.");
+
+            Assert.IsFalse(LiveEventCalendarEdits.TryApply(document, new RemoveEventTypeEdit("missing"), out LiveEventCalendarDocument unchanged));
+            Assert.AreSame(document, unchanged);
+        }
+
+        [Test]
+        public void SetRemoteConfigKey_ChangesOnlyKey()
+        {
+            LiveEventCalendarDocument document = LiveOpsDesignSample.Document;
+
+            Assert.IsTrue(LiveEventCalendarEdits.TryApply(document, new SetRemoteConfigKeyEdit("liveops_calendar_v2"), out LiveEventCalendarDocument result));
+            Assert.AreEqual("liveops_calendar_v2", result.RemoteConfigKey);
+            Assert.AreEqual(LiveEventCalendarDocument.DefaultRemoteConfigKey, document.RemoteConfigKey, "Tài liệu gốc bất biến.");
+            Assert.AreEqual(document.FixedEvents.Count, result.FixedEvents.Count);
+            Assert.AreEqual(document.PublishedStamps.Count, result.PublishedStamps.Count);
+        }
+
+        [Test]
+        public void AddPublishedStamp_BecomesLatest()
+        {
+            LiveEventCalendarDocument document = LiveOpsDesignSample.Document;
+            var stamp = new PublishedCalendarStamp("2026-09-13T09:04:00Z", "DatHoUnityDev", "", 1612, 2, "mở hunt-0916-bonus", "{}");
+
+            Assert.IsTrue(LiveEventCalendarEdits.TryApply(document, new AddPublishedStampEdit(stamp), out LiveEventCalendarDocument result));
+            Assert.AreEqual(2, result.PublishedStamps.Count);
+            Assert.AreSame(stamp, result.LatestStamp);
+        }
+
+        [Test]
+        public void RemoveLatestPublishedStamp_RemovesOnlyNewest()
+        {
+            LiveEventCalendarDocument document = LiveOpsDesignSample.Document;
+            PublishedCalendarStamp original = document.LatestStamp;
+            var stamp = new PublishedCalendarStamp("2026-09-13T09:04:00Z", "DatHoUnityDev", "", 1612, 2, "", "{}");
+            LiveEventCalendarEdits.TryApply(document, new AddPublishedStampEdit(stamp), out LiveEventCalendarDocument stamped);
+
+            Assert.IsTrue(LiveEventCalendarEdits.TryApply(stamped, new RemoveLatestPublishedStampEdit(), out LiveEventCalendarDocument result));
+            Assert.AreEqual(1, result.PublishedStamps.Count);
+            Assert.AreSame(original, result.LatestStamp, "Gỡ dấu mới nhất thì bản so quay về dấu trước.");
+        }
+
+        [Test]
+        public void AddIgnoredWarning_Appends_RemoveIgnoredWarning_MatchesEquivalentCopy()
+        {
+            LiveEventCalendarDocument document = LiveOpsDesignSample.Document;
+            var warning = new IgnoredCalendarWarning("long-gap-between-events", "lava-quest", "2026-09-20T00:00:00Z",
+                "2026-10-01T00:00:00Z", "chờ lịch tháng 10", "");
+
+            Assert.IsTrue(LiveEventCalendarEdits.TryApply(document, new AddIgnoredWarningEdit(warning), out LiveEventCalendarDocument ignored));
+            Assert.AreEqual(1, ignored.IgnoredWarnings.Count);
+
+            // Bản sao cùng luật/đích/khoảng/hạn (ghi chú khác) vẫn gỡ được — Undo/hub có thể dựng lại object mới từ asset.
+            var equivalentCopy = new IgnoredCalendarWarning("long-gap-between-events", "lava-quest", "2026-09-20T00:00:00Z",
+                "2026-10-01T00:00:00Z", "ghi chú khác", "");
+            Assert.IsTrue(LiveEventCalendarEdits.TryApply(ignored, new RemoveIgnoredWarningEdit(equivalentCopy), out LiveEventCalendarDocument restored));
+            Assert.AreEqual(0, restored.IgnoredWarnings.Count);
+
+            var otherRange = new IgnoredCalendarWarning("long-gap-between-events", "lava-quest", "2026-09-21T00:00:00Z",
+                "2026-10-01T00:00:00Z", "", "");
+            Assert.IsFalse(LiveEventCalendarEdits.TryApply(ignored, new RemoveIgnoredWarningEdit(otherRange), out LiveEventCalendarDocument unchanged));
+            Assert.AreSame(ignored, unchanged);
+        }
+
+        [Test]
+        public void Composite_AppliesInOrder()
+        {
+            LiveEventCalendarDocument document = LiveOpsDesignSample.Document;
+            string newEntryKey = FixedLiveEventEntry.CreateEntryKey();
+            var added = new FixedLiveEventEntry(newEntryKey, "draft", "lava-quest", "2026-11-01T00:00:00Z", "2026-11-02T00:00:00Z", "");
+            var edits = new List<LiveEventCalendarEdit>
+            {
+                new AddFixedEventEdit(added),
+                // Lệnh sau trỏ vào mục do lệnh trước tạo — chỉ thành công khi áp đúng thứ tự.
+                new ReplaceFixedEventEdit(added.WithEventId("final")),
+            };
+
+            Assert.IsTrue(LiveEventCalendarEdits.TryApply(document, new CompositeCalendarEdit(edits), out LiveEventCalendarDocument result));
+            Assert.IsTrue(result.TryGetFixedEvent(newEntryKey, out FixedLiveEventEntry entry));
+            Assert.AreEqual("final", entry.EventId);
+
+            var reversed = new List<LiveEventCalendarEdit> { edits[1], edits[0] };
+            Assert.IsFalse(LiveEventCalendarEdits.TryApply(document, new CompositeCalendarEdit(reversed), out LiveEventCalendarDocument notApplied));
+            Assert.AreSame(document, notApplied);
+        }
+
+        [Test]
+        public void EditOnMissingEntry_ReturnsFalseAndSameDocument()
+        {
+            LiveEventCalendarDocument document = LiveOpsDesignSample.Document;
+            var ghost = new FixedLiveEventEntry("removed-by-undo", "x", "lava-quest", "2026-11-01T00:00:00Z", "2026-11-02T00:00:00Z", "");
+            LiveEventCalendarEdit[] editsOnMissing =
+            {
+                new ReplaceFixedEventEdit(ghost),
+                new RemoveFixedEventEdit("removed-by-undo"),
+                new RemoveRecurringRuleEdit("removed-type"),
+                new RemoveEventTypeEdit("removed-type"),
+                new MoveEventTypeEdit("removed-type", 0),
+                new RemoveIgnoredWarningEdit(new IgnoredCalendarWarning("rule", "target", "", "", "", "")),
+            };
+            foreach (LiveEventCalendarEdit edit in editsOnMissing)
+            {
+                Assert.IsFalse(LiveEventCalendarEdits.TryApply(document, edit, out LiveEventCalendarDocument result), edit.GetType().Name);
+                Assert.AreSame(document, result, edit.GetType().Name);
+            }
+        }
+
+        [Test]
+        public void ReplaceDocument_KeepsNothingOfOld()
+        {
+            LiveEventCalendarDocument document = LiveOpsDesignSample.Document;
+            LiveEventCalendarDocument replacement = new LiveEventCalendarDocumentBuilder()
+                .WithRemoteConfigKey("other_key")
+                .WithFixedEvent(new FixedLiveEventEntry("only-entry", "only", "lava-quest", "2026-11-01T00:00:00Z", "2026-11-02T00:00:00Z", ""))
+                .Build();
+
+            Assert.IsTrue(LiveEventCalendarEdits.TryApply(document, new ReplaceDocumentEdit(replacement), out LiveEventCalendarDocument result));
+            Assert.AreSame(replacement, result);
+            Assert.AreEqual(0, result.EventTypes.Count);
+            Assert.AreEqual(0, result.RecurringRules.Count);
+            Assert.AreEqual(1, result.FixedEvents.Count);
+            Assert.AreEqual(0, result.PublishedStamps.Count);
+            Assert.AreEqual("other_key", result.RemoteConfigKey);
+        }
+
+        private static int IndexOfType(LiveEventCalendarDocument document, string typeId)
+        {
+            for (int index = 0; index < document.EventTypes.Count; index++)
+            {
+                if (string.Equals(document.EventTypes[index].TypeId, typeId, System.StringComparison.Ordinal)) return index;
+            }
+            return -1;
+        }
     }
 }

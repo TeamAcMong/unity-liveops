@@ -138,5 +138,96 @@ namespace DreamTech.LiveOps.Tests
 
             LiveOpsDocumentAssert.AssertDocumentsEqual(original, copy);
         }
+
+        [Test]
+        public void Builder_DuplicateEntryKey_Throws()
+        {
+            var builder = new LiveEventCalendarDocumentBuilder()
+                .WithFixedEvent(new FixedLiveEventEntry("same-key", "a", "lava-quest", "2026-09-10T00:00:00Z", "2026-09-11T00:00:00Z", ""));
+
+            Assert.Throws<ArgumentException>(() => builder.WithFixedEvent(
+                new FixedLiveEventEntry("same-key", "b", "lava-quest", "2026-09-12T00:00:00Z", "2026-09-13T00:00:00Z", "")));
+        }
+
+        [Test]
+        public void Document_KeepsBrokenTimeStrings()
+        {
+            LiveEventCalendarDocument document = LiveOpsDesignSample.Document;
+            document.TryGetFixedEvent(LiveOpsDesignSample.LavaQuestLateEntryKey, out FixedLiveEventEntry lateLava);
+
+            Assert.AreEqual("2026-10-3", lateLava.EndUtcText, "Tài liệu giữ nguyên văn chuỗi hỏng — hub và validator cần thấy đúng chữ đã gõ.");
+            Assert.IsFalse(lateLava.TryGetEndUtc(out _));
+            Assert.IsTrue(lateLava.TryGetStartUtc(out _));
+
+            var brokenRule = new RecurringLiveEventRule("sky-race", "hôm qua", "", -1, 0, "");
+            LiveEventCalendarDocument withBrokenRule = new LiveEventCalendarDocumentBuilder().WithRecurringRule(brokenRule).Build();
+            Assert.AreEqual("hôm qua", withBrokenRule.RecurringRules[0].AnchorUtcText);
+            Assert.AreEqual(-1, withBrokenRule.RecurringRules[0].PeriodHours);
+        }
+
+        [Test]
+        public void LatestStamp_IsLastAdded()
+        {
+            var older = new PublishedCalendarStamp("2026-09-11T16:20:00Z", "a", "", 1, 2, "", "{}");
+            var newer = new PublishedCalendarStamp("2026-09-01T00:00:00Z", "b", "", 1, 2, "", "{}");
+            LiveEventCalendarDocument document = new LiveEventCalendarDocumentBuilder()
+                .WithPublishedStamp(older)
+                .WithPublishedStamp(newer)
+                .Build();
+
+            Assert.AreSame(newer, document.LatestStamp, "Dấu mới nhất = dấu thêm sau cùng, không sắp lại theo giờ ghi trong dấu.");
+            Assert.AreSame(older, document.PublishedStamps[0]);
+        }
+
+        [Test]
+        public void CanonicalText_ChangesWhenAnyFieldChanges()
+        {
+            var entry = new FixedLiveEventEntry("key", "id", "lava-quest", "2026-09-10T00:00:00Z", "2026-09-11T00:00:00Z", "config");
+            string[] entryVariants =
+            {
+                entry.WithEventId("id-2").CanonicalText,
+                entry.WithEventType("sky-race").CanonicalText,
+                entry.WithTimes("2026-09-10T01:00:00Z", entry.EndUtcText).CanonicalText,
+                entry.WithTimes(entry.StartUtcText, "2026-09-12T00:00:00Z").CanonicalText,
+                entry.WithConfigKey("config-2").CanonicalText,
+            };
+            foreach (string variant in entryVariants) Assert.AreNotEqual(entry.CanonicalText, variant);
+            Assert.AreEqual(entry.CanonicalText,
+                new FixedLiveEventEntry("other-key", "id", "lava-quest", "2026-09-10T00:00:00Z", "2026-09-11T00:00:00Z", "config").CanonicalText,
+                "EntryKey không đi vào JSON nên không đổi dấu vân.");
+
+            var rule = new RecurringLiveEventRule("sky-race", "2026-01-05T00:00:00Z", "sky-", 24, 20, "config");
+            string[] ruleVariants =
+            {
+                new RecurringLiveEventRule("weekly-pass", "2026-01-05T00:00:00Z", "sky-", 24, 20, "config").CanonicalText,
+                rule.WithAnchor("2026-01-06T00:00:00Z").CanonicalText,
+                rule.WithIdPrefix("race-").CanonicalText,
+                rule.WithPeriodHours(48).CanonicalText,
+                rule.WithActiveHours(10).CanonicalText,
+                rule.WithConfigKey("config-2").CanonicalText,
+            };
+            foreach (string variant in ruleVariants) Assert.AreNotEqual(rule.CanonicalText, variant);
+        }
+
+        [Test]
+        public void DesignSample_PublishedStamp_MatchesSnapshotBytes()
+        {
+            PublishedCalendarStamp stamp = LiveOpsDesignSample.Document.LatestStamp;
+            byte[] snapshotBytes = System.Text.Encoding.UTF8.GetBytes(stamp.SnapshotJson);
+
+            Assert.AreEqual(LiveOpsDesignSample.PublishedByteCount, snapshotBytes.Length);
+            Assert.AreEqual(stamp.ByteCount, snapshotBytes.Length);
+            using (System.Security.Cryptography.SHA256 sha256 = System.Security.Cryptography.SHA256.Create())
+            {
+                string hexText = BitConverter.ToString(sha256.ComputeHash(snapshotBytes)).Replace("-", string.Empty).ToLowerInvariant();
+                Assert.AreEqual(stamp.Sha256Hex, hexText);
+            }
+            Assert.AreEqual("DatHoUnityDev", stamp.Publisher);
+            Assert.AreEqual("mở lava-quest tháng 9", stamp.Note);
+            // Hai chỗ bản đăng khác nháp mà diff/kiểm lịch mẫu cần (6.3, 6.1 luật 10): hunt-0914 hunt_v1, endUtc chuẩn.
+            StringAssert.Contains("\"configKey\": \"hunt_v1\"", stamp.SnapshotJson);
+            StringAssert.Contains("\"endUtc\": \"2026-10-03T00:00:00Z\"", stamp.SnapshotJson);
+            StringAssert.DoesNotContain("hunt_default", stamp.SnapshotJson);
+        }
     }
 }

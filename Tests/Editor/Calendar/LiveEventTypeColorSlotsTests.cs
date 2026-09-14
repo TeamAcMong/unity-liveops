@@ -83,5 +83,13 @@ namespace DreamTech.LiveOps.Tests
 
             Assert.AreEqual(0, sharing.Count);
         }
+
+        [Test]
+        public void DefaultSlot_DoesNotUseStringGetHashCode()
+        {
+            // Giá trị ghi cứng từ Murmur3Finalizer(FNV1a32(utf8)) % 8 tính lúc lập kế hoạch — string.GetHashCode đổi giữa các
+            // lần chạy/bản runtime nên không thể ra đúng số cố định này ở mọi máy.
+            Assert.AreEqual(5, LiveEventTypeColorSlots.DefaultSlotFor("lucky-spin"));
+        }
     }
 }
