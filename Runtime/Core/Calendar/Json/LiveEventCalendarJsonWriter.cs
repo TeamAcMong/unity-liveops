@@ -29,6 +29,10 @@ namespace DreamTech.LiveOps
         internal const string StartUtcKey = "startUtc";
         internal const string EndUtcKey = "endUtc";
 
+        // "FFFFFFF" bỏ số 0 cuối (".500" → ".5") và parser game đọc lại bằng "ss.FFFFFFFK", nên ghi → đọc → ghi ra đúng byte
+        // cũ. Giờ tròn giây vẫn đi LiveEventUtcText.Format để mẫu 1.601 byte và sha đã đăng không đổi.
+        private const string FractionalSecondsFormat = "yyyy-MM-dd'T'HH:mm:ss.FFFFFFF'Z'";
+
         private const int RootIndentLevel = 0;
         private const int ArrayElementIndentLevel = 2;
 
@@ -187,10 +191,15 @@ namespace DreamTech.LiveOps
         /// <summary>
         /// Luật 4: giờ đọc được → dạng chuẩn <c>yyyy-MM-ddTHH:mm:ssZ</c>; không đọc được → nguyên văn, vì đó đúng là cái game
         /// sẽ đọc và bỏ — hub phải cho thấy "2026-10-3" trong JSON thay vì một giờ đã đoán.
+        /// Giờ có phần lẻ giây giữ đủ phần lẻ (<see cref="FractionalSecondsFormat"/>): <see cref="LiveEventUtcText.Format"/>
+        /// chỉ tới giây, cắt đi thì game đọc một thời điểm khác cái hub đã biên dịch và kiểm — đợt 00:00:00.2 → 00:00:00.7
+        /// thành bắt đầu = kết thúc (bị bỏ), neo luật lặp lùi cả dãy lần chạy (V-6 (c), mục 5.6 phép so 3).
         /// </summary>
         private static string TimeText(string utcText)
         {
-            return LiveEventUtcText.TryParse(utcText, out DateTime utc) ? LiveEventUtcText.Format(utc) : utcText;
+            if (!LiveEventUtcText.TryParse(utcText, out DateTime utc)) return utcText;
+            if (utc.Ticks % TimeSpan.TicksPerSecond == 0) return LiveEventUtcText.Format(utc);
+            return utc.ToString(FractionalSecondsFormat, CultureInfo.InvariantCulture);
         }
 
         private static string StringField(string key, string value, bool isLastField)
