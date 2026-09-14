@@ -1,0 +1,19 @@
+{
+    "name": "DreamTech.LiveOps.Editor",
+    "rootNamespace": "DreamTech.LiveOps.Editor",
+    "references": [
+        "DreamTech.LiveOps",
+        "DreamTech.LiveOps.Unity"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": false,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
