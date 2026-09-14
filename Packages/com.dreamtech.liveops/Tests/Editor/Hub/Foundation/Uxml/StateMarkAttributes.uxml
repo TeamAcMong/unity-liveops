@@ -1,0 +1,6 @@
+<UXML xmlns="UnityEngine.UIElements" xmlns:liveops="DreamTech.LiveOps.Editor">
+  <!-- Một file UXML đọc ở cả 2022.3 (UxmlFactory/UxmlTraits) và 6000.6 ([UxmlAttribute]) — SP-1. -->
+  <liveops:LiveOpsStateMark name="phase-large-blocked" kind="phase" size="large" health="blocked" />
+  <liveops:LiveOpsStateMark name="health-small-warning" kind="health" size="small" health="warning" />
+  <liveops:LiveOpsStateMark name="defaults" />
+</UXML>
