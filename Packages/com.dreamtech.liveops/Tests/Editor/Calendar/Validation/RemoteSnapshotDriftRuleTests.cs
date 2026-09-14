@@ -26,6 +26,12 @@ namespace DreamTech.LiveOps.Tests
             Assert.AreEqual(RemoteSnapshotDriftRule.RemoteNotPastedReasonCode, result.ReasonCode);
         }
 
+        /// <summary>
+        /// Phạm vi của test này là LUẬT: nhận sha nguyên văn của chuỗi đã đổi khoảng trắng + tài liệu parser đọc ra từ chuỗi đó (đổi
+        /// khoảng trắng không đổi tài liệu). Assembly core không tham chiếu parser Unity nên tài liệu được dựng lại bằng tay; bước
+        /// "parser đọc chuỗi CRLF/thụt 4 ra đúng tài liệu" cần test ở assembly có parser (đề xuất trong contract-changes của gói).
+        /// Đối chứng âm cùng sha chứng minh Passed đến từ việc so tài liệu, không phải từ việc bỏ qua sha lạ.
+        /// </summary>
         [Test]
         public void RemoteDrift_WhitespaceOnly_Passed()
         {
@@ -33,10 +39,18 @@ namespace DreamTech.LiveOps.Tests
             string reformatted = LiveOpsDesignSample.PublishedSnapshotJson.Replace("\n", "\r\n").Replace("  ", "    ");
             string reformattedSha = LiveEventCalendarSha256.ComputeHex(Utf8WithoutByteOrderMark.GetBytes(reformatted));
             Assert.AreNotEqual(LiveOpsDesignSample.PublishedSha256Hex, reformattedSha, "Tiền đề: đường nhanh không khớp.");
+            Assert.AreEqual(LiveOpsDesignSample.PublishedSnapshotJson, reformatted.Replace("\r\n", "\n").Replace("    ", "  "),
+                "Tiền đề: chuỗi chỉ khác khoảng trắng/xuống dòng.");
 
             LiveEventCalendarRuleResult result = Evaluate(PublishedBaselineSample.Document(), reformattedSha);
 
             Assert.AreEqual(LiveEventCalendarRuleOutcome.Passed, result.Outcome, "PD-31: chỉ khác khoảng trắng không phải lệch.");
+
+            LiveEventCalendarDocument changedRemote = PublishedBaselineSample.Document();
+            Assert.IsTrue(changedRemote.TryGetFixedEvent("published-1", out FixedLiveEventEntry hunt));
+            Assert.IsTrue(LiveEventCalendarEdits.TryApply(changedRemote, new ReplaceFixedEventEdit(hunt.WithConfigKey("hunt_v2")), out changedRemote));
+            Assert.AreEqual(LiveEventCalendarRuleOutcome.Found, Evaluate(changedRemote, reformattedSha).Outcome,
+                "Đối chứng: cùng sha lạ nhưng tài liệu khác một field thì phải lệch.");
         }
 
         [Test]
@@ -153,6 +167,85 @@ namespace DreamTech.LiveOps.Tests
                 .Build();
 
             Assert.AreEqual(LiveEventCalendarRuleOutcome.Passed, new RemoteSnapshotDriftRule().Evaluate(context).Outcome);
+        }
+
+        [Test]
+        public void RemoteDrift_SameStartOverlapOrderSwapped_KeptEventDiffers_Found()
+        {
+            // Hai đợt CÙNG loại cùng giờ bắt đầu, chồng nhau: game giữ đợt đứng trước, bỏ đợt sau. Đảo thứ tự thì object từng id y
+            // nguyên nhưng người chơi thấy đợt khác.
+            FixedLiveEventEntry longer = new FixedLiveEventEntry("key-a", "quest-a", "quest", "2026-09-20T00:00:00Z", "2026-09-22T00:00:00Z", "quest_v1");
+            FixedLiveEventEntry shorter = new FixedLiveEventEntry("key-b", "quest-b", "quest", "2026-09-20T00:00:00Z", "2026-09-21T00:00:00Z", "quest_v1");
+            LiveEventCalendarDocument baseline = new LiveEventCalendarDocumentBuilder().WithFixedEvent(longer).WithFixedEvent(shorter).Build();
+            LiveEventCalendarDocument remote = new LiveEventCalendarDocumentBuilder().WithFixedEvent(shorter).WithFixedEvent(longer).Build();
+            Assert.IsTrue(LiveEventCalendarCompiler.CompileInExportOrder(baseline).TryGetFixedOutcome("key-a", out LiveEventCalendarEntryOutcome keptInBaseline));
+            Assert.IsTrue(keptInBaseline.IsKept, "Tiền đề: bản so giữ quest-a.");
+            Assert.IsTrue(LiveEventCalendarCompiler.CompileInExportOrder(remote).TryGetFixedOutcome("key-a", out LiveEventCalendarEntryOutcome droppedInRemote));
+            Assert.IsFalse(droppedInRemote.IsKept, "Tiền đề: bản dán bỏ quest-a.");
+            LiveEventCalendarCheckContext context = new LiveEventCalendarCheckContextBuilder(LiveEventCalendarDocument.Empty, LiveOpsDesignSample.NowUtc)
+                .WithPublishedBaseline(baseline)
+                .WithRemoteSnapshot(remote, "pasted-sha")
+                .Build();
+
+            LiveEventCalendarRuleResult result = new RemoteSnapshotDriftRule().Evaluate(context);
+
+            Assert.AreEqual(LiveEventCalendarRuleOutcome.Found, result.Outcome);
+            Assert.AreEqual("quest-a" + LiveEventCalendarFindingBuilder.ValueSeparator + "quest-b", result.Findings[0].FoundText);
+            Assert.AreEqual("2", result.Findings[0].ExpectedText);
+        }
+
+        [Test]
+        public void RemoteDrift_OlderBaselineSelected_ComparesWithLatestStamp()
+        {
+            // Người dùng chọn dấu cũ làm bản so trong phiên: luật 12 vẫn so với dấu mới nhất 11/9 16:20 của tài liệu.
+            LiveEventCalendarDocument olderBaseline = OlderPublishedDocument();
+
+            Assert.AreEqual(LiveEventCalendarRuleOutcome.Passed,
+                EvaluateWithBaseline(olderBaseline, PublishedBaselineSample.Document(), LiveOpsDesignSample.PublishedSha256Hex).Outcome,
+                "Bản dán đúng dấu mới nhất: chọn bản so cũ không đổi kết quả.");
+            Assert.AreEqual(LiveEventCalendarRuleOutcome.Passed,
+                EvaluateWithBaseline(PublishedBaselineSample.Document(), PublishedBaselineSample.Document(), LiveOpsDesignSample.PublishedSha256Hex).Outcome);
+
+            string reformatted = LiveOpsDesignSample.PublishedSnapshotJson.Replace("\n", "\r\n");
+            string reformattedSha = LiveEventCalendarSha256.ComputeHex(Utf8WithoutByteOrderMark.GetBytes(reformatted));
+            Assert.AreEqual(LiveEventCalendarRuleOutcome.Passed, EvaluateWithBaseline(olderBaseline, PublishedBaselineSample.Document(), reformattedSha).Outcome,
+                "Chỉ khác khoảng trắng: viết lại chuẩn bản dán ra đúng sha của dấu, không cần tài liệu của dấu.");
+        }
+
+        [Test]
+        public void RemoteDrift_RemoteIsOlderStamp_NeverClaimsMatch()
+        {
+            // Firebase đang chạy bản cũ, bản so đang chọn cũng là bản cũ đó: không được nói "khớp" chỉ vì bản dán = bản so.
+            LiveEventCalendarDocument olderBaseline = OlderPublishedDocument();
+            string olderSha = LiveEventCalendarJsonWriter.Write(olderBaseline, LiveEventCalendarJsonFormat.Version2).Sha256Hex;
+
+            LiveEventCalendarRuleResult result = EvaluateWithBaseline(olderBaseline, OlderPublishedDocument(), olderSha);
+
+            Assert.AreNotEqual(LiveEventCalendarRuleOutcome.Passed, result.Outcome);
+            Assert.AreEqual(LiveEventCalendarRuleOutcome.NotMeasured, result.Outcome, "Core không có tài liệu của dấu mới nhất để liệt kê mục khác.");
+            Assert.AreEqual(RemoteSnapshotDriftRule.LatestStampNotLoadedReasonCode, result.ReasonCode);
+
+            LiveEventCalendarRuleResult withLatestBaseline = EvaluateWithBaseline(PublishedBaselineSample.Document(), OlderPublishedDocument(), olderSha);
+            Assert.AreEqual(LiveEventCalendarRuleOutcome.Found, withLatestBaseline.Outcome, "Bản so là dấu mới nhất thì so từng mục như thường.");
+        }
+
+        /// <summary>Bản đã đăng trước 11/9: lava-quest-2026-09b còn kết thúc 18/9.</summary>
+        private static LiveEventCalendarDocument OlderPublishedDocument()
+        {
+            LiveEventCalendarDocument older = PublishedBaselineSample.Document();
+            Assert.IsTrue(older.TryGetFixedEvent("published-2", out FixedLiveEventEntry lavaMid));
+            Assert.IsTrue(LiveEventCalendarEdits.TryApply(older, new ReplaceFixedEventEdit(lavaMid.WithTimes(lavaMid.StartUtcText, "2026-09-18T00:00:00Z")),
+                out older));
+            return older;
+        }
+
+        private static LiveEventCalendarRuleResult EvaluateWithBaseline(LiveEventCalendarDocument baseline, LiveEventCalendarDocument remote, string remoteSha256Hex)
+        {
+            LiveEventCalendarCheckContext context = new LiveEventCalendarCheckContextBuilder(LiveOpsDesignSample.Document, LiveOpsDesignSample.NowUtc)
+                .WithPublishedBaseline(baseline)
+                .WithRemoteSnapshot(remote, remoteSha256Hex)
+                .Build();
+            return new RemoteSnapshotDriftRule().Evaluate(context);
         }
 
         private static LiveEventCalendarRuleResult Evaluate(LiveEventCalendarDocument remote, string remoteSha256Hex)

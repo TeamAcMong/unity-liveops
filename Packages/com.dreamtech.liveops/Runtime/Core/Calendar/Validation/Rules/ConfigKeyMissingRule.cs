@@ -8,7 +8,9 @@ namespace DreamTech.LiveOps
     /// VÀ (không có bản so, hoặc bản so không có mục cùng danh tính, hoặc configKey hiệu lực khác bản so). Vì sao không bắn cho mọi
     /// mục kế thừa: mục kế thừa đúng khoá game đang dùng là ý đồ bình thường; chỉ khi khoá tới người chơi sẽ ĐỔI (hoặc chưa ai
     /// kiểm) thì kế thừa âm thầm mới đáng xem — khớp mẫu thiết kế ra đúng một phát hiện (hunt-0914: bản so dùng hunt_v1).
-    /// <para>Bỏ qua mục game không nhận (đã có phát hiện Bị bỏ riêng) và đợt đã khép (khoá thưởng không còn tới ai).</para>
+    /// <para>Bỏ qua mục game không nhận (đã có phát hiện Bị bỏ riêng) và đợt đã khép (khoá thưởng không còn tới ai). "Không nhận" gồm
+    /// cả mục bộ biên dịch giữ nhưng thuộc loại tài liệu không khai: <c>LiveOpsSystem</c> không đăng ký loại đó nên game bỏ (luật 8
+    /// đã báo Bị bỏ) — thêm "configKey rỗng" cho chính mục đó chỉ là hàng Nên xem vô nghĩa.</para>
     /// <para>Giá trị thô: Found = configKey hiệu lực sẽ xuất ("hunt_default", "" khi loại không có mặc định); Expected = configKey
     /// của bản so ("hunt_v1"; "" khi không có bản so / mục mới). <c>RelatedId</c> = loại cho khoá kế thừa.</para>
     /// </summary>
@@ -28,6 +30,7 @@ namespace DreamTech.LiveOps
             {
                 LiveEventCalendarEntryOutcome outcome = entries[index];
                 if (!outcome.IsKept || !context.IncludesEventType(outcome.EventType)) continue;
+                if (!document.TryGetEventType(outcome.EventType, out _)) continue;
 
                 LiveEventCalendarFinding finding = outcome.Kind == LiveEventCalendarEntryKind.RecurringRule
                     ? EvaluateRecurringRule(document, baseline, context.RecurringRuleOf(outcome))

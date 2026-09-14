@@ -95,10 +95,90 @@ namespace DreamTech.LiveOps.Tests
             Assert.AreEqual(LiveEventCalendarRuleIds.RunningEventIdChanged, reminder.RuleId);
             Assert.AreEqual("weekly-pass", reminder.TargetId);
             Assert.AreEqual("2026-09-14T00:00:00Z", reminder.ExpiresUtcText, "Hẹn đúng lúc weekly-pass-35 khép.");
-            Assert.AreEqual("2026-09-07T00:00:00Z", reminder.RangeStartUtcText);
-            Assert.AreEqual("2026-09-14T00:00:00Z", reminder.RangeEndUtcText);
+            Assert.AreEqual("2026-09-14T00:00:00Z", reminder.RangeStartUtcText, "Khoảng bắt đầu ở lúc khép — không phải khung đang chạy 7/9.");
+            Assert.AreEqual(string.Empty, reminder.RangeEndUtcText);
             Assert.IsTrue(deferred.TryGetRecurringRule("weekly-pass", out RecurringLiveEventRule rule));
             Assert.AreEqual("weekly-pass-", rule.IdPrefix);
+        }
+
+        [Test]
+        public void DeferUntilEnd_RedoBeforeEnd_StillProgressLost()
+        {
+            // "Để sau khi khép" rồi 13/9 09:00 (trước 14/9) đổi lại tiền tố: ghi chú hẹn không được ẩn phát hiện Mất tiến độ.
+            LiveEventCalendarDocument deferred = ApplyDeferUntilEnd(LiveOpsDesignSample.Document);
+            LiveEventCalendarDocument redone = ReplaceRule(deferred, "weekly-pass", rule => rule.WithIdPrefix("pass-"));
+            System.DateTime beforeEndUtc = ValidationTestFixtures.Utc("2026-09-13T09:00:00Z");
+
+            LiveEventCalendarCheckReport report = LiveEventCalendarValidator.Default.Check(
+                new LiveEventCalendarCheckContextBuilder(redone, beforeEndUtc).WithPublishedBaseline(PublishedBaselineSample.Document()).Build());
+
+            Assert.AreEqual(1, report.Summary.ProgressLostCount);
+            Assert.AreEqual(0, report.Summary.IgnoredCount);
+            LiveEventCalendarFinding finding = DesignSampleCheckTests.FindingOf(report, LiveEventCalendarRuleIds.RunningEventIdChanged, "weekly-pass");
+            Assert.IsFalse(finding.IsIgnored, "Luật 9 là Decision, không Ignorable — ghi chú hẹn chỉ nhắc, không che.");
+            Assert.IsNull(finding.DueReminder, "Chưa tới hẹn.");
+            CollectionAssert.Contains(report.Findings, finding, "Phát hiện vẫn ở Cần xử lý, vẫn chặn Copy JSON.");
+        }
+
+        [Test]
+        public void DeferUntilEnd_RedoAfterEnd_NextOccurrenceCarriesDueReminder()
+        {
+            // Qua 14/9 00:00 mới làm lại: lần lặp nối tiếp weekly-pass-36 đang chạy vẫn Mất tiến độ, kèm cờ "đã tới hẹn" (S-22).
+            LiveEventCalendarDocument deferred = ApplyDeferUntilEnd(LiveOpsDesignSample.Document);
+            IgnoredCalendarWarning reminder = deferred.IgnoredWarnings[0];
+            LiveEventCalendarDocument redone = ReplaceRule(deferred, "weekly-pass", rule => rule.WithIdPrefix("pass-"));
+            System.DateTime afterEndUtc = ValidationTestFixtures.Utc("2026-09-14T01:00:00Z");
+
+            LiveEventCalendarCheckReport report = LiveEventCalendarValidator.Default.Check(
+                new LiveEventCalendarCheckContextBuilder(redone, afterEndUtc).WithPublishedBaseline(PublishedBaselineSample.Document()).Build());
+
+            LiveEventCalendarFinding finding = DesignSampleCheckTests.FindingOf(report, LiveEventCalendarRuleIds.RunningEventIdChanged, "weekly-pass");
+            Assert.AreEqual("weekly-pass-36", finding.RelatedId);
+            Assert.IsFalse(finding.IsIgnored);
+            Assert.AreSame(reminder, finding.DueReminder);
+        }
+
+        [Test]
+        public void RunningFixedRenamed_RevertRestoresIdOnSameEntry_NothingDropped()
+        {
+            LiveEventCalendarDocument baseline = ValidationTestFixtures.FixedDocument(
+                ValidationTestFixtures.Entry("quest-0912", "quest", RunningStart, RunningEnd));
+            FixedLiveEventEntry renamed = ValidationTestFixtures.Entry("quest-0912b", "quest", RunningStart, RunningEnd);
+            LiveEventCalendarDocument draft = ValidationTestFixtures.FixedDocument(renamed);
+
+            LiveEventCalendarFinding finding = SingleFinding(draft, baseline);
+
+            Assert.AreEqual(LiveEventCalendarDetailCodes.RunningRemoved, finding.DetailCode);
+            ReplaceFixedEventEdit revert = finding.Repairs[0].Edit as ReplaceFixedEventEdit;
+            Assert.IsNotNull(revert, "Đổi id tại chỗ: trả id cũ về chính mục đó — thêm bản sao sẽ bị bỏ vì chồng giờ với mục đổi tên.");
+            Assert.AreEqual(renamed.EntryKey, revert.Entry.EntryKey);
+            Assert.AreEqual("quest-0912", revert.Entry.EventId);
+            AssertRevertPasses(draft, baseline, finding);
+
+            Assert.IsTrue(LiveEventCalendarEdits.TryApply(draft, revert, out LiveEventCalendarDocument reverted));
+            LiveEventCalendarCheckReport report = LiveEventCalendarValidator.Default.Check(ContextFor(reverted, baseline));
+            Assert.AreEqual(0, report.Summary.DroppedCount, "Hoàn về không được sinh thêm lỗi Bị bỏ.");
+            Assert.AreEqual(0, report.Summary.ProgressLostCount);
+        }
+
+        [Test]
+        public void RunningFixedDroppedAsDuplicateOfOtherType_NoRevertPromised()
+        {
+            LiveEventCalendarDocument baseline = ValidationTestFixtures.FixedDocument(
+                ValidationTestFixtures.Entry("quest-0912", "quest", RunningStart, RunningEnd));
+            // Mục loại khác mang cùng id, bắt đầu sớm hơn nên đứng trước ở thứ tự xuất: game giữ nó, bỏ đợt đang chạy.
+            LiveEventCalendarDocument draft = ValidationTestFixtures.FixedDocument(
+                ValidationTestFixtures.Entry("quest-0912", "quest", RunningStart, RunningEnd),
+                ValidationTestFixtures.Entry("quest-0912", "hunt", "2026-09-11T00:00:00Z", "2026-09-12T00:00:00Z"));
+
+            LiveEventCalendarRuleResult result = new RunningEventIdChangedRule().Evaluate(ContextFor(draft, baseline));
+
+            Assert.AreEqual(LiveEventCalendarRuleOutcome.Found, result.Outcome);
+            LiveEventCalendarFinding finding = result.Findings[0];
+            Assert.AreEqual(LiveEventCalendarDetailCodes.RunningRemoved, finding.DetailCode);
+            Assert.AreEqual(LiveEventCalendarConsequence.ProgressLost, finding.Consequence, "Vẫn Mất tiến độ, vẫn chặn.");
+            Assert.AreEqual(LiveEventCalendarRepairKind.None, finding.RepairKind, "Thay giờ y nguyên không cứu được — không hứa hoàn về.");
+            Assert.AreEqual(0, finding.Repairs.Count);
         }
 
         [Test]
@@ -282,6 +362,13 @@ namespace DreamTech.LiveOps.Tests
             Assert.IsTrue(LiveEventCalendarEdits.TryApply(draft, finding.Repairs[0].Edit, out LiveEventCalendarDocument reverted), finding.DetailCode);
             LiveEventCalendarRuleResult after = new RunningEventIdChangedRule().Evaluate(ContextFor(reverted, baseline));
             Assert.AreEqual(LiveEventCalendarRuleOutcome.Passed, after.Outcome, finding.DetailCode + " sau khi hoàn về vẫn còn phát hiện.");
+        }
+
+        private static LiveEventCalendarDocument ApplyDeferUntilEnd(LiveEventCalendarDocument draft)
+        {
+            LiveEventCalendarFinding finding = new RunningEventIdChangedRule().Evaluate(PublishedBaselineSample.ContextWithBaseline(draft)).Findings[0];
+            Assert.IsTrue(LiveEventCalendarEdits.TryApply(draft, finding.Repairs[1].Edit, out LiveEventCalendarDocument deferred));
+            return deferred;
         }
 
         private static LiveEventCalendarDocument ReplaceRule(LiveEventCalendarDocument document, string eventType,
