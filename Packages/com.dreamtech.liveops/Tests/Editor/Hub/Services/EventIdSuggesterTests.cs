@@ -88,6 +88,31 @@ namespace DreamTech.LiveOps.Editor.Tests
         }
 
         [Test]
+        public void EventIdSuggester_AddEvent_DesignSample_Hunt0921()
+        {
+            // Thiết kế "Thêm đợt · xem lại" 21/9: hunt-0916-bonus (16/9 12:00) gần hơn hunt-0914 nhưng là tên ngoại lệ không theo
+            // mẫu — gốc phải là hunt-0914 để ra hunt-0921, không phải hunt-0916-bonus-2.
+            Assert.AreEqual("hunt-0921", LiveOpsEventIdSuggester.Suggest(DesignLikeDocument(), TreasureHunt, Utc(9, 21), null));
+        }
+
+        [Test]
+        public void EventIdSuggester_AddEvent_DesignSample_Hunt0915()
+        {
+            // Biến thể kiểm nhanh báo chồng của thiết kế: id "hunt-0915" cho đợt 15/9.
+            Assert.AreEqual("hunt-0915", LiveOpsEventIdSuggester.Suggest(DesignLikeDocument(), TreasureHunt, Utc(9, 15), ""));
+        }
+
+        [Test]
+        public void NoBasedOn_OnlyUnpatternedIdsOfType_FallsBackToNearest()
+        {
+            LiveEventCalendarDocument document = new LiveEventCalendarDocumentBuilder()
+                .WithFixedEvent(Entry("hunt-special", TreasureHunt, "2026-09-01T00:00:00Z", "2026-09-03T00:00:00Z"))
+                .WithFixedEvent(Entry("hunt-bonus", TreasureHunt, "2026-09-16T00:00:00Z", "2026-09-18T00:00:00Z"))
+                .Build();
+            Assert.AreEqual("hunt-bonus-2", LiveOpsEventIdSuggester.Suggest(document, TreasureHunt, Utc(9, 21), null));
+        }
+
+        [Test]
         public void NoEventOfType_UsesTypeAndMonthDay()
         {
             Assert.AreEqual("star-tournament-1003", LiveOpsEventIdSuggester.Suggest(DesignLikeDocument(), "star-tournament", Utc(10, 3), null));

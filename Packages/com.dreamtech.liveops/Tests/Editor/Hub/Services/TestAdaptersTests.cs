@@ -149,8 +149,11 @@ namespace DreamTech.LiveOps.Editor.Tests
         }
 
         [Test]
-        public void MissingPathsLayoutLoader_DefaultInnerIsAssetDatabase_MissingPathStillNull()
+        public void MissingPathsLayoutLoader_SingleArgumentConstructor_ListedPathReturnsNull()
         {
+            // Chỉ kiểm ctor một tham số dựng được và đường dẫn liệt kê trả null. KHÔNG chứng minh loader bên trong là
+            // AssetDatabase: ở W1 chưa có UXML/USS nào của hub trên đĩa nên mọi loader đều trả null với đường dẫn chưa liệt kê;
+            // đường thật được phủ khi gói có UXML/USS của hub nạp layout qua loader mặc định.
             var loader = new MissingPathsLiveOpsHubLayoutLoader(new[] { LiveOpsHubPaths.ShellUxml });
             Assert.IsNull(loader.LoadVisualTree(LiveOpsHubPaths.ShellUxml));
         }
