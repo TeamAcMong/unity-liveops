@@ -200,8 +200,9 @@ namespace DreamTech.LiveOps.Tests
             Assert.AreEqual(0, finding.Repairs.Count, "Không có \"Quyết định…\" rỗng — câu sửa tay là việc của G-FINDINGTEXT.");
             Assert.IsFalse(finding.IsIgnored);
             Assert.IsNull(finding.DueReminder);
-            Assert.GreaterOrEqual(report.Summary.ProgressLostCount, 1);
-            CollectionAssert.Contains(report.Findings, finding);
+            // Đếm đúng một Mất tiến độ ở bộ tổng hợp (nguồn của tab Cần xử lý và cổng Copy JSON): thiếu lệnh sửa không làm phát hiện
+            // rơi khỏi bộ đếm chặn. So bằng, không ">= 1", để phát hiện trùng hay rơi mất đều đỏ.
+            Assert.AreEqual(1, report.Summary.ProgressLostCount);
         }
 
         [Test]
