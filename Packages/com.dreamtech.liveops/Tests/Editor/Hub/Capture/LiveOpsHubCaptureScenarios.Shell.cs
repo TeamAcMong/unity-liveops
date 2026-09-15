@@ -46,8 +46,10 @@ namespace DreamTech.LiveOps.Editor.Tests
         {
             List<FakeHubSection> sections = FakeHubSection.CreateRegistryShaped();
             sections[2].CreateViewException = CreateThrownException();
-            sections[3].Health = SectionHealth.Warning("1 mất tiến độ", "weekly-pass đổi tiền tố khi weekly-pass-35 đang chạy");
-            sections[4].Health = SectionHealth.Blocked("2 bị bỏ", "2 đợt sẽ bị game bỏ khi đọc lịch");
+            // Số đếm đi cùng badge như phiên thật (6.4, V-21 CC-SHELL-5 (b)): rail cộng Counts, chữ badge chỉ để hiện.
+            sections[3].Health = SectionHealth.Warning("1 mất tiến độ", "weekly-pass đổi tiền tố khi weekly-pass-35 đang chạy")
+                .WithCounts(new LiveOpsHubFindingCounts(0, 1, 0, 0));
+            sections[4].Health = SectionHealth.Blocked("2 bị bỏ", "2 đợt sẽ bị game bỏ khi đọc lịch").WithCounts(new LiveOpsHubFindingCounts(2, 1, 2, 1));
             return LiveOpsHubWindow.OpenForTest(FakeHubSection.AsSections(sections), new ManualLiveOpsHubCompilationState(false), null,
                 LiveOpsHubSections.Ids.Calendar);
         }

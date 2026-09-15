@@ -139,15 +139,19 @@ namespace DreamTech.LiveOps.Editor.Tests
 
         /// <summary>
         /// Health mặc định của Hình 4 ([FD §3.1]): Lịch Blocked, Luật lặp Warning, Kiểm lịch Blocked, Xuất JSON Blocked — chữ lý do
-        /// lấy nguyên văn thiết kế để rail và ảnh chụp so được với hình.
+        /// lấy nguyên văn thiết kế để rail và ảnh chụp so được với hình. Số đếm theo đích 6.4 (V-21 CC-SHELL-5 (b)): Lịch 2 bị bỏ ·
+        /// 2 nên xem, Luật lặp 1 mất tiến độ, Kiểm lịch toàn lịch 2 · 1 · 2 · 1 chưa kiểm; Xuất JSON không đếm phát hiện — rail cộng các
+        /// số này, không đọc chữ badge.
         /// </summary>
         public static List<FakeHubSection> CreateDesignSampleShaped()
         {
             List<FakeHubSection> sections = CreateRegistryShaped();
             sections[2].Health = SectionHealth.Blocked("2 bị bỏ",
-                "2 đợt bị bỏ: hunt-0916-bonus (chồng giờ), lava-quest-2026-10 (giờ kết thúc sai định dạng) · 2 nên xem: hunt-0914 không tự khai configKey, lava-quest trống 11 ngày");
-            sections[3].Health = SectionHealth.Warning("1 mất tiến độ", "weekly-pass đổi tiền tố khi weekly-pass-35 đang chạy");
-            sections[4].Health = SectionHealth.Blocked("2 bị bỏ", "2 đợt sẽ bị game bỏ khi đọc lịch");
+                "2 đợt bị bỏ: hunt-0916-bonus (chồng giờ), lava-quest-2026-10 (giờ kết thúc sai định dạng) · 2 nên xem: hunt-0914 không tự khai configKey, lava-quest trống 11 ngày")
+                .WithCounts(new LiveOpsHubFindingCounts(2, 0, 2, 0));
+            sections[3].Health = SectionHealth.Warning("1 mất tiến độ", "weekly-pass đổi tiền tố khi weekly-pass-35 đang chạy")
+                .WithCounts(new LiveOpsHubFindingCounts(0, 1, 0, 0));
+            sections[4].Health = SectionHealth.Blocked("2 bị bỏ", "2 đợt sẽ bị game bỏ khi đọc lịch").WithCounts(new LiveOpsHubFindingCounts(2, 1, 2, 1));
             sections[5].Health = SectionHealth.Blocked("chặn", "Copy JSON bị khoá: 2 đợt bị bỏ, 1 thay đổi bắt buộc chưa xem");
             return sections;
         }

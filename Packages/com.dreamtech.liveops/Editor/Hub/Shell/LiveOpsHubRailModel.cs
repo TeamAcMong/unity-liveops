@@ -148,9 +148,9 @@ namespace DreamTech.LiveOps.Editor
                 // Tooltip = lý do nếu có, không thì subtitle: NotMeasured luôn có lý do (SectionHealth bắt buộc), nên vòng rỗng
                 // không bao giờ chỉ hiện một câu mô tả màn.
                 string tooltip = string.IsNullOrEmpty(health.Reason) ? section.Subtitle : health.Reason;
-                rows.Add(new LiveOpsHubRailSectionRow(section.Id, title, health.State, tooltip, health.Reason, health.State == HealthState.Ok, health.Badge));
+                rows.Add(new LiveOpsHubRailSectionRow(section.Id, title, health.State, tooltip, health.Reason, health.State == HealthState.Ok));
             }
-            return new StageFacts(worst, rows.AsReadOnly(), hasStale ? staleSource : worst, hasStale);
+            return new StageFacts(worst, rows.AsReadOnly(), hasStale ? staleSource : worst, hasStale, StageParts(healths, indices));
         }
 
         private static BadgeFacts DescribeBadge(PipelineStage stage, StageFacts facts, LiveEventCalendarCheckSummary summary, bool isCheckStale)
@@ -188,104 +188,86 @@ namespace DreamTech.LiveOps.Editor
                     {
                         return new BadgeFacts(countParts[0], WorstCountState(summary), false, string.Join(LiveOpsHubStrings.ShellRailPartSeparator, countParts));
                     }
-                    IReadOnlyList<string> sectionParts = StageCountParts(facts.Rows);
-                    if (sectionParts.Count == 0) return new BadgeFacts(string.Empty, facts.State, false, JoinReasons(facts.Rows));
-                    return new BadgeFacts(sectionParts[0], facts.State, false, string.Join(LiveOpsHubStrings.ShellRailPartSeparator, sectionParts));
+                    IReadOnlyList<StagePart> stageParts = facts.Parts;
+                    if (stageParts.Count == 0) return new BadgeFacts(string.Empty, facts.State, false, JoinReasons(facts.Rows));
+                    // Họ chữ badge theo mảnh đầu (mảnh nặng nhất) như tầng Kiểm theo con số nặng nhất của bộ tổng hợp.
+                    return new BadgeFacts(stageParts[0].Text, stageParts[0].State, false, JoinParts(stageParts));
                 }
             }
         }
 
         /// <summary>
-        /// Danh sách đếm của tầng không có bộ tổng hợp riêng (LÊN LỊCH, XUẤT) gộp từ badge các màn trong tầng — [FD §3.5] "badge tầng
-        /// nêu mức xấu nhất trước; tooltip hàng tầng liệt kê đủ '2 bị bỏ · 1 mất tiến độ · 2 nên xem'". Badge đúng một format đếm của
-        /// rail ("{0} bị bỏ"…) thì cộng dồn theo loại (Lịch "1 bị bỏ" + Luật lặp "1 bị bỏ" = "2 bị bỏ"); badge khác ("chặn", "1 cần
-        /// xem") giữ nguyên, trùng chữ chỉ ghi một lần. Thứ tự: màn Blocked trước Warning trước NotMeasured, trong cùng mức theo thứ
-        /// tự rail. Vì sao gộp từ chữ badge: <see cref="SectionHealth"/> (hợp đồng W1) chỉ mang badge dạng chữ, số đếm theo đích nằm ở
-        /// phiên (G-SESSION) — màn phát badge bằng chính các format đếm của rail thì tầng cộng đúng.
+        /// Danh sách đếm của tầng không có bộ tổng hợp riêng (LÊN LỊCH, XUẤT) — [FD §3.5] "badge tầng nêu mức xấu nhất trước; tooltip
+        /// hàng tầng liệt kê đủ '2 bị bỏ · 1 mất tiến độ · 2 nên xem'". Số là tổng <see cref="SectionHealth.Counts"/> các màn trong
+        /// tầng cộng theo loại (V-21 CC-SHELL-5 (b)), KHÔNG đọc lại chữ badge: chữ viết cho người đọc, một màn có badge "2 bị bỏ" mà
+        /// còn 2 nên xem thì gộp từ chữ sẽ mất số. Màn không đếm phát hiện (Counts rỗng, vd Xuất JSON "chặn") góp nguyên chữ badge,
+        /// trùng chữ ghi một lần — chữ đó không bao giờ được cộng. Thứ tự theo mức nặng: bị bỏ → chữ của màn Blocked → mất tiến độ →
+        /// nên xem → chữ của màn Warning → chưa kiểm → chữ của màn NotMeasured; trong một nhóm chữ theo thứ tự rail. Màn Ok không góp.
         /// </summary>
-        internal static IReadOnlyList<string> StageCountParts(IReadOnlyList<LiveOpsHubRailSectionRow> rows)
+        private static IReadOnlyList<StagePart> StageParts(IReadOnlyList<SectionHealth> healths, List<int> indices)
         {
-            List<StageCountEntry> entries = new List<StageCountEntry>();
-            foreach (HealthState state in StageCountStateOrder)
+            LiveOpsHubFindingCounts total = default(LiveOpsHubFindingCounts);
+            List<string> blockedBadges = new List<string>();
+            List<string> warningBadges = new List<string>();
+            List<string> notMeasuredBadges = new List<string>();
+            foreach (int index in indices)
             {
-                foreach (LiveOpsHubRailSectionRow row in rows)
+                SectionHealth health = healths[index];
+                if (health.State == HealthState.Ok) continue;
+                if (!health.Counts.IsEmpty)
                 {
-                    if (row.State != state || string.IsNullOrEmpty(row.Badge)) continue;
-                    AddStageCount(entries, row.Badge);
+                    total = total.Add(health.Counts);
+                    continue;
                 }
+                if (string.IsNullOrEmpty(health.Badge)) continue;
+                List<string> badges = health.State == HealthState.Blocked ? blockedBadges
+                    : health.State == HealthState.Warning ? warningBadges
+                    : notMeasuredBadges;
+                badges.Add(health.Badge);
             }
 
-            List<string> parts = new List<string>(entries.Count);
-            foreach (StageCountEntry entry in entries)
-            {
-                parts.Add(entry.Format == null ? entry.Text : string.Format(CultureInfo.InvariantCulture, entry.Format, entry.Count));
-            }
-            return parts;
+            List<StagePart> parts = new List<StagePart>();
+            AddCountPart(parts, total.Dropped, LiveOpsHubStrings.ShellRailDroppedCountFormat, HealthState.Blocked);
+            AddBadgeParts(parts, blockedBadges, HealthState.Blocked);
+            AddCountPart(parts, total.ProgressLost, LiveOpsHubStrings.ShellRailProgressLostCountFormat, HealthState.Warning);
+            AddCountPart(parts, total.ShouldReview, LiveOpsHubStrings.ShellRailShouldReviewCountFormat, HealthState.Warning);
+            AddBadgeParts(parts, warningBadges, HealthState.Warning);
+            AddCountPart(parts, total.NotMeasured, LiveOpsHubStrings.ShellRailNotMeasuredCountFormat, HealthState.NotMeasured);
+            AddBadgeParts(parts, notMeasuredBadges, HealthState.NotMeasured);
+            return parts.AsReadOnly();
         }
 
-        private static readonly HealthState[] StageCountStateOrder = { HealthState.Blocked, HealthState.Warning, HealthState.NotMeasured };
-
-        private static readonly string[] StageCountFormats =
+        private static void AddCountPart(List<StagePart> parts, int count, string format, HealthState state)
         {
-            LiveOpsHubStrings.ShellRailDroppedCountFormat,
-            LiveOpsHubStrings.ShellRailProgressLostCountFormat,
-            LiveOpsHubStrings.ShellRailShouldReviewCountFormat,
-            LiveOpsHubStrings.ShellRailNotMeasuredCountFormat,
-        };
-
-        private static void AddStageCount(List<StageCountEntry> entries, string badge)
-        {
-            string matchedFormat = null;
-            int count = 0;
-            foreach (string format in StageCountFormats)
-            {
-                if (TryReadCount(badge, format, out count))
-                {
-                    matchedFormat = format;
-                    break;
-                }
-            }
-
-            foreach (StageCountEntry entry in entries)
-            {
-                if (matchedFormat != null && string.Equals(entry.Format, matchedFormat, StringComparison.Ordinal))
-                {
-                    entry.Count += count;
-                    return;
-                }
-                if (matchedFormat == null && entry.Format == null && string.Equals(entry.Text, badge, StringComparison.Ordinal)) return;
-            }
-            entries.Add(new StageCountEntry(badge, matchedFormat, count));
+            if (count > 0) parts.Add(new StagePart(string.Format(CultureInfo.InvariantCulture, format, count), state));
         }
 
-        /// <summary>"12 bị bỏ" với format "{0} bị bỏ" → 12. Chỉ nhận số nguyên dương viết liền ở đầu, đuôi khớp nguyên văn.</summary>
-        private static bool TryReadCount(string badge, string format, out int count)
+        private static void AddBadgeParts(List<StagePart> parts, List<string> badges, HealthState state)
         {
-            count = 0;
-            const string placeholder = "{0}";
-            if (!format.StartsWith(placeholder, StringComparison.Ordinal)) return false;
-            string suffix = format.Substring(placeholder.Length);
-            if (!badge.EndsWith(suffix, StringComparison.Ordinal) || badge.Length == suffix.Length) return false;
-            string number = badge.Substring(0, badge.Length - suffix.Length);
-            foreach (char character in number)
+            foreach (string badge in badges)
             {
-                if (character < '0' || character > '9') return false;
+                bool isDuplicate = false;
+                foreach (StagePart part in parts)
+                {
+                    if (string.Equals(part.Text, badge, StringComparison.Ordinal))
+                    {
+                        isDuplicate = true;
+                        break;
+                    }
+                }
+                if (!isDuplicate) parts.Add(new StagePart(badge, state));
             }
-            return int.TryParse(number, NumberStyles.None, CultureInfo.InvariantCulture, out count) && count > 0;
         }
 
-        private sealed class StageCountEntry
+        private static string JoinParts(IReadOnlyList<StagePart> parts)
         {
-            public StageCountEntry(string text, string format, int count)
+            StringBuilder builder = new StringBuilder();
+            foreach (StagePart part in parts)
             {
-                Text = text;
-                Format = format;
-                Count = count;
+                if (builder.Length > 0) builder.Append(LiveOpsHubStrings.ShellRailPartSeparator);
+                builder.Append(part.Text);
             }
-
-            public string Text { get; }
-            public string Format { get; }
-            public int Count { get; set; }
+            return builder.ToString();
         }
 
         private static string StaleTooltipPrefix(SectionHealth staleSource)
@@ -346,12 +328,14 @@ namespace DreamTech.LiveOps.Editor
 
         private readonly struct StageFacts
         {
-            public StageFacts(SectionHealth worst, IReadOnlyList<LiveOpsHubRailSectionRow> rows, SectionHealth staleSource, bool hasStale)
+            public StageFacts(SectionHealth worst, IReadOnlyList<LiveOpsHubRailSectionRow> rows, SectionHealth staleSource, bool hasStale,
+                IReadOnlyList<StagePart> parts)
             {
                 Worst = worst;
                 Rows = rows;
                 StaleSource = staleSource;
                 HasStale = hasStale;
+                Parts = parts;
             }
 
             public SectionHealth Worst { get; }
@@ -359,6 +343,22 @@ namespace DreamTech.LiveOps.Editor
             public IReadOnlyList<LiveOpsHubRailSectionRow> Rows { get; }
             public SectionHealth StaleSource { get; }
             public bool HasStale { get; }
+
+            /// <summary>Danh sách đếm tầng dựng từ Counts (<see cref="StageParts"/>), nặng nhất trước.</summary>
+            public IReadOnlyList<StagePart> Parts { get; }
+        }
+
+        /// <summary>Một mảnh badge/tooltip tầng kèm mức của nó — mảnh đầu quyết họ chữ badge.</summary>
+        private readonly struct StagePart
+        {
+            public StagePart(string text, HealthState state)
+            {
+                Text = text;
+                State = state;
+            }
+
+            public string Text { get; }
+            public HealthState State { get; }
         }
 
         private readonly struct BadgeFacts
@@ -425,7 +425,7 @@ namespace DreamTech.LiveOps.Editor
     /// <summary>Hàng màn của rail (22 px).</summary>
     internal sealed class LiveOpsHubRailSectionRow
     {
-        internal LiveOpsHubRailSectionRow(string sectionId, string title, HealthState state, string tooltip, string reason, bool isMarkHidden, string badge)
+        internal LiveOpsHubRailSectionRow(string sectionId, string title, HealthState state, string tooltip, string reason, bool isMarkHidden)
         {
             SectionId = sectionId;
             Title = title;
@@ -433,7 +433,6 @@ namespace DreamTech.LiveOps.Editor
             Tooltip = tooltip;
             Reason = reason;
             IsMarkHidden = isMarkHidden;
-            Badge = badge;
         }
 
         public string SectionId { get; }
@@ -447,8 +446,5 @@ namespace DreamTech.LiveOps.Editor
 
         /// <summary>Màn Ok ẩn dấu nhưng giữ nhãn đậm đủ — Ok yên lặng ([FD §2.4]).</summary>
         public bool IsMarkHidden { get; }
-
-        /// <summary>Badge của màn (vd "2 bị bỏ", "chặn") — nguồn badge tầng khi không có bộ tổng hợp.</summary>
-        public string Badge { get; }
     }
 }
