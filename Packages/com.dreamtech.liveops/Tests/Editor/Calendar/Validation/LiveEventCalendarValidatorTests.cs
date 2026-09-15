@@ -402,6 +402,34 @@ namespace DreamTech.LiveOps.Tests
         }
 
         [Test]
+        public void ContextBuilder_LatestStampBaseline_SeparateFromPublishedBaseline_CopiedByToBuilder()
+        {
+            // Bản so đang chọn là dấu cũ, dấu mới nhất là tài liệu khác: context phải giữ cả hai riêng — luật 9/10 đọc bản so,
+            // luật 12 đọc dấu mới nhất (V-21 CC-VALB-1). Gộp làm một thì luật 12 so bản đang chạy với dấu cũ.
+            LiveEventCalendarDocument olderStamp = ValidationTestFixtures.FixedDocument(
+                ValidationTestFixtures.Entry("hunt-old", "hunt", "2026-09-01T00:00:00Z", "2026-09-02T00:00:00Z"));
+            LiveEventCalendarDocument latestStamp = ValidationTestFixtures.FixedDocument(
+                ValidationTestFixtures.Entry("hunt-new", "hunt", "2026-09-10T00:00:00Z", "2026-09-11T00:00:00Z"));
+
+            LiveEventCalendarCheckContext withoutLatest = ValidationTestFixtures.ContextFor(LiveOpsDesignSample.Document);
+            Assert.IsNull(withoutLatest.LatestStampBaseline, "Mặc định không có — phiên chưa đọc được dấu thì luật 12 phải biết là chưa có.");
+
+            LiveEventCalendarCheckContext context = new LiveEventCalendarCheckContextBuilder(LiveOpsDesignSample.Document, LiveOpsDesignSample.NowUtc)
+                .WithPublishedBaseline(olderStamp)
+                .WithLatestStampBaseline(latestStamp)
+                .Build();
+            Assert.AreSame(olderStamp, context.PublishedBaseline);
+            Assert.AreSame(latestStamp, context.LatestStampBaseline);
+
+            LiveEventCalendarCheckContext copied = context.ToBuilder().WithOnlyEventType("hunt").Build();
+            Assert.AreSame(latestStamp, copied.LatestStampBaseline, "ToBuilder (kiểm nhanh một làn) không được làm rơi dấu mới nhất.");
+            Assert.AreSame(olderStamp, copied.PublishedBaseline);
+
+            LiveEventCalendarCheckContext cleared = context.ToBuilder().WithLatestStampBaseline(null).Build();
+            Assert.IsNull(cleared.LatestStampBaseline);
+        }
+
+        [Test]
         public void Report_FindingsSortedByConsequenceThenAnchor_FindingsForTarget()
         {
             LiveEventCalendarCheckReport report = LiveEventCalendarValidator.Default.Check(ValidationTestFixtures.ContextFor(LiveOpsDesignSample.Document));
