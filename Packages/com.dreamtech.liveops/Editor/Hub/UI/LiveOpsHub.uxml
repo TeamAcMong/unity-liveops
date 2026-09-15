@@ -1,0 +1,37 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" editor-extension-mode="True">
+    <!--
+        Khung LiveOps Hub (8.1, [FD §3]). Tên element (name) là hợp đồng với LiveOpsHubPaths.RequiredShellElementNames — đổi tên ở
+        đây thì sửa danh sách đó cùng nhịp. Không có chữ trong file này: mọi chữ đặt từ C# qua LiveOpsHubStrings (code-lint chặn
+        tiếng Việt trong UXML). Stylesheet gắn từ C# vào hub-root theo LiveOpsHubPaths.ShellStyleSheetLoadOrder, không khai ở đây,
+        để bố cục mất sheet vẫn báo đúng đường dẫn thiếu thay vì im lặng.
+    -->
+    <ui:VisualElement name="hub-root" class="liveops-hub-root">
+        <ui:VisualElement name="hub-header" class="liveops-hub-header">
+            <ui:Label name="hub-header-title" class="liveops-hub-header-title" />
+        </ui:VisualElement>
+        <ui:VisualElement name="hub-main" class="liveops-hub-main">
+            <ui:VisualElement name="hub-rail" class="liveops-hub-rail">
+                <ui:Label name="hub-rail-caption" class="liveops-hub-rail-caption" />
+                <ui:ScrollView name="hub-rail-scroll" class="liveops-hub-rail-scroll" />
+                <ui:VisualElement name="hub-rail-blocker-host" class="liveops-hub-rail-blocker-host" />
+            </ui:VisualElement>
+            <ui:VisualElement name="hub-content" class="liveops-hub-content">
+                <ui:VisualElement name="hub-section-header" class="liveops-hub-section-header">
+                    <ui:VisualElement class="liveops-hub-section-heading">
+                        <ui:Label name="hub-section-title" class="liveops-hub-section-title" />
+                        <ui:Label name="hub-section-subtitle" class="liveops-hub-section-subtitle" />
+                    </ui:VisualElement>
+                    <ui:VisualElement name="hub-section-actions" class="liveops-hub-section-actions" />
+                </ui:VisualElement>
+                <ui:VisualElement name="hub-shell-notes" class="liveops-hub-shell-notes" />
+                <ui:VisualElement name="hub-section-body" class="liveops-hub-section-body" />
+            </ui:VisualElement>
+        </ui:VisualElement>
+        <ui:VisualElement name="hub-status" class="liveops-hub-status">
+            <ui:VisualElement name="hub-status-left" class="liveops-hub-status-left">
+                <ui:Label name="hub-status-left-text" class="liveops-hub-status-text" />
+            </ui:VisualElement>
+            <ui:Label name="hub-status-right" class="liveops-hub-status-right liveops-hub-status-text" />
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

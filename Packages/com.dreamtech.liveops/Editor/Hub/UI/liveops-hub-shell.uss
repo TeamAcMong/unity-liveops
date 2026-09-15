@@ -1,0 +1,456 @@
+/*
+ * liveops-hub-shell.uss — khung LiveOps Hub: header 26, rail 196, section header 36, note đầu thân, status bar 20, card lỗi,
+ * trạng thái trống ([FD §3], [FD §4], kế hoạch 8.2–8.3). Nạp sau theme + components, trước feedback/controls/timeline/motion.
+ *
+ * Số đo là hợp đồng với ảnh chụp (measure-capture.py: rail 196 · header 26 · section header 36 · status 20 · cột nội dung
+ * 1084 ở cửa sổ 1280×760). UI Toolkit tính width/height GỒM viền và padding (border-box), nên viền 1px nằm trong số đo.
+ *
+ * Luật: không màu trần (token theme hoặc --unity-colors-*), không gap/:last-child/@media (khoảng cách = margin của phần tử
+ * đứng sau; cửa sổ hẹp = class --medium/--narrow/--compact trên root do LiveOpsHubBreakpoints bật).
+ */
+
+/* ---------------------------------------------------------------- Root */
+
+.liveops-hub-root {
+    flex-grow: 1;
+    flex-direction: column;
+    font-size: 11px;
+    color: var(--unity-colors-default-text);
+    background-color: var(--unity-colors-window-background);
+}
+
+/* ---------------------------------------------------------------- Header 26px — [FD §3.3] */
+
+.liveops-hub-header {
+    height: 26px;
+    flex-shrink: 0;
+    flex-direction: row;
+    align-items: center;
+    padding: 0 8px;
+    background-color: var(--unity-colors-toolbar-background);
+    border-bottom-width: 1px;
+    border-bottom-color: var(--unity-colors-window-border);
+}
+
+.liveops-hub-header-title {
+    font-size: 12px;
+    -unity-font-style: bold;
+    padding: 0;
+    margin: 0;
+}
+
+/* ---------------------------------------------------------------- Hàng giữa: rail + cột nội dung */
+
+.liveops-hub-main {
+    flex-grow: 1;
+    flex-shrink: 1;
+    flex-direction: row;
+    min-height: 0;
+}
+
+/* ---------------------------------------------------------------- Rail 196px — [FD §3.5] */
+
+.liveops-hub-rail {
+    width: 196px;
+    flex-shrink: 0;
+    flex-direction: column;
+    background-color: var(--unity-colors-default-background);
+    border-right-width: 1px;
+    border-right-color: var(--unity-colors-window-border);
+}
+
+.liveops-hub-rail-caption {
+    padding: 10px 10px 4px 10px;
+    margin: 0;
+    font-size: 10px;
+    -unity-font-style: bold;
+    letter-spacing: 0.5px;
+    opacity: 0.7;
+}
+
+.liveops-hub-rail-scroll {
+    flex-grow: 1;
+    flex-shrink: 1;
+}
+
+.liveops-hub-rail-stage-row,
+.liveops-hub-rail-row {
+    height: 22px;
+    flex-shrink: 0;
+    flex-direction: row;
+    align-items: center;
+    padding-left: 10px;
+    padding-right: 8px;
+}
+
+.liveops-hub-rail-row:hover {
+    background-color: var(--unity-colors-highlight-background-hover);
+}
+
+/* Gutter 14px: dấu tầng 8px ở tâm + đường nối 2px chạy qua tâm hai nửa hàng → đường nối thẳng một mạch qua mọi hàng. */
+.liveops-hub-gutter {
+    width: 14px;
+    flex-shrink: 0;
+    align-self: stretch;
+    align-items: center;
+    justify-content: center;
+}
+
+.liveops-hub-gutter-line {
+    position: absolute;
+    left: 6px;
+    width: 2px;
+    background-color: var(--unity-colors-default-text);
+    opacity: 0.35;
+}
+
+.liveops-hub-gutter-line--top {
+    top: 0;
+    height: 50%;
+}
+
+.liveops-hub-gutter-line--bottom {
+    top: 50%;
+    bottom: 0;
+}
+
+.liveops-hub-gutter-line.liveops-hub-gutter-line--dead {
+    opacity: 0.12;
+}
+
+.liveops-hub-gutter-line.liveops-hub-gutter-line--hidden {
+    display: none;
+}
+
+/* Vòng rỗng trong gutter mang nền rail để đường nối không xuyên qua lỗ vòng. */
+.liveops-hub-gutter .liveops-hub-state-mark--not-measured {
+    background-color: var(--unity-colors-default-background);
+}
+
+.liveops-hub-rail-stage-label {
+    flex-grow: 1;
+    flex-shrink: 1;
+    margin: 0 0 0 6px;
+    padding: 0;
+    font-size: 10px;
+    -unity-font-style: bold;
+    letter-spacing: 0.5px;
+    opacity: 0.82;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.liveops-hub-rail-badge {
+    flex-shrink: 0;
+    margin: 0 0 0 4px;
+    padding: 0;
+    font-size: 10px;
+    -unity-font-style: bold;
+    -unity-text-align: middle-right;
+}
+
+.liveops-hub-rail-row-label {
+    flex-grow: 1;
+    flex-shrink: 1;
+    margin: 0 0 0 14px;
+    padding: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.liveops-hub-rail-row-mark {
+    margin-left: 4px;
+}
+
+/* Màn Ok ẩn dấu nhưng giữ chỗ để nhãn không nhảy khi trạng thái đổi. */
+.liveops-hub-rail-row-mark--hidden {
+    visibility: hidden;
+}
+
+/* Active: nền chọn (mất focus = inactive), chữ đậm, thanh trái 2px (padding bù 2px để nhãn không lệch). */
+.liveops-hub-rail-row--active {
+    background-color: var(--unity-colors-highlight-background-inactive);
+    border-left-width: 2px;
+    border-left-color: var(--liveops-hub-color-on-selection);
+    padding-left: 8px;
+}
+
+.liveops-hub-rail-row--active:hover {
+    background-color: var(--unity-colors-highlight-background-inactive);
+}
+
+.liveops-hub-rail--has-focus .liveops-hub-rail-row--active,
+.liveops-hub-rail--has-focus .liveops-hub-rail-row--active:hover {
+    background-color: var(--unity-colors-highlight-background);
+}
+
+/* Chữ trắng chỉ khi rail có focus (nền highlight). Mất focus (nền highlight-inactive) thì chữ màu thường, đậm — Hình 3 hàng
+   rail "active + vùng rail mất focus"; ở Light trắng trên #AEAEAE chỉ 2,22:1 ([FD §2.3]), mà đây là trạng thái thường gặp nhất
+   (người dùng đang làm việc ở cột nội dung). */
+.liveops-hub-rail-row--active > .liveops-hub-rail-row-label {
+    -unity-font-style: bold;
+}
+
+.liveops-hub-rail--has-focus .liveops-hub-rail-row--active > .liveops-hub-rail-row-label {
+    color: var(--liveops-hub-color-on-selection);
+}
+
+.liveops-hub--skin-light .liveops-hub-rail-row--active {
+    border-left-color: var(--unity-colors-default-text);
+}
+
+/* Ô chặn đáy rail — chỉ dựng khi có Blocked. */
+.liveops-hub-rail-blocker-host {
+    flex-shrink: 0;
+}
+
+.liveops-hub-rail-blocker {
+    margin: 6px;
+    padding: 6px 8px;
+    border-width: 1px;
+    border-radius: 3px;
+    border-color: var(--unity-colors-window-border);
+    background-color: var(--unity-colors-toolbar-background);
+}
+
+.liveops-hub-rail-blocker:hover {
+    background-color: var(--unity-colors-highlight-background-hover);
+}
+
+.liveops-hub-rail-blocker-head {
+    flex-direction: row;
+    align-items: center;
+}
+
+.liveops-hub-rail-blocker-title {
+    flex-grow: 1;
+    flex-shrink: 1;
+    margin: 0 0 0 6px;
+    padding: 0;
+    font-size: 10px;
+    -unity-font-style: bold;
+}
+
+.liveops-hub-rail-blocker-head > .liveops-hub-chevron {
+    opacity: 0.7;
+}
+
+.liveops-hub-rail-blocker-detail {
+    margin: 2px 0 0 0;
+    padding: 0;
+    font-size: 10px;
+    opacity: 0.82;
+    white-space: normal;
+}
+
+/* ---------------------------------------------------------------- Cột nội dung 1084px */
+
+.liveops-hub-content {
+    flex-grow: 1;
+    flex-shrink: 1;
+    flex-direction: column;
+    min-width: 0;
+}
+
+/* ---------------------------------------------------------------- Section header 36px — [FD §3.6] */
+
+.liveops-hub-section-header {
+    height: 36px;
+    flex-shrink: 0;
+    flex-direction: row;
+    align-items: center;
+    padding: 0 10px;
+    background-color: var(--unity-colors-toolbar-background);
+    border-bottom-width: 1px;
+    border-bottom-color: var(--unity-colors-window-border);
+}
+
+.liveops-hub-section-heading {
+    flex-grow: 1;
+    flex-shrink: 1;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.liveops-hub-section-title {
+    margin: 0;
+    padding: 0;
+    font-size: 12px;
+    -unity-font-style: bold;
+}
+
+.liveops-hub-section-subtitle {
+    margin: 0;
+    padding: 0;
+    font-size: 10px;
+    opacity: 0.82;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.liveops-hub-section-actions {
+    flex-shrink: 0;
+    flex-direction: row;
+    align-items: center;
+    margin-left: 4px;
+}
+
+.liveops-hub-section-actions--empty {
+    display: none;
+}
+
+/* ---------------------------------------------------------------- Note đầu thân (đang biên dịch — Hình 28 khung 3) */
+
+.liveops-hub-shell-notes {
+    flex-shrink: 0;
+    flex-direction: column;
+}
+
+.liveops-hub-note {
+    flex-direction: row;
+    align-items: center;
+    margin: 8px 10px 0 10px;
+    padding: 4px 8px;
+    border-width: 1px;
+    border-radius: 3px;
+    border-color: var(--unity-colors-window-border);
+    background-color: var(--unity-colors-toolbar-background);
+}
+
+.liveops-hub-note-text {
+    margin: 0 0 0 6px;
+    padding: 0;
+    white-space: normal;
+}
+
+/* ---------------------------------------------------------------- Thân màn */
+
+.liveops-hub-section-body {
+    flex-grow: 1;
+    flex-shrink: 1;
+    min-height: 0;
+    flex-direction: column;
+}
+
+/* ---------------------------------------------------------------- Status bar 20px — [FD §3.4] */
+
+.liveops-hub-status {
+    height: 20px;
+    flex-shrink: 0;
+    flex-direction: row;
+    align-items: center;
+    padding: 0 8px;
+    background-color: var(--unity-colors-toolbar-background);
+    border-top-width: 1px;
+    border-top-color: var(--unity-colors-window-border);
+}
+
+.liveops-hub-status-left {
+    flex-grow: 1;
+    flex-shrink: 1;
+    flex-direction: row;
+    align-items: center;
+    min-width: 0;
+    opacity: 0.82;
+}
+
+.liveops-hub-status-text {
+    margin: 0;
+    padding: 0;
+    font-size: 10px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.liveops-hub-status-mark {
+    margin-right: 6px;
+}
+
+/* Chưa có câu trạng thái thì ẩn dấu nhưng giữ chỗ — một vòng rỗng không kèm lý do sẽ bị đọc thành trạng thái thật. */
+.liveops-hub-status-mark--hidden {
+    visibility: hidden;
+}
+
+.liveops-hub-status-right {
+    flex-shrink: 0;
+    margin-left: 6px;
+    opacity: 0.7;
+}
+
+/* ---------------------------------------------------------------- Card lỗi — [FD §4.1] khung 1 (màn ném) và 2 (thiếu UXML) */
+
+.liveops-hub-failure {
+    margin: 10px;
+    padding: 8px 10px;
+    border-width: 1px;
+    border-left-width: 3px;
+    border-radius: 3px;
+    border-color: var(--unity-colors-window-border);
+    border-left-color: var(--liveops-hub-color-blocked-fill);
+    background-color: var(--unity-colors-toolbar-background);
+}
+
+/* Thiếu UXML: card là thứ duy nhất trong cửa sổ, nên chiếm bề ngang đọc được thay vì trải hết. */
+.liveops-hub-failure--window {
+    max-width: 720px;
+}
+
+.liveops-hub-failure-head {
+    flex-direction: row;
+    align-items: center;
+}
+
+.liveops-hub-failure-title {
+    flex-grow: 1;
+    flex-shrink: 1;
+    margin: 0 0 0 6px;
+    padding: 0;
+    font-size: 12px;
+    -unity-font-style: bold;
+    white-space: normal;
+}
+
+.liveops-hub-failure-body {
+    margin: 6px 0 0 0;
+    padding: 0;
+    opacity: 0.9;
+    white-space: normal;
+}
+
+.liveops-hub-failure-actions {
+    flex-direction: row;
+    margin-top: 8px;
+}
+
+.liveops-hub-failure-footnote {
+    margin: 8px 0 0 0;
+    padding: 0;
+    font-size: 10px;
+    opacity: 0.7;
+    white-space: normal;
+}
+
+/* ---------------------------------------------------------------- Trạng thái trống — [FD §4] */
+
+.liveops-hub-empty {
+    padding: 16px;
+    max-width: 520px;
+}
+
+.liveops-hub-empty-title {
+    margin: 0 0 4px 0;
+    padding: 0;
+    font-size: 12px;
+    -unity-font-style: bold;
+    white-space: normal;
+}
+
+.liveops-hub-empty-body {
+    margin: 0;
+    padding: 0;
+    white-space: normal;
+}
