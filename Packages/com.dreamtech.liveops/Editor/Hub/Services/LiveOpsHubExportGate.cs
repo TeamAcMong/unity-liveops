@@ -208,7 +208,7 @@ namespace DreamTech.LiveOps.Editor
             DraftCompilation = draftCompilation ?? throw new ArgumentNullException(nameof(draftCompilation), LiveOpsHubStrings.ExportGateErrorCompilationMissing);
             DisplayFormat = displayFormat ?? throw new ArgumentNullException(nameof(displayFormat), LiveOpsHubStrings.ExportGateErrorFormatMissing);
             // Đọc được mà không có kết quả là lỗi lập trình của nơi gọi — coi như không đọc được sẽ giấu lỗi đó sau card (h).
-            if (readBackIsReadable && readBack == null) throw new ArgumentNullException(nameof(readBack));
+            if (readBackIsReadable && readBack == null) throw new ArgumentNullException(nameof(readBack), LiveOpsHubStrings.ExportGateErrorReadBackMissing);
             ReadBack = readBack;
             ReadBackIsReadable = readBackIsReadable;
             ReadBackErrorText = readBackErrorText ?? string.Empty;
@@ -268,7 +268,9 @@ namespace DreamTech.LiveOps.Editor
         public ExportGateInput WithCheck(LiveEventCalendarCheckReport lastReport, bool isStale, bool isRunning, int completedRuleCount, int ruleCount,
             DateTime? checkedAtUtc)
         {
-            if (completedRuleCount < 0 || ruleCount < 0) throw new ArgumentOutOfRangeException(nameof(completedRuleCount), LiveOpsHubStrings.ExportGateErrorNegativeCount);
+            // Kiểm riêng từng số để ParamName chỉ đúng tham số âm — nơi gọi đọc tên đó để biết bộ đếm nào của phiên hỏng.
+            if (completedRuleCount < 0) throw new ArgumentOutOfRangeException(nameof(completedRuleCount), LiveOpsHubStrings.ExportGateErrorNegativeCount);
+            if (ruleCount < 0) throw new ArgumentOutOfRangeException(nameof(ruleCount), LiveOpsHubStrings.ExportGateErrorNegativeCount);
             ExportGateInput copy = Copy();
             copy.LastReport = lastReport;
             copy.IsCheckStale = isStale;
@@ -529,7 +531,7 @@ namespace DreamTech.LiveOps.Editor
 
         public static ExportGateState Evaluate(ExportGateInput input)
         {
-            if (input == null) throw new ArgumentNullException(nameof(input));
+            if (input == null) throw new ArgumentNullException(nameof(input), LiveOpsHubStrings.ExportGateErrorInputMissing);
             LiveOpsHubFormat format = input.DisplayFormat;
             LiveEventCalendarJsonText json = input.Json;
 
@@ -547,6 +549,11 @@ namespace DreamTech.LiveOps.Editor
                 ? ReadBackStatus.Failed
                 : (SameSequence(expectedEntries, readBackEntries) ? ReadBackStatus.Confirmed : ReadBackStatus.Mismatch);
             bool readBackConfirmed = readBackStatus == ReadBackStatus.Confirmed;
+            // Dòng 2 so với dãy mục của bộ biên dịch, còn dòng 1 đếm phát hiện Bị bỏ của Kiểm lịch — hai số lệch được (luật 8 loại
+            // lạ bỏ đợt mà bộ biên dịch không xét loại; phát hiện đã bỏ qua). Chỉ nói "Kiểm lịch" ở dòng 2 khi báo cáo mới và cùng
+            // số, kẻo dòng 1 "1 đợt bị bỏ" đứng cạnh dòng 2 "giữ 8/8 mục, khớp Kiểm lịch".
+            int expectedDroppedCount = expectedEntries.Count - KeptCountOf(expectedEntries);
+            bool checkAgreesWithCompiler = isFresh && droppedCount == expectedDroppedCount;
 
             // ---- Bản so
             PublishedCalendarStamp stamp = input.ActiveStamp;
@@ -556,22 +563,26 @@ namespace DreamTech.LiveOps.Editor
             int requiredCount = hasStamp && diff != null ? diff.ReviewRequiredCount : 0;
             int reviewedCount = Math.Min(input.ReviewedRequiredCount, requiredCount);
             int unreviewedCount = requiredCount - reviewedCount;
-            bool noChanges = hasStamp && diff != null && diff.IsEmpty;
-            bool markHasChanges = !hasStamp || (diff != null && !diff.IsEmpty);
+            bool draftMatchesStamp = hasStamp && string.Equals(stamp.Sha256Hex, json.Sha256Hex, StringComparison.OrdinalIgnoreCase);
+            bool calendarUnchanged = hasStamp && diff != null && diff.IsEmpty;
+            // Diff so hai TÀI LIỆU, còn game nhận BYTE: chọn định dạng 1 (mất luật lặp) hay bộ ghi đổi cách viết cho diff rỗng mà
+            // JSON khác bản đã đăng. Khi đó vẫn có thứ để ghi — dấu phải mang sha mới, không thì dòng Bản remote báo "khác dấu".
+            bool noChanges = calendarUnchanged && draftMatchesStamp;
+            bool sameCalendarDifferentJson = calendarUnchanged && !draftMatchesStamp;
+            bool markHasChanges = !hasStamp || (diff != null && !noChanges);
 
             bool exportedCurrent = input.LastExportedSha256Hex.Length > 0 &&
                                    string.Equals(input.LastExportedSha256Hex, json.Sha256Hex, StringComparison.OrdinalIgnoreCase);
-            bool draftMatchesStamp = hasStamp && string.Equals(stamp.Sha256Hex, json.Sha256Hex, StringComparison.OrdinalIgnoreCase);
 
             // ---- Năm dòng
             var rows = new ExportGateRow[5];
             rows[(int)ExportGateRowKind.NoDroppedEntries] = DroppedRow(hasReport, isFresh, isRunning, droppedCount, format);
             string readBackErrorReportText;
             ExportGateReadBackFailure readBackFailure;
-            rows[(int)ExportGateRowKind.ParserReadBack] = ReadBackRow(input, readBackStatus, expectedEntries, readBackEntries, format,
-                out readBackErrorReportText, out readBackFailure);
+            rows[(int)ExportGateRowKind.ParserReadBack] = ReadBackRow(input, readBackStatus, expectedEntries, readBackEntries, checkAgreesWithCompiler,
+                format, out readBackErrorReportText, out readBackFailure);
             rows[(int)ExportGateRowKind.CheckFreshness] = FreshnessRow(input, hasReport, isStale, isRunning, format);
-            bool justMarked = noChanges && draftMatchesStamp && exportedCurrent;
+            bool justMarked = noChanges && exportedCurrent;
             rows[(int)ExportGateRowKind.RemoteSnapshot] = RemoteRow(input, stamp, justMarked, format);
             rows[(int)ExportGateRowKind.RequiredChangesReviewed] = ReviewedRow(hasStamp, diff, reviewedCount, requiredCount, unreviewedCount, format);
 
@@ -684,6 +695,12 @@ namespace DreamTech.LiveOps.Editor
             {
                 diffEmptyText = string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.ExportGateNoChangesFormat, StampTimeText(stamp, format), stamp.ShortSha);
             }
+            else if (sameCalendarDifferentJson)
+            {
+                // Card diff rỗng nhưng không được nói "Không có gì mới": thứ được copy khác bản đã đăng, nêu cả hai sha để thấy vì sao.
+                diffEmptyText = string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.ExportGateSameCalendarDifferentJsonFormat, StampTimeText(stamp, format),
+                    stamp.ShortSha, shortSha);
+            }
 
             string restoringNoticeText = input.RestoredFromStamp != null
                 ? string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.ExportGateRestoringFormat, StampTimeText(input.RestoredFromStamp, format))
@@ -747,7 +764,8 @@ namespace DreamTech.LiveOps.Editor
         }
 
         private static ExportGateRow ReadBackRow(ExportGateInput input, ReadBackStatus status, List<EntrySignature> expectedEntries,
-            List<EntrySignature> readBackEntries, LiveOpsHubFormat format, out string errorReportText, out ExportGateReadBackFailure failure)
+            List<EntrySignature> readBackEntries, bool checkAgreesWithCompiler, LiveOpsHubFormat format, out string errorReportText,
+            out ExportGateReadBackFailure failure)
         {
             LiveEventCalendarJsonText json = input.Json;
             if (status == ReadBackStatus.Failed)
@@ -788,18 +806,24 @@ namespace DreamTech.LiveOps.Editor
                 string text;
                 if (readBackTotal != expectedEntries.Count)
                 {
-                    text = string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.ExportGateReadBackMismatchEntryCountFormat, totalText,
+                    text = string.Format(CultureInfo.InvariantCulture, checkAgreesWithCompiler
+                            ? LiveOpsHubStrings.ExportGateReadBackMismatchEntryCountFormat
+                            : LiveOpsHubStrings.ExportGateReadBackMismatchEntryCountCompilerFormat, totalText,
                         format.Integer(expectedEntries.Count));
                 }
                 else if (readBackKept != expectedKept)
                 {
-                    text = string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.ExportGateReadBackMismatchKeptFormat, keptText, totalText,
+                    text = string.Format(CultureInfo.InvariantCulture, checkAgreesWithCompiler
+                            ? LiveOpsHubStrings.ExportGateReadBackMismatchKeptFormat
+                            : LiveOpsHubStrings.ExportGateReadBackMismatchKeptCompilerFormat, keptText, totalText,
                         format.Integer(expectedDropped));
                 }
                 else
                 {
                     // (V-6) Cùng số mà khác mục: ca hai đợt trùng id giữ lệch nhau — so số lượng thôi sẽ báo "khớp" giả.
-                    text = string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.ExportGateReadBackMismatchSameCountFormat, keptText, totalText,
+                    text = string.Format(CultureInfo.InvariantCulture, checkAgreesWithCompiler
+                            ? LiveOpsHubStrings.ExportGateReadBackMismatchSameCountFormat
+                            : LiveOpsHubStrings.ExportGateReadBackMismatchSameCountCompilerFormat, keptText, totalText,
                         format.Integer(expectedDropped));
                 }
 
@@ -829,7 +853,8 @@ namespace DreamTech.LiveOps.Editor
 
             errorReportText = string.Empty;
             return new ExportGateRow(ExportGateRowKind.ParserReadBack, ExportGateRowState.Ok,
-                string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.ExportGateReadBackOkFormat, keptText, totalText),
+                string.Format(CultureInfo.InvariantCulture,
+                    checkAgreesWithCompiler ? LiveOpsHubStrings.ExportGateReadBackOkFormat : LiveOpsHubStrings.ExportGateReadBackOkCompilerFormat, keptText, totalText),
                 string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.ExportGateReadBackOkNarrowFormat, keptText, totalText),
                 DropReasonSummary(readBackEntries, format), ExportGateRowAction.None, string.Empty, null);
         }

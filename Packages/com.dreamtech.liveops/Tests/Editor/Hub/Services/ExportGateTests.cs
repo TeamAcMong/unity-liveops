@@ -99,8 +99,11 @@ namespace DreamTech.LiveOps.Editor.Tests
                 .WithFixedEvent(new FixedLiveEventEntry("entry-second", "dup-0915", "treasure-hunt", "2026-09-17T00:00:00Z", "2026-09-18T00:00:00Z", "hunt_default"))
                 .Build();
             const string placeholder = "\"type-swap-placeholder\"";
-            ExportGateInput input = InputFor(draft, LiveEventCalendarJsonFormat.Version2,
+            ExportGateInput inputWithoutCheck = InputFor(draft, LiveEventCalendarJsonFormat.Version2,
                 text => text.Replace("\"lava-quest\"", placeholder).Replace("\"treasure-hunt\"", "\"lava-quest\"").Replace(placeholder, "\"treasure-hunt\""));
+            LiveEventCalendarCheckReport report = LiveEventCalendarValidator.Default.Check(new LiveEventCalendarCheckContextBuilder(draft, LiveOpsDesignSample.NowUtc).Build());
+            Assert.AreEqual(1, report.Summary.DroppedCount, "tiền điều kiện: Kiểm lịch báo đúng một đợt bị bỏ vì trùng id");
+            ExportGateInput input = inputWithoutCheck.WithCheck(report, false, false, report.RuleResults.Count, report.RuleResults.Count, CheckedAtUtc);
 
             Assert.AreEqual(input.DraftCompilation.EntryCount, input.ReadBack.Compilation.EntryCount, "tiền điều kiện: cùng số mục");
             Assert.AreEqual(input.DraftCompilation.KeptCount, input.ReadBack.Compilation.KeptCount, "tiền điều kiện: cùng số giữ");
@@ -118,6 +121,78 @@ namespace DreamTech.LiveOps.Editor.Tests
             StringAssert.Contains("mục thứ 2:", state.ReadBackErrorReportText);
             AssertAllButtonsDisabled(state);
             Assert.AreEqual(HealthState.Blocked, state.Health.State);
+
+            // Chưa kiểm lịch thì dòng 1 "chưa biết đợt nào bị bỏ" — dòng 2 không được mượn lời Kiểm lịch, vẫn chặn vì lệch dãy mục.
+            ExportGateState withoutCheck = ExportGateModel.Evaluate(inputWithoutCheck);
+            Assert.AreEqual(ExportGateStatusCode.ReadBackMismatch, withoutCheck.StatusCode);
+            Assert.AreEqual("Parser giữ 1/2, bộ biên dịch của hub cũng bỏ 1 nhưng khác mục — lỗi của hub",
+                withoutCheck.Row(ExportGateRowKind.ParserReadBack).Text);
+        }
+
+        [Test]
+        public void ParserRow_SaysMatchesCheckOnlyWhenDroppedCountsAgree()
+        {
+            // Loại lạ trong nháp (luật 8): Kiểm lịch báo Bị bỏ, còn bộ biên dịch không xét loại nên parser giữ đủ mục. Dòng 2 nói
+            // "khớp Kiểm lịch" lúc này sẽ mâu thuẫn với dòng 1 "1 đợt bị bỏ".
+            LiveEventCalendarDocument draft = WithExtraEvent(FixedDraft(), new FixedLiveEventEntry("draft-lucky-spin", "lucky-spin-0920", "lucky-spin",
+                "2026-09-20T00:00:00Z", "2026-09-21T00:00:00Z", "lucky_spin_v1"), true);
+            ExportGateInput input = ReadyInput(draft, 1);
+            Assert.AreEqual(1, input.LastReport.Summary.DroppedCount, "tiền điều kiện: loại lạ trong nháp là Bị bỏ (V-17)");
+            Assert.AreEqual(0, input.DraftCompilation.DroppedCount, "tiền điều kiện: bộ biên dịch không bỏ đợt vì loại lạ");
+
+            ExportGateState state = ExportGateModel.Evaluate(input);
+
+            Assert.AreEqual("Kiểm lịch: 1 đợt bị bỏ", state.Row(ExportGateRowKind.NoDroppedEntries).Text);
+            ExportGateRow parser = state.Row(ExportGateRowKind.ParserReadBack);
+            Assert.AreEqual(ExportGateRowState.Ok, parser.State);
+            string counts = input.DraftCompilation.KeptCount + "/" + input.DraftCompilation.EntryCount;
+            Assert.AreEqual("Parser của game xác nhận: giữ " + counts + " mục, khớp bộ biên dịch của hub", parser.Text);
+            Assert.AreEqual("Parser của game xác nhận: giữ " + counts + " mục", parser.NarrowText);
+            Assert.AreEqual(ExportGateStatusCode.Blocked, state.StatusCode);
+        }
+
+        [Test]
+        public void SameCalendarDifferentJson_IsNotNoChanges()
+        {
+            // Nháp trùng tài liệu bản đã đăng nhưng chọn định dạng 1: diff rỗng, còn byte game nhận khác sha của dấu.
+            LiveEventCalendarDocument draft = NoChangeDraft();
+            ExportGateInput input = WithDesignCheckAndStamp(InputFor(draft, LiveEventCalendarJsonFormat.Version1, null), 0, draft);
+            Assert.IsTrue(input.PublishedDiff.IsEmpty, "tiền điều kiện: diff tài liệu rỗng");
+            Assert.AreNotEqual(input.ActiveStamp.Sha256Hex, input.Json.Sha256Hex, "tiền điều kiện: JSON khác sha của dấu");
+
+            ExportGateState state = ExportGateModel.Evaluate(input);
+
+            Assert.AreEqual(ExportGateStatusCode.Ready, state.StatusCode, "không phải (f): thứ sắp copy khác bản đã đăng");
+            Assert.IsFalse(state.HasStatus(ExportGateStatusCode.NoChanges));
+            Assert.IsTrue(state.Copy.IsEnabled);
+            Assert.AreEqual("Còn thiếu cho Đánh dấu: copy hoặc lưu file bản này", state.ReasonText);
+            Assert.AreEqual("Lịch không đổi so với 11/9 16:20, nhưng JSON sắp xuất khác bản đã đăng: sha " + input.ActiveStamp.ShortSha + " → "
+                + input.Json.ShortSha, state.DiffEmptyText);
+
+            ExportGateState exported = ExportGateModel.Evaluate(input.WithLastExportedSha256Hex(input.Json.Sha256Hex));
+            Assert.AreEqual(ExportGateStatusCode.Exported, exported.StatusCode);
+            Assert.IsTrue(exported.MarkPublished.IsEnabled, "dấu phải mang sha mới, không thì dòng Bản remote báo khác dấu");
+            Assert.AreEqual("Ghi dấu đã đăng cho sha " + input.Json.ShortSha, exported.MarkPublished.Tooltip);
+            Assert.AreEqual("Bản remote: chưa dán — không biết Firebase đang giữ gì", exported.Row(ExportGateRowKind.RemoteSnapshot).Text,
+                "không phải (e) vừa ghi dấu");
+        }
+
+        [Test]
+        public void Input_InvalidArguments_ThrowWithParameterName()
+        {
+            ExportGateInput input = ReadyInput(FixedDraft(), 0);
+
+            ArgumentOutOfRangeException negativeRuleCount = Assert.Throws<ArgumentOutOfRangeException>(() => input.WithCheck(null, false, false, 0, -1, null));
+            Assert.AreEqual("ruleCount", negativeRuleCount.ParamName);
+            ArgumentOutOfRangeException negativeCompleted = Assert.Throws<ArgumentOutOfRangeException>(() => input.WithCheck(null, false, false, -1, 12, null));
+            Assert.AreEqual("completedRuleCount", negativeCompleted.ParamName);
+
+            ArgumentNullException missingInput = Assert.Throws<ArgumentNullException>(() => ExportGateModel.Evaluate(null));
+            AssertStartsWith("Cổng xuất cần đầu vào để đánh giá.", missingInput.Message);
+            ArgumentNullException missingReadBack = Assert.Throws<ArgumentNullException>(() =>
+                new ExportGateInput(input.Json, input.DraftCompilation, null, true, string.Empty, Format));
+            Assert.AreEqual("readBack", missingReadBack.ParamName);
+            AssertStartsWith("Cổng xuất cần kết quả parser đọc lại khi JSON đọc được.", missingReadBack.Message);
         }
 
         [Test]
@@ -266,6 +341,10 @@ namespace DreamTech.LiveOps.Editor.Tests
             Assert.AreEqual("chặn Copy JSON", state.CopyBlockColumnTextFor(LiveEventCalendarConsequence.Dropped, false));
             Assert.AreEqual("chặn Copy JSON", state.CopyBlockColumnTextFor(LiveEventCalendarConsequence.ProgressLost, false));
             Assert.AreEqual(string.Empty, state.CopyBlockColumnTextFor(LiveEventCalendarConsequence.ShouldReview, false));
+            // V-17: phát hiện về JSON đang chạy không bao giờ có cột chặn — kiểm ở đây vì dòng 1 và 5 đều Blocked, nên chỉ nhánh
+            // isAboutRemoteSnapshot mới trả được chuỗi rỗng cho Bị bỏ/Mất tiến độ.
+            Assert.AreEqual(string.Empty, state.CopyBlockColumnTextFor(LiveEventCalendarConsequence.Dropped, true));
+            Assert.AreEqual(string.Empty, state.CopyBlockColumnTextFor(LiveEventCalendarConsequence.ProgressLost, true));
         }
 
         private static void AssertStateReady()
@@ -343,6 +422,11 @@ namespace DreamTech.LiveOps.Editor.Tests
                 .WithCheck(report, true, false, report.RuleResults.Count, report.RuleResults.Count, StaleCheckedAtUtc)
                 .WithStaleCause(null, new DateTime(2026, 9, 14, 0, 0, 0, DateTimeKind.Utc)));
             Assert.AreEqual("Kiểm lịch cũ: đã qua mốc 14/9 00:00 UTC sau lần kiểm 08:46:30", milestone.Row(ExportGateRowKind.CheckFreshness).Text);
+
+            // Không rõ vì sao cũ (vd domain reload cắt ngang): câu trung tính, không khẳng định lịch đã đổi.
+            ExportGateState unknownCause = ExportGateModel.Evaluate(fresh
+                .WithCheck(report, true, false, report.RuleResults.Count, report.RuleResults.Count, StaleCheckedAtUtc));
+            Assert.AreEqual("Kiểm lịch cũ: kết quả lúc 08:46:30 có thể không còn đúng", unknownCause.Row(ExportGateRowKind.CheckFreshness).Text);
 
             ExportGateState running = ExportGateModel.Evaluate(fresh.WithCheck(report, true, true, 7, 12, StaleCheckedAtUtc));
             Assert.AreEqual(ExportGateStatusCode.StaleCheck, running.StatusCode);
