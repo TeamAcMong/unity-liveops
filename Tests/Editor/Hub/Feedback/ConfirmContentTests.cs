@@ -21,6 +21,9 @@ namespace DreamTech.LiveOps.Editor.Tests
     public sealed class ConfirmContentTests
     {
         private const int MaximumFrames = 60;
+        // Chờ theo cả khung lẫn giờ thật: batch chạy 60 khung trong ~60 ms, máy bận (một Unity khác chạy song song) thì focus/layout
+        // chưa kịp và test đỏ giả — chỉ fail khi quá cả số khung lẫn số giây (cổng W2-CLOSE2 gặp đúng ca này ở 6000.6).
+        private const double MaximumWaitSeconds = 5.0;
         private const string RunningId = "weekly-pass-35";
 
         private LiveOpsConfirmWindow _window;
@@ -61,9 +64,10 @@ namespace DreamTech.LiveOps.Editor.Tests
             _window = LiveOpsConfirmWindow.OpenForTest(request);
             LiveOpsConfirmContent content = _window.Content;
             int frames = 0;
+            double deadline = UnityEditor.EditorApplication.timeSinceStartup + MaximumWaitSeconds;
             while (!IsFocusedInside(content, request.Level == LiveOpsConfirmLevel.TypeToConfirm ? (VisualElement)content.TypeField : content.SafeButton))
             {
-                if (++frames > MaximumFrames) Assert.Fail("hộp không focus phần tử đầu sau " + MaximumFrames + " khung");
+                if (++frames > MaximumFrames && UnityEditor.EditorApplication.timeSinceStartup > deadline) Assert.Fail("hộp không focus phần tử đầu sau " + MaximumFrames + " khung và " + MaximumWaitSeconds + " giây");
                 yield return null;
             }
         }
@@ -77,9 +81,10 @@ namespace DreamTech.LiveOps.Editor.Tests
         {
             element.Focus();
             int frames = 0;
+            double deadline = UnityEditor.EditorApplication.timeSinceStartup + MaximumWaitSeconds;
             while (!IsFocusedInside(_window.Content, element))
             {
-                if (++frames > MaximumFrames) Assert.Fail("không focus được '" + element.name + "'");
+                if (++frames > MaximumFrames && UnityEditor.EditorApplication.timeSinceStartup > deadline) Assert.Fail("không focus được '" + element.name + "'");
                 yield return null;
             }
         }
@@ -280,10 +285,11 @@ namespace DreamTech.LiveOps.Editor.Tests
             LiveOpsConfirmContent content = _window.Content;
             Assert.IsTrue(content.IsLayoutMissing);
             int frames = 0;
+            double deadline = UnityEditor.EditorApplication.timeSinceStartup + MaximumWaitSeconds;
             // Chờ nút an toàn có focus và có kích thước thật: phím đi tới phần tử focus, click cần worldBound.
             while (!IsFocusedInside(content, content.SafeButton) || float.IsNaN(content.SafeButton.worldBound.width) || content.SafeButton.worldBound.width <= 0f)
             {
-                if (++frames > MaximumFrames) Assert.Fail("hộp thiếu UXML không focus nút an toàn sau " + MaximumFrames + " khung");
+                if (++frames > MaximumFrames && UnityEditor.EditorApplication.timeSinceStartup > deadline) Assert.Fail("hộp thiếu UXML không focus nút an toàn sau " + MaximumFrames + " khung và " + MaximumWaitSeconds + " giây");
                 yield return null;
             }
         }

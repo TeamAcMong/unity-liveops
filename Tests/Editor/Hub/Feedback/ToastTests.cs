@@ -44,6 +44,9 @@ namespace DreamTech.LiveOps.Editor.Tests
         }
 
         private const int MaximumFrames = 60;
+        // Chờ theo cả khung lẫn giờ thật: batch chạy 60 khung trong ~60 ms, máy bận (một Unity khác chạy song song) thì focus/layout
+        // chưa kịp và test đỏ giả — chỉ fail khi quá cả số khung lẫn số giây (cổng W2-CLOSE2 gặp đúng ca này ở 6000.6).
+        private const double MaximumWaitSeconds = 5.0;
 
         private ToastProbeWindow _window;
 
@@ -143,9 +146,14 @@ namespace DreamTech.LiveOps.Editor.Tests
             // Tooltip mặc định (không truyền, = Message): sau Hoàn tác cũng phải qua cùng đường DisplayTooltip.
             LiveOpsToastModel defaultTooltip = RecordEdit("Đã xoá hunt-0916-bonus", "second");
             _toast.Show(defaultTooltip);
+            Assert.AreEqual("Đã xoá hunt-0916-bonus", _toast.tooltip, "trước Hoàn tác: tooltip mặc định là câu toast, chưa có tiền tố");
             InvokeAction();
+            // Khẳng định lượt Hoàn tác thật sự chạy và chữ mong đợi viết tường minh: nếu chỉ so với DisplayTooltip/DisplayMessage
+            // của chính model thì test vẫn xanh khi Hoàn tác không xảy ra (hai vế cùng là câu gốc).
+            Assert.IsTrue(_toast.Model.IsUndone, "nút Hoàn tác phải gỡ group vừa ghi");
+            Assert.AreEqual(LiveOpsHubStrings.KitToastUndonePrefix + "Đã xoá hunt-0916-bonus", _toast.tooltip,
+                "sau Hoàn tác: tooltip mặc định mang tiền tố, trùng DisplayMessage vì Tooltip == Message");
             Assert.AreEqual(_toast.Model.DisplayTooltip, _toast.tooltip);
-            Assert.AreEqual(_toast.Model.DisplayMessage, _toast.tooltip, "tooltip mặc định trùng DisplayMessage vì Tooltip == Message");
         }
 
         [Test]
@@ -272,9 +280,10 @@ namespace DreamTech.LiveOps.Editor.Tests
             Assert.IsTrue(_toast.ClassListContains(LiveOpsHubClassNames.ToastVisible));
 
             int frames = 0;
+            double deadline = UnityEditor.EditorApplication.timeSinceStartup + MaximumWaitSeconds;
             while (float.IsNaN(_toast.CloseButton.worldBound.width) || _toast.CloseButton.worldBound.width <= 0f)
             {
-                if (++frames > MaximumFrames) Assert.Fail("nút đóng không có kích thước sau " + MaximumFrames + " khung");
+                if (++frames > MaximumFrames && UnityEditor.EditorApplication.timeSinceStartup > deadline) Assert.Fail("nút đóng không có kích thước sau " + MaximumFrames + " khung và " + MaximumWaitSeconds + " giây");
                 yield return null;
             }
 
