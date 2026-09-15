@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Text;
 
 namespace DreamTech.LiveOps.Editor
 {
@@ -37,11 +38,13 @@ namespace DreamTech.LiveOps.Editor
 
         private const string NoParseOpen = "<noparse>";
         private const string NoParseClose = "</noparse>";
+        private const string NoParseTagName = "noparse";
 
-        // Giá trị thô chứa đúng thẻ noparse sẽ đóng vùng noparse giữa chừng và phần sau bị parse thành thẻ. Chèn một ký tự không
-        // bề rộng trước '>' làm chuỗi không còn là thẻ mà nhìn gần như cũ; PlainText gỡ ra lại.
-        private const string EscapedNoParseOpen = "<noparse​>";
-        private const string EscapedNoParseClose = "</noparse​>";
+        // Giá trị thô chứa thẻ noparse sẽ đóng vùng noparse giữa chừng và phần sau bị parse thành thẻ. Bộ parse rich text so tên thẻ
+        // KHÔNG phân biệt hoa thường (TMP_Text băm tên qua ToUpperFast) nên "</NoParse>" cũng đóng vùng. Chèn một ký tự không bề rộng ngay
+        // sau '<' của mọi "<noparse"/"</noparse" (mọi kiểu hoa thường) làm tên thẻ không còn khớp mà chữ nhìn gần như cũ; PlainText gỡ ra lại.
+        private const char ZeroWidthSpace = '\u200B';
+        private const string ZeroWidthSpaceText = "\u200B";
 
         private const string KeySeparator = "|";
         private const string PairFormat = "{0} {1}";
@@ -180,6 +183,21 @@ namespace DreamTech.LiveOps.Editor
                 default:
                     return string.Empty;
             }
+        }
+
+        /// <summary>
+        /// Như trên, biết tên file asset lịch đang mở: tooltip "Bỏ qua cảnh báo…" nói đúng chữ thiết kế "…lưu trong Main.asset" [SD2 §2.3 hàng 5].
+        /// Tách overload vì tên asset tuỳ dự án và lớp câu không tự đọc đường dẫn; <paramref name="calendarAssetName"/> rỗng = câu chung.
+        /// </summary>
+        public static string PrimaryButtonTooltip(LiveEventCalendarFinding finding, LiveOpsHubFormat format, string calendarAssetName)
+        {
+            if (finding == null) throw new ArgumentNullException(nameof(finding));
+            if (format == null) throw new ArgumentNullException(nameof(format));
+            if (finding.RepairKind == LiveEventCalendarRepairKind.Ignorable && !string.IsNullOrEmpty(calendarAssetName))
+            {
+                return Format(LiveOpsHubStrings.FindingTooltipIgnorableInAssetFormat, NoParse(calendarAssetName));
+            }
+            return PrimaryButtonTooltip(finding, format);
         }
 
         /// <summary>
@@ -387,6 +405,19 @@ namespace DreamTech.LiveOps.Editor
             }
         }
 
+        /// <summary>
+        /// (PD-9) Nhãn của hàng luật Không áp dụng trong card "Đã qua": "không áp dụng: chưa có dấu đã đăng" cho luật 9 khi chưa có dấu; mã lạ
+        /// "không áp dụng: lý do …"; "" với kết quả không phải Không áp dụng. Màn không tự viết nhãn này (V-8).
+        /// </summary>
+        public static string RuleResultNotApplicableLabel(LiveEventCalendarRuleResult result)
+        {
+            if (result == null) throw new ArgumentNullException(nameof(result));
+            if (result.Outcome != LiveEventCalendarRuleOutcome.NotApplicable) return string.Empty;
+            return HasRuleResultSentence(result.RuleId, result.Outcome, result.ReasonCode)
+                ? LiveOpsHubStrings.FindingRunningNotApplicableLabel
+                : Format(LiveOpsHubStrings.FindingRuleNotApplicableLabelFormat, NoParse(result.ReasonCode));
+        }
+
         /// <summary>Nút của hàng luật: "Dán JSON đang chạy…" khi chưa dán, "Copy lỗi" khi luật ném; "" còn lại.</summary>
         public static string RuleResultButtonText(LiveEventCalendarRuleResult result)
         {
@@ -405,9 +436,7 @@ namespace DreamTech.LiveOps.Editor
         public static string NoParse(string rawValue)
         {
             if (string.IsNullOrEmpty(rawValue)) return string.Empty;
-            string escaped = rawValue
-                .Replace(NoParseOpen, EscapedNoParseOpen)
-                .Replace(NoParseClose, EscapedNoParseClose)
+            string escaped = EscapeNoParseTags(rawValue)
                 .Replace("\r", "\\r")
                 .Replace("\n", "\\n");
             return NoParseOpen + escaped + NoParseClose;
@@ -417,11 +446,41 @@ namespace DreamTech.LiveOps.Editor
         public static string PlainText(string text)
         {
             if (string.IsNullOrEmpty(text)) return string.Empty;
-            return text
+            return UnescapeNoParseTags(text
                 .Replace(NoParseOpen, string.Empty)
-                .Replace(NoParseClose, string.Empty)
-                .Replace(EscapedNoParseOpen, NoParseOpen)
-                .Replace(EscapedNoParseClose, NoParseClose);
+                .Replace(NoParseClose, string.Empty));
+        }
+
+        private static string EscapeNoParseTags(string rawValue)
+        {
+            if (rawValue.IndexOf('<') < 0) return rawValue;
+            var builder = new StringBuilder(rawValue.Length + 8);
+            for (int index = 0; index < rawValue.Length; index++)
+            {
+                builder.Append(rawValue[index]);
+                if (rawValue[index] == '<' && IsNoParseTagNameAt(rawValue, index + 1)) builder.Append(ZeroWidthSpace);
+            }
+            return builder.ToString();
+        }
+
+        private static string UnescapeNoParseTags(string text)
+        {
+            if (text.IndexOf(ZeroWidthSpaceText, StringComparison.Ordinal) < 0) return text;
+            var builder = new StringBuilder(text.Length);
+            for (int index = 0; index < text.Length; index++)
+            {
+                bool isEscapeMark = text[index] == ZeroWidthSpace && index > 0 && text[index - 1] == '<' && IsNoParseTagNameAt(text, index + 1);
+                if (!isEscapeMark) builder.Append(text[index]);
+            }
+            return builder.ToString();
+        }
+
+        /// <summary>true khi tại <paramref name="start"/> là tên thẻ noparse (có hoặc không '/' đứng trước), không phân biệt hoa thường.</summary>
+        private static bool IsNoParseTagNameAt(string text, int start)
+        {
+            if (start < text.Length && text[start] == '/') start++;
+            return start + NoParseTagName.Length <= text.Length &&
+                   string.Compare(text, start, NoParseTagName, 0, NoParseTagName.Length, StringComparison.OrdinalIgnoreCase) == 0;
         }
 
         // =============================================================================================================== bảng câu
@@ -861,6 +920,15 @@ namespace DreamTech.LiveOps.Editor
                             : Format(PairFormat, running, LiveOpsHubStrings.FindingRunningMovedOutShortLabel);
                     }
                     string newStart = input.Format.ShortDateTime(newStartUtc.Value);
+                    // Luật ra moved-out cho mọi khung mới không giao khung đang chạy — gồm cả dời về TRƯỚC; "dời ra sau 1/9" cho đợt đang chạy
+                    // từ 12/9 là câu sai nghĩa, nên so với lúc bắt đầu đang chạy (RangeStartUtc).
+                    bool movedEarlier = finding.RangeStartUtc.HasValue && newStartUtc.Value < finding.RangeStartUtc.Value;
+                    if (movedEarlier)
+                    {
+                        return isRecurring
+                            ? Format(LiveOpsHubStrings.FindingRunningMovedEarlierRecurringHeadlineFormat, target, running, newStart)
+                            : Format(LiveOpsHubStrings.FindingRunningMovedEarlierFixedHeadlineFormat, running, newStart);
+                    }
                     return isRecurring
                         ? Format(LiveOpsHubStrings.FindingRunningMovedOutRecurringHeadlineFormat, target, running, newStart)
                         : Format(LiveOpsHubStrings.FindingRunningMovedOutFixedHeadlineFormat, running, newStart);
@@ -915,7 +983,11 @@ namespace DreamTech.LiveOps.Editor
                     break;
                 }
             }
-            return finding.RepairKind == LiveEventCalendarRepairKind.None ? JoinParts(meta, LiveOpsHubStrings.FindingRunningManualFixMeta) : meta;
+            if (finding.RepairKind != LiveEventCalendarRepairKind.None) return meta;
+            // Chỉ đúng màn sửa như nút chính và ManualFixSentence: đợt cố định → Lịch, lần lặp → Luật lặp ("Mở luật").
+            return JoinParts(meta, finding.TargetKind == LiveEventCalendarTargetKind.RecurringRule
+                ? LiveOpsHubStrings.FindingRunningManualFixRecurringMeta
+                : LiveOpsHubStrings.FindingRunningManualFixMeta);
         }
 
         private static string RunningConsequence(LiveEventCalendarFinding finding, SentenceInput input)

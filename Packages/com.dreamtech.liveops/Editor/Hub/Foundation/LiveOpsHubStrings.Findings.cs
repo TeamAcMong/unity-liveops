@@ -36,6 +36,9 @@ namespace DreamTech.LiveOps.Editor
         internal const string FindingTooltipSafeRepair = "An toàn: chỉ chuẩn hoá chữ, không đổi điều người chơi thấy";
         internal const string FindingTooltipProposal = "Đổi điều người chơi thấy — áp từng cái";
         internal const string FindingTooltipIgnorable = "Chỉ khoảng này, ghi chú bắt buộc, lưu trong asset lịch";
+
+        /// <summary>{0} = tên file asset lịch đang mở ("Main.asset") — đúng chữ tooltip [SD2 §2.3 hàng 5] khi nơi gọi biết asset.</summary>
+        internal const string FindingTooltipIgnorableInAssetFormat = "Chỉ khoảng này, ghi chú bắt buộc, lưu trong {0}";
         internal const string FindingTooltipDecisionFormat = "Hai cách đúng: {0}, hoặc {1}";
 
         // ----- Lựa chọn sửa (popover Đề xuất…, menu Quyết định…, xem trước Sửa hàng loạt) -----
@@ -146,6 +149,8 @@ namespace DreamTech.LiveOps.Editor
         internal const string FindingRunningRetypedHeadlineFormat = "{0} đổi loại khi đang chạy";
         internal const string FindingRunningMovedOutFixedHeadlineFormat = "{0} dời ra sau {1} khi đang chạy";
         internal const string FindingRunningMovedOutRecurringHeadlineFormat = "{0} dời {1} ra sau {2} khi đang chạy";
+        internal const string FindingRunningMovedEarlierFixedHeadlineFormat = "{0} dời sớm về {1} khi đang chạy";
+        internal const string FindingRunningMovedEarlierRecurringHeadlineFormat = "{0} dời {1} sớm về {2} khi đang chạy";
         internal const string FindingRunningMovedOutWithoutTimeHeadlineFormat = "{0} dời {1} ra ngoài khung khi đang chạy";
         internal const string FindingRunningEndsNowFixedHeadlineFormat = "{0} khép ngay khi đang chạy";
         internal const string FindingRunningEndsNowRecurringHeadlineFormat = "{0} khép {1} ngay khi đang chạy";
@@ -161,6 +166,7 @@ namespace DreamTech.LiveOps.Editor
         internal const string FindingRunningNewWindowFormat = "khung mới {0}";
         internal const string FindingRunningNewEndFormat = "kết thúc mới {0}";
         internal const string FindingRunningManualFixMeta = "không hoàn về tự động được — sửa tay trong Lịch";
+        internal const string FindingRunningManualFixRecurringMeta = "không hoàn về tự động được — sửa tay ở Luật lặp";
         internal const string FindingRunningRestartConsequenceFormat = "{0} đang chạy tới {1}; người chơi có điểm bắt đầu lại từ 0.";
         internal const string FindingRunningStopConsequenceFormat = "{0} đang chạy tới {1}; người chơi đang chơi dừng cộng điểm, đợt vẫn khép theo giờ đã lưu.";
         internal const string FindingRunningEndsNowConsequenceFormat = "{0} đang chạy bị khép ngay, không chạy tới {1}; người chơi đang chơi dở nhận kết quả với điểm hiện có.";
@@ -224,6 +230,11 @@ namespace DreamTech.LiveOps.Editor
         internal const string FindingLatestStampNotLoadedMeta = "Chưa so được với dấu đã đăng mới nhất — bản so đang chọn là dấu khác.";
         internal const string FindingRunningNotApplicableHeadline = "Đổi id đợt đang chạy so với bản đã đăng";
         internal const string FindingNoPublishedStampMeta = "Chưa có dấu đã đăng · không có đợt đang chạy nào để so";
+
+        /// <summary>(PD-9) Nhãn của luật 9 trong card "Đã qua" khi chưa có dấu đã đăng — Không áp dụng, không đếm vào đã qua.</summary>
+        internal const string FindingRunningNotApplicableLabel = "không áp dụng: chưa có dấu đã đăng";
+
+        internal const string FindingRuleNotApplicableLabelFormat = "không áp dụng: lý do {0}";
         internal const string FindingRuleFailedHeadlineFormat = "Luật {0} không chạy được: {1}";
         internal const string FindingRuleFailedMetaFormat = "{0} · tính vào chưa kiểm";
         internal const string FindingRuleNotMeasuredHeadlineFormat = "Luật {0} chưa kiểm được";
@@ -307,5 +318,6 @@ namespace DreamTech.LiveOps.Editor
         internal const string ChangeTooltipRemoved = "đã xoá";
         internal const string ChangeTooltipDroppedByOther = "bị bỏ khi game đọc lịch (do mục khác)";
         internal const string ChangeTooltipReturnedByOther = "quay lại lịch (do mục khác)";
+        internal const string ChangeTooltipEndedRenameFormat = "đổi id đợt đã khép {0} → {1}";
     }
 }
