@@ -30,6 +30,37 @@ namespace DreamTech.LiveOps.Editor.Tests
         }
 
         [Test]
+        public void DisplayTooltip_BeforeUndo_EqualsTooltip()
+        {
+            LiveOpsToastModel withTooltip = LiveOpsToastModel.ForEdit("Đã dời hunt-0914", 3, "14/9 00:00 → 15/9 00:00");
+            LiveOpsToastModel withoutTooltip = LiveOpsToastModel.ForEdit("Đã xoá đợt hunt-0916-bonus", 7);
+
+            Assert.AreEqual("14/9 00:00 → 15/9 00:00", withTooltip.DisplayTooltip);
+            Assert.AreEqual(withoutTooltip.DisplayMessage, withoutTooltip.DisplayTooltip);
+        }
+
+        [Test]
+        public void DisplayTooltip_AfterUndo_ExplicitTooltipPrefixed_RedoRemovesPrefix()
+        {
+            LiveOpsToastModel toast = LiveOpsToastModel.ForEdit("Đã dời hunt-0914", 3, "14/9 00:00 → 15/9 00:00");
+
+            LiveOpsToastModel undone = toast.AsUndone();
+
+            Assert.AreEqual("Đã hoàn tác: 14/9 00:00 → 15/9 00:00", undone.DisplayTooltip);
+            Assert.AreEqual("14/9 00:00 → 15/9 00:00", undone.Tooltip, "Tooltip giữ chữ gốc, tiền tố chỉ ở DisplayTooltip");
+            Assert.AreEqual("14/9 00:00 → 15/9 00:00", undone.AsRedone().DisplayTooltip);
+        }
+
+        [Test]
+        public void DisplayTooltip_AfterUndo_DefaultTooltip_EqualsDisplayMessage()
+        {
+            LiveOpsToastModel undone = LiveOpsToastModel.ForEdit("Đã xoá đợt hunt-0916-bonus", 7).AsUndone();
+
+            Assert.AreEqual("Đã hoàn tác: Đã xoá đợt hunt-0916-bonus", undone.DisplayTooltip);
+            Assert.AreEqual(undone.DisplayMessage, undone.DisplayTooltip);
+        }
+
+        [Test]
         public void Info_HasNoUndoGroup()
         {
             LiveOpsToastModel toast = LiveOpsToastModel.Info("Không còn bản trên đĩa để so — đang so với bản đã đăng");

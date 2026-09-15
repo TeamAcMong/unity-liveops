@@ -1,0 +1,5 @@
+<UXML xmlns="UnityEngine.UIElements" xmlns:liveops="DreamTech.LiveOps.Editor">
+  <!-- Một file UXML đọc ở cả 2022.3 (UxmlFactory/UxmlTraits) và 6000.6 ([UxmlAttribute]) — SP-1. -->
+  <liveops:LiveOpsRuleCycleBar name="sky-race-overflow" period-hours="24" active-hours="30" />
+  <liveops:LiveOpsRuleCycleBar name="weekly-pass" period-hours="168" active-hours="168" />
+</UXML>
