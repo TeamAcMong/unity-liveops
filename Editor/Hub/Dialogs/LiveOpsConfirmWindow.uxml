@@ -1,0 +1,28 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" editor-extension-mode="True">
+    <!--
+        Bố cục hộp xác nhận cấp 1 / cấp 2 (8.6, [FD §3.10]). Tên element (name) là hợp đồng với LiveOpsConfirmContent.*ElementName —
+        đổi ở đây thì sửa hằng cùng nhịp. Không có chữ trong file này: câu tiêu đề/thân/nút do request dựng, chữ cố định lấy từ
+        LiveOpsHubStrings (code-lint chặn tiếng Việt trong UXML). Stylesheet gắn từ C# (LiveOpsFeedbackStyleSheets.ConfirmSheets)
+        cùng class liveops-hub-root, vì cửa sổ hộp là panel riêng — token của cửa sổ hub không tới đây.
+        Thứ tự nút: [gợi ý phím] … [phá huỷ] [an toàn]; hàng nút dính đáy nhờ margin-top: auto nên chỗ dư nằm trên hàng nút.
+    -->
+    <ui:VisualElement name="confirm-content" class="liveops-hub-confirm">
+        <ui:Label name="confirm-title" class="liveops-hub-confirm-title" />
+        <ui:Label name="confirm-body" class="liveops-hub-confirm-body" />
+        <ui:HelpBox name="confirm-warning" class="liveops-hub-confirm-warning" message-type="Warning" />
+        <ui:VisualElement name="confirm-type" class="liveops-hub-confirm-type">
+            <ui:VisualElement class="liveops-hub-confirm-type-row">
+                <ui:Label name="confirm-type-prefix" />
+                <ui:Label name="confirm-type-id" class="liveops-hub-confirm-type-id liveops-hub-mono" />
+                <ui:Label name="confirm-type-suffix" />
+            </ui:VisualElement>
+            <ui:TextField name="confirm-type-field" class="liveops-hub-confirm-type-field liveops-hub-mono" />
+            <ui:Label name="confirm-type-hint" class="liveops-hub-confirm-type-hint" />
+        </ui:VisualElement>
+        <ui:VisualElement name="confirm-buttons" class="liveops-hub-confirm-buttons">
+            <ui:Label name="confirm-key-hint" class="liveops-hub-confirm-key-hint" />
+            <ui:VisualElement name="confirm-destructive-host" />
+            <ui:Button name="confirm-safe" class="liveops-hub-button liveops-hub-button--primary" />
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

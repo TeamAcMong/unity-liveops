@@ -1,0 +1,331 @@
+/*
+ * liveops-hub-feedback.uss — toast, outcome, palette + scrim, hover card, popover ([FD §2.13, §3.8, §3.9], kế hoạch 8.5, 8.7).
+ * Nạp sau shell, trước controls/timeline/motion (theme → components → shell → feedback → controls → timeline → motion).
+ *
+ * Luật: không màu trần (mọi màu qua token theme hoặc --unity-colors-*; scrim đọc --liveops-hub-scrim-color), không gap/:last-child/
+ * @media. File chỉ khai trạng thái hiện/ẩn (opacity, translate) — thuộc tính transition-* nằm ở liveops-hub-motion.uss (nạp cuối) để
+ * biến thể "Tắt chuyển động" thắng. Thứ tự lớp nổi theo thứ tự con (USS không có z-index): C# BringToFront khi mở palette/hover card.
+ */
+
+/* ---------------------------------------------------------------- Toast — con cuối cột nội dung (PD-21) */
+
+.liveops-hub-toast {
+    position: absolute;
+    left: 8px;
+    bottom: 8px;
+    height: 24px;
+    max-width: 520px;
+    flex-direction: row;
+    align-items: center;
+    padding-left: 6px;
+    border-width: 1px;
+    border-radius: 3px;
+    border-color: var(--unity-colors-tooltip-border);
+    background-color: var(--unity-colors-tooltip-background);
+    /* Trạng thái ẩn: trượt xuống 8px và trong suốt; --visible đưa về chỗ (transition ở motion.uss). */
+    opacity: 0;
+    translate: 0 8px;
+}
+
+.liveops-hub-toast.liveops-hub-toast--visible {
+    opacity: 1;
+    translate: 0 0;
+}
+
+/* Sau khi mờ xong: bỏ khỏi picking và layout để toast ẩn không che nút bên dưới. */
+.liveops-hub-toast--hidden {
+    display: none;
+}
+
+/* Lịch có chân cố định (minimap + chú giải + gợi ý): toast nằm trên chân đó (PD-21, Hình 11). */
+.liveops-hub-content--raised-toast > .liveops-hub-toast {
+    bottom: 64px;
+}
+
+.liveops-hub-toast-icon {
+    margin-right: 6px;
+}
+
+/* Câu dài cắt ellipsis ở cuối — nút luôn còn (flex-shrink câu, không co nút). */
+.liveops-hub-toast-message {
+    flex-shrink: 1;
+    min-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    -unity-text-align: middle-left;
+    margin-right: 6px;
+    padding: 0;
+}
+
+.liveops-hub-toast-action {
+    height: 22px;
+    border-left-width: 1px;
+    border-left-color: var(--unity-colors-tooltip-border);
+}
+
+.liveops-hub-toast-action--hidden {
+    display: none;
+}
+
+/* ToolbarButton cao 22: nền trong suốt trên nền tooltip, chữ 11px. */
+.liveops-hub-toast-action-button {
+    height: 22px;
+    margin: 0;
+    padding: 1px 5px 0 5px;
+    border-width: 0;
+    border-radius: 0;
+    /* Nền nút = nền toast (tooltip): ToolbarButton phẳng, không màu trần ngoài theme. */
+    background-color: var(--unity-colors-tooltip-background);
+    font-size: 11px;
+}
+
+.liveops-hub-toast-action-button:hover {
+    background-color: var(--unity-colors-highlight-background-hover);
+}
+
+/* Lý do khoá "Đã có thao tác khác sau đó": chữ 10px quiet (không phải lỗi — chỉ là Undo đã đi tiếp). */
+.liveops-hub-toast-action .liveops-hub-button-reason {
+    color: var(--liveops-hub-color-quiet);
+    padding-left: 6px;
+}
+
+/* Nút đóng: icon clear 10px trong ô 18px. */
+.liveops-hub-toast-close {
+    width: 18px;
+    height: 18px;
+    margin: 0 2px 0 0;
+    padding: 0;
+    border-width: 0;
+    background-color: var(--unity-colors-tooltip-background);
+    align-items: center;
+    justify-content: center;
+}
+
+.liveops-hub-toast-close:hover {
+    background-color: var(--unity-colors-highlight-background-hover);
+}
+
+/* ---------------------------------------------------------------- Outcome — ở lại tới khi làm việc khác */
+
+.liveops-hub-outcome {
+    flex-direction: row;
+    align-items: flex-start;
+    flex-shrink: 0;
+    margin-top: 8px;
+    padding: 8px 10px;
+    border-width: 1px;
+    border-radius: 3px;
+    border-color: var(--unity-colors-window-border);
+    background-color: var(--unity-colors-toolbar-background);
+}
+
+.liveops-hub-outcome--hidden {
+    display: none;
+}
+
+.liveops-hub-outcome > .liveops-hub-state-mark {
+    margin-top: 3px;
+    margin-right: 8px;
+}
+
+.liveops-hub-outcome-text {
+    flex-grow: 1;
+    flex-shrink: 1;
+    min-width: 0;
+}
+
+.liveops-hub-outcome-headline {
+    font-size: 11px;
+    white-space: normal;
+    padding: 0;
+    margin: 0;
+}
+
+.liveops-hub-outcome-detail {
+    font-size: 10px;
+    opacity: 0.82;
+    white-space: normal;
+    padding: 0;
+    margin: 2px 0 0 0;
+}
+
+.liveops-hub-outcome-footnote {
+    font-size: 10px;
+    opacity: 0.7;
+    padding: 0;
+    margin: 2px 0 0 0;
+}
+
+.liveops-hub-outcome-action {
+    align-self: center;
+}
+
+.liveops-hub-outcome-action--hidden {
+    display: none;
+}
+
+/* ---------------------------------------------------------------- Palette ⌘K + scrim — [FD §3.8] */
+
+.liveops-hub-scrim {
+    position: absolute;
+    left: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    background-color: var(--liveops-hub-scrim-color);
+}
+
+.liveops-hub-scrim--hidden {
+    display: none;
+}
+
+/* Panel 440px, max 92%, cách đỉnh 60px, căn giữa ngang bằng margin trái/phải auto trong lớp absolute phủ ngang. */
+.liveops-hub-palette {
+    position: absolute;
+    top: 60px;
+    left: 0;
+    right: 0;
+    width: 440px;
+    max-width: 92%;
+    margin-left: auto;
+    margin-right: auto;
+    padding: 8px;
+    border-width: 1px;
+    border-radius: 4px;
+    border-color: var(--unity-colors-window-border);
+    background-color: var(--unity-colors-popup-background);
+    opacity: 0;
+}
+
+.liveops-hub-palette.liveops-hub-palette--visible {
+    opacity: 1;
+}
+
+.liveops-hub-palette--hidden {
+    display: none;
+}
+
+.liveops-hub-palette-field {
+    height: 20px;
+    margin: 0 0 6px 0;
+}
+
+.liveops-hub-palette-list {
+    max-height: 420px;
+    flex-shrink: 1;
+}
+
+.liveops-hub-palette-row {
+    flex-direction: row;
+    align-items: center;
+    height: 22px;
+    padding: 0 7px;
+    border-radius: 3px;
+}
+
+.liveops-hub-palette-row:hover {
+    background-color: var(--unity-colors-highlight-background-hover);
+}
+
+.liveops-hub-palette-row.liveops-hub-palette-row--selected {
+    background-color: var(--unity-colors-highlight-background);
+}
+
+/* Hàng chọn chữ trắng, kể cả chữ trạng thái ([FD §3.8]). */
+.liveops-hub-palette-row--selected .liveops-hub-palette-row-title,
+.liveops-hub-palette-row--selected .liveops-hub-palette-row-stage {
+    color: var(--liveops-hub-color-on-selection);
+}
+
+.liveops-hub-palette-row-mark {
+    margin-right: 7px;
+}
+
+.liveops-hub-palette-row-title {
+    flex-grow: 1;
+    flex-shrink: 1;
+    min-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    padding: 0;
+    margin: 0;
+    -unity-text-align: middle-left;
+}
+
+.liveops-hub-palette-row-stage {
+    flex-shrink: 0;
+    margin-left: 7px;
+    padding: 0;
+    font-size: 10px;
+    opacity: 0.7;
+    -unity-text-align: middle-right;
+}
+
+.liveops-hub-palette-row--selected .liveops-hub-palette-row-stage {
+    opacity: 1;
+}
+
+.liveops-hub-palette-empty {
+    padding: 4px 7px;
+    white-space: normal;
+}
+
+.liveops-hub-palette-empty--hidden {
+    display: none;
+}
+
+.liveops-hub-palette-footer {
+    margin-top: 6px;
+    padding: 0;
+    font-size: 10px;
+    opacity: 0.82;
+    -unity-text-align: middle-center;
+}
+
+/* ---------------------------------------------------------------- Hover card — lớp nổi, left/top do C# (chỗ 6 [FD §2.14]) */
+
+.liveops-hub-hover-card {
+    position: absolute;
+    left: 0;
+    top: 0;
+    max-width: 320px;
+    padding: 6px 8px;
+    border-width: 1px;
+    border-radius: 3px;
+    border-color: var(--unity-colors-tooltip-border);
+    background-color: var(--unity-colors-tooltip-background);
+    opacity: 0;
+}
+
+.liveops-hub-hover-card.liveops-hub-hover-card--visible {
+    opacity: 1;
+}
+
+/* Thẻ ghim (F8) viền màu focus để phân biệt với thẻ tự tắt khi rời chuột. */
+.liveops-hub-hover-card--pinned {
+    border-color: var(--liveops-hub-color-focus);
+}
+
+.liveops-hub-hover-card .liveops-hub-key-value {
+    min-height: 17px;
+}
+
+/* ---------------------------------------------------------------- Popover — gốc nội dung trong PopupWindow riêng */
+
+.liveops-hub-popover {
+    flex-grow: 1;
+    padding: 8px 10px;
+    background-color: var(--unity-colors-window-background);
+}
+
+.liveops-hub-popover-close {
+    width: 18px;
+    height: 18px;
+    padding: 0;
+    border-width: 0;
+    background-color: var(--unity-colors-window-background);
+    align-items: center;
+    justify-content: center;
+}
