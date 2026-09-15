@@ -12,7 +12,8 @@ namespace DreamTech.LiveOps
     {
         internal LiveEventCalendarCheckContext(LiveEventCalendarDocument document, LiveEventCalendarCompilation compilation,
             DateTime nowUtc, LiveEventCalendarDocument publishedBaseline, LiveEventCalendarDocument remoteSnapshot,
-            string remoteSnapshotSha256Hex, LiveEventCalendarValidationSettings settings, string onlyEventType)
+            string remoteSnapshotSha256Hex, LiveEventCalendarDocument latestStampBaseline, LiveEventCalendarValidationSettings settings,
+            string onlyEventType)
         {
             Document = document;
             Compilation = compilation;
@@ -20,6 +21,7 @@ namespace DreamTech.LiveOps
             PublishedBaseline = publishedBaseline;
             RemoteSnapshot = remoteSnapshot;
             RemoteSnapshotSha256Hex = remoteSnapshotSha256Hex;
+            LatestStampBaseline = latestStampBaseline;
             Settings = settings;
             OnlyEventType = onlyEventType;
         }
@@ -39,6 +41,15 @@ namespace DreamTech.LiveOps
         /// <summary>"" khi chưa dán.</summary>
         public string RemoteSnapshotSha256Hex { get; }
 
+        /// <summary>
+        /// Tài liệu của dấu đã đăng MỚI NHẤT (<see cref="LiveEventCalendarDocument.LatestStamp"/>) — phiên hub đọc
+        /// <c>SnapshotJson</c> của dấu bằng parser rồi truyền vào, vì core không có parser. <c>null</c> = không có dấu hoặc đọc
+        /// không được. Tách khỏi <see cref="PublishedBaseline"/> vì bản so người dùng chọn trong phiên có thể là dấu cũ (luật 9/10
+        /// cần đúng bản đó), còn luật 12 phải so bản đang chạy với dấu mới nhất: so với dấu cũ thì Firebase chạy bản cũ mà hub vẫn
+        /// báo "khớp" (V-21 CC-VALB-1).
+        /// </summary>
+        public LiveEventCalendarDocument LatestStampBaseline { get; }
+
         public LiveEventCalendarValidationSettings Settings { get; }
 
         /// <summary>"" = cả lịch; khác rỗng = kiểm nhanh một làn (luật chỉ phát hiện cho loại này).</summary>
@@ -52,6 +63,7 @@ namespace DreamTech.LiveOps
                 .WithOnlyEventType(OnlyEventType);
             if (PublishedBaseline != null) builder.WithPublishedBaseline(PublishedBaseline);
             if (RemoteSnapshot != null) builder.WithRemoteSnapshot(RemoteSnapshot, RemoteSnapshotSha256Hex);
+            if (LatestStampBaseline != null) builder.WithLatestStampBaseline(LatestStampBaseline);
             return builder;
         }
 
@@ -103,6 +115,7 @@ namespace DreamTech.LiveOps
         private LiveEventCalendarDocument _publishedBaseline;
         private LiveEventCalendarDocument _remoteSnapshot;
         private string _remoteSnapshotSha256Hex = string.Empty;
+        private LiveEventCalendarDocument _latestStampBaseline;
         private LiveEventCalendarValidationSettings _settings = LiveEventCalendarValidationSettings.Default;
         private string _onlyEventType = string.Empty;
 
@@ -135,6 +148,16 @@ namespace DreamTech.LiveOps
             return this;
         }
 
+        /// <summary>
+        /// Tài liệu đã đọc từ <c>LatestStamp.SnapshotJson</c>; <c>null</c> = không có. Không tự kiểm tài liệu có đúng là của dấu:
+        /// builder không có bộ ghi JSON và dấu tạo bởi bộ ghi cũ có thể khác byte — luật 12 là nơi quyết định tin tới đâu.
+        /// </summary>
+        public LiveEventCalendarCheckContextBuilder WithLatestStampBaseline(LiveEventCalendarDocument latestStampBaseline)
+        {
+            _latestStampBaseline = latestStampBaseline;
+            return this;
+        }
+
         public LiveEventCalendarCheckContextBuilder WithSettings(LiveEventCalendarValidationSettings settings)
         {
             _settings = settings ?? LiveEventCalendarValidationSettings.Default;
@@ -154,7 +177,7 @@ namespace DreamTech.LiveOps
             if (_compilation != null) EnsureCompilationMatches(orderedDocument, compilation);
 
             return new LiveEventCalendarCheckContext(orderedDocument, compilation, _nowUtc, _publishedBaseline, _remoteSnapshot,
-                _remoteSnapshotSha256Hex, _settings, _onlyEventType);
+                _remoteSnapshotSha256Hex, _latestStampBaseline, _settings, _onlyEventType);
         }
 
         /// <summary>
