@@ -229,6 +229,10 @@ namespace DreamTech.LiveOps.Editor.Tests
             List<string> weekLabels = TimelineTestQueries.Map(TimelineTestQueries.Where(threeWeeksTicks, tick => tick.Tier == LiveOpsTimelineRulerTier.MonthAndWeek && tick.Text.StartsWith("Tuần", StringComparison.Ordinal)),
                 tick => tick.Text);
             CollectionAssert.AreEqual(new[] { "Tuần 38", "Tuần 39" }, weekLabels, "Tuần 40 ở 28/9 còn 30px < 48px tới mép phải: bỏ");
+            LiveOpsTimelineRulerTick lastMondayLine = TimelineTestQueries.Single(threeWeeksTicks,
+                tick => tick.Tier == LiveOpsTimelineRulerTier.MonthAndWeek && tick.TimeUtc == Utc(9, 28));
+            Assert.AreEqual(string.Empty, lastMondayLine.Text, "chỉ bỏ nhãn \"Tuần 40\"");
+            Assert.IsTrue(lastMondayLine.HasLine, "vạch thứ Hai 28/9 ở tầng 1 vẫn giữ [SD1 §3.2]");
 
             var monthGeometry = new LiveOpsTimelineGeometry(Utc(9, 8), Utc(10, 20), DesignTrackWidth);
             IReadOnlyList<LiveOpsTimelineRulerTick> monthTicks = LiveOpsTimelineGeometry.RulerTicks(monthGeometry, LiveOpsTimelineZoom.Month, deviceOffset);
@@ -239,6 +243,9 @@ namespace DreamTech.LiveOps.Editor.Tests
             Assert.AreEqual("T2 14/9", monthSecondTier[1].Text);
             Assert.IsTrue(monthSecondTier[1].IsEmphasized);
             Assert.IsFalse(TimelineTestQueries.Any(monthSecondTier, tick => tick.Text == "T2 19/10"), "nhãn tuần còn < 44px tới mép phải thì bỏ");
+            LiveOpsTimelineRulerTick lastMonthMonday = TimelineTestQueries.Single(monthSecondTier, tick => tick.TimeUtc == Utc(10, 19));
+            Assert.AreEqual(string.Empty, lastMonthMonday.Text);
+            Assert.IsTrue(lastMonthMonday.HasLine, "Hình 12 khung 11: bỏ nhãn nhưng vạch thứ Hai 19/10 vẫn có");
             Assert.IsFalse(TimelineTestQueries.Any(monthTicks, tick => tick.Tier == LiveOpsTimelineRulerTier.DeviceTime));
             Assert.IsTrue(TimelineTestQueries.Any(monthTicks, tick => tick.Tier == LiveOpsTimelineRulerTier.MonthAndWeek && tick.Text == "THÁNG 10 2026"));
         }

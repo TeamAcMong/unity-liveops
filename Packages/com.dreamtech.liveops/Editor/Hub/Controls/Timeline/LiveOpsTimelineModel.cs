@@ -13,9 +13,10 @@ namespace DreamTech.LiveOps.Editor
     }
 
     /// <summary>
-    /// Nguồn của một thanh. <see cref="FixedStrip"/> (thêm ở G-TIMELINE-MODEL, ngoài ba giá trị mục 3) chỉ xuất hiện khi một làn cố định
-    /// dày tới mức vượt ngân sách vertex (vd đợt hằng ngày cả năm ở 0,25 px/giờ): gom thành dải chỉ đọc thay vì để làn biến mất ở
-    /// 2022.3 (R-10). Zoom vào là tách lại từng thanh kéo được.
+    /// Nguồn của một thanh. <see cref="FixedStrip"/> (thêm ở G-TIMELINE-MODEL, ngoài ba giá trị mục 3 — đề xuất ghi ở
+    /// w2/contract-changes-G-TIMELINE-MODEL.md CC-TLMODEL-1) chỉ xuất hiện khi một làn cố định dày tới mức vượt ngân sách vertex (vd đợt
+    /// hằng ngày cả năm ở 0,25 px/giờ): gom thành dải chỉ đọc thay vì để làn biến mất ở 2022.3 (R-10). BarKey của dải không phải
+    /// EntryKey nên presenter không được tra nó như đợt cố định; zoom vào là tách lại từng thanh kéo được.
     /// </summary>
     internal enum LiveOpsTimelineBarSource
     {
@@ -75,7 +76,11 @@ namespace DreamTech.LiveOps.Editor
         /// </summary>
         public string ChangedTooltip => string.Empty;
 
-        /// <summary>"weekly-pass-35" khi nháp đổi tiền tố làm id lần lặp đang chạy thành "pass-35"; đợt cố định đổi id: id trong bản đã đăng.</summary>
+        /// <summary>
+        /// "weekly-pass-35" khi nháp đổi tiền tố làm id lần lặp đang chạy thành "pass-35"; "" với mọi thanh khác. Đợt cố định luôn "":
+        /// diff với bản đã đăng (<c>LiveEventCalendarDiff.Compare</c>) ghép đợt theo id nên đổi id hiện thành Bỏ + Thêm (hoặc cặp đổi tên
+        /// đợt đã khép CC-DIFF-3), không bao giờ ra field "id" — field đó chỉ có ở <c>CompareByEntryKey</c> ("chưa lưu"), không phải đầu vào ở đây.
+        /// </summary>
         public string RenamedFromId { get; }
 
         public HealthState WorstFinding { get; }
@@ -353,7 +358,14 @@ namespace DreamTech.LiveOps.Editor
             LiveOpsTimelineBarModel nextOutsideBar = !hasBars && nextOutside != null ? FixedBar(context, typeId, nextOutside, 0) : null;
 
             string metaText;
-            if (isRecurring)
+            if (typeId.Length == 0)
+            {
+                // Làn giữ chỗ cho đợt/luật chưa ghi loại (luật 3 báo Bị bỏ): tên làn trống nên meta phải tự nói vì sao làn này tồn tại.
+                metaText = unplaceableCount > 0
+                    ? LiveOpsHubStrings.TimelineUntypedLaneMeta
+                    : string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.TimelineUntypedLaneMetaCountFormat, fixedCount);
+            }
+            else if (isRecurring)
             {
                 metaText = string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.TimelineRecurringLaneMetaFormat,
                     HoursText(rule.PeriodHours), HoursText(rule.ActiveHours));
@@ -606,7 +618,7 @@ namespace DreamTech.LiveOps.Editor
             bool isDropped = context.IsFixedDropped(entry);
             return new LiveOpsTimelineBarModel(entry.EntryKey, entry.EventId, typeId, LiveOpsTimelineBarSource.Fixed, candidate.StartUtc,
                 candidate.EndUtc, row, 1, phase, phase == LiveEventPhase.Active, phase == LiveEventPhase.Ended, isDropped,
-                context.IsFixedChanged(entry.EntryKey), context.RenamedFixedIdOf(entry.EntryKey), context.WorstFixedFinding(entry.EntryKey));
+                context.IsFixedChanged(entry.EntryKey), string.Empty, context.WorstFixedFinding(entry.EntryKey));
         }
 
         private static LiveEventPhase PhaseOf(DateTime startUtc, DateTime endUtc, DateTime nowUtc)
@@ -631,6 +643,54 @@ namespace DreamTech.LiveOps.Editor
                 if (!TryOccurrenceTicks(anchorTicks, periodTicks, activeTicks, index, out long startTicks, out long endTicks)) break;
                 if (startTicks >= toUtc.Ticks) break;
                 if (endTicks > fromUtc.Ticks) result.Add(calendar.GetOccurrence(index));
+            }
+        }
+
+        /// <summary>
+        /// Đoạn minimap của một luật lặp, tính bằng số học chỉ số — không tạo <see cref="LiveEventInstance"/> nào. Khoảng minimap kéo tới
+        /// 7 ngày sau đợt cố định xa nhất, nên một năm gõ nhầm (2126) cộng luật hằng giờ là ~876 nghìn lần lặp: tạo từng instance thì một lần
+        /// dựng tốn ~0,7s và ~138MB, trái luật vẽ lại trong 1 frame [SD1 §3.7]. Khe nghỉ hẹp hơn
+        /// <see cref="MinimapSegmentGapThreshold"/> thì cả chuỗi vốn sẽ bị gom thành một đoạn (ngưỡng gom sau đó chỉ tăng) nên trả thẳng một
+        /// đoạn đầu → cuối; còn lại mỗi chu kỳ rộng ≥ 1px nên số đoạn bị chặn bởi bề rộng minimap.
+        /// </summary>
+        internal static void AppendMinimapRecurringSegments(RecurringLiveEventCalendar calendar, LiveOpsTimelineGeometry minimapGeometry,
+            List<(DateTime startUtc, DateTime endUtc)> result)
+        {
+            long periodTicks = calendar.Period.Ticks;
+            long activeTicks = calendar.ActiveDuration.Ticks;
+            long anchorTicks = calendar.AnchorUtc.Ticks;
+            long fromTicks = minimapGeometry.RangeStartUtc.Ticks;
+            long toTicks = minimapGeometry.RangeEndUtc.Ticks;
+
+            long firstIndex = calendar.OccurrenceIndexAt(minimapGeometry.RangeStartUtc);
+            if (!TryOccurrenceTicks(anchorTicks, periodTicks, activeTicks, firstIndex, out long firstStartTicks, out long firstEndTicks)) return;
+            if (firstEndTicks <= fromTicks)
+            {
+                firstIndex++;
+                if (!TryOccurrenceTicks(anchorTicks, periodTicks, activeTicks, firstIndex, out firstStartTicks, out firstEndTicks)) return;
+            }
+            if (firstStartTicks >= toTicks) return;
+
+            // Lần cuối = lần bắt đầu trước cuối khoảng; lùi thêm khi kết thúc của nó vượt DateTime.MaxValue (chỉ vài bước ở mép lịch).
+            long lastIndex = calendar.OccurrenceIndexAt(minimapGeometry.RangeEndUtc);
+            long lastStartTicks;
+            long lastEndTicks;
+            while (!TryOccurrenceTicks(anchorTicks, periodTicks, activeTicks, lastIndex, out lastStartTicks, out lastEndTicks) || lastStartTicks >= toTicks)
+            {
+                lastIndex--;
+                if (lastIndex < firstIndex) return;
+            }
+
+            double restPixels = (double)(periodTicks - activeTicks) / TimeSpan.TicksPerHour * minimapGeometry.PixelsPerHour;
+            if (restPixels < MinimapSegmentGapThreshold)
+            {
+                result.Add((new DateTime(firstStartTicks, DateTimeKind.Utc), new DateTime(lastEndTicks, DateTimeKind.Utc)));
+                return;
+            }
+            for (long index = firstIndex; index <= lastIndex; index++)
+            {
+                if (!TryOccurrenceTicks(anchorTicks, periodTicks, activeTicks, index, out long startTicks, out long endTicks)) break;
+                result.Add((new DateTime(startTicks, DateTimeKind.Utc), new DateTime(endTicks, DateTimeKind.Utc)));
             }
         }
 
@@ -666,7 +726,7 @@ namespace DreamTech.LiveOps.Editor
             {
                 LiveEventCalendarFinding finding = report.Findings[index];
                 if (finding.Consequence != LiveEventCalendarConsequence.Dropped && finding.Consequence != LiveEventCalendarConsequence.ProgressLost) continue;
-                if (!string.Equals(context.LaneTypeOf(finding), typeId, StringComparison.Ordinal)) continue;
+                if (!context.TryGetLaneTypeOf(finding, out string findingTypeId) || !string.Equals(findingTypeId, typeId, StringComparison.Ordinal)) continue;
                 if (finding.TargetKind == LiveEventCalendarTargetKind.FixedEvent && context.IsUnplaceable(finding.TargetEntryKey)) continue;
                 if (finding.Consequence == LiveEventCalendarConsequence.Dropped) blockedCount++;
                 else warningCount++;
@@ -732,7 +792,7 @@ namespace DreamTech.LiveOps.Editor
             var intervalsPerLane = new List<List<(DateTime startUtc, DateTime endUtc)>>(lanes.Count);
             for (int laneIndex = 0; laneIndex < lanes.Count; laneIndex++)
             {
-                intervalsPerLane.Add(MinimapIntervalsOf(context, lanes[laneIndex].TypeId, rangeStartUtc, rangeEndUtc));
+                intervalsPerLane.Add(MinimapIntervalsOf(context, lanes[laneIndex].TypeId, minimapGeometry));
             }
 
             List<LiveOpsTimelineMinimapMark> marks = MinimapMarks(context, rangeStartUtc, rangeEndUtc);
@@ -757,16 +817,13 @@ namespace DreamTech.LiveOps.Editor
             }
         }
 
-        private static List<(DateTime startUtc, DateTime endUtc)> MinimapIntervalsOf(BuildContext context, string typeId, DateTime fromUtc, DateTime toUtc)
+        private static List<(DateTime startUtc, DateTime endUtc)> MinimapIntervalsOf(BuildContext context, string typeId, LiveOpsTimelineGeometry minimapGeometry)
         {
+            DateTime fromUtc = minimapGeometry.RangeStartUtc;
+            DateTime toUtc = minimapGeometry.RangeEndUtc;
             var intervals = new List<(DateTime startUtc, DateTime endUtc)>();
             List<RecurringLiveEventCalendar> calendars = context.RecurringCalendarsOf(typeId);
-            if (calendars.Count > 0)
-            {
-                var occurrences = new List<LiveEventInstance>();
-                AppendOccurrences(calendars[0], fromUtc, toUtc, occurrences);
-                for (int index = 0; index < occurrences.Count; index++) intervals.Add((occurrences[index].StartUtc, occurrences[index].EndUtc));
-            }
+            if (calendars.Count > 0) AppendMinimapRecurringSegments(calendars[0], minimapGeometry, intervals);
             List<FixedLiveEventEntry> entries = context.FixedEntriesOf(typeId);
             for (int index = 0; index < entries.Count; index++)
             {
@@ -1024,7 +1081,6 @@ namespace DreamTech.LiveOps.Editor
                 new Dictionary<string, List<RecurringLiveEventCalendar>>(StringComparer.Ordinal);
             private readonly HashSet<string> _unplaceableEntryKeys = new HashSet<string>(StringComparer.Ordinal);
             private readonly HashSet<string> _changedFixedEntryKeys = new HashSet<string>(StringComparer.Ordinal);
-            private readonly Dictionary<string, string> _renamedFixedIdByEntryKey = new Dictionary<string, string>(StringComparer.Ordinal);
             private readonly Dictionary<string, (string before, string after)> _renamedRunningIdByType =
                 new Dictionary<string, (string before, string after)>(StringComparer.Ordinal);
             private readonly Dictionary<string, HealthState> _worstFixedFindingByEntryKey = new Dictionary<string, HealthState>(StringComparer.Ordinal);
@@ -1070,7 +1126,11 @@ namespace DreamTech.LiveOps.Editor
             public LiveOpsTimelineGeometry Geometry { get; }
             public LiveEventCalendarCompilation Compilation { get; }
 
-            /// <summary>Thứ tự loại của tài liệu (= thứ tự làn), rồi loại chưa khai báo mà luật/đợt đang dùng — không đợt nào biến mất khỏi Lịch.</summary>
+            /// <summary>
+            /// Thứ tự loại của tài liệu (= thứ tự làn), rồi loại chưa khai báo mà luật/đợt đang dùng — không đợt nào biến mất khỏi Lịch
+            /// [SD1 §3.1]. Kể cả loại rỗng: đợt/luật chưa ghi loại có làn TypeId "" ở chỗ xuất hiện đầu tiên, để luật 3 (Bị bỏ) có thanh
+            /// cho F8/vạch minimap nhảy tới và người dùng bấm vào sửa loại.
+            /// </summary>
             public List<string> LaneTypeOrder()
             {
                 LiveEventCalendarDocument document = Input.Document;
@@ -1083,12 +1143,12 @@ namespace DreamTech.LiveOps.Editor
                 for (int index = 0; index < document.RecurringRules.Count; index++)
                 {
                     string typeId = document.RecurringRules[index].EventType;
-                    if (typeId.Length > 0 && seen.Add(typeId)) order.Add(typeId);
+                    if (seen.Add(typeId)) order.Add(typeId);
                 }
                 for (int index = 0; index < document.FixedEvents.Count; index++)
                 {
                     string typeId = document.FixedEvents[index].EventType;
-                    if (typeId.Length > 0 && seen.Add(typeId)) order.Add(typeId);
+                    if (seen.Add(typeId)) order.Add(typeId);
                 }
                 return order;
             }
@@ -1111,11 +1171,6 @@ namespace DreamTech.LiveOps.Editor
             }
 
             public bool IsFixedChanged(string entryKey) => _changedFixedEntryKeys.Contains(entryKey);
-
-            public string RenamedFixedIdOf(string entryKey)
-            {
-                return _renamedFixedIdByEntryKey.TryGetValue(entryKey, out string previousId) ? previousId : string.Empty;
-            }
 
             /// <summary>Id cũ của lần lặp khi nó chính là lần đang chạy bị đổi id (weekly-pass-35 → pass-35); "" nếu không.</summary>
             public string RenamedRunningIdOf(string typeId, string eventId)
@@ -1147,19 +1202,28 @@ namespace DreamTech.LiveOps.Editor
                 return worst;
             }
 
-            /// <summary>Loại (= làn) mà phát hiện thuộc về; "" với phát hiện về bản remote hoặc đích không còn trong tài liệu.</summary>
-            public string LaneTypeOf(LiveEventCalendarFinding finding)
+            /// <summary>
+            /// Loại (= làn) mà phát hiện thuộc về; <c>false</c> với phát hiện về bản remote hoặc đích không còn trong tài liệu. Tách "không
+            /// thuộc làn nào" khỏi loại "" vì làn loại rỗng có thật — trả "" cho cả hai sẽ dồn phát hiện remote vào chip của làn đó.
+            /// </summary>
+            public bool TryGetLaneTypeOf(LiveEventCalendarFinding finding, out string typeId)
             {
                 switch (finding.TargetKind)
                 {
                     case LiveEventCalendarTargetKind.FixedEvent:
-                        return Input.Document.TryGetFixedEvent(finding.TargetEntryKey, out FixedLiveEventEntry entry) ? entry.EventType : string.Empty;
+                        if (Input.Document.TryGetFixedEvent(finding.TargetEntryKey, out FixedLiveEventEntry entry))
+                        {
+                            typeId = entry.EventType;
+                            return true;
+                        }
+                        break;
                     case LiveEventCalendarTargetKind.RecurringRule:
                     case LiveEventCalendarTargetKind.EventType:
-                        return finding.TargetId;
-                    default:
-                        return string.Empty;
+                        typeId = finding.TargetId;
+                        return true;
                 }
+                typeId = null;
+                return false;
             }
 
             private void IndexDiff(LiveEventCalendarDiffResult diff)
@@ -1172,11 +1236,6 @@ namespace DreamTech.LiveOps.Editor
                     if (change.ItemKind == LiveEventCalendarItemKind.FixedEvent && change.EntryKey.Length > 0)
                     {
                         _changedFixedEntryKeys.Add(change.EntryKey);
-                        for (int fieldIndex = 0; fieldIndex < change.Fields.Count; fieldIndex++)
-                        {
-                            LiveEventCalendarFieldChange field = change.Fields[fieldIndex];
-                            if (string.Equals(field.FieldName, FixedEventIdFieldName, StringComparison.Ordinal)) _renamedFixedIdByEntryKey[change.EntryKey] = field.BeforeText;
-                        }
                     }
                     else if (change.ItemKind == LiveEventCalendarItemKind.RecurringRule && change.RunningEventIdAfter.Length > 0 &&
                              !string.Equals(change.RunningEventIdBefore, change.RunningEventIdAfter, StringComparison.Ordinal))
@@ -1204,9 +1263,6 @@ namespace DreamTech.LiveOps.Editor
                     }
                 }
             }
-
-            /// <summary>Tên field "id" của diff đợt cố định (hằng private của LiveEventCalendarDiff) — dùng để biết đợt đổi id so với bản đã đăng.</summary>
-            private const string FixedEventIdFieldName = "id";
         }
     }
 }
