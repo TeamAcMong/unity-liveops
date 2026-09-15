@@ -98,6 +98,44 @@ namespace DreamTech.LiveOps.Editor.Tests
         }
 
         [Test]
+        public void PaletteMatcher_ContiguousWordStartBeatsEarlierScatteredMatch()
+        {
+            // "lap" có thể nhặt rải rác L…ậ…p từ trái trong "Luật lặp", nhưng "lặp" liền ở đầu từ phải thắng: đậm đúng chữ và nhận đủ thưởng.
+            List<LiveOpsPaletteMatcher.Entry> entries = new List<LiveOpsPaletteMatcher.Entry>
+            {
+                Section("Luật lặp", "LÊN LỊCH", string.Empty, "recurring", SectionHealth.Ok()),
+            };
+            IReadOnlyList<LiveOpsPaletteMatcher.Match> matches = LiveOpsPaletteMatcher.Find(entries, "lap");
+            Assert.AreEqual(1, matches.Count);
+            Assert.AreEqual("<noparse>Luật </noparse><b><noparse>lặp</noparse></b>", matches[0].RichTitle, "đậm khối liền, không rải rác");
+            int wordStartContiguous = LiveOpsPaletteMatcher.TitleFieldScore + LiveOpsPaletteMatcher.ContiguousBonus + LiveOpsPaletteMatcher.WordStartBonus;
+            Assert.AreEqual(wordStartContiguous, matches[0].Score, "khớp liền đầu từ nhận cả hai thưởng");
+
+            // Chuỗi dạng FormD (dấu là mã riêng): dấu nằm giữa chữ khớp không làm đứt khối liền, và vẫn đậm thành một khối.
+            string decomposed = "Luật lặp".Normalize(System.Text.NormalizationForm.FormD);
+            IReadOnlyList<LiveOpsPaletteMatcher.Match> decomposedMatches = LiveOpsPaletteMatcher.Find(new List<LiveOpsPaletteMatcher.Entry>
+            {
+                Section(decomposed, "LÊN LỊCH", string.Empty, "recurring-formd", SectionHealth.Ok()),
+            }, "lap");
+            Assert.AreEqual(wordStartContiguous, decomposedMatches[0].Score);
+            string expectedEnding = "<b><noparse>" + "lặp".Normalize(System.Text.NormalizationForm.FormD) + "</noparse></b>";
+            Assert.IsTrue(decomposedMatches[0].RichTitle.EndsWith(expectedEnding, StringComparison.Ordinal), "khối đậm liền gồm cả dấu: " +
+                decomposedMatches[0].RichTitle);
+
+            // Có khối liền giữa từ trước và khối liền đầu từ sau: đầu từ thắng.
+            IReadOnlyList<LiveOpsPaletteMatcher.Match> wordStart = LiveOpsPaletteMatcher.Find(new List<LiveOpsPaletteMatcher.Entry>
+            {
+                Section("Clap lặp", "LÊN LỊCH", string.Empty, "word-start", SectionHealth.Ok()),
+            }, "lap");
+            Assert.AreEqual("<noparse>Clap </noparse><b><noparse>lặp</noparse></b>", wordStart[0].RichTitle);
+
+            // Không có khối liền: vẫn rơi về subsequence như cũ.
+            IReadOnlyList<LiveOpsPaletteMatcher.Match> scattered = LiveOpsPaletteMatcher.Find(entries, "llp");
+            Assert.AreEqual(1, scattered.Count, "không liền thì subsequence vẫn khớp");
+            Assert.Less(scattered[0].Score, LiveOpsPaletteMatcher.TitleFieldScore + LiveOpsPaletteMatcher.ContiguousBonus, "rải rác không nhận thưởng liền");
+        }
+
+        [Test]
         public void PaletteMatcher_EmptyQueryListsRailOrder()
         {
             List<LiveOpsPaletteMatcher.Entry> entries = DesignEntries();

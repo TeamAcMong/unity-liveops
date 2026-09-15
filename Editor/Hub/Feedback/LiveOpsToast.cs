@@ -8,9 +8,9 @@ namespace DreamTech.LiveOps.Editor
     /// Toast cho thao tác sửa lịch Undo được (8.5, [FD §3.9]): con cuối của cột nội dung (left 8, bottom 8, cao 24, max-width 520),
     /// icon info · câu (ellipsis cuối, tooltip đủ) · nút Hoàn tác/Làm lại · nút đóng. Hiện 6 giây, hover dừng đếm, toast mới thay cũ.
     /// <para>
-    /// Toast không tự sửa gì: nó chỉ giữ số group lúc tạo (<see cref="LiveOpsToastModel.UndoGroup"/>) và hỏi
-    /// <see cref="LiveOpsHubUndoTracker.IsGroupOnTop"/>. Hết đỉnh → nút khoá kèm "Đã có thao tác khác sau đó" — bấm Hoàn tác lúc đó
-    /// sẽ gỡ thao tác của người khác/màn khác, không phải câu đang hiện. ⌘Z của Unity gỡ đúng group này thì toast đổi chữ như khi
+    /// Toast không tự sửa gì: nó chỉ giữ số group lúc tạo (<see cref="LiveOpsToastModel.UndoGroup"/>) và hỏi tracker bước đó còn là
+    /// bước kế tiếp theo chiều của nút (<see cref="LiveOpsHubUndoTracker.IsGroupOnTop"/>). Hết đỉnh → nút khoá kèm "Đã có thao tác khác
+    /// sau đó" — bấm lúc đó sẽ gỡ/làm lại thao tác của người khác/màn khác, không phải câu đang hiện. ⌘Z của Unity gỡ đúng group này thì toast đổi chữ như khi
     /// bấm nút (nghe <see cref="LiveOpsHubUndoTracker.UndoRedoPerformed"/>), để hai đường Undo không nói hai câu khác nhau.
     /// </para>
     /// Đồng hồ tiêm được (giây, đơn điệu) để test đếm 6 giây và dừng khi hover mà không chờ thời gian thật.
@@ -107,7 +107,9 @@ namespace DreamTech.LiveOps.Editor
             _lastTickSeconds = _clockSeconds();
             IsVisible = true;
             _message.text = model.DisplayMessage;
-            tooltip = model.IsUndone ? LiveOpsHubStrings.KitToastUndonePrefix + model.Tooltip : model.Tooltip;
+            // Tooltip mặc định là chính câu toast → dùng câu model đã dựng (có "Đã hoàn tác: " khi cần), view không tự ghép tiền tố (V-20 C-5).
+            // Tooltip riêng giữ nguyên: câu hiện trên toast đã mang tiền tố ở đầu nên không bị ellipsis cắt mất.
+            tooltip = string.Equals(model.Tooltip, model.Message, StringComparison.Ordinal) ? model.DisplayMessage : model.Tooltip;
             RemoveFromClassList(LiveOpsHubClassNames.ToastHidden);
             AddToClassList(LiveOpsHubClassNames.ToastVisible);
             RefreshActionState();
@@ -169,7 +171,7 @@ namespace DreamTech.LiveOps.Editor
             _actionSlot.RemoveFromClassList(LiveOpsHubClassNames.ToastActionHidden);
             string label = _model.IsUndone ? RedoLabel() : UndoLabel();
             if (!string.Equals(_actionButton.text, label, StringComparison.Ordinal)) _actionButton.text = label;
-            bool isOnTop = _undoTracker.IsGroupOnTop(_model.UndoGroup);
+            bool isOnTop = IsActionOnTop();
             // Không đổi gì thì không ghi lại chữ/tooltip mỗi nhịp 100ms (mỗi lần ghi làm panel dựng lại text).
             if (isOnTop == _actionButton.enabledSelf && isOnTop != _actionSlot.IsBlocked) return;
             _actionSlot.SetEnabledWithReason(isOnTop, isOnTop ? string.Empty : LiveOpsHubStrings.FeedbackToastUndoUnavailableReason);
@@ -196,7 +198,7 @@ namespace DreamTech.LiveOps.Editor
         {
             if (_model == null || !_model.HasUndo || !IsVisible) return;
             // Kiểm lại ngay lúc bấm: trạng thái nút có thể cũ tới 100ms, và gỡ nhầm thao tác khác là mất việc của người dùng.
-            if (!_undoTracker.IsGroupOnTop(_model.UndoGroup))
+            if (!IsActionOnTop())
             {
                 RefreshActionState();
                 return;
@@ -205,8 +207,20 @@ namespace DreamTech.LiveOps.Editor
             LiveOpsToastModel target = wasUndone ? _model.AsRedone() : _model.AsUndone();
             if (wasUndone) _undoTracker.PerformRedo();
             else _undoTracker.PerformUndo();
-            // Sự kiện Undo thường đã đổi toast; đổi thêm ở đây để toast đúng cả khi bản Unity không bắn sự kiện đồng bộ.
-            if (_model.IsUndone == wasUndone) Show(target);
+            // Sự kiện Undo thường đã đổi toast. Chỉ tự đổi khi sự kiện vừa chạy đúng là bước của toast theo đúng chiều — bước khác chạy
+            // (stack đổi giữa lúc kiểm và lúc chạy) mà toast vẫn nói câu của mình là nói sai điều vừa xảy ra.
+            bool ranThisStep = _undoTracker.IsLastUndoRedoOf(_model.UndoGroup) && _undoTracker.LastUndoRedoWasRedo == wasUndone;
+            if (_model.IsUndone == wasUndone && ranThisStep) Show(target);
+            else RefreshActionState();
+        }
+
+        /// <summary>
+        /// Nút đang hiện chạy đúng bước của toast: Hoàn tác khi đỉnh ngăn đã làm là group của toast, Làm lại khi đỉnh ngăn làm lại là nó.
+        /// Hỏi theo chiều của nút — ⌘Z lần hai gỡ bước cũ hơn thì group của toast không còn là bước làm lại kế tiếp dù chưa có bản ghi mới.
+        /// </summary>
+        private bool IsActionOnTop()
+        {
+            return _model.IsUndone ? _undoTracker.IsNextRedo(_model.UndoGroup) : _undoTracker.IsNextUndo(_model.UndoGroup);
         }
 
         private void OnUndoRedoPerformed()

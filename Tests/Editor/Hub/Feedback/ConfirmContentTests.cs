@@ -235,11 +235,57 @@ namespace DreamTech.LiveOps.Editor.Tests
             Assert.IsTrue(content.IsLayoutMissing);
             Assert.IsNull(content.DestructiveButton, "không dựng được câu hậu quả thì không cho bấm phá huỷ");
             Assert.IsNotNull(content.SafeButton);
-            Assert.IsNotNull(content.Q(LiveOpsConfirmContent.MissingLayoutElementName));
-            int completed = 0;
-            content.Completed += result => completed++;
-            Assert.AreEqual(0, completed);
+            VisualElement missing = content.Q(LiveOpsConfirmContent.MissingLayoutElementName);
+            Assert.IsNotNull(missing);
+            Assert.AreEqual(1, content.Query<Button>().ToList().Count, "cả hộp chỉ có đúng một nút");
+            Assert.AreSame(missing, content.SafeButton.parent, "nút duy nhất là nút an toàn trong khối báo thiếu UXML");
+            Assert.AreEqual("Giữ lại", content.SafeButton.text);
+            Assert.IsNull(content.TypeField);
+            Assert.IsFalse(content.IsCompleted, "dựng xong chưa chốt kết quả nào");
             Assert.Throws<ArgumentNullException>(() => new LiveOpsConfirmContent(null));
+        }
+
+        [UnityTest]
+        [Category(LiveOpsHubTestCategories.UI)]
+        public IEnumerator Confirm_MissingUxml_EnterEscAndSafeButtonReturnSafe()
+        {
+            // Thiếu UXML thì phím và nút duy nhất vẫn phải ra an toàn — kể cả request cấp 2 (không có ô gõ, không có nút phá huỷ).
+            MissingPathsLiveOpsHubLayoutLoader loader = new MissingPathsLiveOpsHubLayoutLoader(new[] { LiveOpsHubPaths.ConfirmWindowUxml });
+            foreach (string key in new[] { "return", "[enter]", "escape", "space" })
+            {
+                yield return OpenMissingLayout(PrefixTypeToConfirmRequest(), loader);
+                LiveOpsConfirmContent content = _window.Content;
+                _window.SendEvent(Event.KeyboardEvent(key));
+                Assert.AreEqual(LiveOpsConfirmResult.Safe, CompletedResult(content), "thiếu UXML: phím '" + key + "' ra nút an toàn");
+                Assert.AreEqual(LiveOpsConfirmResult.Safe, _window.Result);
+                yield return null;
+                _window = null;
+            }
+
+            yield return OpenMissingLayout(DeletePublishedRequest(), loader);
+            LiveOpsConfirmContent clicked = _window.Content;
+            Vector2 center = clicked.SafeButton.worldBound.center;
+            _window.SendEvent(new Event { type = EventType.MouseDown, mousePosition = center, button = 0, clickCount = 1 });
+            _window.SendEvent(new Event { type = EventType.MouseUp, mousePosition = center, button = 0, clickCount = 1 });
+            Assert.AreEqual(LiveOpsConfirmResult.Safe, CompletedResult(clicked), "click nút an toàn duy nhất");
+            yield return null;
+            _window = null;
+            LogAssert.NoUnexpectedReceived();
+        }
+
+        private IEnumerator OpenMissingLayout(LiveOpsConfirmRequest request, ILiveOpsHubLayoutLoader loader)
+        {
+            if (_window != null) _window.Close();
+            _window = LiveOpsConfirmWindow.OpenForTest(request, loader);
+            LiveOpsConfirmContent content = _window.Content;
+            Assert.IsTrue(content.IsLayoutMissing);
+            int frames = 0;
+            // Chờ nút an toàn có focus và có kích thước thật: phím đi tới phần tử focus, click cần worldBound.
+            while (!IsFocusedInside(content, content.SafeButton) || float.IsNaN(content.SafeButton.worldBound.width) || content.SafeButton.worldBound.width <= 0f)
+            {
+                if (++frames > MaximumFrames) Assert.Fail("hộp thiếu UXML không focus nút an toàn sau " + MaximumFrames + " khung");
+                yield return null;
+            }
         }
 
         [Test]

@@ -9,7 +9,8 @@ namespace DreamTech.LiveOps.Editor
     /// Khớp của palette ⌘K ([FD §3.8], 8.7) — thuần, test không cần panel. Luật:
     /// <list type="bullet">
     /// <item>Bỏ dấu cả hai phía: FormD, bỏ dấu kết hợp, đ → d, chữ thường — người gõ "kiem" không bật bộ gõ vẫn tới Kiểm lịch.</item>
-    /// <item>Khớp subsequence (các ký tự của câu gõ xuất hiện theo thứ tự, không cần liền nhau); khoảng trắng trong câu gõ bỏ qua.</item>
+    /// <item>Khớp liền (ưu tiên đầu từ) nếu có, không thì subsequence (các ký tự của câu gõ xuất hiện theo thứ tự, không cần liền nhau);
+    /// khoảng trắng trong câu gõ bỏ qua.</item>
     /// <item>Xếp hạng theo trường khớp: tiêu đề &gt; tầng &gt; subtitle &gt; id luật; cùng trường thì khớp liền/đầu từ đứng trước; bằng
     /// điểm giữ thứ tự rail. Câu gõ rỗng → mọi mục theo thứ tự rail.</item>
     /// <item>Phần khớp in đậm bằng <c>&lt;b&gt;</c>; mọi đoạn chữ thô bọc <c>&lt;noparse&gt;</c> trước khi ghép thẻ ([FD §2.14] chỗ 7) —
@@ -152,22 +153,51 @@ namespace DreamTech.LiveOps.Editor
         }
 
         /// <summary>
-        /// Subsequence tham lam trên chữ đã bỏ dấu của từng ký tự gốc. <paramref name="positions"/> = chỉ số ký tự GỐC khớp (để in đậm
-        /// đúng chữ có dấu); <paramref name="quality"/> thưởng khớp liền và khớp đầu từ, phạt khoảng hở.
+        /// Khớp một trường trên chữ đã bỏ dấu của từng ký tự gốc: thử khớp LIỀN trước (mọi vị trí bắt đầu, lấy điểm cao nhất — đầu từ
+        /// thắng giữa từ), không có mới rơi về subsequence tham lam. Subsequence tham lam trái nhất một mình sẽ nhặt "L…ậ…p" rải rác trong
+        /// "Luật lặp" cho câu gõ "lap" dù có "lặp" liền ở đầu từ: đậm sai chữ và mất thưởng khớp liền.
+        /// <paramref name="positions"/> = chỉ số ký tự GỐC khớp (để in đậm đúng chữ có dấu); <paramref name="quality"/> thưởng khớp liền
+        /// và khớp đầu từ, phạt khoảng hở.
         /// </summary>
         private static bool TryMatchField(string field, string foldedQuery, out int[] positions, out int quality)
         {
             positions = null;
             quality = 0;
             if (string.IsNullOrEmpty(field)) return false;
-            List<int> matched = new List<int>(foldedQuery.Length);
-            StringBuilder single = new StringBuilder(4);
-            int queryIndex = 0;
-            for (int sourceIndex = 0; sourceIndex < field.Length && queryIndex < foldedQuery.Length; sourceIndex++)
+            string[] foldedCharacters = FoldEachCharacter(field);
+            int bestQuality = int.MinValue;
+            for (int startIndex = 0; startIndex < field.Length; startIndex++)
             {
-                single.Length = 0;
-                AppendFolded(single, field[sourceIndex]);
-                // Ký tự gốc bỏ dấu ra rỗng (dấu kết hợp đứng riêng) thì không khớp gì; ra nhiều ký tự thì phải khớp liền cả cụm.
+                if (foldedCharacters[startIndex].Length == 0) continue;
+                int[] candidate = MatchFrom(foldedCharacters, startIndex, foldedQuery, true);
+                if (candidate == null) continue;
+                int candidateQuality = QualityOf(foldedCharacters, field, candidate);
+                // Bằng điểm giữ vị trí sớm hơn: người đọc tìm chữ đậm từ trái.
+                if (candidateQuality > bestQuality)
+                {
+                    bestQuality = candidateQuality;
+                    positions = candidate;
+                }
+            }
+            if (positions == null) positions = MatchFrom(foldedCharacters, 0, foldedQuery, false);
+            if (positions == null) return false;
+            quality = QualityOf(foldedCharacters, field, positions);
+            return true;
+        }
+
+        /// <summary>
+        /// Khớp câu gõ từ <paramref name="startIndex"/>. <paramref name="contiguous"/>: ký tự gốc đầu tiên không khớp là dừng (khớp liền);
+        /// không thì bỏ qua ký tự không khớp (subsequence). null khi không khớp hết câu gõ.
+        /// </summary>
+        private static int[] MatchFrom(string[] foldedCharacters, int startIndex, string foldedQuery, bool contiguous)
+        {
+            List<int> matched = new List<int>(foldedQuery.Length);
+            int queryIndex = 0;
+            for (int sourceIndex = startIndex; sourceIndex < foldedCharacters.Length && queryIndex < foldedQuery.Length; sourceIndex++)
+            {
+                string single = foldedCharacters[sourceIndex];
+                // Ký tự gốc bỏ dấu ra rỗng (dấu kết hợp đứng riêng) thì không khớp gì và không làm đứt khối liền; ra nhiều ký tự thì phải
+                // khớp liền cả cụm.
                 if (single.Length == 0) continue;
                 int consumed = 0;
                 while (consumed < single.Length && queryIndex + consumed < foldedQuery.Length && single[consumed] == foldedQuery[queryIndex + consumed]) consumed++;
@@ -176,17 +206,38 @@ namespace DreamTech.LiveOps.Editor
                     matched.Add(sourceIndex);
                     queryIndex += consumed;
                 }
+                else if (contiguous)
+                {
+                    return null;
+                }
             }
-            if (queryIndex < foldedQuery.Length) return false;
-            positions = matched.ToArray();
-            quality = QualityOf(field, positions);
-            return true;
+            return queryIndex < foldedQuery.Length ? null : matched.ToArray();
         }
 
-        private static int QualityOf(string field, int[] positions)
+        private static string[] FoldEachCharacter(string field)
+        {
+            string[] folded = new string[field.Length];
+            StringBuilder single = new StringBuilder(4);
+            for (int index = 0; index < field.Length; index++)
+            {
+                single.Length = 0;
+                AppendFolded(single, field[index]);
+                folded[index] = single.ToString();
+            }
+            return folded;
+        }
+
+        private static int QualityOf(string[] foldedCharacters, string field, int[] positions)
         {
             int gaps = 0;
-            for (int index = 1; index < positions.Length; index++) gaps += positions[index] - positions[index - 1] - 1;
+            for (int index = 1; index < positions.Length; index++)
+            {
+                // Chỉ đếm ký tự có chữ nằm giữa: dấu kết hợp của chữ vừa khớp (chuỗi dạng FormD) không phải khoảng hở.
+                for (int between = positions[index - 1] + 1; between < positions[index]; between++)
+                {
+                    if (foldedCharacters[between].Length > 0) gaps++;
+                }
+            }
             int score = -Math.Min(gaps, MaximumGapPenalty);
             if (gaps == 0) score += ContiguousBonus;
             if (positions.Length > 0 && IsWordStart(field, positions[0])) score += WordStartBonus;
@@ -201,6 +252,14 @@ namespace DreamTech.LiveOps.Editor
         private static string Highlight(string title, int[] positions)
         {
             HashSet<int> bold = new HashSet<int>(positions);
+            // Dấu kết hợp sau chữ khớp (chuỗi dạng FormD) thuộc chữ đó: đưa vào tập đậm để "lặp" khớp liền ra một khối đậm, không vỡ thành hai.
+            foreach (int position in positions)
+            {
+                for (int mark = position + 1; mark < title.Length && CharUnicodeInfo.GetUnicodeCategory(title[mark]) == UnicodeCategory.NonSpacingMark; mark++)
+                {
+                    bold.Add(mark);
+                }
+            }
             StringBuilder rich = new StringBuilder(title.Length + 32);
             int segmentStart = 0;
             while (segmentStart < title.Length)

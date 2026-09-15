@@ -1,6 +1,9 @@
 using System;
+using System.Collections;
 using NUnit.Framework;
 using UnityEditor;
+using UnityEngine;
+using UnityEngine.TestTools;
 using UnityEngine.UIElements;
 
 namespace DreamTech.LiveOps.Editor.Tests
@@ -8,10 +11,10 @@ namespace DreamTech.LiveOps.Editor.Tests
     /// <summary>
     /// Toast (8.5, [FD §3.9]) với stack Undo thật và đồng hồ tay: Hoàn tác chỉ bật khi group còn trên đỉnh, sau Hoàn tác đổi thành
     /// "Đã hoàn tác: …" + Làm lại, toast mới thay cũ, hover dừng đếm 6 giây, ⌘Z của Unity gỡ đúng group thì toast đổi chữ như bấm nút.
-    /// Kèm outcome (không tự tắt, dòng chân "còn đến khi bạn làm việc khác"). Không cần panel: toast là VisualElement, hẹn giờ gọi thẳng Tick.
+    /// Kèm outcome (không tự tắt, dòng chân "còn đến khi bạn làm việc khác"). Logic không cần panel: toast là VisualElement, hẹn giờ gọi
+    /// thẳng Tick. Riêng nút đóng là UI: chỉ click thật qua cửa sổ mới chứng minh nút nối với Hide (Button.clicked không gọi được từ ngoài).
     /// </summary>
     [TestFixture]
-    [Category(LiveOpsHubTestCategories.Logic)]
     public sealed class ToastTests
     {
         private const string MoveMessage = "Đã dời kết thúc lava-quest-2026-09b 19/9 → 20/9 00:00 UTC";
@@ -34,8 +37,19 @@ namespace DreamTech.LiveOps.Editor.Tests
         [TearDown]
         public void TearDown()
         {
+            if (_window != null) _window.Close();
+            _window = null;
             _tracker.Dispose();
             _target.Dispose();
+        }
+
+        private const int MaximumFrames = 60;
+
+        private ToastProbeWindow _window;
+
+        // Cửa sổ trống chỉ để toast có panel thật (click chuột cần layout); lồng trong fixture vì thư mục test Feedback không có file hỗ trợ riêng.
+        private sealed class ToastProbeWindow : EditorWindow
+        {
         }
 
         private LiveOpsToastModel RecordEdit(string message, string value)
@@ -46,6 +60,7 @@ namespace DreamTech.LiveOps.Editor.Tests
         }
 
         [Test]
+        [Category(LiveOpsHubTestCategories.Logic)]
         public void Toast_UndoEnabledOnlyWhenGroupOnTop()
         {
             _target.SetKey("hunt_default", "giá trị đầu");
@@ -75,6 +90,7 @@ namespace DreamTech.LiveOps.Editor.Tests
         }
 
         [Test]
+        [Category(LiveOpsHubTestCategories.Logic)]
         public void Toast_AfterUndo_ShowsRedo()
         {
             _target.SetKey("hunt_default", "giá trị đầu");
@@ -108,6 +124,68 @@ namespace DreamTech.LiveOps.Editor.Tests
         }
 
         [Test]
+        [Category(LiveOpsHubTestCategories.Logic)]
+        public void Toast_UndoOlderStepAfterToastUndo_RedoDisabled()
+        {
+            _target.SetKey("value-0", "giá trị đầu");
+            RecordEdit("Đã đổi màu loại hunt", "value-F");
+            LiveOpsToastModel model = RecordEdit(MoveMessage, "value-G");
+            _toast.Show(model);
+
+            // ⌘Z lần một gỡ đúng thao tác của toast; ⌘Z lần hai gỡ thao tác CŨ hơn mà không ghi bản ghi mới nào.
+            Undo.PerformUndo();
+            Assert.IsTrue(_toast.Model.IsUndone);
+            Assert.IsTrue(_toast.ActionButton.enabledSelf, "sau ⌘Z lần một Làm lại trả đúng thao tác của toast");
+            Undo.PerformUndo();
+            Assert.AreEqual("value-0", _target.Key);
+            Assert.IsTrue(_toast.Model.IsUndone, "toast vẫn nói thao tác của nó đã hoàn tác");
+            Assert.IsFalse(_toast.ActionButton.enabledSelf, "Làm lại kế tiếp là thao tác cũ hơn, không phải của toast → khoá");
+            Assert.AreEqual(LiveOpsHubStrings.FeedbackToastUndoUnavailableReason, _toast.ActionSlot.Reason);
+
+            // Nút cũ (trạng thái tới 100ms) vẫn bấm được: không được làm lại thao tác kia rồi nói câu của toast.
+            _toast.ActionButton.SetEnabled(true);
+            InvokeAction();
+            Assert.AreEqual("value-0", _target.Key, "bấm khi Làm lại kế tiếp không phải của toast thì không chạy gì");
+            Assert.IsTrue(_toast.Model.IsUndone);
+            Assert.AreEqual(LiveOpsHubStrings.KitToastUndonePrefix + MoveMessage, _toast.MessageLabel.text);
+
+            // ⌘⇧Z trả thao tác cũ hơn: thao tác của toast lại là Làm lại kế tiếp.
+            Undo.PerformRedo();
+            Assert.AreEqual("value-F", _target.Key);
+            Assert.IsTrue(_toast.Model.IsUndone);
+            Assert.IsTrue(_toast.ActionButton.enabledSelf, "thao tác cũ hơn đã làm lại → Làm lại của toast bật lại");
+            InvokeAction();
+            Assert.AreEqual("value-G", _target.Key, "Làm lại trả đúng thao tác của toast");
+            Assert.IsFalse(_toast.Model.IsUndone);
+            Assert.AreEqual(MoveMessage, _toast.MessageLabel.text);
+            Assert.IsTrue(_toast.ActionButton.enabledSelf);
+        }
+
+        [Test]
+        [Category(LiveOpsHubTestCategories.Logic)]
+        public void Toast_UndoHistoryJumpPastGroup_UndoDisabled()
+        {
+            _target.SetKey("value-0", "giá trị đầu");
+            int groupE = _tracker.BeginGroup("E");
+            _target.SetKey("value-E", "E");
+            RecordEdit("F", "value-F");
+            LiveOpsToastModel model = RecordEdit(MoveMessage, "value-G");
+            _toast.Show(model);
+
+            // Edit → Undo History nhảy về sau E: gỡ cả thao tác của toast lẫn F trong một lần.
+            Undo.RevertAllDownToGroup(groupE + 1);
+            Assert.AreEqual("value-E", _target.Key, "nhảy lịch sử gỡ G và F");
+            Assert.IsFalse(_toast.ActionButton.enabledSelf && !_toast.Model.IsUndone,
+                "thao tác của toast đã bị gỡ — không được còn Hoàn tác bật với câu gốc (lần Undo/Redo cuối: group " + _tracker.LastUndoRedoGroup +
+                ", toast group " + model.UndoGroup + ")");
+            Assert.IsFalse(_toast.ActionButton.enabledSelf, "Làm lại kế tiếp là F, không phải thao tác của toast → khoá");
+            _toast.ActionButton.SetEnabled(true);
+            InvokeAction();
+            Assert.AreEqual("value-E", _target.Key, "bấm nút cũ không gỡ E, không làm lại F");
+        }
+
+        [Test]
+        [Category(LiveOpsHubTestCategories.Logic)]
         public void Toast_NewReplacesOld()
         {
             LiveOpsToastModel first = RecordEdit(MoveMessage, "first");
@@ -129,6 +207,7 @@ namespace DreamTech.LiveOps.Editor.Tests
         }
 
         [Test]
+        [Category(LiveOpsHubTestCategories.Logic)]
         public void Toast_HoverPausesCountdown()
         {
             _toast.Show(LiveOpsToastModel.Info("Đã copy id weekly-pass-35"));
@@ -155,18 +234,37 @@ namespace DreamTech.LiveOps.Editor.Tests
             Assert.IsTrue(_toast.ClassListContains(LiveOpsHubClassNames.ToastHidden), "không có panel thì ẩn hẳn ngay (không chờ transition)");
         }
 
-        [Test]
-        public void Toast_CloseButton_Hides()
+        [UnityTest]
+        [Category(LiveOpsHubTestCategories.UI)]
+        public IEnumerator Toast_CloseButton_Hides()
         {
+            _window = ScriptableObject.CreateInstance<ToastProbeWindow>();
+            _window.Show();
+            _window.position = new Rect(0f, 0f, 640f, 120f);
+            _window.rootVisualElement.Add(_toast);
             _toast.Show(LiveOpsToastModel.Info("Đã copy id weekly-pass-35"));
             Assert.IsFalse(_toast.ClassListContains(LiveOpsHubClassNames.ToastHidden));
             Assert.IsTrue(_toast.ClassListContains(LiveOpsHubClassNames.ToastVisible));
-            _toast.Hide();
-            Assert.IsFalse(_toast.IsVisible);
+
+            int frames = 0;
+            while (float.IsNaN(_toast.CloseButton.worldBound.width) || _toast.CloseButton.worldBound.width <= 0f)
+            {
+                if (++frames > MaximumFrames) Assert.Fail("nút đóng không có kích thước sau " + MaximumFrames + " khung");
+                yield return null;
+            }
+
+            // Click chuột thật lên nút đóng (MouseDown + MouseUp tại tâm) — không gọi Hide trực tiếp.
+            Vector2 center = _toast.CloseButton.worldBound.center;
+            _window.SendEvent(new Event { type = EventType.MouseDown, mousePosition = center, button = 0, clickCount = 1 });
+            _window.SendEvent(new Event { type = EventType.MouseUp, mousePosition = center, button = 0, clickCount = 1 });
+            Assert.IsFalse(_toast.IsVisible, "click nút đóng tắt toast");
+            Assert.IsNull(_toast.Model);
             Assert.IsFalse(_toast.ClassListContains(LiveOpsHubClassNames.ToastVisible));
+            LogAssert.NoUnexpectedReceived();
         }
 
         [Test]
+        [Category(LiveOpsHubTestCategories.Logic)]
         public void Outcome_RecordStaysWithFootnote_BlockedUsesBlockedText()
         {
             DateTime createdUtc = new DateTime(2026, 9, 13, 9, 2, 0, DateTimeKind.Utc);

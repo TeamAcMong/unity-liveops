@@ -91,10 +91,21 @@ namespace DreamTech.LiveOps.Editor
             _card.AddToClassList(LiveOpsHubClassNames.HoverCardPinned);
         }
 
+        /// <summary>Tắt hẳn: thẻ đang hiện, thẻ đang chờ 500ms và ghim (Esc/F8 lần nữa/điều hướng).</summary>
         public void Hide()
         {
             _pendingTarget = null;
             _showAtSeconds = double.NaN;
+            HideVisibleCard();
+            _ticker?.Pause();
+        }
+
+        /// <summary>
+        /// Chỉ bỏ thẻ đang hiện, giữ đích đang chờ 500ms: lướt từ thanh A sang thanh B sát bên thì hạn ẩn A (100ms) tới trước hạn hiện B
+        /// (500ms) — xoá luôn việc chờ của B ở đây thì chuột đứng yên trên B không bao giờ thấy thẻ, vì không có PointerEnter mới.
+        /// </summary>
+        private void HideVisibleCard()
+        {
             _hideAtSeconds = double.NaN;
             IsVisible = false;
             IsPinned = false;
@@ -103,7 +114,6 @@ namespace DreamTech.LiveOps.Editor
             _card.RemoveFromClassList(LiveOpsHubClassNames.HoverCardPinned);
             _card.pickingMode = PickingMode.Ignore;
             _card.Clear();
-            _ticker?.Pause();
         }
 
         internal void HandlePointerEnter(VisualElement target)
@@ -148,7 +158,7 @@ namespace DreamTech.LiveOps.Editor
                     ShowCard(target, content);
                 }
             }
-            if (!double.IsNaN(_hideAtSeconds) && now + DeadlineToleranceSeconds >= _hideAtSeconds) Hide();
+            if (!double.IsNaN(_hideAtSeconds) && now + DeadlineToleranceSeconds >= _hideAtSeconds) HideVisibleCard();
             if (_pendingTarget == null && double.IsNaN(_hideAtSeconds)) _ticker?.Pause();
         }
 
