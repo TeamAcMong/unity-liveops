@@ -9,10 +9,12 @@ namespace DreamTech.LiveOps.Demo
     /// <summary>
     /// Bàn thử live-ops (chỉ nằm trong dev project, không đi theo package).
     ///
-    /// <para>Lắp đúng những khối một game sẽ lắp: đồng hồ server (header Date) bọc trong đồng hồ tua được, lịch lặp lại ghép với
-    /// lịch JSON như lấy từ remote config, PlayerPrefs, granter giả lập kho đồ, hai loại event với luật khác nhau. Phần bày nút giao
-    /// cho <see cref="LiveOpsDebugPanel"/>, phần nhịp tim giao cho <see cref="LiveOpsUnityRunner"/> — game thật dùng lại đúng hai
-    /// component đó. Mục đích là thử LUẬT và LUỒNG khi chưa có art.</para>
+    /// <para>Lắp đúng những khối một game sẽ lắp (mục 4.4 kế hoạch 0.2.0): đồng hồ server (header Date) bọc trong đồng hồ tua được,
+    /// lịch đọc bằng <see cref="JsonLiveEventCalendarParser.ParseOrDefault(string, LiveEventCalendarAsset)"/> — JSON định dạng 2
+    /// như lấy từ remote config, trống thì dùng asset lịch trong project —, loại event đăng ký từ asset bằng
+    /// <see cref="LiveOpsSystemBuilderCalendarAssetExtensions.WithEventTypesFrom"/>, PlayerPrefs, granter giả lập kho đồ. Phần bày
+    /// nút giao cho <see cref="LiveOpsDebugPanel"/>, phần nhịp tim giao cho <see cref="LiveOpsUnityRunner"/> — game thật dùng lại
+    /// đúng hai component đó. Mục đích là thử LUẬT và LUỒNG khi chưa có art.</para>
     /// </summary>
     [DisallowMultipleComponent]
     public sealed class LiveOpsDemo : MonoBehaviour
@@ -20,11 +22,19 @@ namespace DreamTech.LiveOps.Demo
         public const string RaceEventType = "sky-race";
         public const string HuntEventType = "treasure-hunt";
         public const string HuntGoalClaimKey = "goal";
+
+        /// <summary>Tên field serialize giữ asset lịch — builder scene gán qua SerializedObject nên cần tên chuẩn một chỗ.</summary>
+        public const string CalendarAssetFieldName = nameof(calendarAsset);
+
+        // Hai hằng dưới là khoá PlayerPrefs của dữ liệu thử đã có trên máy dev (0.1.0) — đổi là mất tiến độ đang thử.
         private const string SystemId = "demo-liveops";
         private const string StoreKeyPrefix = "dreamtech.liveops.demo.";
         private const string IsoUtcFormat = "yyyy-MM-dd'T'HH:mm:ss'Z'";
 
-        private static readonly DateTime RaceAnchorUtc = new DateTime(2026, 1, 5, 0, 0, 0, DateTimeKind.Utc);
+        // Mốc + tiền tố của luật đua trong JSON remote giả lập giữ đúng giá trị RecurringLiveEventCalendar 0.1.0 tự đặt, để id đợt
+        // đua ("sky-race-<số>") không đổi so với bản demo cũ và tiến độ thử trong PlayerPrefs vẫn khớp đợt đang chạy.
+        private const string RaceAnchorUtcText = "2026-01-05T00:00:00Z";
+        private const string RaceIdPrefix = RaceEventType + "-";
 
         private static readonly LiveOpsRewardBundle RaceGoldChest =
             new LiveOpsRewardBundle("chest.gold", new[] { new LiveOpsRewardItem("coin", 100), new LiveOpsRewardItem("booster.magnet", 1) });
@@ -35,19 +45,28 @@ namespace DreamTech.LiveOps.Demo
         private static readonly LiveOpsRewardBundle HuntGoalChest =
             new LiveOpsRewardBundle("chest.hunt", new[] { new LiveOpsRewardItem("coin", 30) });
 
+        [Header("Lịch")]
+        [Tooltip("Lịch mặc định trong project (sinh bằng Tools/DreamTech/LiveOps/Demo/Build Sample Calendar Asset). Dùng khi JSON " +
+                 "remote trống, và là nơi khai loại event cho WithEventTypesFrom.")]
+        [SerializeField] private LiveEventCalendarAsset calendarAsset;
+        [Tooltip("Bật = giả lập remote config trả JSON định dạng 2 (đua lặp lại + đợt săn hôm nay + một mục hỏng). Tắt = remote trống, " +
+                 "game rơi về lịch trong asset.")]
+        [SerializeField] private bool simulateRemoteConfig = true;
+
         [Header("Đồng hồ")]
         [Tooltip("Lấy giờ từ header Date của URL dưới. Tắt thì dùng giờ máy (không chống vặn giờ).")]
         [SerializeField] private bool useServerTime = true;
         [SerializeField] private string serverTimeUrl = "https://www.google.com/generate_204";
 
-        [Header("Sky Race — lịch lặp lại, tự vào khi có điểm")]
+        [Header("Sky Race — luật lặp trong JSON remote, tự vào khi có điểm")]
+        // Số nguyên vì JSON định dạng 2 ghi periodHours/activeHours là số giờ nguyên.
         [Tooltip("Mỗi bao nhiêu giờ có một đợt.")]
-        [SerializeField, Min(0.1f)] private float racePeriodHours = 24f;
+        [SerializeField, Min(1)] private int racePeriodHours = 24;
         [Tooltip("Mỗi đợt chạy bao nhiêu giờ; phần còn lại của chu kỳ là nghỉ.")]
-        [SerializeField, Min(0.1f)] private float raceActiveHours = 20f;
+        [SerializeField, Min(1)] private int raceActiveHours = 20;
         [SerializeField, Min(1)] private int raceGoalPoints = 100;
 
-        [Header("Treasure Hunt — lịch JSON, phải bấm tham gia")]
+        [Header("Treasure Hunt — đợt cố định trong JSON remote, phải bấm tham gia (requiresJoin của loại trong asset)")]
         [Tooltip("Đợt săn trong JSON mẫu bắt đầu 00:00 UTC hôm nay và kéo dài bấy nhiêu giờ.")]
         [SerializeField, Min(24f)] private float huntDurationHours = 72f;
         [SerializeField, Min(1)] private int huntUnlockLevel = 5;
@@ -56,10 +75,10 @@ namespace DreamTech.LiveOps.Demo
         [SerializeField, Min(1)] private int huntGoalPoints = 50;
 
         private readonly Dictionary<string, int> _wallet = new Dictionary<string, int>(StringComparer.Ordinal);
+        private PlayerPrefsLiveOpsTextStore _store;
         private LiveOpsSystem _system;
         private OffsetLiveOpsClock _clock;
         private SyncedLiveOpsClock _syncedClock;
-        private IReadOnlyList<string> _calendarProblems;
         private LiveOpsDebugPanel _panel;
         private LiveOpsUnityRunner _runner;
 
@@ -68,22 +87,24 @@ namespace DreamTech.LiveOps.Demo
         public LiveOpsDebugPanel Panel => _panel;
         public LiveOpsUnityRunner Runner => _runner;
         public IReadOnlyDictionary<string, int> Wallet => _wallet;
+        public LiveEventCalendarAsset CalendarAsset => calendarAsset;
 
-        /// <summary>JSON lịch mẫu mà demo đưa vào parser — đúng dạng một key remote config.</summary>
+        /// <summary>JSON lịch mà demo đưa vào parser — đúng dạng một key remote config; chuỗi rỗng = remote trống.</summary>
         public string CalendarJson { get; private set; }
+
+        /// <summary>Kết quả <c>ParseOrDefault</c> mà system đang chạy (<c>CameFromDefaultCalendar</c> = lịch lấy từ asset).</summary>
+        public LiveEventCalendarParseResult CalendarResult { get; private set; }
 
         private void Awake()
         {
-            Build();
+            BuildClocks();
 
             _panel = gameObject.AddComponent<LiveOpsDebugPanel>();
             _panel.ExtraStatusLine = FormatWallet;
             _panel.DrawExtraControls = DrawDemoControls;
-            _panel.CalendarProblems = _calendarProblems;
-            _panel.Bind(_system, _clock, _syncedClock);
-
             _runner = gameObject.AddComponent<LiveOpsUnityRunner>();
-            _runner.Bind(_system, _syncedClock);
+
+            UseRemoteCalendarJson(simulateRemoteConfig ? BuildRemoteCalendarJson(DateTime.UtcNow) : string.Empty);
         }
 
         private void OnDestroy()
@@ -93,47 +114,99 @@ namespace DreamTech.LiveOps.Demo
 
         // ---------------------------------------------------------------- Lắp ráp
 
-        private void Build()
+        /// <summary>
+        /// Dựng lại system với một JSON remote khác — như game nhận remote config rồi mới <c>Build()</c> (V-18). Chuỗi rỗng = remote
+        /// trống → lịch trong asset. Đồng hồ, kho PlayerPrefs, panel và runner giữ nguyên để test PlayMode đổi nguồn lịch ngay trong
+        /// scene đã nạp mà không phải dựng scene thứ hai.
+        /// </summary>
+        public void UseRemoteCalendarJson(string remoteJson)
         {
-            var store = new PlayerPrefsLiveOpsTextStore(StoreKeyPrefix);
+            if (_system != null) LiveOpsSystemRegistry.Unregister(_system);
+
+            CalendarJson = remoteJson ?? string.Empty;
+            // Một nhánh cho cả remote lẫn asset: game không tự rẽ "có remote thì Parse, không thì asset" — hàm này đã giữ luật
+            // "JSON đọc được nhưng có mục hỏng thì vẫn dùng remote, không trộn với asset".
+            CalendarResult = JsonLiveEventCalendarParser.ParseOrDefault(CalendarJson, calendarAsset);
+
+            var builder = new LiveOpsSystemBuilder(SystemId)
+                          .WithClock(_clock)
+                          // CombinedCalendar chứ không phải Calendar: Calendar chỉ là phần đợt cố định, mất luật lặp của đợt đua.
+                          .WithCalendar(CalendarResult.CombinedCalendar)
+                          .WithTextStore(_store)
+                          .WithRewardGranter(new DelegateLiveOpsRewardGranter(GrantToWallet));
+            RegisterEventTypes(builder);
+            _system = builder.Build();
+            LiveOpsSystemRegistry.Register(_system);
+
+            _panel.CalendarProblems = CalendarResult.Problems;
+            _panel.Bind(_system, _clock, _syncedClock);
+            _runner.Bind(_system, _syncedClock);
+        }
+
+        private void BuildClocks()
+        {
+            _store = new PlayerPrefsLiveOpsTextStore(StoreKeyPrefix);
             ILiveOpsClock baseClock = new SystemLiveOpsClock();
             if (useServerTime)
             {
-                _syncedClock = new SyncedLiveOpsClock(new HttpDateHeaderServerTimeSource(serverTimeUrl), store);
+                _syncedClock = new SyncedLiveOpsClock(new HttpDateHeaderServerTimeSource(serverTimeUrl), _store);
                 baseClock = _syncedClock;
             }
             _clock = new OffsetLiveOpsClock(baseClock);
-
-            // Mốc cố định để id đợt đua không đổi giữa các lần chạy.
-            var race = new RecurringLiveEventCalendar(RaceEventType, RaceAnchorUtc, TimeSpan.FromHours(racePeriodHours),
-                                                      TimeSpan.FromHours(Mathf.Min(raceActiveHours, racePeriodHours)));
-
-            CalendarJson = BuildHuntCalendarJson(DateTime.UtcNow);
-            LiveEventCalendarParseResult hunt = JsonLiveEventCalendarParser.Parse(CalendarJson);
-            _calendarProblems = hunt.Problems;
-
-            _system = new LiveOpsSystemBuilder(SystemId)
-                      .WithClock(_clock)
-                      .WithCalendar(new CompositeLiveEventCalendar(race, hunt.Calendar))
-                      .WithTextStore(store)
-                      .WithRewardGranter(new DelegateLiveOpsRewardGranter(GrantToWallet))
-                      .WithEventType(RaceEventType, new DelegateLiveEventCompletionRule(RaceReward))
-                      .WithEventType(HuntEventType, new DelegateLiveEventCompletionRule(HuntReward),
-                                     new DelegateLiveEventEligibility((instance, nowUtc) => playerLevel >= huntUnlockLevel),
-                                     LiveEventJoinPolicy.ExplicitJoin)
-                      .Build();
-            LiveOpsSystemRegistry.Register(_system);
         }
 
         /// <summary>
-        /// Lịch săn kho báu như remote config sẽ trả: một đợt bắt đầu 00:00 UTC hôm nay (id theo ngày nên ổn định trong ngày) và một mục
-        /// cố ý hỏng để thấy lịch bỏ mục sai và panel liệt kê lý do.
+        /// Loại event lấy từ asset (requiresJoin của treasure-hunt → ExplicitJoin); demo chỉ cấp luật quà và điều kiện theo loại
+        /// vì asset không mang được code. Scene dựng tay thiếu asset thì vẫn chạy được với hai loại của demo — nhưng báo lỗi, vì
+        /// như vậy nhánh "remote trống → asset" không thử được.
         /// </summary>
-        private string BuildHuntCalendarJson(DateTime utcNow)
+        private void RegisterEventTypes(LiveOpsSystemBuilder builder)
+        {
+            if (calendarAsset != null)
+            {
+                builder.WithEventTypesFrom(calendarAsset, CompletionRuleFor, EligibilityFor);
+                return;
+            }
+
+            Debug.LogError("[LiveOps Demo] Thiếu asset lịch — dựng lại scene bằng Tools/DreamTech/LiveOps/Demo/Build Demo Scene.", this);
+            builder.WithEventType(RaceEventType, CompletionRuleFor(RaceEventType))
+                   .WithEventType(HuntEventType, CompletionRuleFor(HuntEventType), EligibilityFor(HuntEventType), LiveEventJoinPolicy.ExplicitJoin);
+        }
+
+        private ILiveEventCompletionRule CompletionRuleFor(string eventType)
+        {
+            if (string.Equals(eventType, RaceEventType, StringComparison.Ordinal)) return new DelegateLiveEventCompletionRule(RaceReward);
+            if (string.Equals(eventType, HuntEventType, StringComparison.Ordinal)) return new DelegateLiveEventCompletionRule(HuntReward);
+            return null;
+        }
+
+        private ILiveEventEligibility EligibilityFor(string eventType)
+        {
+            if (!string.Equals(eventType, HuntEventType, StringComparison.Ordinal)) return null;
+            return new DelegateLiveEventEligibility((instance, nowUtc) => playerLevel >= huntUnlockLevel);
+        }
+
+        /// <summary>
+        /// JSON định dạng 2 như remote config sẽ trả: luật lặp của đợt đua, một đợt săn bắt đầu 00:00 UTC hôm nay (id theo ngày nên ổn
+        /// định trong ngày) và một mục cố ý hỏng để thấy lịch bỏ mục sai và panel liệt kê lý do.
+        ///
+        /// <para>Ghép chuỗi tay thay vì gọi LiveEventCalendarJsonWriter: bộ ghi tính SHA-256, mà đường game của demo phải giống game
+        /// thật — không đụng hash để build IL2CPP (R-28) chứng minh được parser không cần nó.</para>
+        /// </summary>
+        private string BuildRemoteCalendarJson(DateTime utcNow)
         {
             DateTime startUtc = utcNow.Date;
             DateTime endUtc = startUtc.AddHours(huntDurationHours);
-            return "{\"events\":[" +
+            int activeHours = Mathf.Min(raceActiveHours, racePeriodHours);
+            return "{\"version\":2," +
+                   "\"recurring\":[" +
+                   "{\"type\":\"" + RaceEventType + "\"," +
+                   "\"anchorUtc\":\"" + RaceAnchorUtcText + "\"," +
+                   "\"idPrefix\":\"" + RaceIdPrefix + "\"," +
+                   "\"periodHours\":" + racePeriodHours.ToString(CultureInfo.InvariantCulture) + "," +
+                   "\"activeHours\":" + activeHours.ToString(CultureInfo.InvariantCulture) + "}" +
+                   "]," +
+                   "\"events\":[" +
                    "{\"id\":\"hunt-" + startUtc.ToString("yyyyMMdd", CultureInfo.InvariantCulture) + "\"," +
                    "\"type\":\"" + HuntEventType + "\"," +
                    "\"startUtc\":\"" + startUtc.ToString(IsoUtcFormat, CultureInfo.InvariantCulture) + "\"," +
