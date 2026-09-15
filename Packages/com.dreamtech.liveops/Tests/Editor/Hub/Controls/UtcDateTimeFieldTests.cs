@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Reflection;
 using NUnit.Framework;
 using UnityEngine;
 using UnityEngine.TestTools;
@@ -89,7 +90,7 @@ namespace DreamTech.LiveOps.Editor.Tests
             Assert.IsFalse(field.TimeInput.ClassListContains(LiveOpsHubClassNames.UtcFieldPartError), "chỉ viền đúng ô hỏng");
             Assert.AreNotEqual(normalBorder, InputOf(field.DateInput).resolvedStyle.borderTopColor, "viền ô hỏng phải đổi sang blocked-fill");
             Assert.AreEqual(DisplayStyle.Flex, field.ErrorLabel.resolvedStyle.display);
-            StringAssert.Contains("\"2026-10-3\"", field.ErrorLabel.text, "dòng lỗi phải nêu chuỗi người dùng gõ");
+            StringAssert.Contains("\"<noparse>2026-10-3</noparse>\"", field.ErrorLabel.text, "dòng lỗi phải nêu chuỗi người dùng gõ, bọc noparse");
             StringAssert.Contains("2026-10-03 (yyyy-MM-dd)", field.ErrorLabel.text, "dòng lỗi phải nêu cách viết đúng");
             Assert.IsTrue(field.ErrorLabel.ClassListContains(LiveOpsHubClassNames.TextBlocked));
             Assert.AreEqual(DisplayStyle.Flex, field.ErrorIcon.resolvedStyle.display);
@@ -116,11 +117,132 @@ namespace DreamTech.LiveOps.Editor.Tests
             Assert.IsFalse(field.DateInput.ClassListContains(LiveOpsHubClassNames.UtcFieldPartError));
             StringAssert.Contains("HH:mm", field.ErrorLabel.text);
 
+            // Hai ô cùng hỏng: viền cả hai và câu nêu cả hai — không để lỗi giờ chỉ lộ ra sau khi sửa xong ngày.
+            field.SetRawTextWithoutNotify("2026-10-3", "7:0");
+            Assert.IsTrue(field.DateInput.ClassListContains(LiveOpsHubClassNames.UtcFieldPartError), "ô ngày hỏng phải có viền");
+            Assert.IsTrue(field.TimeInput.ClassListContains(LiveOpsHubClassNames.UtcFieldPartError), "ô giờ cũng hỏng phải có viền");
+            StringAssert.Contains("\"<noparse>2026-10-3</noparse>\"", field.ErrorLabel.text);
+            StringAssert.Contains("\"<noparse>7:0</noparse>\"", field.ErrorLabel.text, "câu lỗi phải nêu cả ô giờ");
+            field.SetRawTextWithoutNotify("2026-10-03", "7:0");
+
             // Câu của người gọi (phát hiện utc-time-format) thắng câu mặc định; bỏ câu thì câu mặc định quay lại.
             field.SetErrorText("Ô ngày cần dạng 2026-10-03 (yyyy-MM-dd).");
             Assert.AreEqual("Ô ngày cần dạng 2026-10-03 (yyyy-MM-dd).", field.ErrorLabel.text);
             field.SetErrorText(null);
-            StringAssert.Contains("\"7:0\"", field.ErrorLabel.text);
+            StringAssert.Contains("\"<noparse>7:0</noparse>\"", field.ErrorLabel.text);
+
+            // Chuỗi gõ có thẻ rich text: dòng lỗi hiện nguyên văn — đo bề rộng như chữ thường không parse (Label mặc định bật rich text).
+            const string taggedDate = "2026-<b>10</b>-3";
+            field.SetRawTextWithoutNotify(taggedDate, "00:00");
+            StringAssert.Contains("\"<noparse>" + taggedDate + "</noparse>\"", field.ErrorLabel.text);
+            Label literal = new Label(field.ErrorLabel.text.Replace("<noparse>", string.Empty).Replace("</noparse>", string.Empty)) { enableRichText = false };
+            Label rendered = new Label(field.ErrorLabel.text);
+            foreach (Label probe in new[] { literal, rendered })
+            {
+                probe.AddToClassList(LiveOpsHubClassNames.UtcFieldError);
+                probe.style.alignSelf = Align.FlexStart;
+                field.parent.Add(probe);
+            }
+            yield return ControlsTestPanel.WaitForLayout(literal, rendered);
+            Assert.AreEqual(literal.layout.width, rendered.layout.width, 1f, "thẻ <b> trong chuỗi gõ không được bị hiểu thành chữ đậm hay bị nuốt");
+            StringAssert.Contains("<noparse>a</</noparse><noparse>noparse>b</noparse>", LiveOpsUtcDateTimeField.DescribeParseError("a</noparse>b", "00:00"),
+                "chuỗi gõ chứa sẵn </noparse> không được đóng khối noparse sớm");
+            LogAssert.NoUnexpectedReceived();
+        }
+
+        [UnityTest]
+        public IEnumerator UtcField_TypingIntoEmptyPart_HidesPlaceholderBeforeCommit()
+        {
+            LiveOpsUtcDateTimeField field = CreateField(false);
+            yield return ControlsTestPanel.WaitForLayout(field);
+            Assert.IsFalse(field.DatePlaceholder.ClassListContains(LiveOpsHubClassNames.PlaceholderHidden), "ô trống phải hiện gợi ý");
+
+            // Đúng đường của bàn phím: KeyboardTextEditorEventHandler gọi ITextEdition.UpdateText mỗi phím; ô isDelayed chưa đổi value.
+            TypeText(field.DateInput, "2026");
+            Assert.AreEqual(string.Empty, field.DateInput.value, "ô isDelayed chưa ghi khi đang gõ — nếu đã ghi thì test không còn đo đúng lỗi");
+            Assert.IsTrue(field.DatePlaceholder.ClassListContains(LiveOpsHubClassNames.PlaceholderHidden),
+                "gõ vào ô trống phải ẩn gợi ý ngay, không đợi Enter/rời ô — gợi ý đè lên chữ đang gõ");
+            yield return null;
+            Assert.AreEqual(DisplayStyle.None, field.DatePlaceholder.resolvedStyle.display);
+            Assert.IsFalse(field.TimePlaceholder.ClassListContains(LiveOpsHubClassNames.PlaceholderHidden), "ô giờ chưa gõ vẫn hiện gợi ý");
+
+            TypeText(field.DateInput, string.Empty);
+            Assert.IsFalse(field.DatePlaceholder.ClassListContains(LiveOpsHubClassNames.PlaceholderHidden), "xoá hết chữ đang gõ thì gợi ý hiện lại");
+            LogAssert.NoUnexpectedReceived();
+        }
+
+        [UnityTest]
+        public IEnumerator UtcField_TabIntoEmptyTime_WaitsUntilFocusLeavesField()
+        {
+            LiveOpsUtcDateTimeField field = CreateField(false);
+            TextField outside = new TextField();
+            field.parent.Add(outside);
+            yield return ControlsTestPanel.WaitForLayout(field, outside);
+            List<(DateTime PreviousValue, DateTime NewValue)> changes = RecordChanges(field);
+            List<string> rawCommits = RecordRawCommits(field);
+
+            yield return MoveFocus(field.DateInput);
+            TypeText(field.DateInput, "2026-09-16");
+            yield return MoveFocus(field.TimeInput);
+
+            Assert.AreEqual("2026-09-16", field.RawDateText, "rời ô ngày phải chốt chữ của ô ngày");
+            Assert.AreEqual(0, rawCommits.Count, "Tab sang ô giờ còn trống không được ghi nửa cặp thành chuỗi thô vào asset");
+            Assert.AreEqual(0, changes.Count);
+            Assert.IsFalse(field.HasParseError, "đang nhập dở cặp ngày/giờ không phải lỗi");
+            Assert.AreEqual(DisplayStyle.None, field.ErrorLabel.resolvedStyle.display, "không hiện \"Ô giờ còn trống\" khi con trỏ đang ở chính ô giờ");
+            Assert.IsFalse(field.TimeInput.ClassListContains(LiveOpsHubClassNames.UtcFieldPartError));
+
+            TypeText(field.TimeInput, "07:00");
+            yield return MoveFocus(outside);
+            Assert.AreEqual(new DateTime(2026, 9, 16, 7, 0, 0, DateTimeKind.Utc), field.value);
+            Assert.AreEqual(1, changes.Count, "gõ nốt ô giờ rồi rời field = đúng một lần ghi");
+            Assert.AreEqual(0, rawCommits.Count);
+            Assert.IsFalse(field.HasParseError);
+
+            // Rời hẳn field khi ô giờ vẫn trống: lúc này mới báo và đưa chuỗi thô ra — đúng một lần.
+            LiveOpsUtcDateTimeField second = new LiveOpsUtcDateTimeField();
+            field.parent.Add(second);
+            yield return ControlsTestPanel.WaitForLayout(second);
+            List<string> secondRawCommits = RecordRawCommits(second);
+            yield return MoveFocus(second.DateInput);
+            TypeText(second.DateInput, "2026-09-16");
+            yield return MoveFocus(second.TimeInput);
+            Assert.AreEqual(0, secondRawCommits.Count);
+            yield return MoveFocus(outside);
+            Assert.IsTrue(second.HasParseError, "rời field khi cặp còn thiếu giờ phải báo lỗi");
+            CollectionAssert.AreEqual(new[] { "2026-09-16|" }, secondRawCommits, "rời field thì phiên nhận chuỗi thô đúng một lần");
+            Assert.AreEqual(LiveOpsHubStrings.UtcFieldTimeEmpty, second.ErrorLabel.text);
+            Assert.IsTrue(second.TimeInput.ClassListContains(LiveOpsHubClassNames.UtcFieldPartError), "viền đúng ô còn trống");
+            Assert.IsFalse(second.DateInput.ClassListContains(LiveOpsHubClassNames.UtcFieldPartError));
+            LogAssert.NoUnexpectedReceived();
+        }
+
+        [UnityTest]
+        public IEnumerator UtcField_AssignLastReadableValue_ClearsBrokenText()
+        {
+            LiveOpsUtcDateTimeField field = CreateField(false);
+            yield return ControlsTestPanel.WaitForLayout(field);
+            DateTime endUtc = new DateTime(2026, 9, 20, 0, 0, 0, DateTimeKind.Utc);
+            field.SetValueWithoutNotify(endUtc);
+            List<(DateTime PreviousValue, DateTime NewValue)> changes = RecordChanges(field);
+
+            field.DateInput.value = "2026-9-20";
+            yield return null;
+            Assert.IsTrue(field.HasParseError);
+            Assert.AreEqual(endUtc, field.value, "giá trị vẫn là lần đọc được gần nhất — chính giá trị presenter sẽ gán sau \"Sửa thành\"");
+
+            // "Sửa thành 2026-09-20 00:00": phiên ghi chuỗi chuẩn rồi presenter gán đúng giá trị đó — BaseField coi là gán trùng và bỏ qua.
+            field.value = endUtc;
+            yield return null;
+            Assert.IsFalse(field.HasParseError, "gán giá trị khi ô đang giữ chuỗi hỏng phải thay chữ hỏng");
+            Assert.AreEqual("2026-09-20", field.RawDateText);
+            Assert.AreEqual("00:00", field.RawTimeText);
+            Assert.IsFalse(field.DateInput.ClassListContains(LiveOpsHubClassNames.UtcFieldPartError), "hết viền lỗi");
+            Assert.AreEqual(DisplayStyle.None, field.ErrorLabel.resolvedStyle.display, "hết dòng lỗi");
+            Assert.AreEqual(0, changes.Count, "giá trị không đổi thì không bắn ChangeEvent — phiên không ghi lần nữa");
+
+            field.value = endUtc.AddDays(1);
+            Assert.AreEqual(1, changes.Count, "gán giá trị khác vẫn đi đường BaseField bình thường");
             LogAssert.NoUnexpectedReceived();
         }
 
@@ -182,6 +304,29 @@ namespace DreamTech.LiveOps.Editor.Tests
             field.SetDeviceOffset(DeviceOffset);
             root.Add(field);
             return field;
+        }
+
+        /// <summary>Gõ chữ như bàn phím: <c>ITextEdition.UpdateText</c> (internal ở cả hai bản) đổi chữ và bắn InputEvent, chưa đổi value.</summary>
+        private static void TypeText(TextField textField, string text)
+        {
+            MethodInfo updateText = typeof(ITextEdition).GetMethod("UpdateText", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+            Assert.IsNotNull(updateText, "ITextEdition.UpdateText không còn — đường gõ phím của TextField đã đổi, test phải viết lại");
+            updateText.Invoke(textField.textEdition, new object[] { text });
+            Assert.AreEqual(text, textField.text);
+        }
+
+        /// <summary>Chuyển focus thật qua FocusController (FocusOut → FocusIn → Blur): ô isDelayed chốt chữ trên đường này.</summary>
+        private static IEnumerator MoveFocus(TextField target)
+        {
+            // focusedElement bị đổi đích về composite root ngoài cùng (chính LiveOpsUtcDateTimeField) nên không phân biệt được ô ngày
+            // với ô giờ — xác nhận bằng FocusInEvent tới đúng ô đích.
+            int focusInCount = 0;
+            EventCallback<FocusInEvent> onFocusIn = focusInEvent => focusInCount++;
+            target.RegisterCallback(onFocusIn);
+            target.Focus();
+            yield return null;
+            target.UnregisterCallback(onFocusIn);
+            Assert.Greater(focusInCount, 0, "focus phải vào ô đích — không có FocusInEvent thì test không đi đường chốt chữ thật");
         }
 
         private static VisualElement InputOf(TextField textField)

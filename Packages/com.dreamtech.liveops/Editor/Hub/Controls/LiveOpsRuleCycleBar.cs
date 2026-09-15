@@ -9,9 +9,12 @@ namespace DreamTech.LiveOps.Editor
     /// chạy (màu loại), con 2 phần nghỉ, con 3 phần tràn khi chạy lâu hơn chu kỳ (blocked-fill: đợt sau mở trước khi đợt trước
     /// khép). Chỉ flex-grow, không tính pixel: thanh co giãn theo cột form mà không cần nghe GeometryChangedEvent.
     ///
-    /// Ba con luôn tồn tại (ẩn bằng class) để test và view tái dùng không thêm/bớt con. Khi tràn, thanh vẽ thêm vạch 1px ở mốc hết
-    /// chu kỳ bằng Painter2D — màu đọc từ token khai lại trên chính <c>.liveops-hub-cycle-bar</c> (custom property không kế thừa
-    /// từ root [API §12.2]), để vạch đổi màu theo skin cùng nhịp với phần còn lại.
+    /// Ba con luôn tồn tại (ẩn bằng class) để test và view tái dùng không thêm/bớt con. Khi tràn, vạch 1px ở mốc hết chu kỳ được vẽ
+    /// bằng Painter2D trong CHÍNH con tràn, ở mép trái của nó (mép trái con tràn đúng là mốc hết chu kỳ vì phần nghỉ ẩn khi tràn).
+    /// Không vẽ bằng generateVisualContent của thanh: UI Toolkit vẽ nội dung cha trước con, nền đặc của phần chạy và phần tràn phủ kín
+    /// vạch — ảnh gate trước bản sửa không có điểm ảnh nào màu vạch. Vẽ trong con tràn thì vạch nằm trên nền của chính nó mà không
+    /// cần con thứ tư. Màu đọc từ token khai lại trên chính <c>.liveops-hub-cycle-bar</c> (custom property không kế thừa từ root
+    /// [API §12.2]), để vạch đổi màu theo skin cùng nhịp với phần còn lại.
     /// </summary>
 #if UNITY_2023_2_OR_NEWER
     [UxmlElement]
@@ -36,7 +39,7 @@ namespace DreamTech.LiveOps.Editor
             Overflow.AddToClassList(LiveOpsHubClassNames.FillBlocked);
             LiveOpsHubStyle.SetEventColor(Run, _colorSlot);
             RegisterCallback<CustomStyleResolvedEvent>(OnCustomStyleResolved);
-            generateVisualContent += DrawPeriodEnd;
+            Overflow.generateVisualContent += DrawPeriodEnd;
             ApplyParts();
         }
 
@@ -80,7 +83,7 @@ namespace DreamTech.LiveOps.Editor
         internal VisualElement Overflow { get; }
 
         /// <summary>Chạy lâu hơn chu kỳ (có phần tràn).</summary>
-        public bool IsOverflowing => _periodHours > 0 && _activeHours > _periodHours;
+        internal bool IsOverflowing => _periodHours > 0 && _activeHours > _periodHours;
 
         /// <summary>Màu vạch mốc hết chu kỳ đã đọc từ token; <see cref="Color.clear"/> khi stylesheet controls chưa nạp.</summary>
         internal Color PeriodEndColor => _periodEndColor;
@@ -104,7 +107,7 @@ namespace DreamTech.LiveOps.Editor
             SetPart(Run, runHours);
             SetPart(Rest, restHours);
             SetPart(Overflow, overflowHours);
-            MarkDirtyRepaint();
+            Overflow.MarkDirtyRepaint();
         }
 
         private static void SetPart(VisualElement part, int hours)
@@ -116,21 +119,22 @@ namespace DreamTech.LiveOps.Editor
         private void OnCustomStyleResolved(CustomStyleResolvedEvent resolvedEvent)
         {
             if (customStyle.TryGetValue(PeriodEndColorProperty, out Color color)) _periodEndColor = color;
-            MarkDirtyRepaint();
+            Overflow.MarkDirtyRepaint();
         }
 
         private void DrawPeriodEnd(MeshGenerationContext context)
         {
             if (!IsOverflowing || _periodEndColor.a <= 0f) return;
-            Rect content = contentRect;
-            if (float.IsNaN(content.width) || content.width <= 0f) return;
-            float periodEndX = content.xMin + content.width * _periodHours / _activeHours;
+            Rect overflowRect = Overflow.contentRect;
+            if (float.IsNaN(overflowRect.height) || overflowRect.height <= 0f) return;
+            // Nét 1px căn giữa nửa điểm ảnh trong mép trái con tràn: nét đặt đúng x = 0 bị cắt nửa bề rộng và nhoè sang phần chạy.
+            float lineX = overflowRect.xMin + PeriodEndLineWidth / 2f;
             Painter2D painter = context.painter2D;
             painter.strokeColor = _periodEndColor;
             painter.lineWidth = PeriodEndLineWidth;
             painter.BeginPath();
-            painter.MoveTo(new Vector2(periodEndX, content.yMin));
-            painter.LineTo(new Vector2(periodEndX, content.yMax));
+            painter.MoveTo(new Vector2(lineX, overflowRect.yMin));
+            painter.LineTo(new Vector2(lineX, overflowRect.yMax));
             painter.Stroke();
         }
 

@@ -155,7 +155,11 @@ namespace DreamTech.LiveOps.Editor.Tests
             return row;
         }
 
-        /// <summary>JSON mẫu 13/9 (65 dòng, [SD2 §3.6]): ! dòng 7, ~ dòng 34, + khối 36–42, ✕ dòng 39 và 53 kèm câu của thiết kế.</summary>
+        /// <summary>
+        /// JSON mẫu 13/9 (65 dòng, bảng chú thích [SD2 §3.6]): ! dòng 7, ~ dòng 34 và 47, + khối 36–42, ✕ dòng 39 và 54 kèm câu của
+        /// thiết kế. Dòng 54 là <c>"endUtc": "2026-10-3",</c> (dòng 53 là startUtc đọc được của cùng đợt) — đặt lệch một dòng thì ảnh
+        /// không đối chiếu được với Hình 18.
+        /// </summary>
         private static LiveOpsJsonView CreateDesignSampleJsonView()
         {
             LiveEventCalendarJsonText formatted = LiveEventCalendarJsonWriter.Write(DreamTech.LiveOps.Tests.LiveOpsDesignSample.Document, LiveEventCalendarJsonFormat.Version2);
@@ -169,9 +173,14 @@ namespace DreamTech.LiveOps.Editor.Tests
                 new LiveOpsJsonLineAnnotation(7, HealthState.Warning, "đổi id đợt đang chạy"),
                 new LiveOpsJsonLineAnnotation(34, HealthState.Ok, "hunt_v1 → mặc định của loại"),
                 new LiveOpsJsonLineAnnotation(39, HealthState.Blocked, "chồng 12 giờ"),
-                new LiveOpsJsonLineAnnotation(53, HealthState.Blocked, "không đọc được — đợt bị bỏ"),
+                new LiveOpsJsonLineAnnotation(47, HealthState.Ok, "19/9 → 20/9"),
+                new LiveOpsJsonLineAnnotation(54, HealthState.Blocked, "không đọc được — đợt bị bỏ"),
             });
-            List<LiveOpsJsonLineChange> changes = new List<LiveOpsJsonLineChange> { new LiveOpsJsonLineChange(34, LiveOpsJsonLineChangeKind.Modified) };
+            List<LiveOpsJsonLineChange> changes = new List<LiveOpsJsonLineChange>
+            {
+                new LiveOpsJsonLineChange(34, LiveOpsJsonLineChangeKind.Modified),
+                new LiveOpsJsonLineChange(47, LiveOpsJsonLineChangeKind.Modified),
+            };
             for (int lineNumber = 36; lineNumber <= 42; lineNumber++) changes.Add(new LiveOpsJsonLineChange(lineNumber, LiveOpsJsonLineChangeKind.Added));
             view.SetLineChanges(changes);
             return view;

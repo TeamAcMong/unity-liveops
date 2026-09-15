@@ -50,7 +50,7 @@ namespace DreamTech.LiveOps.Editor
         }
 
         /// <summary>Số tab hiện có.</summary>
-        public int ChoiceCount => _tabs.Count;
+        internal int ChoiceCount => _tabs.Count;
 
         /// <summary>
         /// Tab đang bật; -1 chỉ khi không có lựa chọn nào. Gán ngoài khoảng bị kẹp về khoảng hợp lệ (không bao giờ bỏ chọn hết).
