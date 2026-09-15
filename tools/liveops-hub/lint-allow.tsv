@@ -1,4 +1,4 @@
-# lint-allow.tsv — ngoại lệ CÓ CHỦ ĐÍCH của code-lint.py (mục 9.4). Rỗng lúc W0: mọi vi phạm đều là lỗi.
+# lint-allow.tsv — ngoại lệ CÓ CHỦ ĐÍCH của code-lint.py (mục 9.4). Rỗng lúc W0: mọi vi phạm đều là lỗi. Mỗi dòng thêm ở cổng đợt, kèm V-n.
 # Mỗi dòng 4 cột cách nhau bằng TAB; thiếu lý do thì code-lint.py từ chối đọc file.
 #   <luật>          id luật in trong ngoặc vuông của code-lint.py (vd class-not-sealed, display-dialog, clock-direct)
 #   <glob>          đường dẫn từ gốc repo, glob kiểu fnmatch (`*` khớp cả '/'), vd Packages/com.dreamtech.liveops/Editor/Hub/Services/LiveOpsHubEditorAdapters.cs
@@ -7,3 +7,4 @@
 # Ví dụ (đã comment):
 # class-not-sealed	Packages/com.dreamtech.liveops/Editor/Hub/Dialogs/LiveOpsPopoverContent.cs	LiveOpsPopoverContent	lớp gốc popover không abstract được vì PopupWindowContent cần hàm mặc định — mục 3.3 (lớp abstract/static/sealed không cần dòng này)
 # clock-direct	Packages/com.dreamtech.liveops/Editor/Hub/Services/LiveOpsHubEditorAdapters.cs	*	adapter đồng hồ thật của Editor là nơi duy nhất đọc DateTime.UtcNow — mục 3.3
+ui-vietnamese-string	Packages/com.dreamtech.liveops/Editor/Hub/Services/LiveOpsHubPreviewSample.cs	*	chữ dữ liệu mẫu phải trùng fixture, không miễn cho chữ khung — tên 5 loại + ghi chú dấu đã đăng trùng từng ký tự fixture LiveOpsDesignSample (test PreviewSample_EqualsDesignSampleFixture, mục 8); chữ cửa sổ mẫu của G-SHELLPOLISH vẫn vào LiveOpsHubStrings.* (CC-PREVIEW-1, V-22)
