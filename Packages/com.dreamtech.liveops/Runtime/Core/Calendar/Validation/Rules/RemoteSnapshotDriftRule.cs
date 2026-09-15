@@ -18,9 +18,11 @@ namespace DreamTech.LiveOps
     /// <item>So từng mục theo object JSON chuẩn VÀ kết quả biên dịch (đợt theo id, luật lặp theo loại — danh tính như diff, tự so
     /// không đi qua kiểu của diff để validator không phụ thuộc gói diff): không mục nào khác → Passed; có → Found.</item>
     /// </list>
-    /// Tầng 2b/3 cần TÀI LIỆU của dấu mới nhất, mà core không có parser: luật chỉ dùng bản so khi bộ ghi viết bản so ra đúng sha của
-    /// dấu (tức bản so chính là dấu đó). Không chứng minh được thì NotMeasured <c>latest-stamp-not-loaded</c> — "chưa đo" thật thà
-    /// hơn một kết luận so với sai bản.
+    /// Tầng 2b/3 cần TÀI LIỆU của dấu mới nhất, mà core không có parser: phiên hub đọc <c>SnapshotJson</c> của dấu rồi truyền vào
+    /// <see cref="LiveEventCalendarCheckContext.LatestStampBaseline"/> (V-21 CC-VALB-1) — có thì dùng thẳng. Thiếu (phiên chưa đọc
+    /// được dấu, context dựng tay) thì chỉ dùng bản so khi bộ ghi viết bản so ra đúng sha của dấu (tức bản so chính là dấu đó);
+    /// không chứng minh được thì NotMeasured <c>latest-stamp-not-loaded</c> (CC-VALB-2) — "chưa đo" thật thà hơn một kết luận so
+    /// với sai bản.
     /// Vì sao so object JSON chuẩn thay vì <c>CanonicalText</c> nguyên văn: bản dán "2026-09-10T00:00Z" và bản so
     /// "2026-09-10T00:00:00Z" là cùng một giờ — tầng 2 đã coi là bằng, tầng 3 phải cùng thước đo, không thì "sha khác nhưng 0 mục
     /// khác" ngược lại thành "1 mục khác" tuỳ cách gõ giờ.
@@ -45,7 +47,8 @@ namespace DreamTech.LiveOps
 
             PublishedCalendarStamp latestStamp = context.Document.LatestStamp;
             LiveEventCalendarDocument baseline = context.PublishedBaseline;
-            if (latestStamp == null && baseline == null)
+            LiveEventCalendarDocument latestStampBaseline = context.LatestStampBaseline;
+            if (latestStamp == null && baseline == null && latestStampBaseline == null)
             {
                 int itemCount = remote.RecurringRules.Count + remote.FixedEvents.Count;
                 return Found(LiveEventCalendarDetailCodes.RemoteWithoutStamp, itemCount.ToString(CultureInfo.InvariantCulture), string.Empty);
@@ -66,16 +69,15 @@ namespace DreamTech.LiveOps
                     return LiveEventCalendarRuleResult.Passed(RuleId);
                 }
 
-                stampDocument = baseline != null && ShaEquals(LiveEventCalendarJsonWriter.Write(baseline, stampFormat).Sha256Hex, latestStamp.Sha256Hex)
-                    ? baseline
-                    : null;
+                stampDocument = latestStampBaseline ?? StampDocumentFromBaseline(baseline, latestStamp, stampFormat);
                 if (stampDocument == null) return LiveEventCalendarRuleResult.NotMeasured(RuleId, LatestStampNotLoadedReasonCode);
             }
             else
             {
-                // Bản so không kèm dấu (context dựng tay ở công cụ/test): bản so là thước đo duy nhất có.
-                stampDocument = baseline;
-                if (ShaEquals(context.RemoteSnapshotSha256Hex, LiveEventCalendarJsonWriter.Write(baseline, LiveEventCalendarJsonFormat.Version2).Sha256Hex))
+                // Tài liệu không kèm dấu (context dựng tay ở công cụ/test): tài liệu dấu truyền vào nếu có, không thì bản so — là
+                // thước đo duy nhất có.
+                stampDocument = latestStampBaseline ?? baseline;
+                if (ShaEquals(context.RemoteSnapshotSha256Hex, LiveEventCalendarJsonWriter.Write(stampDocument, LiveEventCalendarJsonFormat.Version2).Sha256Hex))
                 {
                     return LiveEventCalendarRuleResult.Passed(RuleId);
                 }
@@ -91,6 +93,17 @@ namespace DreamTech.LiveOps
 
             return Found(LiveEventCalendarDetailCodes.RemoteDiffers, string.Join(LiveEventCalendarFindingBuilder.ValueSeparator, differingItemIds),
                 differingItemIds.Count.ToString(CultureInfo.InvariantCulture));
+        }
+
+        /// <summary>
+        /// Không có tài liệu dấu truyền vào: bản so chỉ được làm thước đo khi bộ ghi viết nó ra ĐÚNG sha của dấu mới nhất — bản so
+        /// là dấu cũ người dùng chọn thì không, kẻo bản dán = dấu cũ lại báo "khớp". <c>null</c> = không chứng minh được.
+        /// </summary>
+        private static LiveEventCalendarDocument StampDocumentFromBaseline(LiveEventCalendarDocument baseline, PublishedCalendarStamp latestStamp,
+            LiveEventCalendarJsonFormat stampFormat)
+        {
+            if (baseline == null) return null;
+            return ShaEquals(LiveEventCalendarJsonWriter.Write(baseline, stampFormat).Sha256Hex, latestStamp.Sha256Hex) ? baseline : null;
         }
 
         private LiveEventCalendarRuleResult Found(string detailCode, string foundText, string expectedText)

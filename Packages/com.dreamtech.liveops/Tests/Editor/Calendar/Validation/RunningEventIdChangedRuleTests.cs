@@ -182,6 +182,61 @@ namespace DreamTech.LiveOps.Tests
         }
 
         [Test]
+        public void RunningEventIdChanged_NoRevertRecoversRunning_RepairKindNone_StillBlocksThroughValidator()
+        {
+            // V-21 CC-VALB-3: không lệnh hoàn về nào làm bản ghi tìm lại được đợt đang chạy → RepairKind None, nhưng qua validator
+            // mặc định phát hiện vẫn Mất tiến độ, không bị bỏ qua, vẫn ở Cần xử lý (chặn Copy JSON) — không vì thiếu lệnh sửa mà nhẹ đi.
+            LiveEventCalendarDocument baseline = ValidationTestFixtures.FixedDocument(
+                ValidationTestFixtures.Entry("quest-0912", "quest", RunningStart, RunningEnd));
+            LiveEventCalendarDocument draft = ValidationTestFixtures.FixedDocument(
+                ValidationTestFixtures.Entry("quest-0912", "quest", RunningStart, RunningEnd),
+                ValidationTestFixtures.Entry("quest-0912", "hunt", "2026-09-11T00:00:00Z", "2026-09-12T00:00:00Z"));
+
+            LiveEventCalendarCheckReport report = LiveEventCalendarValidator.Default.Check(ContextFor(draft, baseline));
+
+            LiveEventCalendarFinding finding = DesignSampleCheckTests.FindingOf(report, LiveEventCalendarRuleIds.RunningEventIdChanged, "quest-0912");
+            Assert.AreEqual(LiveEventCalendarConsequence.ProgressLost, finding.Consequence);
+            Assert.AreEqual(LiveEventCalendarRepairKind.None, finding.RepairKind);
+            Assert.AreEqual(0, finding.Repairs.Count, "Không có \"Quyết định…\" rỗng — câu sửa tay là việc của G-FINDINGTEXT.");
+            Assert.IsFalse(finding.IsIgnored);
+            Assert.IsNull(finding.DueReminder);
+            Assert.GreaterOrEqual(report.Summary.ProgressLostCount, 1);
+            CollectionAssert.Contains(report.Findings, finding);
+        }
+
+        [Test]
+        public void RunningFixedRemoved_DeferUntilEnd_ReminderRangeStartsAtEndOpen_ExpiresAtEnd()
+        {
+            // V-21 CC-VALB-4 ở nhánh đợt cố định: ghi chú hẹn có khoảng [lúc khép, mở) và hạn = lúc khép; làm lại thay đổi trước giờ
+            // khép thì ghi chú không che phát hiện.
+            LiveEventCalendarDocument baseline = ValidationTestFixtures.FixedDocument(
+                ValidationTestFixtures.Entry("quest-0912", "quest", RunningStart, RunningEnd));
+            LiveEventCalendarDocument draft = ValidationTestFixtures.FixedDocument(
+                ValidationTestFixtures.Entry("quest-0920", "quest", "2026-09-20T00:00:00Z", "2026-09-22T00:00:00Z"));
+            LiveEventCalendarFinding finding = SingleFinding(draft, baseline);
+
+            Assert.IsTrue(LiveEventCalendarEdits.TryApply(draft, finding.Repairs[1].Edit, out LiveEventCalendarDocument deferred));
+
+            Assert.AreEqual(1, deferred.IgnoredWarnings.Count);
+            IgnoredCalendarWarning reminder = deferred.IgnoredWarnings[0];
+            Assert.AreEqual(LiveEventCalendarRuleIds.RunningEventIdChanged, reminder.RuleId);
+            Assert.AreEqual("quest-0912", reminder.TargetId);
+            Assert.AreEqual(RunningEnd, reminder.RangeStartUtcText, "Khoảng bắt đầu ở lúc khép, không phải khung đang chạy 12/9.");
+            Assert.AreEqual(string.Empty, reminder.RangeEndUtcText, "Khoảng mở phía sau.");
+            Assert.AreEqual(RunningEnd, reminder.ExpiresUtcText, "Hạn = lúc khép.");
+            Assert.AreEqual(LiveEventCalendarRuleOutcome.Passed, new RunningEventIdChangedRule().Evaluate(ContextFor(deferred, baseline)).Outcome,
+                "Để sau khi khép cũng hoàn về ngay.");
+
+            LiveEventCalendarDocument redone = ValidationTestFixtures.FixedDocument(
+                ValidationTestFixtures.Entry("quest-0920", "quest", "2026-09-20T00:00:00Z", "2026-09-22T00:00:00Z"));
+            redone = new LiveEventCalendarDocumentBuilder(redone).WithIgnoredWarning(reminder).Build();
+            LiveEventCalendarCheckReport report = LiveEventCalendarValidator.Default.Check(ContextFor(redone, baseline));
+            LiveEventCalendarFinding redoneFinding = DesignSampleCheckTests.FindingOf(report, LiveEventCalendarRuleIds.RunningEventIdChanged, "quest-0912");
+            Assert.IsFalse(redoneFinding.IsIgnored, "Trước giờ khép ghi chú hẹn không khớp khung đang chạy.");
+            Assert.AreEqual(0, report.Summary.IgnoredCount);
+        }
+
+        [Test]
         public void RunningEventIdChanged_RunningFixedRemoved_Found()
         {
             LiveEventCalendarDocument baseline = ValidationTestFixtures.FixedDocument(
