@@ -45,6 +45,9 @@ CONTRAST_ALLOWANCE = 0.3
 EDGE_SEARCH_RADIUS_PIXELS = 4
 EDGE_MINIMUM_DELTA_E = 1.0  # nền Editor tối khác nhau vài mức xám (#383838 vs #3C3C3C ≈ ΔE 1,5)
 SAMPLE_FRACTIONS = (0.25, 0.5, 0.75)
+# Cạnh bạn của đường viền mảnh phải mạnh ít nhất ngần này so với cạnh mạnh nhất (viền toast skin sáng: 23,1 / 31,0 ≈ 0,75;
+# viền section header skin tối: 9,3 / 11,1 ≈ 0,84) — dưới mức này coi là nhiễu khử răng cưa, không phải mép viền.
+THIN_LINE_PARTNER_STRENGTH_RATIO = 0.5
 
 
 # ------------------------------------------------------------------------------------------------------------ PNG
@@ -200,11 +203,22 @@ def delta_e(first, second):
 
 # ------------------------------------------------------------------------------------------------------------ đo
 
-def find_edge(image, fixed_coordinate, expected_position, horizontal):
-    """Vị trí cạnh gần expected_position nhất có ΔE giữa hai điểm ảnh kề lớn nhất; None khi không có cạnh rõ."""
-    best_position = None
-    best_strength = 0.0
+def find_edge(image, fixed_coordinate, expected_position, horizontal, outward_sign, scale=1.0):
+    """Vị trí cạnh của khung gần expected_position (mép worldBound); None khi không có cạnh rõ.
+
+    outward_sign = -1 cho mép đầu (ngoài khung là phía toạ độ nhỏ), +1 cho mép cuối.
+
+    Vì sao không lấy thẳng cạnh có ΔE lớn nhất: đường viền 1 px tạo HAI cạnh kề nhau (nền→viền, viền→nền). Bước mạnh hơn
+    tuỳ skin — skin sáng #C8C8C8→#8A8A8A→#DEDEDE làm bước viền→thân mạnh hơn, lấy cạnh mạnh nhất là lấy mép TRONG của viền
+    nên toast 24 px đo 22 và header/section header/status hụt 1 px (CC-FEEDBACK-1, L-1). Điểm ảnh một mình không biết đường
+    viền thuộc khung này hay khung kề (header #CBCBCB, viền #939393 ở hàng 25, section header #CBCBCB từ hàng 26 — hai phía
+    giống hệt nhau), nên cặp cạnh bao một đường mảnh được phân xử bằng mép worldBound: đường nằm TRONG khung là viền của
+    chính khung → lấy mép NGOÀI của viền; đường nằm ngoài khung là viền của khung kề → lấy cạnh sát khung. Cả hai ca đều là
+    cạnh gần mép worldBound nhất. Chỉ phân xử trong phạm vi một đường mảnh (≤ 1 point) nên mơ hồ tối đa 1 px = sai số; khung
+    thật lệch ≥ 2 px vẫn bị bắt.
+    """
     limit = image.width if horizontal else image.height
+    strengths = {}
     for position in range(int(round(expected_position)) - EDGE_SEARCH_RADIUS_PIXELS, int(round(expected_position)) + EDGE_SEARCH_RADIUS_PIXELS + 1):
         if position <= 0 or position >= limit:
             continue
@@ -212,14 +226,22 @@ def find_edge(image, fixed_coordinate, expected_position, horizontal):
             before, after = image.rgb(position - 1, fixed_coordinate), image.rgb(position, fixed_coordinate)
         else:
             before, after = image.rgb(fixed_coordinate, position - 1), image.rgb(fixed_coordinate, position)
-        strength = delta_e(before, after)
-        closer = best_position is not None and strength == best_strength and abs(position - expected_position) < abs(best_position - expected_position)
-        if strength > best_strength or closer:
-            best_strength = strength
-            best_position = position
+        strengths[position] = delta_e(before, after)
+    if not strengths:
+        return None
+    best_strength = max(strengths.values())
     if best_strength < EDGE_MINIMUM_DELTA_E:
         return None
-    return best_position
+    best_positions = [position for position, strength in strengths.items() if strength == best_strength]
+    strongest = min(best_positions, key=lambda position: (abs(position - expected_position), -outward_sign * position))
+    # Cạnh bạn của một đường mảnh: cách cạnh mạnh nhất không quá bề dày đường (1 point = scale px), và đủ mạnh để là cạnh
+    # thật chứ không phải nhiễu khử răng cưa.
+    line_thickness = max(1, int(round(scale)))
+    partner_minimum = max(EDGE_MINIMUM_DELTA_E, best_strength * THIN_LINE_PARTNER_STRENGTH_RATIO)
+    candidates = [position for position, strength in strengths.items()
+                  if abs(position - strongest) <= line_thickness and strength >= partner_minimum]
+    # Hoà khoảng cách (mép worldBound lẻ nửa px) thì lấy cạnh ngoài khung.
+    return min(candidates, key=lambda position: (abs(position - expected_position), -outward_sign * position))
 
 
 def matching_elements(elements, key):
@@ -244,9 +266,9 @@ def measure_frame(image, element, expectation, scale, tolerance):
         samples = []
         for fraction in SAMPLE_FRACTIONS:
             fixed = int(across_start + across_length * fraction)
-            first_edge = find_edge(image, fixed, start, horizontal) if start > 0 else 0
+            first_edge = find_edge(image, fixed, start, horizontal, -1, scale) if start > 0 else 0
             second_limit = image.width if horizontal else image.height
-            second_edge = find_edge(image, fixed, end, horizontal) if end < second_limit else second_limit
+            second_edge = find_edge(image, fixed, end, horizontal, +1, scale) if end < second_limit else second_limit
             if first_edge is None or second_edge is None:
                 continue
             samples.append((second_edge - first_edge) / scale)
@@ -363,6 +385,77 @@ def run(paths, tolerance, maximum_delta_e, output):
     return 1 if failure_count else 0
 
 
+def self_test_thin_borders(directory):
+    """Ca viền 1 px (CC-FEEDBACK-1, L-1): số màu chép từ ảnh chụp thật, mong đợi là số thiết kế đọc tay trên pixel gốc."""
+    failures = 0
+
+    def measured_samples(stem, height, rows, elements, expected_frames):
+        # rows: danh sách (hàng đầu, hàng cuối, màu) — hàng không phủ lấy màu cửa sổ của ca.
+        def pixel(column, row):
+            for first_row, last_row, color in rows:
+                if first_row <= row <= last_row:
+                    return bytes(color)
+            return bytes(rows[0][2])
+        case_directory = os.path.join(directory, stem)
+        os.makedirs(case_directory)
+        write_png(os.path.join(case_directory, stem + ".png"), 400, height, pixel)
+        description = {"scenario": stem, "skin": "self-test", "unityVersion": "self-test", "pixelsPerPoint": 1,
+                       "window": {"width": 400, "height": height}, "elements": elements, "expectedFrames": expected_frames}
+        json_path = os.path.join(case_directory, stem + ".json")
+        with open(json_path, "w", encoding="utf-8") as handle:
+            json.dump(description, handle)
+        report = measure_capture(json_path, 1, 3)
+        return dict(((frame["element"], frame["dimension"]), frame) for frame in report["frames"]), report
+
+    def toast_rows(window, border, body, top_row, bottom_row):
+        return [(0, top_row - 1, window), (top_row, top_row, border), (top_row + 1, bottom_row - 1, body),
+                (bottom_row, bottom_row, border), (bottom_row + 1, 759, window)]
+
+    toast_element = [{"name": "hub-toast", "classes": ["liveops-hub-toast"], "worldBound": {"x": 0, "y": 708, "width": 400, "height": 24}}]
+    toast_expectation = [{"element": "liveops-hub-toast", "height": 24}]
+    # Pixel gốc hf-toast-bare, hàng 708 và 731 là viền tooltip: sáng #C8C8C8/#8A8A8A/#DEDEDE, tối #383838/#191919/#373737.
+    for skin, window, border, body in (("light", (0xC8, 0xC8, 0xC8), (0x8A, 0x8A, 0x8A), (0xDE, 0xDE, 0xDE)),
+                                       ("dark", (0x38, 0x38, 0x38), (0x19, 0x19, 0x19), (0x37, 0x37, 0x37))):
+        frames, _ = measured_samples("toast-" + skin, 760, toast_rows(window, border, body, 708, 731), toast_element, toast_expectation)
+        samples = frames[("hub-toast", "height")]["measuredSamples"]
+        if samples != [24.0, 24.0, 24.0]:
+            print("FAIL toast viền 1 px skin %s đo %s (pixel gốc 24: mép ngoài hai viền)" % (skin, samples))
+            failures += 1
+    # Toast vẽ thật chỉ 22 px (viền hàng 709 và 730) trong khi worldBound nói 24: phân xử đường mảnh không được che lệch này.
+    frames, report = measured_samples("toast-drawn-22", 760, toast_rows((0xC8, 0xC8, 0xC8), (0x8A, 0x8A, 0x8A), (0xDE, 0xDE, 0xDE), 709, 730),
+                                      toast_element, toast_expectation)
+    if not report["errors"]:
+        print("FAIL toast vẽ 22 px (worldBound 24) không bị bắt, đo %s" % frames[("hub-toast", "height")]["measuredSamples"])
+        failures += 1
+
+    # Khung hs-shell-skeleton skin sáng cột x = 900: header #CBCBCB viền #939393 hàng 25; section header viền hàng 61; nội
+    # dung #C8C8C8; status viền trên hàng 740. Viền hàng 25 thuộc header nên section header bắt đầu ở hàng 26.
+    header_background = (0xCB, 0xCB, 0xCB)
+    border = (0x93, 0x93, 0x93)
+    content = (0xC8, 0xC8, 0xC8)
+    rows = [(0, 24, header_background), (25, 25, border), (26, 60, header_background), (61, 61, border),
+            (62, 739, content), (740, 740, border), (741, 759, header_background)]
+    elements = [
+        {"name": "hub-header", "classes": ["liveops-hub-header"], "worldBound": {"x": 0, "y": 0, "width": 400, "height": 26}},
+        {"name": "hub-section-header", "classes": ["liveops-hub-section-header"], "worldBound": {"x": 0, "y": 26, "width": 400, "height": 36}},
+        {"name": "hub-status", "classes": ["liveops-hub-status"], "worldBound": {"x": 0, "y": 740, "width": 400, "height": 20}},
+    ]
+    frames, _ = measured_samples("shell-light", 760, rows, elements, DEFAULT_FRAME_EXPECTATIONS)
+    for element, expected in (("hub-header", 26.0), ("hub-section-header", 36.0), ("hub-status", 20.0)):
+        samples = frames[(element, "height")]["measuredSamples"]
+        if samples != [expected] * 3:
+            print("FAIL %s viền 1 px đo %s (pixel gốc %.0f)" % (element, samples, expected))
+            failures += 1
+    # h28b: header viền hàng 25 kề nền cửa sổ #C8C8C8 (không có section header).
+    frames, _ = measured_samples("header-over-window", 760, [(0, 24, header_background), (25, 25, border), (26, 759, content)],
+                                 elements[:1], DEFAULT_FRAME_EXPECTATIONS)
+    if frames[("hub-header", "height")]["measuredSamples"] != [26.0] * 3:
+        print("FAIL header kề nền cửa sổ đo %s (pixel gốc 26)" % frames[("hub-header", "height")]["measuredSamples"])
+        failures += 1
+    print("%s   ca viền 1 px (toast sáng/tối, toast vẽ 22 px, header/section header/status)" % ("ok" if not failures else "FAIL"))
+    return failures
+
+
 def self_test():
     window_background = (0x38, 0x38, 0x38)
     rail_background = (0x33, 0x33, 0x33)
@@ -416,6 +509,7 @@ def self_test():
         if run([bad], 1, 3, None) == 0:
             print("FAIL rail 199px (worldBound nói 196) không bị bắt")
             failures += 1
+        failures += self_test_thin_borders(directory)
     print("MEASURE SELF-TEST %s" % ("OK" if not failures else "FAILED"))
     return 1 if failures else 0
 
