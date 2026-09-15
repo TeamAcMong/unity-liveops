@@ -19,6 +19,12 @@ namespace DreamTech.LiveOps.Editor.Tests
         private static readonly DateTime NowUtc = LiveOpsDesignSample.NowUtc;
         private static readonly Regex NoParseSegment = new Regex("<noparse>.*?</noparse>", RegexOptions.Singleline);
 
+        /// <summary>Tên asset lịch của mẫu thiết kế [SD2 §2.3 hàng 5] "lưu trong Main.asset".</summary>
+        private const string DesignCalendarAssetName = "Main.asset";
+
+        /// <summary>Vùng noparse như bộ parse rich text thấy: mở bằng thẻ viết thường của lớp câu, đóng ở thẻ đóng ĐẦU TIÊN mọi kiểu hoa thường.</summary>
+        private static readonly Regex ParserNoParseSegment = new Regex("<noparse>.*?</noparse>", RegexOptions.Singleline | RegexOptions.IgnoreCase);
+
         private static LiveOpsHubFormat Format => new LiveOpsHubFormat(LiveOpsDesignSample.DeviceOffset);
 
         // =============================================================================================================== đủ câu
@@ -33,7 +39,9 @@ namespace DreamTech.LiveOps.Editor.Tests
                 IReadOnlyList<string> detailCodes = LiveEventCalendarDetailCodes.ForRule(ruleId);
                 Assert.IsNotEmpty(detailCodes, ruleId);
 
-                var headlines = new HashSet<string>(StringComparer.Ordinal);
+                // Nhóm = (loại đích, field của luật 3): chỉ trong cùng nhóm hai biến thể mới cạnh tranh một hàng. Gộp cả hai loại đích vào một
+                // tập làm luật 9 có tới 10 headline cho 5 mã — hai mã trùng câu vẫn qua ngưỡng.
+                var headlinesByGroup = new Dictionary<string, Dictionary<string, string>>(StringComparer.Ordinal);
                 foreach (string detailCode in detailCodes)
                 {
                     pairCount++;
@@ -50,7 +58,13 @@ namespace DreamTech.LiveOps.Editor.Tests
                         AssertSentence(LiveOpsFindingText.ShortLabel(finding), label + " ShortLabel");
                         AssertSentence(LiveOpsFindingText.ConsequenceSentence(finding, Format), label + " ConsequenceSentence");
                         StringAssert.DoesNotContain("<noparse>", LiveOpsFindingText.ShortLabel(finding), label + ": mảnh tooltip không mang giá trị thô");
-                        headlines.Add(finding.TargetKind + LiveOpsFindingText.Headline(finding, Format));
+                        string group = finding.TargetKind + "|" + (ruleId == LiveEventCalendarRuleIds.InvalidIdentifier ? finding.ExpectedText : string.Empty);
+                        if (!headlinesByGroup.TryGetValue(group, out Dictionary<string, string> headlineByCode))
+                        {
+                            headlineByCode = new Dictionary<string, string>(StringComparer.Ordinal);
+                            headlinesByGroup.Add(group, headlineByCode);
+                        }
+                        if (!headlineByCode.ContainsKey(detailCode)) headlineByCode.Add(detailCode, LiveOpsFindingText.PlainText(headline));
                         foreach (LiveEventCalendarRepair repair in finding.Repairs)
                         {
                             AssertSentence(LiveOpsFindingText.RepairOptionText(finding, repair, Format), label + " RepairOptionText " + repair.RepairId);
@@ -60,7 +74,12 @@ namespace DreamTech.LiveOps.Editor.Tests
                 // Các biến thể trong một luật phải nói KHÁC nhau — cùng câu cho "xoá" và "đổi loại" là người đọc không biết mình phải làm gì.
                 if (ruleId != LiveEventCalendarRuleIds.UtcTimeFormat && ruleId != LiveEventCalendarRuleIds.ConfigKeyMissing)
                 {
-                    Assert.GreaterOrEqual(headlines.Count, detailCodes.Count, ruleId + ": biến thể trùng headline");
+                    foreach (KeyValuePair<string, Dictionary<string, string>> group in headlinesByGroup)
+                    {
+                        var distinct = new HashSet<string>(group.Value.Values, StringComparer.Ordinal);
+                        Assert.AreEqual(group.Value.Count, distinct.Count, ruleId + " / " + group.Key + ": biến thể trùng headline — " +
+                            string.Join(" | ", group.Value.Values));
+                    }
                 }
             }
             Assert.Greater(pairCount, 30, "Danh sách mã đóng của 12 luật");
@@ -151,7 +170,9 @@ namespace DreamTech.LiveOps.Editor.Tests
                 "lava-quest trống 11 ngày (20/9 → 1/10)",
                 "không có đợt lava-quest nào trong 20/9 00:00 → 1/10 00:00 UTC",
                 "long-gap-between-events · lava-quest", "Bỏ qua cảnh báo…", string.Empty,
-                "Chỉ khoảng này, ghi chú bắt buộc, lưu trong asset lịch");
+                "Chỉ khoảng này, ghi chú bắt buộc, lưu trong Main.asset");
+            Assert.AreEqual("Chỉ khoảng này, ghi chú bắt buộc, lưu trong asset lịch",
+                LiveOpsFindingText.PlainText(LiveOpsFindingText.PrimaryButtonTooltip(LongGapFinding(), Format)), "Không biết tên asset: câu chung, không bỏ trống.");
 
             // Pane Chi tiết của hàng overlap: hậu quả trước, vì sao sau, hai nút "CÁCH SỬA" [SD2 §2.3 overlap].
             LiveEventCalendarFinding overlap = OverlapFinding();
@@ -202,10 +223,15 @@ namespace DreamTech.LiveOps.Editor.Tests
             }
 
             // Giá trị thô mang đúng thẻ đóng noparse không được thoát khỏi vùng noparse; PlainText trả lại nguyên văn.
-            const string closingTag = "x</noparse><b>y";
-            string wrapped = LiveOpsFindingText.NoParse(closingTag);
-            AssertNoTagOutsideNoParse(wrapped, "thẻ đóng trong giá trị");
-            Assert.AreEqual(closingTag, LiveOpsFindingText.PlainText(wrapped));
+            // Bộ parse so tên thẻ không phân biệt hoa thường (TMP_Text: ToUpperFast) nên mọi biến thể phải được thoát, kể cả thẻ mở lồng.
+            foreach (string closingTag in new[] { "x</noparse><b>y", "x</NoParse><b>y", "x</NOPARSE ><b>y", "<NoParse>x</noparse><b>y", "a<noparse" })
+            {
+                string wrapped = LiveOpsFindingText.NoParse(closingTag);
+                AssertNoTagOutsideNoParse(wrapped, "thẻ noparse trong giá trị " + closingTag);
+                string outsideAsParser = ParserNoParseSegment.Replace(wrapped, string.Empty);
+                StringAssert.DoesNotContain("<", outsideAsParser, "Giá trị " + closingTag + " đóng vùng noparse như bộ parse thấy — " + wrapped);
+                Assert.AreEqual(closingTag, LiveOpsFindingText.PlainText(wrapped), "PlainText trả lại nguyên văn " + closingTag);
+            }
 
             LiveEventCalendarFinding overlap = Builder(LiveEventCalendarRuleIds.OverlapSameType, LiveEventCalendarDetailCodes.OverlapKeptEarlier,
                     LiveEventCalendarConsequence.Dropped, LiveEventCalendarTargetKind.FixedEvent, hostileId)
@@ -256,6 +282,8 @@ namespace DreamTech.LiveOps.Editor.Tests
             string recurringFix = LiveOpsFindingText.PlainText(LiveOpsFindingText.ManualFixSentence(recurringFinding, Format));
             StringAssert.Contains("Mở luật weekly-pass, trả tiền tố, neo và chu kỳ về như bản đã đăng", recurringFix);
             StringAssert.Contains("vẫn là weekly-pass-35 (7/9 00:00 → 14/9 00:00 UTC)", recurringFix);
+            StringAssert.EndsWith("không hoàn về tự động được — sửa tay ở Luật lặp", LiveOpsFindingText.PlainText(LiveOpsFindingText.Meta(recurringFinding, Format)),
+                "Meta chỉ cùng màn với nút \"Mở luật\" và câu sửa tay — không bảo sửa trong Lịch.");
 
             foreach (LiveEventCalendarFinding finding in new[] { fixedFinding, recurringFinding })
             {
@@ -284,6 +312,10 @@ namespace DreamTech.LiveOps.Editor.Tests
             Assert.AreEqual(LiveOpsFindingText.NoPublishedStampReasonCode, runningNotApplicable.ReasonCode);
             Assert.IsTrue(LiveOpsFindingText.HasRuleResultSentence(runningNotApplicable.RuleId, runningNotApplicable.Outcome, runningNotApplicable.ReasonCode));
             AssertSentence(LiveOpsFindingText.RuleResultMeta(runningNotApplicable, format, null), "no-published-stamp");
+            Assert.AreEqual("không áp dụng: chưa có dấu đã đăng", LiveOpsFindingText.RuleResultNotApplicableLabel(runningNotApplicable), "(PD-9) nhãn card Đã qua");
+            Assert.AreEqual("không áp dụng: lý do future-reason", LiveOpsFindingText.PlainText(LiveOpsFindingText.RuleResultNotApplicableLabel(
+                LiveEventCalendarRuleResult.NotApplicable(LiveEventCalendarRuleIds.LongGapBetweenEvents, "future-reason"))));
+            Assert.AreEqual(string.Empty, LiveOpsFindingText.RuleResultNotApplicableLabel(remoteNotPasted), "Chưa kiểm không phải Không áp dụng.");
 
             // (V-21 CC-VALB-2) Đã dán, tài liệu có dấu mới nhất nhưng phiên không truyền tài liệu của dấu và bản so không phải dấu đó.
             LiveEventCalendarDocument document = LiveOpsDesignSample.Document;
@@ -337,6 +369,68 @@ namespace DreamTech.LiveOps.Editor.Tests
             Assert.AreEqual("mọi khoảng", LiveOpsFindingText.IgnoredWarningRangeText(
                 new IgnoredCalendarWarning(LiveEventCalendarRuleIds.LongGapBetweenEvents, "lava-quest", string.Empty, string.Empty, "ghi chú", string.Empty), Format));
             Assert.AreEqual("đã tới hẹn", LiveOpsFindingText.DueReminderTag);
+        }
+
+        [Test]
+        public void RunningMovedOut_HeadlineFollowsDirectionOfMove()
+        {
+            // Luật thật ra moved-out cho mọi khung mới không giao khung đang chạy (12/9 → 15/9) — cả dời về sau lẫn dời về trước.
+            FixedLiveEventEntry running = new FixedLiveEventEntry("entry-running", "quest-0912", "quest", "2026-09-12T00:00:00Z", "2026-09-15T00:00:00Z", "quest_v1");
+            LiveEventCalendarDocument baseline = new LiveEventCalendarDocumentBuilder().WithFixedEvent(running).Build();
+
+            LiveEventCalendarFinding later = MovedOutFinding(baseline, running.WithTimes("2026-09-16T00:00:00Z", "2026-09-18T00:00:00Z"));
+            Assert.AreEqual("quest-0912 dời ra sau 16/9 00:00 khi đang chạy", LiveOpsFindingText.PlainText(LiveOpsFindingText.Headline(later, Format)));
+
+            LiveEventCalendarFinding earlier = MovedOutFinding(baseline, running.WithTimes("2026-09-01T00:00:00Z", "2026-09-05T00:00:00Z"));
+            Assert.AreEqual("quest-0912 dời sớm về 1/9 00:00 khi đang chạy", LiveOpsFindingText.PlainText(LiveOpsFindingText.Headline(earlier, Format)),
+                "Đợt đang chạy từ 12/9 bị dời về 1/9 không được nói \"dời ra sau 1/9\".");
+            StringAssert.Contains("khung mới 1/9 00:00 → 5/9 00:00 UTC", LiveOpsFindingText.PlainText(LiveOpsFindingText.Meta(earlier, Format)));
+
+            // Luật lặp cùng quy tắc: so lúc bắt đầu mới với khung đang chạy.
+            LiveEventCalendarFinding recurringEarlier = Builder(LiveEventCalendarRuleIds.RunningEventIdChanged, LiveEventCalendarDetailCodes.RunningMovedOutOfWindow,
+                    LiveEventCalendarConsequence.ProgressLost, LiveEventCalendarTargetKind.RecurringRule, "weekly-pass")
+                .WithRelatedId("weekly-pass-35").WithTexts("2026-08-31T00:00:00Z · 2026-09-07T00:00:00Z", "2026-09-07T00:00:00Z · 2026-09-14T00:00:00Z")
+                .WithRange(Utc(9, 7, 0), Utc(9, 14, 0)).Build();
+            Assert.AreEqual("weekly-pass dời weekly-pass-35 sớm về 31/8 00:00 khi đang chạy",
+                LiveOpsFindingText.PlainText(LiveOpsFindingText.Headline(recurringEarlier, Format)));
+        }
+
+        [Test]
+        public void RepairOptionText_CoreRepairIds_NeverFallBackToRawValues()
+        {
+            // Id cách sửa chép tay ở Editor (lớp luật core là internal): chạy luật 1/2/4/5/6 THẬT và khẳng định mọi lệnh sửa có câu riêng —
+            // core đổi id thì RepairOptionText rơi âm thầm về giá trị thô, test này đỏ.
+            LiveEventCalendarDocument draft = new LiveEventCalendarDocumentBuilder()
+                .WithRecurringRule(new RecurringLiveEventRule("sky-race", "2026-01-05T00:00:00Z", "sky-race-", 24, 30, "sky_v1"))
+                .WithFixedEvent(new FixedLiveEventEntry("entry-utc", "lava-quest-2026-10", "lava-quest", "2026-10-01T00:00:00Z", "2026-10-3", "lava_v1"))
+                .WithFixedEvent(new FixedLiveEventEntry("entry-swap", "lava-quest-2026-11", "lava-quest", "2026-11-10T00:00:00Z", "2026-11-08T00:00:00Z", "lava_v1"))
+                .WithFixedEvent(new FixedLiveEventEntry("entry-dup-1", "dup-1", "dup", "2026-10-12T00:00:00Z", "2026-10-13T00:00:00Z", "dup_v1"))
+                .WithFixedEvent(new FixedLiveEventEntry("entry-dup-2", "dup-1", "dup", "2026-10-14T00:00:00Z", "2026-10-15T00:00:00Z", "dup_v1"))
+                .WithFixedEvent(new FixedLiveEventEntry("entry-hunt", "hunt-0914", "hunt", "2026-09-14T00:00:00Z", "2026-09-17T00:00:00Z", "hunt_v1"))
+                .WithFixedEvent(new FixedLiveEventEntry("entry-bonus", "hunt-0916-bonus", "hunt", "2026-09-16T12:00:00Z", "2026-09-18T00:00:00Z", "hunt_v1"))
+                .Build();
+            LiveEventCalendarCheckReport report = LiveEventCalendarValidator.Default.Check(new LiveEventCalendarCheckContextBuilder(draft, NowUtc).Build());
+
+            var editorRepairIds = new HashSet<string>(StringComparer.Ordinal)
+            {
+                LiveOpsFindingText.NormalizeRepairId, LiveOpsFindingText.KeepStartSetDurationRepairId, LiveOpsFindingText.SwapStartEndRepairId,
+                LiveOpsFindingText.RenameRepairId, LiveOpsFindingText.ShiftStartKeepEndRepairId, LiveOpsFindingText.ShiftWholeKeepDurationRepairId,
+                LiveOpsFindingText.SetActiveToPeriodRepairId,
+            };
+            var seen = new HashSet<string>(StringComparer.Ordinal);
+            foreach (LiveEventCalendarFinding finding in report.Findings)
+            {
+                foreach (LiveEventCalendarRepair repair in finding.Repairs)
+                {
+                    string label = finding.RuleId + " / " + repair.RepairId;
+                    Assert.IsTrue(editorRepairIds.Contains(repair.RepairId), label + ": id cách sửa của core không khớp hằng chép ở LiveOpsFindingText");
+                    seen.Add(repair.RepairId);
+                    string text = LiveOpsFindingText.RepairOptionText(finding, repair, Format);
+                    AssertSentence(text, label);
+                    Assert.AreNotEqual(RawFallback(repair), text, label + ": câu rơi về giá trị thô");
+                }
+            }
+            CollectionAssert.AreEquivalent(editorRepairIds, seen, "Mẫu phải sinh đủ 7 id cách sửa của luật 1/2/4/5/6.");
         }
 
         [Test]
@@ -624,7 +718,8 @@ namespace DreamTech.LiveOps.Editor.Tests
             Assert.AreEqual(ruleIdLine, LiveOpsFindingText.PlainText(LiveOpsFindingText.RuleIdLine(finding)), finding.RuleId + " id luật");
             Assert.AreEqual(primaryButton, LiveOpsFindingText.PrimaryButtonText(finding), finding.RuleId + " nút chính");
             Assert.AreEqual(link, LiveOpsFindingText.LinkText(finding), finding.RuleId + " link");
-            Assert.AreEqual(primaryTooltip, LiveOpsFindingText.PlainText(LiveOpsFindingText.PrimaryButtonTooltip(finding, Format)), finding.RuleId + " tooltip nút");
+            Assert.AreEqual(primaryTooltip, LiveOpsFindingText.PlainText(LiveOpsFindingText.PrimaryButtonTooltip(finding, Format, DesignCalendarAssetName)),
+                finding.RuleId + " tooltip nút");
             AssertSentence(LiveOpsFindingText.ConsequenceSentence(finding, Format), finding.RuleId + " hậu quả");
         }
 
@@ -653,6 +748,25 @@ namespace DreamTech.LiveOps.Editor.Tests
             }
             Assert.Fail("Không có phát hiện " + ruleId);
             return null;
+        }
+
+        private static LiveEventCalendarFinding MovedOutFinding(LiveEventCalendarDocument baseline, FixedLiveEventEntry movedEntry)
+        {
+            LiveEventCalendarDocument draft = new LiveEventCalendarDocumentBuilder().WithFixedEvent(movedEntry).Build();
+            LiveEventCalendarCheckReport report = LiveEventCalendarValidator.Default.Check(
+                new LiveEventCalendarCheckContextBuilder(draft, NowUtc).WithPublishedBaseline(baseline).Build());
+            LiveEventCalendarFinding finding = FindingOf(report, LiveEventCalendarRuleIds.RunningEventIdChanged);
+            Assert.AreEqual(LiveEventCalendarDetailCodes.RunningMovedOutOfWindow, finding.DetailCode, "Tiền đề: luật thật ra moved-out.");
+            return finding;
+        }
+
+        /// <summary>Câu dự phòng của <c>RepairOptionText</c> khi không nhận ra id: giá trị sau sửa (hoặc id) bọc noparse, nối bằng " và ".</summary>
+        private static string RawFallback(LiveEventCalendarRepair repair)
+        {
+            string joined = repair.AfterText.Length > 0 ? repair.AfterText : repair.RepairId;
+            string[] values = joined.Split(new[] { LiveEventCalendarFindingBuilder.ValueSeparator }, StringSplitOptions.None);
+            for (int index = 0; index < values.Length; index++) values[index] = LiveOpsFindingText.NoParse(values[index]);
+            return string.Join(" và ", values);
         }
 
         private static LiveEventCalendarRuleResult ResultOf(LiveEventCalendarCheckReport report, string ruleId)

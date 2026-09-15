@@ -60,6 +60,7 @@ namespace DreamTech.LiveOps.Editor.Tests
                     AssertSentence(LiveOpsChangeText.ConsequenceSentence(change, Format), label + " ConsequenceSentence");
                     AssertSentence(LiveOpsChangeText.ConsequenceSentence(change, context, Format), label + " ConsequenceSentence(ngữ cảnh)");
                     AssertSentence(LiveOpsChangeText.ChangedTooltip(change, Format), label + " ChangedTooltip");
+                    AssertSentence(LiveOpsChangeText.ChangedTooltip(change, context, Format), label + " ChangedTooltip(ngữ cảnh)");
                     StringAssert.StartsWith("Khác bản đã đăng: ", LiveOpsFindingText.PlainText(LiveOpsChangeText.ChangedTooltip(change, Format)), label);
 
                     if (change.Consequence == LiveEventCalendarConsequence.ProgressLost)
@@ -117,7 +118,17 @@ namespace DreamTech.LiveOps.Editor.Tests
                 string consequence = Plain(LiveOpsChangeText.ConsequenceSentence(half, renameContext, Format));
                 StringAssert.Contains("quest-0901 → quest-0901-renamed", consequence, half.ToString());
                 StringAssert.Contains("id quest-0901", consequence);
+                // Thanh --changed của cùng mục nói cùng một việc với hàng diff, không "thêm mới" ở nửa này và "đã xoá" ở nửa kia.
+                Assert.AreEqual("Khác bản đã đăng: đổi id đợt đã khép quest-0901 → quest-0901-renamed",
+                    Plain(LiveOpsChangeText.ChangedTooltip(half, renameContext, Format)), half.ToString());
             }
+
+            // Cùng thao tác ở diff "chưa lưu" (một hàng Changed): cùng câu hậu quả — đợt đã khép không ai "thấy" id mới.
+            LiveEventCalendarDiffResult renamedUnsaved = LiveEventCalendarDiff.CompareByEntryKey(endedBaseline, renamedDraft, NowUtc);
+            var renamedUnsavedContext = new LiveOpsChangeTextContext(endedBaseline, renamedDraft, NowUtc, renamedUnsaved, true);
+            LiveEventCalendarChange renamedRow = FindChange(renamedUnsaved, "quest-0901-renamed");
+            Assert.AreEqual("đợt đã khép đổi id quest-0901 → quest-0901-renamed; bản ghi người đã chơi vẫn mang id quest-0901",
+                Plain(LiveOpsChangeText.ConsequenceSentence(renamedRow, renamedUnsavedContext, Format)));
 
             // Xoá đợt đã khép + thêm đợt KHÁC khung: không phải đổi id — không được ghép thành "đổi id".
             LiveEventCalendarDocument otherWindow = Document(Entry("entry-other", "quest-0902", QuestType, "2026-09-02T00:00:00Z", "2026-09-06T00:00:00Z"));
@@ -126,9 +137,81 @@ namespace DreamTech.LiveOps.Editor.Tests
             foreach (LiveEventCalendarChange change in notRename.Changes)
             {
                 StringAssert.DoesNotContain("đổi id", Plain(LiveOpsChangeText.RowText(change, notRenameContext, Format)), change.ToString());
+                Assert.AreEqual(change.Kind == LiveEventCalendarChangeKind.Removed ? "Khác bản đã đăng: đã xoá" : "Khác bản đã đăng: thêm mới",
+                    Plain(LiveOpsChangeText.ChangedTooltip(change, notRenameContext, Format)), change.ToString());
                 Assert.AreEqual(change.Kind == LiveEventCalendarChangeKind.Removed ? "đợt đã khép, không ai mất gì" : "mục mới, không ai mất gì",
                     Plain(LiveOpsChangeText.ConsequenceSentence(change, notRenameContext, Format)), change.ToString());
             }
+        }
+
+        [Test]
+        public void ShouldReviewConsequence_CombinedFields_FollowDirectionOfChange()
+        {
+            // Diff xếp Nên xem vì configKey dù giờ đổi theo hướng an toàn: câu không được nói điều giờ không làm.
+            AssertShouldReview("đang chạy kéo dài + configKey", Document(Running()),
+                Document(Running().WithTimes(RunningStart, "2026-09-16T00:00:00Z").WithConfigKey("quest_v2")), false,
+                "quest-0912 đang chạy tới 15/9 00:00 UTC; người chơi đang chơi chuyển sang cấu hình quest_v2",
+                "quest-0912 đang chạy tới 15/9 00:00 UTC; người chơi đang chơi chuyển sang cấu hình quest_v2");
+            AssertShouldReview("đang chạy dời bắt đầu về trước + configKey", Document(Running()),
+                Document(Running().WithTimes("2026-09-11T00:00:00Z", RunningEnd).WithConfigKey("quest_v2")), false,
+                "quest-0912 đang chạy tới 15/9 00:00 UTC; người chơi đang chơi chuyển sang cấu hình quest_v2",
+                "quest-0912 đang chạy tới 15/9 00:00 UTC; người chơi đang chơi chuyển sang cấu hình quest_v2");
+            // Bắt đầu dời về sau nhưng vẫn trước BÂY GIỜ: không tạm dừng. Không đồng hồ thì im lặng vì configKey đã giải thích hàng.
+            AssertShouldReview("đang chạy dời bắt đầu về sau (trước now) + configKey", Document(Running()),
+                Document(Running().WithTimes("2026-09-13T00:00:00Z", RunningEnd).WithConfigKey("quest_v2")), true,
+                "quest-0912 đang chạy tới 15/9 00:00 UTC; người chơi đang chơi chuyển sang cấu hình quest_v2",
+                "quest-0912 đang chạy tới 15/9 00:00 UTC; người chơi đang chơi chuyển sang cấu hình quest_v2");
+            // Đúng chiều thì vẫn nói.
+            AssertShouldReview("đang chạy rút ngắn + configKey", Document(Running()),
+                Document(Running().WithTimes(RunningStart, "2026-09-14T00:00:00Z").WithConfigKey("quest_v2")), false,
+                "quest-0912 đang chạy tới 15/9 00:00 UTC; người chơi còn ít thời gian hơn; người chơi đang chơi chuyển sang cấu hình quest_v2",
+                "quest-0912 đang chạy tới 15/9 00:00 UTC; người chơi còn ít thời gian hơn; người chơi đang chơi chuyển sang cấu hình quest_v2");
+            AssertShouldReview("đang chạy dời bắt đầu ra sau now", Document(Running()),
+                Document(Running().WithTimes("2026-09-13T12:00:00Z", RunningEnd)), true,
+                "quest-0912 đang chạy tới 15/9 00:00 UTC; người chơi tạm dừng cộng điểm tới lúc đợt mở lại",
+                "quest-0912 đang chạy tới 15/9 00:00 UTC; người chơi tạm dừng cộng điểm tới lúc đợt mở lại");
+
+            // Đợt chưa bắt đầu đổi giờ + configKey: không phải "mở lại id đợt đã khép".
+            foreach (bool byEntryKey in new[] { false, true })
+            {
+                AssertShouldReview("chưa bắt đầu đổi giờ + configKey", Document(Upcoming()),
+                    Document(Upcoming().WithTimes("2026-09-21T00:00:00Z", "2026-09-23T00:00:00Z").WithConfigKey("quest_v2")), byEntryKey,
+                    "đợt chưa bắt đầu; xuất ghi configKey quest_v2",
+                    "chưa ai đang chơi đợt này; xuất ghi configKey quest_v2");
+            }
+            // Đợt đã khép mở lại cùng id cho tương lai: đúng ca của mệnh đề "mở lại id".
+            AssertShouldReview("đã khép mở lại cùng id", Document(Ended()), Document(Ended().WithTimes(UpcomingStart, UpcomingEnd)), true,
+                "đợt đã khép; mở lại id này cho tương lai — người đã chơi đợt cũ không vào lại được",
+                "chưa ai đang chơi đợt này; mở lại id này cho tương lai — người đã chơi đợt cũ không vào lại được");
+        }
+
+        [Test]
+        public void DroppedChangedRow_WithContext_NamesDropReason()
+        {
+            // Đổi configKey của đợt chưa bắt đầu, cùng lúc thêm một đợt sớm hơn chồng giờ: mục bị bỏ vì chồng giờ, không vì configKey.
+            LiveEventCalendarDocument baseline = Document(Upcoming());
+            LiveEventCalendarDocument draft = Document(Entry("entry-earlier", "quest-0919", QuestType, "2026-09-19T00:00:00Z", "2026-09-21T00:00:00Z"),
+                Upcoming().WithConfigKey("quest_v2"));
+            LiveEventCalendarDiffResult result = LiveEventCalendarDiff.Compare(baseline, draft, NowUtc);
+            var context = new LiveOpsChangeTextContext(baseline, draft, NowUtc, result, false);
+            LiveEventCalendarChange dropped = FindChange(result, UpcomingId);
+            Assert.AreEqual(LiveEventCalendarConsequence.Dropped, dropped.Consequence, "Tiền đề");
+            Assert.AreEqual("quest_v1 → quest_v2; chồng 1 ngày với quest-0919", Plain(LiveOpsChangeText.ConsequenceSentence(dropped, context, Format)));
+            Assert.AreEqual("quest_v1 → quest_v2", Plain(LiveOpsChangeText.ConsequenceSentence(dropped, Format)), "Không ngữ cảnh: bớt chữ, không đoán lý do.");
+
+            // Chính giờ đổi làm mục chồng giờ với đợt khác: giá trị đọc được, lý do vẫn phải nêu.
+            LiveEventCalendarDocument shiftedBaseline = Document(Upcoming(), Entry("entry-next", "quest-0923", QuestType, "2026-09-23T00:00:00Z", "2026-09-25T00:00:00Z"));
+            LiveEventCalendarDocument shiftedDraft = Document(Upcoming(), Entry("entry-next", "quest-0923", QuestType, "2026-09-21T12:00:00Z", "2026-09-25T00:00:00Z"));
+            LiveEventCalendarDiffResult shifted = LiveEventCalendarDiff.CompareByEntryKey(shiftedBaseline, shiftedDraft, NowUtc);
+            var shiftedContext = new LiveOpsChangeTextContext(shiftedBaseline, shiftedDraft, NowUtc, shifted, true);
+            Assert.AreEqual("2026-09-23T00:00:00Z → 2026-09-21T12:00:00Z; chồng 12 giờ với quest-0920",
+                Plain(LiveOpsChangeText.ConsequenceSentence(FindChange(shifted, "quest-0923"), shiftedContext, Format)));
+
+            // Giá trị hỏng tự nói lý do: giữ đúng mẫu [SD2 §3.8], không nối thêm "giờ kết thúc sai định dạng".
+            LiveEventCalendarDocument brokenDraft = Document(Upcoming().WithTimes(UpcomingStart, "2026-09-2"));
+            LiveEventCalendarDiffResult broken = LiveEventCalendarDiff.Compare(baseline, brokenDraft, NowUtc);
+            var brokenContext = new LiveOpsChangeTextContext(baseline, brokenDraft, NowUtc, broken, false);
+            Assert.AreEqual("2026-09-22T00:00:00Z → \"2026-09-2\"", Plain(LiveOpsChangeText.ConsequenceSentence(FindChange(broken, UpcomingId), brokenContext, Format)));
         }
 
         [Test]
@@ -179,7 +262,7 @@ namespace DreamTech.LiveOps.Editor.Tests
                          {
                              LiveOpsChangeText.RowText(change, Format), LiveOpsChangeText.RowText(change, context, Format),
                              LiveOpsChangeText.ConsequenceSentence(change, Format), LiveOpsChangeText.ConsequenceSentence(change, context, Format),
-                             LiveOpsChangeText.ChangedTooltip(change, Format),
+                             LiveOpsChangeText.ChangedTooltip(change, Format), LiveOpsChangeText.ChangedTooltip(change, context, Format),
                          })
                 {
                     StringAssert.DoesNotContain("<", NoParseSegment.Replace(text, string.Empty), change + ": giá trị thô lọt ngoài noparse — " + text);
@@ -368,6 +451,21 @@ namespace DreamTech.LiveOps.Editor.Tests
         }
 
         private static string Plain(string text) => LiveOpsFindingText.PlainText(text);
+
+        /// <summary>Ca có đúng một hàng Nên xem: so câu có ngữ cảnh và câu không ngữ cảnh (không ngữ cảnh chỉ được bớt chữ, không nói sai).</summary>
+        private static void AssertShouldReview(string name, LiveEventCalendarDocument baseline, LiveEventCalendarDocument draft, bool byEntryKey,
+            string withContext, string withoutContext)
+        {
+            LiveEventCalendarDiffResult result = byEntryKey
+                ? LiveEventCalendarDiff.CompareByEntryKey(baseline, draft, NowUtc)
+                : LiveEventCalendarDiff.Compare(baseline, draft, NowUtc);
+            Assert.AreEqual(1, result.Changes.Count, name + ": " + string.Join(" | ", result.Changes));
+            LiveEventCalendarChange change = result.Changes[0];
+            Assert.AreEqual(LiveEventCalendarConsequence.ShouldReview, change.Consequence, name + ": tiền đề");
+            var context = new LiveOpsChangeTextContext(baseline, draft, NowUtc, result, byEntryKey);
+            Assert.AreEqual(withContext, Plain(LiveOpsChangeText.ConsequenceSentence(change, context, Format)), name + " (ngữ cảnh)");
+            Assert.AreEqual(withoutContext, Plain(LiveOpsChangeText.ConsequenceSentence(change, Format)), name + " (không ngữ cảnh)");
+        }
 
         private static void AssertSentence(string text, string label)
         {

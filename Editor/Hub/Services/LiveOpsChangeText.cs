@@ -71,6 +71,24 @@ namespace DreamTech.LiveOps.Editor
             return LiveOpsFindingText.Format(LiveOpsHubStrings.ChangedTooltipFormat, body);
         }
 
+        /// <summary>
+        /// Như trên; biết ngữ cảnh thì hai nửa của một lần đổi id đợt đã khép (V-20 CC-DIFF-3) cùng nói "Khác bản đã đăng: đổi id đợt đã khép
+        /// quest-0901 → quest-0901-renamed" — không phải "thêm mới" ở nửa này và "đã xoá" ở nửa kia, trái với hàng diff của cùng mục.
+        /// </summary>
+        public static string ChangedTooltip(LiveEventCalendarChange change, LiveOpsChangeTextContext context, LiveOpsHubFormat format)
+        {
+            if (change == null) throw new ArgumentNullException(nameof(change));
+            if (context == null) throw new ArgumentNullException(nameof(context));
+            if (format == null) throw new ArgumentNullException(nameof(format));
+
+            LiveEventCalendarChange partner = context.FindEndedRenamePartner(change);
+            if (partner == null) return ChangedTooltip(change, format);
+            LiveEventCalendarChange removedHalf = change.Kind == LiveEventCalendarChangeKind.Removed ? change : partner;
+            LiveEventCalendarChange addedHalf = change.Kind == LiveEventCalendarChangeKind.Removed ? partner : change;
+            return LiveOpsFindingText.Format(LiveOpsHubStrings.ChangedTooltipFormat, LiveOpsFindingText.Format(LiveOpsHubStrings.ChangeTooltipEndedRenameFormat,
+                LiveOpsFindingText.IdText(removedHalf.ItemId), LiveOpsFindingText.IdText(addedHalf.ItemId)));
+        }
+
         // =============================================================================================================== dòng 1
 
         private static string RowCore(LiveEventCalendarChange change, LiveOpsChangeTextContext context, LiveOpsHubFormat format)
@@ -205,13 +223,53 @@ namespace DreamTech.LiveOps.Editor
                     parts[index] = LiveOpsFindingText.Format(LiveOpsHubStrings.FindingRangeFormat, DroppedValue(field.FieldName, field.BeforeText),
                         DroppedValue(field.FieldName, field.AfterText));
                 }
-                return string.Join(LiveOpsHubStrings.ChangeClauseJoin, parts);
+                string values = string.Join(LiveOpsHubStrings.ChangeClauseJoin, parts);
+                // Giá trị giờ hỏng tự nói vì sao bị bỏ ("2026-10-3"); mục bị bỏ vì chồng giờ/trùng id/bị che sau khi đổi một field thì "trước →
+                // sau" không nói gì về lý do — người dùng thấy nhóm BỊ BỎ mà chỉ đọc được "quest_v1 → quest_v2". Nối lý do của bộ biên dịch.
+                if (context == null || IsDropReasonShownByChangedValue(change, context.DropReasonOf(change))) return values;
+                string droppedReason = context.DropReasonText(change, format);
+                return droppedReason.Length == 0 ? values : values + LiveOpsHubStrings.ChangeClauseJoin + droppedReason;
             }
 
             bool byOtherEntry = change.Kind == LiveEventCalendarChangeKind.Changed;
             string reason = context != null ? context.DropReasonText(change, format) : string.Empty;
             if (reason.Length == 0) return byOtherEntry ? LiveOpsHubStrings.ChangeDroppedByOtherConsequence : LiveOpsHubStrings.ChangeDroppedConsequence;
             return byOtherEntry ? reason + LiveOpsHubStrings.ChangeByOtherSuffix : reason;
+        }
+
+        /// <summary>true khi chính giá trị sau đổi là chỗ hỏng mà dòng 2 đã in nguyên văn (giờ/neo không đọc được), hoặc không biết lý do.</summary>
+        private static bool IsDropReasonShownByChangedValue(LiveEventCalendarChange change, LiveEventCalendarDropReason reason)
+        {
+            switch (reason)
+            {
+                case LiveEventCalendarDropReason.None: return true;
+                case LiveEventCalendarDropReason.UnreadableStartUtc: return HasUnreadableTimeAfter(change, FieldStartUtc);
+                case LiveEventCalendarDropReason.UnreadableEndUtc: return HasUnreadableTimeAfter(change, FieldEndUtc);
+                case LiveEventCalendarDropReason.InvalidRecurringRule: return HasUnreadableTimeAfter(change, FieldAnchorUtc);
+                default: return false;
+            }
+        }
+
+        private static bool HasUnreadableTimeAfter(LiveEventCalendarChange change, string fieldName)
+        {
+            LiveEventCalendarFieldChange field = FindField(change, fieldName);
+            return field != null && !LiveEventUtcText.TryParse(field.AfterText, out _);
+        }
+
+        private static LiveEventCalendarFieldChange FindField(LiveEventCalendarChange change, string fieldName)
+        {
+            for (int index = 0; index < change.Fields.Count; index++)
+            {
+                if (string.Equals(change.Fields[index].FieldName, fieldName, StringComparison.Ordinal)) return change.Fields[index];
+            }
+            return null;
+        }
+
+        /// <summary>true khi cả hai giá trị đọc được và <paramref name="laterText"/> sau <paramref name="earlierText"/>.</summary>
+        private static bool IsLater(string laterText, string earlierText)
+        {
+            return LiveEventUtcText.TryParse(laterText, out DateTime laterUtc) && LiveEventUtcText.TryParse(earlierText, out DateTime earlierUtc) &&
+                   laterUtc > earlierUtc;
         }
 
         private static string DroppedValue(string fieldName, string text)
@@ -256,33 +314,55 @@ namespace DreamTech.LiveOps.Editor
             {
                 string until = change.RunningEventEndUtc.HasValue ? format.ShortDateTimeUtc(change.RunningEventEndUtc.Value) : string.Empty;
                 return LiveOpsFindingText.Format(LiveOpsHubStrings.ChangeRunningReviewFormat, LiveOpsFindingText.IdText(change.RunningEventIdBefore), until,
-                    string.Join(LiveOpsHubStrings.ChangeClauseJoin, RunningClauses(change)));
+                    string.Join(LiveOpsHubStrings.ChangeClauseJoin, RunningClauses(change, context)));
             }
 
-            List<string> clauses = NotRunningClauses(change, context);
+            LiveOpsChangeTextContext.EntryPhase phase = context != null && change.ItemKind == LiveEventCalendarItemKind.FixedEvent
+                ? context.PhaseBefore(change)
+                : LiveOpsChangeTextContext.EntryPhase.Unknown;
+
+            // Đổi id đợt đã khép ở diff "chưa lưu" (một hàng Changed): cùng câu với hai nửa xoá + thêm của diff bản đã đăng (6.3 hàng 8) —
+            // đợt đã khép không ai "thấy" id mới; điều cần xem là bản ghi người đã chơi vẫn mang id cũ. Không nối "mở lại id này": id mới
+            // không nằm trong RetiredEventIds, dù khung mới ở tương lai.
+            LiveEventCalendarFieldChange idField = change.Kind == LiveEventCalendarChangeKind.Changed ? FindField(change, FieldId) : null;
+            if (phase == LiveOpsChangeTextContext.EntryPhase.Ended && idField != null)
+            {
+                return LiveOpsFindingText.Format(LiveOpsHubStrings.ChangeEndedRenameConsequenceFormat,
+                    LiveOpsFindingText.IdText(idField.BeforeText), LiveOpsFindingText.IdText(idField.AfterText));
+            }
+
+            List<string> clauses = NotRunningClauses(change, context, phase);
             if (change.ItemKind == LiveEventCalendarItemKind.EventType) return string.Join(LiveOpsHubStrings.ChangeClauseJoin, clauses);
 
             string prefix = LiveOpsHubStrings.ChangeNotRunningPrefix;
-            if (context != null && change.ItemKind == LiveEventCalendarItemKind.FixedEvent)
-            {
-                LiveOpsChangeTextContext.EntryPhase phase = context.PhaseBefore(change);
-                if (phase == LiveOpsChangeTextContext.EntryPhase.Upcoming) prefix = LiveOpsHubStrings.ChangeUpcomingPrefix;
-                else if (phase == LiveOpsChangeTextContext.EntryPhase.Ended) prefix = LiveOpsHubStrings.ChangeEndedPrefix;
-            }
+            if (phase == LiveOpsChangeTextContext.EntryPhase.Upcoming) prefix = LiveOpsHubStrings.ChangeUpcomingPrefix;
+            else if (phase == LiveOpsChangeTextContext.EntryPhase.Ended) prefix = LiveOpsHubStrings.ChangeEndedPrefix;
             clauses.Insert(0, prefix);
             return string.Join(LiveOpsHubStrings.ChangeClauseJoin, clauses);
         }
 
-        private static List<string> RunningClauses(LiveEventCalendarChange change)
+        /// <summary>
+        /// Mệnh đề cho đợt đang chạy theo CHIỀU thay đổi, không theo tên field: diff xếp Nên xem khi đợt còn theo được mà (a) khép sớm hơn,
+        /// (b) mở lại sau BÂY GIỜ, hoặc (c) đổi configKey (<c>ConsequenceOfFollowing</c>). Kéo dài kết thúc hay dời bắt đầu về trước cùng lúc đổi
+        /// configKey không được nói "còn ít thời gian hơn"/"tạm dừng cộng điểm" — chỉ nêu điều thật sự làm hàng phải xem.
+        /// </summary>
+        private static List<string> RunningClauses(LiveEventCalendarChange change, LiveOpsChangeTextContext context)
         {
             var clauses = new List<string>();
+            LiveEventCalendarFieldChange endField = FindField(change, FieldEndUtc);
+            bool endShortened = endField != null && IsLater(endField.BeforeText, endField.AfterText);
+            bool configKeyChanged = FindField(change, FieldConfigKey) != null;
             for (int index = 0; index < change.Fields.Count; index++)
             {
                 LiveEventCalendarFieldChange field = change.Fields[index];
                 switch (field.FieldName)
                 {
-                    case FieldEndUtc: AddOnce(clauses, LiveOpsHubStrings.ChangeClauseShortened); break;
-                    case FieldStartUtc: AddOnce(clauses, LiveOpsHubStrings.ChangeClauseStartAfterNow); break;
+                    case FieldEndUtc:
+                        if (endShortened) AddOnce(clauses, LiveOpsHubStrings.ChangeClauseShortened);
+                        break;
+                    case FieldStartUtc:
+                        if (StartsAfterNow(field, context, endShortened || configKeyChanged)) AddOnce(clauses, LiveOpsHubStrings.ChangeClauseStartAfterNow);
+                        break;
                     case FieldConfigKey:
                         AddOnce(clauses, LiveOpsFindingText.Format(LiveOpsHubStrings.ChangeClauseRunningConfigKeyFormat, ConfigKeyValue(field.AfterText)));
                         break;
@@ -296,7 +376,18 @@ namespace DreamTech.LiveOps.Editor
             return clauses;
         }
 
-        private static List<string> NotRunningClauses(LiveEventCalendarChange change, LiveOpsChangeTextContext context)
+        /// <summary>
+        /// Bắt đầu mới nằm sau BÂY GIỜ (đợt tạm dừng tới lúc mở lại). Có ngữ cảnh thì so thẳng với đồng hồ. Không có đồng hồ thì chỉ khẳng định khi
+        /// bắt đầu dời về sau VÀ không còn nguyên nhân Nên xem nào khác (<paramref name="otherCauseExists"/>) — khi đó đây là nguyên nhân duy nhất
+        /// diff có thể dùng; còn lại thì im lặng thay vì đoán.
+        /// </summary>
+        private static bool StartsAfterNow(LiveEventCalendarFieldChange startField, LiveOpsChangeTextContext context, bool otherCauseExists)
+        {
+            if (context != null) return LiveEventUtcText.TryParse(startField.AfterText, out DateTime startUtc) && startUtc > context.NowUtc;
+            return !otherCauseExists && IsLater(startField.AfterText, startField.BeforeText);
+        }
+
+        private static List<string> NotRunningClauses(LiveEventCalendarChange change, LiveOpsChangeTextContext context, LiveOpsChangeTextContext.EntryPhase phase)
         {
             var clauses = new List<string>();
             if (change.Kind == LiveEventCalendarChangeKind.Removed)
@@ -313,6 +404,7 @@ namespace DreamTech.LiveOps.Editor
                 return clauses;
             }
 
+            bool timeChanged = false;
             for (int index = 0; index < change.Fields.Count; index++)
             {
                 LiveEventCalendarFieldChange field = change.Fields[index];
@@ -331,8 +423,7 @@ namespace DreamTech.LiveOps.Editor
                         break;
                     case FieldStartUtc:
                     case FieldEndUtc:
-                        // Đổi giờ mà Nên xem khi không có đợt đang chạy: mở lại id của đợt đã khép cho tương lai (hàng 8).
-                        AddOnce(clauses, LiveOpsHubStrings.ChangeClauseReopenedEndedId);
+                        timeChanged = true;
                         break;
                     case FieldAnchorUtc:
                     case FieldIdPrefix:
@@ -345,6 +436,14 @@ namespace DreamTech.LiveOps.Editor
                             : LiveOpsHubStrings.ChangeClauseRequiresJoinOff);
                         break;
                 }
+            }
+            // Đổi giờ chỉ tự làm hàng Nên xem khi mở lại id của một đợt đã khép cho tương lai (6.3 hàng 8); đợt chưa bắt đầu đổi giờ là an toàn, nên
+            // khi hàng Nên xem vì configKey/id/loại thì mệnh đề "mở lại id" là sai. Biết giai đoạn thì hỏi thẳng; không biết thì chỉ khi không field
+            // nào khác giải thích được hậu quả (khi đó mở lại id là nguyên nhân duy nhất còn lại).
+            if (timeChanged)
+            {
+                bool reopens = phase != LiveOpsChangeTextContext.EntryPhase.Unknown ? context.ReopensEndedEntry(change) : clauses.Count == 0;
+                if (reopens) AddOnce(clauses, LiveOpsHubStrings.ChangeClauseReopenedEndedId);
             }
             if (clauses.Count == 0) clauses.Add(LiveOpsHubStrings.ChangeClauseWindowOrKey);
             return clauses;
@@ -445,16 +544,8 @@ namespace DreamTech.LiveOps.Editor
         /// </summary>
         internal string DropReasonText(LiveEventCalendarChange change, LiveOpsHubFormat format)
         {
-            LiveEventCalendarEntryOutcome outcome = null;
-            if (change.ItemKind == LiveEventCalendarItemKind.FixedEvent)
-            {
-                if (change.EntryKey.Length == 0 || !DraftCompilation.TryGetFixedOutcome(change.EntryKey, out outcome)) return string.Empty;
-            }
-            else if (change.ItemKind == LiveEventCalendarItemKind.RecurringRule)
-            {
-                if (!DraftCompilation.TryGetRecurringOutcome(change.ItemId, out outcome)) return string.Empty;
-            }
-            if (outcome == null || outcome.IsKept) return string.Empty;
+            LiveEventCalendarEntryOutcome outcome = DroppedOutcome(change);
+            if (outcome == null) return string.Empty;
 
             if (outcome.DropReason == LiveEventCalendarDropReason.OverlapsSameType && outcome.OverlapStartUtc.HasValue && outcome.OverlapEndUtc.HasValue)
             {
@@ -462,6 +553,38 @@ namespace DreamTech.LiveOps.Editor
                     format.Duration(outcome.OverlapEndUtc.Value - outcome.OverlapStartUtc.Value, false), LiveOpsFindingText.IdText(outcome.RelatedEventId));
             }
             return LiveOpsFindingText.DropReasonPhrase(outcome.DropReason, outcome);
+        }
+
+        /// <summary>Lý do chính bộ biên dịch bỏ mục nháp; <c>None</c> khi mục được giữ hoặc không tìm được outcome.</summary>
+        internal LiveEventCalendarDropReason DropReasonOf(LiveEventCalendarChange change)
+        {
+            LiveEventCalendarEntryOutcome outcome = DroppedOutcome(change);
+            return outcome != null ? outcome.DropReason : LiveEventCalendarDropReason.None;
+        }
+
+        /// <summary>
+        /// Mục ở bản so đã khép lúc BÂY GIỜ và mục nháp cùng danh tính chưa khép — mở lại id của đợt đã khép cho tương lai (6.3 hàng 8,
+        /// <c>RetiredEventIds</c>). Đổi giờ vẫn nằm trong quá khứ thì false.
+        /// </summary>
+        internal bool ReopensEndedEntry(LiveEventCalendarChange change)
+        {
+            if (PhaseOf(FixedBefore(change)) != EntryPhase.Ended) return false;
+            FixedLiveEventEntry after = FixedAfter(change);
+            return after != null && after.TryGetEndUtc(out DateTime endUtc) && endUtc > _nowUtc;
+        }
+
+        private LiveEventCalendarEntryOutcome DroppedOutcome(LiveEventCalendarChange change)
+        {
+            LiveEventCalendarEntryOutcome outcome = null;
+            if (change.ItemKind == LiveEventCalendarItemKind.FixedEvent)
+            {
+                if (change.EntryKey.Length == 0 || !DraftCompilation.TryGetFixedOutcome(change.EntryKey, out outcome)) return null;
+            }
+            else if (change.ItemKind == LiveEventCalendarItemKind.RecurringRule)
+            {
+                if (!DraftCompilation.TryGetRecurringOutcome(change.ItemId, out outcome)) return null;
+            }
+            return outcome == null || outcome.IsKept ? null : outcome;
         }
 
         /// <summary>
