@@ -229,6 +229,87 @@ namespace DreamTech.LiveOps.Tests
             Assert.AreEqual(LiveEventCalendarRuleOutcome.Found, withLatestBaseline.Outcome, "Bản so là dấu mới nhất thì so từng mục như thường.");
         }
 
+        [Test]
+        public void RemoteDrift_OlderBaselineSelected_LatestStampBaselineLoaded_ComparesItemsWithLatestStamp()
+        {
+            // V-21 CC-VALB-1: phiên đã đọc tài liệu của dấu mới nhất. Bản so đang chọn là dấu cũ, Firebase cũng đang chạy dấu cũ đó:
+            // luật 12 phải liệt kê đúng mục lệch so với dấu MỚI NHẤT, không "khớp" theo bản so và không còn "chưa kiểm".
+            LiveEventCalendarDocument olderBaseline = OlderPublishedDocument();
+            string olderSha = LiveEventCalendarJsonWriter.Write(olderBaseline, LiveEventCalendarJsonFormat.Version2).Sha256Hex;
+
+            LiveEventCalendarRuleResult result = EvaluateWithLatestStampBaseline(olderBaseline, PublishedBaselineSample.Document(), OlderPublishedDocument(), olderSha);
+
+            Assert.AreEqual(LiveEventCalendarRuleOutcome.Found, result.Outcome);
+            Assert.AreEqual(1, result.Findings.Count);
+            Assert.AreEqual(LiveEventCalendarDetailCodes.RemoteDiffers, result.Findings[0].DetailCode);
+            Assert.AreEqual("lava-quest-2026-09b", result.Findings[0].FoundText, "Chỉ đợt đổi giờ kết thúc giữa hai dấu.");
+            Assert.AreEqual("1", result.Findings[0].ExpectedText);
+        }
+
+        [Test]
+        public void RemoteDrift_FormatOneStamp_LatestStampBaselineLoaded_CanonicalEqualPassed()
+        {
+            // Dấu định dạng 1 bỏ qua tầng 2a (định dạng 1 không ghi luật lặp), nên kết luận "cùng lịch" phải đến từ tài liệu của dấu.
+            // Bản so đang chọn là bản cũ hơn (khác giờ kết thúc): thiếu tài liệu dấu thì "chưa kiểm", có thì Passed ở tầng 2b.
+            LiveEventCalendarDocument stampDocument = ValidationTestFixtures.FixedDocument(
+                ValidationTestFixtures.Entry("quest-0912", "quest", "2026-09-12T00:00:00Z", "2026-09-15T00:00:00Z"));
+            LiveEventCalendarDocument olderBaseline = ValidationTestFixtures.FixedDocument(
+                ValidationTestFixtures.Entry("quest-0912", "quest", "2026-09-12T00:00:00Z", "2026-09-14T00:00:00Z"));
+            LiveEventCalendarJsonText stampJson = LiveEventCalendarJsonWriter.Write(stampDocument, LiveEventCalendarJsonFormat.Version1);
+            LiveEventCalendarDocument draft = new LiveEventCalendarDocumentBuilder(stampDocument)
+                .WithPublishedStamp(new PublishedCalendarStamp("2026-09-11T16:20:00Z", "tester", stampJson.Sha256Hex, stampJson.ByteCount,
+                    (int)LiveEventCalendarJsonFormat.Version1, string.Empty, stampJson.Text))
+                .Build();
+            // Cùng đợt, gõ giờ thiếu giây: sha nguyên văn lạ, viết lại chuẩn định dạng 2 ra đúng bản chuẩn của dấu.
+            LiveEventCalendarDocument remote = ValidationTestFixtures.FixedDocument(
+                ValidationTestFixtures.Entry("quest-0912", "quest", "2026-09-12T00:00Z", "2026-09-15T00:00Z"));
+
+            LiveEventCalendarCheckContextBuilder builder = new LiveEventCalendarCheckContextBuilder(draft, LiveOpsDesignSample.NowUtc)
+                .WithPublishedBaseline(olderBaseline)
+                .WithRemoteSnapshot(remote, "pasted-sha");
+            LiveEventCalendarRuleResult withoutLatest = new RemoteSnapshotDriftRule().Evaluate(builder.Build());
+            LiveEventCalendarRuleResult withLatest = new RemoteSnapshotDriftRule().Evaluate(builder.WithLatestStampBaseline(stampDocument).Build());
+
+            Assert.AreEqual(LiveEventCalendarRuleOutcome.NotMeasured, withoutLatest.Outcome, "Tiền đề: bản so cũ không viết ra sha của dấu.");
+            Assert.AreEqual(RemoteSnapshotDriftRule.LatestStampNotLoadedReasonCode, withoutLatest.ReasonCode);
+            Assert.AreEqual(LiveEventCalendarRuleOutcome.Passed, withLatest.Outcome);
+        }
+
+        [Test]
+        public void RemoteDrift_OlderBaselineSelected_LatestStampBaselineMissing_NotMeasuredLatestStampNotLoaded()
+        {
+            // V-21 CC-VALB-2: phiên chưa đọc được dấu mới nhất, bản so là dấu cũ, bản dán khác dấu mới nhất về nội dung → "chưa kiểm"
+            // với mã riêng, không Found/Passed đoán theo bản so.
+            LiveEventCalendarDocument olderBaseline = OlderPublishedDocument();
+            string olderSha = LiveEventCalendarJsonWriter.Write(olderBaseline, LiveEventCalendarJsonFormat.Version2).Sha256Hex;
+
+            LiveEventCalendarRuleResult result = EvaluateWithLatestStampBaseline(olderBaseline, null, OlderPublishedDocument(), olderSha);
+
+            Assert.AreEqual(LiveEventCalendarRuleOutcome.NotMeasured, result.Outcome);
+            Assert.AreEqual("latest-stamp-not-loaded", result.ReasonCode, "Mã NotMeasured đã chốt ở mục 3 (CC-VALB-2).");
+            Assert.AreEqual(RemoteSnapshotDriftRule.LatestStampNotLoadedReasonCode, result.ReasonCode);
+            Assert.AreEqual(0, result.Findings.Count);
+        }
+
+        [Test]
+        public void RemoteDrift_LatestStampBaselineWinsOverSelectedBaseline_EvenWhenRemoteEqualsSelected()
+        {
+            // Bản dán = bản so đang chọn (dấu cũ) từng byte viết lại: nếu luật lỡ lấy bản so làm thước đo sẽ ra Passed giả.
+            LiveEventCalendarDocument olderBaseline = OlderPublishedDocument();
+            string olderSha = LiveEventCalendarJsonWriter.Write(olderBaseline, LiveEventCalendarJsonFormat.Version2).Sha256Hex;
+            LiveEventCalendarCheckContext context = new LiveEventCalendarCheckContextBuilder(LiveOpsDesignSample.Document, LiveOpsDesignSample.NowUtc)
+                .WithPublishedBaseline(olderBaseline)
+                .WithLatestStampBaseline(PublishedBaselineSample.Document())
+                .WithRemoteSnapshot(OlderPublishedDocument(), olderSha)
+                .Build();
+
+            LiveEventCalendarCheckReport report = LiveEventCalendarValidator.Default.Check(context);
+
+            LiveEventCalendarRuleResult result = ResultOf(report, LiveEventCalendarRuleIds.RemoteSnapshotDrift);
+            Assert.AreEqual(LiveEventCalendarRuleOutcome.Found, result.Outcome, "Qua validator mặc định: context mang dấu mới nhất tới đúng luật 12.");
+            Assert.IsTrue(result.Findings[0].IsAboutRemoteSnapshot);
+        }
+
         /// <summary>Bản đã đăng trước 11/9: lava-quest-2026-09b còn kết thúc 18/9.</summary>
         private static LiveEventCalendarDocument OlderPublishedDocument()
         {
@@ -246,6 +327,26 @@ namespace DreamTech.LiveOps.Tests
                 .WithRemoteSnapshot(remote, remoteSha256Hex)
                 .Build();
             return new RemoteSnapshotDriftRule().Evaluate(context);
+        }
+
+        private static LiveEventCalendarRuleResult EvaluateWithLatestStampBaseline(LiveEventCalendarDocument baseline, LiveEventCalendarDocument latestStampBaseline,
+            LiveEventCalendarDocument remote, string remoteSha256Hex)
+        {
+            LiveEventCalendarCheckContextBuilder builder = new LiveEventCalendarCheckContextBuilder(LiveOpsDesignSample.Document, LiveOpsDesignSample.NowUtc)
+                .WithPublishedBaseline(baseline)
+                .WithRemoteSnapshot(remote, remoteSha256Hex);
+            if (latestStampBaseline != null) builder.WithLatestStampBaseline(latestStampBaseline);
+            return new RemoteSnapshotDriftRule().Evaluate(builder.Build());
+        }
+
+        private static LiveEventCalendarRuleResult ResultOf(LiveEventCalendarCheckReport report, string ruleId)
+        {
+            for (int index = 0; index < report.RuleResults.Count; index++)
+            {
+                if (report.RuleResults[index].RuleId == ruleId) return report.RuleResults[index];
+            }
+            Assert.Fail("Báo cáo không có kết quả luật " + ruleId);
+            return null;
         }
 
         private static LiveEventCalendarRuleResult Evaluate(LiveEventCalendarDocument remote, string remoteSha256Hex)
