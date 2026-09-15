@@ -10,10 +10,10 @@ namespace DreamTech.LiveOps.Editor
     /// danh sách, 5 đợt kế tiếp) thì một bảng quên nhánh là lỗi biên dịch ở một bản; gom về đây. Không dùng <c>Column.comparison</c>
     /// (chỉ có ở 6000.x): bảng tự sắp <c>itemsSource</c> trong <c>columnSortingChanged</c> rồi <c>RefreshItems()</c>.
     /// </summary>
-    public static class LiveOpsTableSorting
+    internal static class LiveOpsTableSorting
     {
         /// <summary>Bật sắp khi bấm header cột; bảng nhận <c>columnSortingChanged</c> và tự sắp dữ liệu của mình.</summary>
-        public static void EnableCustomSorting(MultiColumnListView table)
+        internal static void EnableCustomSorting(MultiColumnListView table)
         {
             if (table == null) throw new ArgumentNullException(nameof(table));
 #if UNITY_6000_0_OR_NEWER
@@ -24,7 +24,7 @@ namespace DreamTech.LiveOps.Editor
         }
 
         /// <summary>Bảng đã bật sắp theo cột chưa — đọc đúng property của bản đang chạy.</summary>
-        public static bool IsCustomSortingEnabled(MultiColumnListView table)
+        internal static bool IsCustomSortingEnabled(MultiColumnListView table)
         {
             if (table == null) throw new ArgumentNullException(nameof(table));
 #if UNITY_6000_0_OR_NEWER

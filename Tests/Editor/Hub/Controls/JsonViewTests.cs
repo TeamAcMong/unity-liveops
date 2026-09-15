@@ -120,7 +120,34 @@ namespace DreamTech.LiveOps.Editor.Tests
             float overviewHeight = view.Overview.contentRect.height;
             Assert.AreEqual(overviewHeight * 53f / lineCount, dropped.layout.y, 1f, "vạch đặt theo % dòng trong toàn file");
             Assert.AreEqual(overviewHeight * 6f / lineCount, warning.layout.y, 1f);
-            Assert.IsNotNull(view.OverviewViewport.parent, "khung viewport nằm trên dải");
+
+            // Khung viewport: top/height theo % dòng đang thấy trong toàn file ([SD2 §3.6]).
+            ScrollView scrollView = view.LineList.Q<ScrollView>();
+            float totalHeight = lineCount * LiveOpsJsonView.LineHeight;
+            float visibleHeight = scrollView.contentViewport.layout.height;
+            Assert.Less(visibleHeight, totalHeight, "view 300px phải cuộn được 60 dòng — không thì khung viewport không có nghĩa");
+            Assert.AreEqual(DisplayStyle.Flex, view.OverviewViewport.resolvedStyle.display, "cuộn được thì khung viewport phải hiện");
+            Assert.AreEqual(0f, view.OverviewViewport.layout.y - content.yMin, 1f, "chưa cuộn: khung ở đầu dải");
+            Assert.AreEqual(overviewHeight * visibleHeight / totalHeight, view.OverviewViewport.layout.height, 1f,
+                "cao khung = phần dòng đang thấy / toàn file");
+            Assert.AreEqual(PickingMode.Ignore, view.OverviewViewport.pickingMode, "khung phủ dải không được chặn bấm vạch");
+
+            // Bấm vạch ✕ dòng 54: điểm giữa vạch phải trúng chính vạch (khung viewport không che), rồi danh sách cuộn tới dòng đó.
+            Assert.AreSame(dropped, view.panel.Pick(dropped.worldBound.center), "bấm lên vạch phải trúng vạch");
+            using (PointerDownEvent pointerDown = PointerDownEvent.GetPooled())
+            {
+                pointerDown.target = dropped;
+                dropped.SendEvent(pointerDown);
+            }
+            yield return null;
+            yield return null;
+            float scrollOffset = scrollView.scrollOffset.y;
+            float droppedLineTop = 53f * LiveOpsJsonView.LineHeight;
+            Assert.Greater(scrollOffset, 0f, "bấm vạch dòng 54 phải cuộn danh sách");
+            Assert.LessOrEqual(scrollOffset, droppedLineTop + 0.5f, "dòng 54 phải nằm trong vùng thấy (không cuộn quá)");
+            Assert.GreaterOrEqual(scrollOffset + visibleHeight, droppedLineTop + LiveOpsJsonView.LineHeight - 0.5f, "dòng 54 phải nằm trong vùng thấy");
+            Assert.AreEqual(overviewHeight * scrollOffset / totalHeight, view.OverviewViewport.layout.y - content.yMin, 1f,
+                "khung viewport phải đi theo vị trí cuộn");
 
             // Tab "Một dòng": không dải tổng quan, không số dòng; tab và cách xem luôn đồng bộ hai chiều.
             view.IsSingleLine = true;

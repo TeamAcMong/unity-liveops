@@ -87,7 +87,7 @@ namespace DreamTech.LiveOps.Editor
         }
 
         /// <summary>Số dòng đang hiện (cách xem hiện tại).</summary>
-        public int LineCount => _lineIndices.Count;
+        internal int LineCount => _lineIndices.Count;
 
         /// <summary>true = tab "Một dòng": một dòng không lề, không chú thích, không dải tổng quan (số dòng chỉ có nghĩa ở bản định dạng).</summary>
         public bool IsSingleLine

@@ -15,7 +15,9 @@ namespace DreamTech.LiveOps.Editor
     /// <c>HH:mm:ss</c>): thiếu số 0 là lỗi ở ô, dù <see cref="LiveEventUtcText.TryNormalize"/> hiểu được — sửa được thì là việc của
     /// đề xuất, không phải của ô.
     ///
-    /// Ghi khi rời ô hoặc Enter (<c>isDelayed</c>), không theo từng phím: gõ dở "2026-1" không được thành một lần sửa asset.
+    /// Ghi khi rời ô hoặc Enter (<c>isDelayed</c>), không theo từng phím: gõ dở "2026-1" không được thành một lần sửa asset. Cùng lý do,
+    /// Tab từ ô ngày vừa gõ sang ô giờ còn trống (hay ngược lại) KHÔNG ghi và KHÔNG báo lỗi — người dùng đang nhập dở cặp ngày/giờ; ô
+    /// chỉ báo "còn trống" và đưa chuỗi thô ra khi focus rời hẳn field mà cặp vẫn thiếu một nửa.
     /// </summary>
 #if UNITY_2023_2_OR_NEWER
     [UxmlElement]
@@ -35,6 +37,11 @@ namespace DreamTech.LiveOps.Editor
         private bool _hasValue;
         private bool _hasParseError;
         private bool _errorTextFromCaller;
+        // Một ô con vừa ghi mà ô kia còn trống, trong lúc focus vẫn ở trong field: chờ người dùng gõ nốt thay vì ghi nửa cặp vào asset.
+        private bool _pendingIncompleteInput;
+        // Lần FocusOutEvent gần nhất chuyển focus sang một phần của chính field (Tab ngày → giờ). Đọc trong lần ghi của ô con ngay sau:
+        // 2022.3 ghi ô isDelayed lúc BlurEvent, 6000.6 lúc FocusOutEvent — cả hai đều SAU pha trickle-down của FocusOutEvent trên field.
+        private bool _focusMovingWithinField;
 
         public LiveOpsUtcDateTimeField() : this(null)
         {
@@ -80,6 +87,11 @@ namespace DreamTech.LiveOps.Editor
 
             DateInput.RegisterValueChangedCallback(OnPartCommitted);
             TimeInput.RegisterValueChangedCallback(OnPartCommitted);
+            // Ô isDelayed không đổi value khi gõ nên LiveOpsPlaceholder (ẩn theo value) sẽ để gợi ý "yyyy-MM-dd" đè lên chữ đang gõ tới
+            // khi Enter/rời ô. InputEvent bắn theo từng lần sửa chữ ở cả hai bản (TextElement.UpdateText) — ẩn/hiện theo chữ đang có.
+            DateInput.RegisterCallback<InputEvent>(inputEvent => SetPlaceholderHidden(_datePlaceholder, inputEvent.newData));
+            TimeInput.RegisterCallback<InputEvent>(inputEvent => SetPlaceholderHidden(_timePlaceholder, inputEvent.newData));
+            RegisterCallback<FocusOutEvent>(OnFocusOutTrickleDown, TrickleDown.TrickleDown);
             RefreshDecorations();
         }
 
@@ -109,6 +121,25 @@ namespace DreamTech.LiveOps.Editor
         /// <summary>(ngày, giờ) nguyên văn khi người dùng ghi chuỗi không đọc được — phiên lịch vẫn ghi chuỗi thô vào asset.</summary>
         public event Action<string, string> RawTextCommitted;
 
+        /// <summary>
+        /// Gán giá trị. <see cref="BaseField{T}"/> bỏ qua lần gán bằng giá trị hiện tại, mà khi ô đang giữ chuỗi hỏng thì giá trị hiện tại
+        /// chính là lần đọc được gần nhất: presenter "Sửa thành 2026-09-20 00:00" gán lại đúng giá trị đó sẽ là no-op — chữ hỏng, viền
+        /// và dòng lỗi còn nguyên trong khi asset đã đúng. Trường hợp này áp thẳng chữ chuẩn, không bắn ChangeEvent (giá trị không đổi).
+        /// </summary>
+        public override DateTime value
+        {
+            get => base.value;
+            set
+            {
+                if ((_hasParseError || _pendingIncompleteInput) && value == base.value)
+                {
+                    SetValueWithoutNotify(value);
+                    return;
+                }
+                base.value = value;
+            }
+        }
+
         internal TextField DateInput { get; }
         internal TextField TimeInput { get; }
         internal VisualElement InputContainer { get; }
@@ -129,8 +160,8 @@ namespace DreamTech.LiveOps.Editor
         {
             DateInput.SetValueWithoutNotify(dateText ?? string.Empty);
             TimeInput.SetValueWithoutNotify(timeText ?? string.Empty);
-            _datePlaceholder.Refresh();
-            _timePlaceholder.Refresh();
+            _pendingIncompleteInput = false;
+            RefreshPlaceholders();
             if (TryParseParts(RawDateText, RawTimeText, out DateTime parsed))
             {
                 ApplyValue(parsed);
@@ -178,11 +209,11 @@ namespace DreamTech.LiveOps.Editor
             base.SetValueWithoutNotify(utc);
             _hasValue = true;
             _hasParseError = false;
+            _pendingIncompleteInput = false;
             DateInput.SetValueWithoutNotify(utc.ToString(DateFormat, CultureInfo.InvariantCulture));
             string timeFormat = utc.Second == 0 && utc.Millisecond == 0 ? TimeWithoutSecondsFormat : TimeWithSecondsFormat;
             TimeInput.SetValueWithoutNotify(utc.ToString(timeFormat, CultureInfo.InvariantCulture));
-            _datePlaceholder.Refresh();
-            _timePlaceholder.Refresh();
+            RefreshPlaceholders();
             if (!_errorTextFromCaller) ErrorLabel.text = string.Empty;
             RefreshDecorations();
         }
@@ -191,32 +222,65 @@ namespace DreamTech.LiveOps.Editor
         internal static bool TryParseParts(string dateText, string timeText, out DateTime utc)
         {
             utc = default;
-            if (string.IsNullOrEmpty(dateText) || string.IsNullOrEmpty(timeText)) return false;
+            if (string.IsNullOrEmpty(dateText)) return false;
             if (!DateTime.TryParseExact(dateText.Trim(), DateFormat, CultureInfo.InvariantCulture, DateTimeStyles.None, out DateTime date)) return false;
-            if (!TimeSpan.TryParseExact(timeText.Trim(), TimeFormats, CultureInfo.InvariantCulture, out TimeSpan timeOfDay)) return false;
-            if (timeOfDay < TimeSpan.Zero || timeOfDay >= TimeSpan.FromDays(1)) return false;
+            if (!TryParseTimeOfDay(timeText, out TimeSpan timeOfDay)) return false;
             utc = DateTime.SpecifyKind(date.Date + timeOfDay, DateTimeKind.Utc);
             return true;
         }
 
-        /// <summary>Câu lỗi mặc định: nói chuỗi nào không đọc được và dạng cần gõ; ngày thiếu số 0 thì nêu luôn cách viết đúng.</summary>
+        /// <summary>
+        /// Câu lỗi mặc định: nói chuỗi nào không đọc được và dạng cần gõ; ngày thiếu số 0 thì nêu luôn cách viết đúng. Hai ô cùng hỏng thì
+        /// nêu cả hai — chỉ nêu ô ngày thì lỗi giờ chỉ lộ ra sau khi sửa xong ngày, người dùng phải sửa hai lượt.
+        /// </summary>
         internal static string DescribeParseError(string dateText, string timeText)
         {
             string date = dateText ?? string.Empty;
             string time = timeText ?? string.Empty;
-            bool dateReadable = DateTime.TryParseExact(date.Trim(), DateFormat, CultureInfo.InvariantCulture, DateTimeStyles.None, out DateTime _);
-            if (!dateReadable)
+            string dateError = DescribeDateError(date);
+            string timeError = IsTimeReadable(time) ? null : DescribeTimeError(time);
+            if (dateError == null) return timeError ?? string.Empty;
+            return timeError == null ? dateError : dateError + " " + timeError;
+        }
+
+        private static string DescribeDateError(string date)
+        {
+            if (IsDateReadable(date)) return null;
+            if (date.Trim().Length == 0) return LiveOpsHubStrings.UtcFieldDateEmpty;
+            // Chuỗi người dùng gõ vào Label rich text: "2026-10-<b>3" không được thành chữ đậm hay nuốt thẻ — bọc noparse như mọi giá
+            // trị thô của hub (7.6), để dòng lỗi nêu đúng từng ký tự đã gõ.
+            string literal = LiveOpsJsonView.ProtectRawText(date);
+            if (LiveEventUtcText.TryNormalize(date, out string canonical) && LiveEventUtcText.TryParse(canonical, out DateTime normalized))
             {
-                if (date.Trim().Length == 0) return LiveOpsHubStrings.UtcFieldDateEmpty;
-                if (LiveEventUtcText.TryNormalize(date, out string canonical) && LiveEventUtcText.TryParse(canonical, out DateTime normalized))
-                {
-                    return string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.UtcFieldDateUnreadableWithSuggestionFormat, date,
-                        normalized.ToString(DateFormat, CultureInfo.InvariantCulture));
-                }
-                return string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.UtcFieldDateUnreadableFormat, date);
+                return string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.UtcFieldDateUnreadableWithSuggestionFormat, literal,
+                    normalized.ToString(DateFormat, CultureInfo.InvariantCulture));
             }
+            return string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.UtcFieldDateUnreadableFormat, literal);
+        }
+
+        private static string DescribeTimeError(string time)
+        {
             if (time.Trim().Length == 0) return LiveOpsHubStrings.UtcFieldTimeEmpty;
-            return string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.UtcFieldTimeUnreadableFormat, time);
+            return string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.UtcFieldTimeUnreadableFormat, LiveOpsJsonView.ProtectRawText(time));
+        }
+
+        private static bool IsDateReadable(string dateText)
+        {
+            if (string.IsNullOrEmpty(dateText)) return false;
+            return DateTime.TryParseExact(dateText.Trim(), DateFormat, CultureInfo.InvariantCulture, DateTimeStyles.None, out DateTime _);
+        }
+
+        private static bool IsTimeReadable(string timeText)
+        {
+            return TryParseTimeOfDay(timeText, out TimeSpan _);
+        }
+
+        private static bool TryParseTimeOfDay(string timeText, out TimeSpan timeOfDay)
+        {
+            timeOfDay = default;
+            if (string.IsNullOrEmpty(timeText)) return false;
+            if (!TimeSpan.TryParseExact(timeText.Trim(), TimeFormats, CultureInfo.InvariantCulture, out timeOfDay)) return false;
+            return timeOfDay >= TimeSpan.Zero && timeOfDay < TimeSpan.FromDays(1);
         }
 
         private TextField CreatePart(string className)
@@ -231,8 +295,12 @@ namespace DreamTech.LiveOps.Editor
         {
             // ChangeEvent<string> của ô con không được nổi lên như giá trị của field — nơi nghe chỉ dùng ChangeEvent<DateTime>.
             changeEvent.StopPropagation();
-            if (changeEvent.target == DateInput) _datePlaceholder.Refresh();
-            if (changeEvent.target == TimeInput) _timePlaceholder.Refresh();
+            RefreshPlaceholders();
+            // Text element bên trong ô cũng bắn ChangeEvent<string> (Esc trả lại chữ cũ) và nó nổi tới đây — chỉ lần ghi value của chính
+            // ô con mới là một lần người dùng chốt chữ.
+            if (changeEvent.target != DateInput && changeEvent.target != TimeInput) return;
+            bool focusStaysInField = _focusMovingWithinField;
+            _focusMovingWithinField = false;
 
             if (TryParseParts(RawDateText, RawTimeText, out DateTime parsed))
             {
@@ -251,8 +319,54 @@ namespace DreamTech.LiveOps.Editor
                 return;
             }
 
+            if (focusStaysInField && IsIncomplete())
+            {
+                // Tab từ ô vừa gõ sang ô còn trống: ghi nửa cặp thành chuỗi thô là một bước Undo + phát hiện utc-time-format nháy lên
+                // trước khi người dùng kịp gõ nửa kia. Chờ tới lần ghi sau hoặc tới khi focus rời hẳn field (OnFocusOutTrickleDown).
+                _pendingIncompleteInput = true;
+                if (_hasParseError) ShowParseError();
+                return;
+            }
+            ReportUnreadableInput();
+        }
+
+        private void OnFocusOutTrickleDown(FocusOutEvent focusOutEvent)
+        {
+            VisualElement nextFocused = focusOutEvent.relatedTarget as VisualElement;
+            _focusMovingWithinField = nextFocused != null && (nextFocused == this || Contains(nextFocused));
+            if (_focusMovingWithinField || !_pendingIncompleteInput) return;
+            // Rời hẳn field khi cặp vẫn thiếu một nửa. Ô đang rời còn chữ chưa ghi thì lần ghi của nó chạy ngay sau (cờ đã false) và tự báo;
+            // báo ở đây nữa là hai lần RawTextCommitted cho cùng một lần rời ô.
+            if (HasUncommittedText(DateInput) || HasUncommittedText(TimeInput)) return;
+            ReportUnreadableInput();
+        }
+
+        private static bool HasUncommittedText(TextField part)
+        {
+            return !string.Equals(part.text ?? string.Empty, part.value ?? string.Empty, StringComparison.Ordinal);
+        }
+
+        private bool IsIncomplete()
+        {
+            return RawDateText.Trim().Length == 0 || RawTimeText.Trim().Length == 0;
+        }
+
+        private void ReportUnreadableInput()
+        {
+            _pendingIncompleteInput = false;
             ShowParseError();
             RawTextCommitted?.Invoke(RawDateText, RawTimeText);
+        }
+
+        private void RefreshPlaceholders()
+        {
+            SetPlaceholderHidden(_datePlaceholder, DateInput.text);
+            SetPlaceholderHidden(_timePlaceholder, TimeInput.text);
+        }
+
+        private static void SetPlaceholderHidden(LiveOpsPlaceholder placeholder, string text)
+        {
+            placeholder.EnableInClassList(LiveOpsHubClassNames.PlaceholderHidden, !string.IsNullOrEmpty(text));
         }
 
         private void ApplyValue(DateTime parsed)
@@ -279,8 +393,9 @@ namespace DreamTech.LiveOps.Editor
 
         private void RefreshDecorations()
         {
-            bool dateBroken = _hasParseError && !DateTime.TryParseExact(RawDateText.Trim(), DateFormat, CultureInfo.InvariantCulture, DateTimeStyles.None, out DateTime _);
-            bool timeBroken = _hasParseError && !dateBroken;
+            // Viền đúng từng ô không đọc được (cả hai khi cả hai hỏng), khớp câu của DescribeParseError.
+            bool dateBroken = _hasParseError && !IsDateReadable(RawDateText);
+            bool timeBroken = _hasParseError && !IsTimeReadable(RawTimeText);
             bool showError = _hasParseError || _errorTextFromCaller;
             // Lỗi do người gọi đặt mà chữ vẫn đọc được: viền cả ô ngày (thứ người dùng sửa trước) để không có lỗi mà không có chỗ nhìn.
             DateInput.EnableInClassList(LiveOpsHubClassNames.UtcFieldPartError, dateBroken || (_errorTextFromCaller && !_hasParseError));
