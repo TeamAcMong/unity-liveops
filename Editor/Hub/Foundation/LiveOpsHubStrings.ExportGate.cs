@@ -22,6 +22,12 @@ namespace DreamTech.LiveOps.Editor
 
         // Dòng 2 — Parser của game đọc lại. Lý do bỏ gom theo nhóm như meta Hình 18 "1 không đọc được · 1 bị bỏ vì chồng giờ".
         internal const string ExportGateReadBackOkFormat = "Parser của game xác nhận: giữ {0}/{1} mục, khớp Kiểm lịch";
+        // Bản "bộ biên dịch" dùng khi Kiểm lịch cũ/chưa chạy hoặc số Bị bỏ của Kiểm lịch khác số bộ biên dịch bỏ (luật 8, phát hiện
+        // đã bỏ qua) — nói "Kiểm lịch" lúc đó là mâu thuẫn với dòng 1.
+        internal const string ExportGateReadBackOkCompilerFormat = "Parser của game xác nhận: giữ {0}/{1} mục, khớp bộ biên dịch của hub";
+        internal const string ExportGateReadBackMismatchKeptCompilerFormat = "Parser giữ {0}/{1} nhưng bộ biên dịch của hub bỏ {2} — lỗi của hub";
+        internal const string ExportGateReadBackMismatchSameCountCompilerFormat = "Parser giữ {0}/{1}, bộ biên dịch của hub cũng bỏ {2} nhưng khác mục — lỗi của hub";
+        internal const string ExportGateReadBackMismatchEntryCountCompilerFormat = "Parser đọc {0} mục nhưng bộ biên dịch của hub có {1} mục — lỗi của hub";
         internal const string ExportGateReadBackOkNarrowFormat = "Parser của game xác nhận: giữ {0}/{1} mục";
         internal const string ExportGateReadBackMismatchKeptFormat = "Parser giữ {0}/{1} nhưng Kiểm lịch báo {2} bị bỏ — lỗi của hub";
         internal const string ExportGateReadBackMismatchSameCountFormat = "Parser giữ {0}/{1}, Kiểm lịch cũng báo {2} bị bỏ nhưng khác mục — lỗi của hub";
@@ -54,7 +60,8 @@ namespace DreamTech.LiveOps.Editor
         internal const string ExportGateFreshnessOkFormat = "Kiểm lịch chạy sau lần sửa cuối ({0} UTC)";
         internal const string ExportGateFreshnessStaleChangedFormat = "Kiểm lịch cũ: lịch đổi lúc {0}, sau lần kiểm {1}";
         internal const string ExportGateFreshnessStaleMilestoneFormat = "Kiểm lịch cũ: đã qua mốc {0} sau lần kiểm {1}";
-        internal const string ExportGateFreshnessStaleFormat = "Kiểm lịch cũ: lịch đã đổi sau lần kiểm {0}";
+        // Không rõ vì sao cũ (PD-23: có thể do domain reload, không phải sửa) thì không khẳng định "lịch đã đổi".
+        internal const string ExportGateFreshnessStaleFormat = "Kiểm lịch cũ: kết quả lúc {0} có thể không còn đúng";
         internal const string ExportGateFreshnessStaleNarrow = "Kiểm lịch cũ";
         internal const string ExportGateFreshnessNeverChecked = "Kiểm lịch chưa chạy lần nào";
         internal const string ExportGateFreshnessRunningFormat = "Đang kiểm lại {0}/{1} luật…";
@@ -136,6 +143,7 @@ namespace DreamTech.LiveOps.Editor
 
         // Thân Xuất: diff trống (f)/(g), note (i), HelpBox (j).
         internal const string ExportGateNoChangesFormat = "Không có gì mới so với {0} · sha {1}";
+        internal const string ExportGateSameCalendarDifferentJsonFormat = "Lịch không đổi so với {0}, nhưng JSON sắp xuất khác bản đã đăng: sha {1} → {2}";
         internal const string ExportGateFirstPublish = "Chưa có dấu đã đăng nào — lần này sẽ là bản so đầu tiên";
         internal const string ExportGateRestoringFormat = "Nháp đang là bản khôi phục từ {0}";
         internal const string ExportGateUndoRestoreAction = "Hoàn tác khôi phục";
@@ -150,6 +158,8 @@ namespace DreamTech.LiveOps.Editor
         internal const string ExportGateErrorJsonMissing = "Cổng xuất cần JSON đã ghi.";
         internal const string ExportGateErrorCompilationMissing = "Cổng xuất cần kết quả biên dịch nháp theo thứ tự xuất.";
         internal const string ExportGateErrorFormatMissing = "Cổng xuất cần bộ định dạng chữ.";
+        internal const string ExportGateErrorReadBackMissing = "Cổng xuất cần kết quả parser đọc lại khi JSON đọc được.";
+        internal const string ExportGateErrorInputMissing = "Cổng xuất cần đầu vào để đánh giá.";
         internal const string ExportGateErrorNegativeCount = "Số đếm của cổng xuất không được âm.";
     }
 }
