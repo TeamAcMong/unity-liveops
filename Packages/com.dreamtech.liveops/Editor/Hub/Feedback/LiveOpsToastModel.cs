@@ -37,6 +37,13 @@ namespace DreamTech.LiveOps.Editor
         /// <summary>Câu hiện trên toast: sau Hoàn tác thêm tiền tố "Đã hoàn tác: " trước câu cũ (nút đổi thành Làm lại).</summary>
         public string DisplayMessage => IsUndone ? LiveOpsHubStrings.KitToastUndonePrefix + Message : Message;
 
+        /// <summary>
+        /// Tooltip hiện trên toast: sau Hoàn tác cũng thêm tiền tố "Đã hoàn tác: " trước <see cref="Tooltip"/>. Tooltip riêng
+        /// (vd khung giờ "14/9 00:00 → 15/9 00:00") không chứa câu toast, nên thiếu tiền tố thì người dùng rê chuột đọc tooltip
+        /// sẽ tưởng thao tác vẫn còn hiệu lực; model ghép một chỗ để view không tự ghép (CC-FEEDBACK-2, V-22).
+        /// </summary>
+        public string DisplayTooltip => IsUndone ? LiveOpsHubStrings.KitToastUndonePrefix + Tooltip : Tooltip;
+
         public static LiveOpsToastModel ForEdit(string message, int undoGroup, string tooltip = "")
         {
             if (string.IsNullOrEmpty(message)) throw new ArgumentException(LiveOpsHubStrings.KitErrorToastMessageEmpty, nameof(message));
