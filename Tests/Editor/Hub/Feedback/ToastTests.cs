@@ -125,6 +125,31 @@ namespace DreamTech.LiveOps.Editor.Tests
 
         [Test]
         [Category(LiveOpsHubTestCategories.Logic)]
+        public void Toast_AfterUndo_TooltipUsesDisplayTooltip_ExplicitAndDefault()
+        {
+            // Tooltip riêng (khung giờ): view phải lấy nguyên DisplayTooltip của model, không tự ghép tiền tố (CC-FEEDBACK-2, G-FIX-W2-4).
+            _target.SetKey("hunt_default", "giá trị đầu");
+            int group = _tracker.BeginGroup(MoveMessage);
+            _target.SetKey("hunt_bonus", MoveMessage);
+            LiveOpsToastModel explicitTooltip = LiveOpsToastModel.ForEdit(MoveMessage, group, "19/9 → 20/9 00:00 UTC");
+            _toast.Show(explicitTooltip);
+            Assert.AreEqual("19/9 → 20/9 00:00 UTC", _toast.tooltip, "trước Hoàn tác: tooltip riêng giữ nguyên chữ gốc");
+
+            InvokeAction();
+            Assert.IsTrue(_toast.Model.IsUndone);
+            Assert.AreEqual(LiveOpsHubStrings.KitToastUndonePrefix + "19/9 → 20/9 00:00 UTC", _toast.tooltip,
+                "sau Hoàn tác: tooltip riêng cũng mang tiền tố \"Đã hoàn tác: \" — lấy từ model.DisplayTooltip, view không tự ghép");
+
+            // Tooltip mặc định (không truyền, = Message): sau Hoàn tác cũng phải qua cùng đường DisplayTooltip.
+            LiveOpsToastModel defaultTooltip = RecordEdit("Đã xoá hunt-0916-bonus", "second");
+            _toast.Show(defaultTooltip);
+            InvokeAction();
+            Assert.AreEqual(_toast.Model.DisplayTooltip, _toast.tooltip);
+            Assert.AreEqual(_toast.Model.DisplayMessage, _toast.tooltip, "tooltip mặc định trùng DisplayMessage vì Tooltip == Message");
+        }
+
+        [Test]
+        [Category(LiveOpsHubTestCategories.Logic)]
         public void Toast_UndoOlderStepAfterToastUndo_RedoDisabled()
         {
             _target.SetKey("value-0", "giá trị đầu");
