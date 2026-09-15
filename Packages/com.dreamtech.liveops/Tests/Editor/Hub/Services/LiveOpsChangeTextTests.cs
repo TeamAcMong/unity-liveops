@@ -239,6 +239,7 @@ namespace DreamTech.LiveOps.Editor.Tests
                 "weekly-pass-35 đang chạy tới 14/9 00:00 UTC; người chơi có điểm bắt đầu lại từ 0.");
             AssertRow(context, FindChange(result, "hunt-0914"), "hunt-0914 configKey hunt_v1 → hunt_default",
                 "đợt chưa bắt đầu; đợt không tự khai nên xuất ghi mặc định của loại");
+            // (V-22 CC-FT-2 (a)) Chữ chuẩn "19/9 → 20/9" không giờ (nửa đêm), cùng quy tắc tooltip [SD1 §3.4] — không "20/9 00:00" của hàng mẫu.
             AssertRow(context, FindChange(result, "lava-quest-2026-09b"), "lava-quest-2026-09b kết thúc 19/9 → 20/9", "đợt chưa bắt đầu, không ai mất gì");
 
             // Không ngữ cảnh vẫn đúng (bớt chữ, không nói sai).

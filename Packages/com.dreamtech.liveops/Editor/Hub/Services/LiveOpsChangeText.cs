@@ -10,7 +10,11 @@ namespace DreamTech.LiveOps.Editor
     /// <para>Hai tầng: chữ ký V-8 (chỉ hàng diff) luôn ra câu đúng cho mọi hàng nhưng không biết giai đoạn đợt hay lý do bỏ — hàng diff
     /// không mang giờ của mục khi giờ không đổi. Overload nhận <see cref="LiveOpsChangeTextContext"/> (bản so + nháp + BÂY GIỜ) nói đủ chữ
     /// thiết kế: "đợt chưa bắt đầu, không ai mất gì", "chồng 12 giờ với hunt-0914", và nửa đổi id đợt đã khép (CC-DIFF-3) nêu cả id cũ lẫn
-    /// id mới. Presenter có phiên (G-EXPORT, G-CALENDAR) dùng overload có ngữ cảnh.</para>
+    /// id mới.</para>
+    /// <para>(V-22 CC-FT-1) Overload có ngữ cảnh BẮT BUỘC ở chỗ có hai tài liệu vừa so + diff: G-EXPORT (<c>ExportDiffViewModel</c>, card
+    /// diff: <c>RowText</c>/<c>ConsequenceSentence</c>), G-CALENDAR (tooltip <c>--changed</c>: <c>ChangedTooltip</c>), G-CALENDAR-DEPTH
+    /// (pane So với đã đăng, hover card). Bản không ngữ cảnh chỉ dùng khi thật sự thiếu dữ liệu. (CC-FT-2 (a)) Giờ nửa đêm viết không
+    /// giờ ("kết thúc 19/9 → 20/9") ở cả hàng diff lẫn tooltip — một quy tắc, là chuẩn thay chữ "20/9 00:00" của hàng mẫu thiết kế.</para>
     /// </summary>
     internal static class LiveOpsChangeText
     {
@@ -37,7 +41,10 @@ namespace DreamTech.LiveOps.Editor
             return RowCore(change, null, format);
         }
 
-        /// <summary>Như trên; biết ngữ cảnh thì nửa đổi id đợt đã khép (CC-DIFF-3) hiện "quest-0901 → quest-0901-renamed (đổi id đợt đã khép)".</summary>
+        /// <summary>
+        /// Như trên; biết ngữ cảnh thì nửa đổi id đợt đã khép (CC-DIFF-3) hiện "quest-0901 → quest-0901-renamed (đổi id đợt đã khép)".
+        /// (V-22 CC-FT-1) BẮT BUỘC ở G-EXPORT (<c>ExportDiffViewModel</c>, card diff) và G-CALENDAR-DEPTH (pane So với đã đăng).
+        /// </summary>
         public static string RowText(LiveEventCalendarChange change, LiveOpsChangeTextContext context, LiveOpsHubFormat format)
         {
             if (context == null) throw new ArgumentNullException(nameof(context));
@@ -50,7 +57,10 @@ namespace DreamTech.LiveOps.Editor
             return ConsequenceCore(change, null, format);
         }
 
-        /// <summary>Như trên, đủ chữ thiết kế nhờ biết giai đoạn đợt, lý do bị bỏ và nửa còn lại của một lần đổi id đợt đã khép.</summary>
+        /// <summary>
+        /// Như trên, đủ chữ thiết kế nhờ biết giai đoạn đợt, lý do bị bỏ và nửa còn lại của một lần đổi id đợt đã khép.
+        /// (V-22 CC-FT-1) BẮT BUỘC ở G-EXPORT (<c>ExportDiffViewModel</c>, card diff) và G-CALENDAR-DEPTH (pane So với đã đăng, hover card).
+        /// </summary>
         public static string ConsequenceSentence(LiveEventCalendarChange change, LiveOpsChangeTextContext context, LiveOpsHubFormat format)
         {
             if (context == null) throw new ArgumentNullException(nameof(context));
@@ -74,6 +84,7 @@ namespace DreamTech.LiveOps.Editor
         /// <summary>
         /// Như trên; biết ngữ cảnh thì hai nửa của một lần đổi id đợt đã khép (V-20 CC-DIFF-3) cùng nói "Khác bản đã đăng: đổi id đợt đã khép
         /// quest-0901 → quest-0901-renamed" — không phải "thêm mới" ở nửa này và "đã xoá" ở nửa kia, trái với hàng diff của cùng mục.
+        /// (V-22 CC-FT-1) BẮT BUỘC ở G-CALENDAR (tooltip thanh <c>--changed</c>) khi presenter có diff của phiên.
         /// </summary>
         public static string ChangedTooltip(LiveEventCalendarChange change, LiveOpsChangeTextContext context, LiveOpsHubFormat format)
         {
