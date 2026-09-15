@@ -1,0 +1,275 @@
+/*
+ * liveops-hub-controls.uss — control dùng chung của LiveOps Hub: ô ngày giờ UTC, tab tự làm, thanh chu kỳ, JSON viewer, cắt giữa chữ
+ * dài ([FD §2.6, §2.15, §2.16], [SD1 §4.1], [SD2 §3.6]). Nạp sau feedback, trước timeline và motion.
+ *
+ * Luật: không màu trần (token theme hoặc --unity-colors-*), không gap/:last-child/:nth-child/@media/grid/box-shadow. Element tự vẽ
+ * (JSON view, cycle bar) KHAI LẠI token trên selector của chính nó bằng var(): custom property không kế thừa từ root, customStyle của
+ * element chỉ thấy thuộc tính khai trên rule khớp chính nó ([API §12.2]; test ControlsSkinTokenTests).
+ */
+
+/* ---------------------------------------------------------------- Ô ngày giờ UTC — ô ngày 76 · ô giờ 44 · "UTC" 10px 0,7 */
+
+.liveops-hub-utc-field {
+    flex-shrink: 0;
+}
+
+.liveops-hub-utc-field__input {
+    flex-direction: column;
+    flex-grow: 1;
+    background-color: transparent;
+    border-width: 0;
+    padding: 0;
+}
+
+.liveops-hub-utc-field__row {
+    flex-direction: row;
+    align-items: center;
+}
+
+.liveops-hub-utc-field__date,
+.liveops-hub-utc-field__time {
+    flex-shrink: 0;
+    margin: 0;
+}
+
+.liveops-hub-utc-field__date {
+    width: 76px;
+}
+
+.liveops-hub-utc-field__time {
+    width: 44px;
+    margin-left: var(--liveops-hub-space-4);
+}
+
+.liveops-hub-utc-field__date > .unity-text-field__input,
+.liveops-hub-utc-field__time > .unity-text-field__input {
+    margin: 0;
+}
+
+/* Lỗi: viền blocked-fill trên đúng ô không đọc được — chữ gõ giữ nguyên ([FD §2.16] hàng Field). */
+.liveops-hub-utc-field__part--error > .unity-text-field__input {
+    border-left-color: var(--liveops-hub-color-blocked-fill);
+    border-right-color: var(--liveops-hub-color-blocked-fill);
+    border-top-color: var(--liveops-hub-color-blocked-fill);
+    border-bottom-color: var(--liveops-hub-color-blocked-fill);
+}
+
+.liveops-hub-utc-field__zone {
+    font-size: 10px;
+    opacity: 0.7;
+    margin-left: var(--liveops-hub-space-4);
+    padding: 0;
+}
+
+.liveops-hub-utc-field__error-icon {
+    margin-left: var(--liveops-hub-space-4);
+}
+
+.liveops-hub-utc-field__device-line {
+    font-size: 10px;
+    opacity: 0.82;
+    padding: 0;
+    margin-top: var(--liveops-hub-space-2);
+}
+
+/* Dòng lỗi 10px; chữ blocked-text từ class liveops-hub-text--blocked (opacity 1). */
+.liveops-hub-utc-field__error {
+    font-size: 10px;
+    padding: 0;
+    margin-top: var(--liveops-hub-space-2);
+    white-space: normal;
+}
+
+.liveops-hub-utc-field--hidden {
+    display: none;
+}
+
+/* ---------------------------------------------------------------- Tab tự làm (Toolbar + ToolbarToggle loại trừ nhau) */
+
+.liveops-hub-tab-strip {
+    flex-shrink: 0;
+}
+
+.liveops-hub-tab-strip__slot {
+    flex-direction: row;
+    flex-shrink: 0;
+}
+
+.liveops-hub-tab-strip__tab {
+    flex-shrink: 0;
+}
+
+/* ---------------------------------------------------------------- Thanh chu kỳ — cao 14, viền, bo 2; con chia bằng flex-grow (C#) */
+
+.liveops-hub-cycle-bar {
+    --liveops-hub-cycle-bar-period-end: var(--liveops-hub-color-now);
+    flex-direction: row;
+    height: 14px;
+    flex-shrink: 0;
+    border-width: 1px;
+    border-radius: 2px;
+    border-color: var(--unity-colors-window-border);
+    overflow: hidden;
+}
+
+.liveops-hub-cycle-bar__run,
+.liveops-hub-cycle-bar__rest,
+.liveops-hub-cycle-bar__overflow {
+    flex-basis: 0;
+    flex-shrink: 1;
+}
+
+/* Phần nghỉ: nền input để "nghỉ" đọc được là khoảng trống chứ không phải thiếu dữ liệu. */
+.liveops-hub-cycle-bar__rest {
+    background-color: var(--unity-colors-input_field-background);
+}
+
+.liveops-hub-cycle-bar__part--hidden {
+    display: none;
+}
+
+/* ---------------------------------------------------------------- JSON viewer — dòng 16 · số dòng 32 · lề 14 · dải tổng quan 10 */
+
+.liveops-hub-json-view {
+    --liveops-hub-json-view-key: var(--liveops-hub-json-key);
+    --liveops-hub-json-view-string: var(--liveops-hub-json-string);
+    --liveops-hub-json-view-number: var(--liveops-hub-json-number);
+    --liveops-hub-json-view-literal: var(--liveops-hub-json-literal);
+    flex-direction: column;
+    flex-grow: 1;
+    min-height: 0;
+}
+
+.liveops-hub-json-view__tabs {
+    height: 18px;
+}
+
+.liveops-hub-json-view__body {
+    flex-direction: row;
+    flex-grow: 1;
+    min-height: 0;
+    background-color: var(--unity-colors-input_field-background);
+}
+
+.liveops-hub-json-view__list {
+    flex-grow: 1;
+    flex-shrink: 1;
+    min-width: 0;
+}
+
+.liveops-hub-json-line {
+    flex-direction: row;
+    align-items: center;
+    height: 16px;
+}
+
+.liveops-hub-json-line--blocked {
+    background-color: var(--liveops-hub-color-blocked-tint);
+}
+
+.liveops-hub-json-line--warning {
+    background-color: var(--liveops-hub-color-warning-tint);
+}
+
+.liveops-hub-json-line-number {
+    width: 32px;
+    flex-shrink: 0;
+    padding: 0 6px 0 0;
+    margin: 0;
+    font-size: 10px;
+    opacity: 0.7;
+    -unity-text-align: middle-right;
+}
+
+.liveops-hub-json-gutter {
+    width: 14px;
+    height: 16px;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+}
+
+.liveops-hub-json-gutter-mark {
+    padding: 0;
+    margin: 0;
+    font-size: 11px;
+    -unity-text-align: middle-center;
+}
+
+.liveops-hub-json-code {
+    flex-grow: 1;
+    flex-shrink: 1;
+    min-width: 0;
+    padding: 0;
+    margin: 0;
+    font-size: 11px;
+    white-space: nowrap;
+    overflow: hidden;
+    -unity-text-align: middle-left;
+}
+
+.liveops-hub-json-annotation {
+    flex-shrink: 0;
+    padding: 0;
+    margin: 0 4px 0 8px;
+    font-size: 10px;
+    -unity-text-align: middle-left;
+}
+
+.liveops-hub-json-view__part--hidden {
+    display: none;
+}
+
+/* Dải tổng quan: nền default, viền trái 1; vạch khác nhau cả hình dạng — bị bỏ full 3px, cảnh báo nửa phải 2px, thay đổi nửa trái 1px. */
+.liveops-hub-json-overview {
+    width: 10px;
+    flex-shrink: 0;
+    border-left-width: 1px;
+    border-left-color: var(--unity-colors-window-border);
+    background-color: var(--unity-colors-default-background);
+}
+
+.liveops-hub-json-overview-marker {
+    position: absolute;
+}
+
+.liveops-hub-json-overview-marker--dropped {
+    left: 0;
+    right: 0;
+    height: 3px;
+    background-color: var(--liveops-hub-color-blocked-fill);
+}
+
+.liveops-hub-json-overview-marker--warning {
+    left: 50%;
+    right: 0;
+    height: 2px;
+    background-color: var(--liveops-hub-color-warning-fill);
+}
+
+.liveops-hub-json-overview-marker--change {
+    left: 0;
+    right: 50%;
+    height: 1px;
+    opacity: 0.8;
+    background-color: var(--unity-colors-default-text);
+}
+
+.liveops-hub-json-overview-viewport {
+    position: absolute;
+    left: 0;
+    right: 0;
+    border-width: 1px;
+    border-radius: 3px;
+    border-color: var(--unity-colors-default-text);
+    opacity: 0.8;
+}
+
+/* ---------------------------------------------------------------- Cắt giữa chữ dài (SP-6: USS là đường chính, hai bản) */
+
+.liveops-hub-text--elide-middle {
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    -unity-text-overflow-position: middle;
+}

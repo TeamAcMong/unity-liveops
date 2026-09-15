@@ -59,12 +59,18 @@ RULE_IDS = [
     "recurring-rule-invalid", "shadowed-by-recurring", "unknown-event-type", "running-event-id-changed",
     "config-key-missing", "long-gap-between-events", "remote-snapshot-drift",
 ]
+# Danh sách khớp 6.1: hai file khai hằng của core (id luật và mã biến thể `end-before-start` trùng id) + đúng hai nơi 6.1 cho
+# phép viết câu có id: `LiveOpsFindingText.cs` và `LiveOpsHubStrings.Findings.cs`. `LiveOpsChangeText.cs` KHÔNG có trong
+# 6.1 — câu hàng diff không nói id luật; cần id thì lấy qua LiveEventCalendarRuleIds (CC-FT-3).
 RULE_ID_LITERAL_ALLOWED_FILES = [
     PACKAGE_PREFIX + "Runtime/Core/Calendar/Validation/LiveEventCalendarRuleIds.cs",
     PACKAGE_PREFIX + "Runtime/Core/Calendar/Validation/LiveEventCalendarDetailCodes.cs",
     PACKAGE_PREFIX + "Editor/Hub/Services/LiveOpsFindingText.cs",
-    PACKAGE_PREFIX + "Editor/Hub/Services/LiveOpsChangeText.cs",
+    PACKAGE_PREFIX + "Editor/Hub/Foundation/LiveOpsHubStrings.Findings.cs",
 ]
+# 6.1 chặn chuỗi CHỨA id ("Luật overlap-same-type không chạy"), không chỉ chuỗi bằng đúng id. Biên là ký tự không thuộc id
+# (chữ thường, số, gạch nối) để tên class USS kiểu "liveops-overlap-same-type-row" hay "overlap-same-types" không báo nhầm.
+RULE_ID_IN_LITERAL = re.compile(r"(?<![a-z0-9-])(%s)(?![a-z0-9-])" % "|".join(re.escape(rule_id) for rule_id in RULE_IDS))
 
 VIETNAMESE_CHARACTER = re.compile(u"[À-ỹĐđ]")
 STYLE_INLINE_ALLOWED = re.compile(r"//\s*style-inline-allowed:\s*(\d+)")
@@ -571,8 +577,10 @@ class CSharpLinter(object):
                 report(line_number, "hub-parser-direct", ERROR, "section không gọi thẳng JsonLiveEventCalendarParser.Parse — đi qua ILiveOpsHubJsonReadBack (V-16)")
             if in_package and relative_path not in RULE_ID_LITERAL_ALLOWED_FILES and not in_tests:
                 for literal in string_literals:
-                    if literal in RULE_IDS:
-                        report(line_number, "rule-id-literal", ERROR, "id luật `%s` viết dạng chuỗi — dùng LiveEventCalendarRuleIds (V-8)" % literal, literal)
+                    rule_id_match = RULE_ID_IN_LITERAL.search(literal)
+                    if rule_id_match:
+                        rule_id = rule_id_match.group(1)
+                        report(line_number, "rule-id-literal", ERROR, "chuỗi chứa id luật `%s` — dùng LiveEventCalendarRuleIds, câu có id chỉ ở LiveOpsFindingText.cs/LiveOpsHubStrings.Findings.cs (6.1, V-8)" % rule_id, rule_id)
 
             # Nhánh tạm
             for match in INTERIM_MARK.finditer(comment_lines[index]):
