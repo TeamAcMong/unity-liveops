@@ -17,6 +17,7 @@ namespace DreamTech.LiveOps.Editor
         internal const string StaleHealthReason = "Kết quả cũ — kiểm lại để cập nhật.";
         internal const string HealthReasonRequiredFormat = "Trạng thái {0} bắt buộc có lý do — người dùng phải biết vì sao và làm gì tiếp.";
         internal const string DisabledReasonRequired = "Nút bị khoá bắt buộc có lý do — nút disabled không nói vì sao là người dùng kẹt.";
+        internal const string FindingCountNegative = "Số phát hiện không được âm — nơi đếm theo đích đã tính sai.";
 
         // Thời lượng: đầy đủ "15 giờ 13 phút" · có ngày thì bỏ phút "3 ngày 18 giờ" · gọn (--compact) "15g 13p".
         internal const string DurationDayUnit = "ngày";
