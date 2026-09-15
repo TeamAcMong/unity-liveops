@@ -35,6 +35,7 @@ namespace DreamTech.LiveOps.Editor
         /// <summary>Toạ độ trong track (0 = mép trái track, không tính header làn 168px).</summary>
         public float X { get; }
 
+        /// <summary>"" khi nhãn bị bỏ vì hết chỗ trước mép phải — view vẫn vẽ vạch nếu <see cref="HasLine"/>, không dựng Label rỗng.</summary>
         public string Text { get; }
 
         /// <summary>Thứ Hai và nhãn tháng in đậm — weekly-pass neo vào thứ Hai nên mốc tuần phải nổi.</summary>
@@ -84,7 +85,7 @@ namespace DreamTech.LiveOps.Editor
         public const double QuarterHourSnapMinimumPixelsPerHour = 6;
         public const double HourSnapMinimumPixelsPerHour = 0.8;
 
-        // Thước [SD1 §3.2, Hình 12 khung 11]: bỏ nhãn tuần khi không đủ chỗ trước mép phải track.
+        // Thước [SD1 §3.2, Hình 12 khung 11]: bỏ nhãn tuần khi không đủ chỗ trước mép phải track — tick vẫn có, chữ rỗng, còn vạch.
         public const float WeekLabelMinimumRoom = 48f;
         public const float MonthZoomWeekLabelMinimumRoom = 44f;
         public const int HourTickStepHours = 3;
@@ -299,8 +300,9 @@ namespace DreamTech.LiveOps.Editor
             {
                 if (day.DayOfWeek != DayOfWeek.Monday) continue;
                 float trackPosition = geometry.XOf(day);
-                if (geometry.TrackWidth - trackPosition < WeekLabelMinimumRoom) continue;
-                ticks.Add(new LiveOpsTimelineRulerTick(LiveOpsTimelineRulerTier.MonthAndWeek, day, trackPosition, format.IsoWeekLabel(day), false, true));
+                // Hết chỗ trước mép phải chỉ bỏ NHÃN "Tuần n"; vạch thứ Hai vẫn giữ để mốc neo weekly-pass không mất ở cuối khung [SD1 §3.2].
+                string text = geometry.TrackWidth - trackPosition < WeekLabelMinimumRoom ? string.Empty : format.IsoWeekLabel(day);
+                ticks.Add(new LiveOpsTimelineRulerTick(LiveOpsTimelineRulerTier.MonthAndWeek, day, trackPosition, text, false, true));
             }
         }
 
@@ -328,8 +330,10 @@ namespace DreamTech.LiveOps.Editor
             {
                 if (day.DayOfWeek != DayOfWeek.Monday) continue;
                 float trackPosition = geometry.XOf(day);
-                if (geometry.TrackWidth - trackPosition < MonthZoomWeekLabelMinimumRoom) continue;
-                string text = LiveOpsHubStrings.TimelineRulerMondayPrefix + " " + DayMonthText(day);
+                // Hình 12 khung 11: còn < 44px tới mép phải thì chỉ bỏ nhãn, vạch thứ Hai vẫn vẽ.
+                string text = geometry.TrackWidth - trackPosition < MonthZoomWeekLabelMinimumRoom
+                    ? string.Empty
+                    : LiveOpsHubStrings.TimelineRulerMondayPrefix + " " + DayMonthText(day);
                 ticks.Add(new LiveOpsTimelineRulerTick(LiveOpsTimelineRulerTier.DayOrHour, day, trackPosition, text, true, true));
             }
         }

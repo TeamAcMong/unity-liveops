@@ -16,6 +16,10 @@ namespace DreamTech.LiveOps.Editor
         internal const string TimelineFixedLaneMetaEmpty = "cố định · chưa có đợt";
         internal const string TimelineLaneOverlapPolicyMeta = "Chồng giờ: giữ đợt sớm hơn";
 
+        // Làn TypeId "" gom đợt/luật chưa ghi loại (game bỏ — luật 3): tên làn trống nên meta nói lý do làn tồn tại.
+        internal const string TimelineUntypedLaneMeta = "chưa ghi loại";
+        internal const string TimelineUntypedLaneMetaCountFormat = "chưa ghi loại · {0} đợt";
+
         // Id dải gom "sky-race-252…258" và dấu cắt giữa của nhãn thanh (thuật toán barLabel [SD1 §3.5]).
         internal const string TimelineStripIdSeparator = "…";
         internal const string TimelineBarLabelEllipsis = "…";

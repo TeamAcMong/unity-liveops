@@ -46,6 +46,7 @@ namespace DreamTech.LiveOps.Editor.Tests
             Assert.AreEqual(HealthState.Warning, huntEarly.WorstFinding, "hunt-0914 Nên xem (không tự khai configKey)");
             Assert.AreEqual(LiveEventPhase.Upcoming, huntBonus.Phase);
             Assert.IsTrue(huntBonus.IsChangedSincePublished, "hunt-0916-bonus chưa có trong bản đã đăng");
+            Assert.AreEqual(string.Empty, huntBonus.RenamedFromId, "đợt cố định: diff với bản đã đăng ghép theo id nên không có id cũ");
 
             Assert.AreEqual(1, treasureHunt.OverlapRanges.Count, "một vùng chồng phủ cả hai hàng phụ");
             Assert.AreEqual(Utc(9, 16, 12), treasureHunt.OverlapRanges[0].startUtc);
@@ -290,6 +291,86 @@ namespace DreamTech.LiveOps.Editor.Tests
             Assert.AreEqual(LiveEventTypeColorSlots.DefaultSlotFor("mystery-box"), mystery.ColorSlot);
             Assert.AreEqual(1, mystery.Bars.Count);
             Assert.AreEqual("cố định · chưa có đợt", model.FindLane("lava-quest").MetaText);
+        }
+
+        [Test]
+        public void Model_EmptyTypeFixedEntry_GetsLaneSoNoEventDisappears()
+        {
+            // Luật 3 báo đợt chưa ghi loại là Bị bỏ; trước đây model lọc loại rỗng nên đợt không có làn, thanh hay chip nào [SD1 §3.1].
+            const string entryKey = "entry-empty-type";
+            LiveEventCalendarDocument document = new LiveEventCalendarDocumentBuilder()
+                .WithEventType(new LiveEventTypeDefinition("lava-quest", "Nhiệm vụ dung nham", 0, false, "lava_quest_v2"))
+                .WithFixedEvent(new FixedLiveEventEntry(entryKey, "quest-0915", string.Empty, "2026-09-15T00:00:00Z", "2026-09-16T00:00:00Z", string.Empty))
+                .Build();
+            LiveEventCalendarCheckReport report = LiveEventCalendarValidator.Default.Check(
+                new LiveEventCalendarCheckContextBuilder(document, LiveOpsDesignSample.NowUtc).Build());
+            int droppedFindings = TimelineTestQueries.Count(report.Findings,
+                finding => finding.TargetEntryKey == entryKey && finding.Consequence == LiveEventCalendarConsequence.Dropped);
+            Assert.Greater(droppedFindings, 0, "tiền đề: validator báo đợt loại rỗng là Bị bỏ");
+
+            LiveOpsTimelineModel model = new LiveOpsTimelineInput().WithDocument(document).WithCheckReport(report).WithNowUtc(LiveOpsDesignSample.NowUtc)
+                .WithRange(Utc(9, 8), LiveOpsTimelineZoom.ThreeWeeks).WithTrackWidth(DesignTrackWidth).Build();
+
+            CollectionAssert.AreEqual(new[] { "lava-quest", string.Empty }, TimelineTestQueries.Map(model.Lanes, lane => lane.TypeId).ToArray(),
+                "đợt chưa ghi loại có làn giữ chỗ TypeId \"\"");
+            LiveOpsTimelineLaneModel untyped = model.FindLane(string.Empty);
+            LiveOpsTimelineBarModel bar = TimelineTestQueries.Single(untyped.Bars, candidate => candidate.BarKey == entryKey);
+            Assert.AreEqual(LiveOpsTimelineBarSource.Fixed, bar.Source, "thanh cố định bình thường — bấm vào để sửa loại");
+            Assert.IsTrue(bar.IsDropped, "game bỏ đợt thiếu loại");
+            Assert.AreEqual(HealthState.Blocked, bar.WorstFinding);
+            Assert.AreEqual("chưa ghi loại · 1 đợt", untyped.MetaText);
+            Assert.AreEqual(HealthState.Blocked, untyped.ChipState);
+            Assert.AreEqual(droppedFindings, untyped.ChipCount);
+            Assert.AreEqual(HealthState.Ok, model.FindLane("lava-quest").ChipState, "phát hiện của đợt thiếu loại không dồn sang làn khác");
+            Assert.IsTrue(TimelineTestQueries.Any(model.Minimap.Bands, band => band.TypeId.Length == 0 && band.Segments.Count == 1), "minimap cũng có dải");
+            Assert.IsTrue(TimelineTestQueries.Any(model.Minimap.Marks, mark => mark.TargetEntryKey == entryKey && mark.State == HealthState.Blocked));
+
+            LiveOpsTimelineModel hidden = new LiveOpsTimelineInput().WithDocument(document).WithCheckReport(report).WithNowUtc(LiveOpsDesignSample.NowUtc)
+                .WithRange(Utc(9, 8), LiveOpsTimelineZoom.ThreeWeeks).WithTrackWidth(DesignTrackWidth).WithHiddenLanes(new[] { string.Empty }).Build();
+            CollectionAssert.AreEqual(new[] { "lava-quest" }, TimelineTestQueries.Map(hidden.Lanes, lane => lane.TypeId).ToArray(), "làn loại rỗng ẩn được như làn khác");
+        }
+
+        [Test]
+        public void Model_Minimap_FarFutureTypoWithHourlyRule_NoPerOccurrenceCost()
+        {
+            // Một năm gõ nhầm (2126) kéo khoảng minimap ra 100 năm; cộng luật hằng giờ là ~876 nghìn lần lặp. Minimap phải tính bằng số học
+            // chỉ số, không tạo từng lần lặp (trước đây ~0,7s/138MB mỗi lần dựng — trái luật vẽ lại trong 1 frame [SD1 §3.7]).
+            LiveEventCalendarDocumentBuilder builder = TimelineDesignSampleInput.CopyOf(LiveOpsDesignSample.Document);
+            builder.WithFixedEvent(new FixedLiveEventEntry("typo-year", "star-tournament-2126-10", "star-tournament", "2126-10-03T00:00:00Z",
+                "2126-10-06T00:00:00Z", string.Empty));
+            LiveEventCalendarDocument document = TimelineDesignSampleInput.WithHourlyRule(builder.Build());
+            LiveEventCalendarCompilation compilation = LiveEventCalendarCompiler.CompileInExportOrder(document);
+            LiveOpsTimelineInput input = TimelineDesignSampleInput.ThreeWeeks(DesignTrackWidth).WithDocument(document).WithCompilation(compilation)
+                .WithCheckReport(null).WithPublishedDiff(null);
+            input.Build();
+
+            System.Diagnostics.Stopwatch stopwatch = System.Diagnostics.Stopwatch.StartNew();
+            LiveOpsTimelineModel model = input.Build();
+            stopwatch.Stop();
+
+            LiveOpsTimelineMinimapModel minimap = model.Minimap;
+            Assert.AreEqual(2126, minimap.RangeEndUtc.Year, "tiền đề: minimap kéo tới 7 ngày sau đợt gõ nhầm");
+            LiveOpsTimelineMinimapBand hourlyBand = TimelineTestQueries.Single(minimap.Bands, band => band.TypeId == TimelineDesignSampleInput.HourlyType);
+            Assert.AreEqual(1, hourlyBand.Segments.Count, "khe nghỉ 0px: cả chuỗi là một đoạn");
+            Assert.AreEqual(minimap.RangeStartUtc, hourlyBand.Segments[0].startUtc);
+            Assert.AreEqual(minimap.RangeEndUtc, hourlyBand.Segments[0].endUtc);
+            Assert.AreEqual(1, TimelineTestQueries.Single(minimap.Bands, band => band.TypeId == "sky-race").Segments.Count,
+                "khe nghỉ 4 giờ ở ~0,0007 px/giờ < 1px: một đoạn");
+            Assert.LessOrEqual(LiveOpsTimelineVertexBudget.EstimateMinimap(minimap), LiveOpsTimelineVertexBudget.LaneSafetyBudget);
+            // Ngưỡng rộng gấp ~7 lần mức đo sau khi sửa (vài ms) để máy CI chậm không đỏ giả, vẫn bắt được đường cũ (~700ms).
+            Assert.Less(stopwatch.ElapsedMilliseconds, 250, "dựng model có năm gõ nhầm + luật hằng giờ phải rẻ");
+
+            // Khe nghỉ ≥ 1px thì số học chỉ số ra đúng từng lần lặp như đường liệt kê: sky-race trên minimap mẫu (~0,44 px/giờ × 4 giờ).
+            LiveOpsTimelineModel sample = TimelineDesignSampleInput.ThreeWeeks(DesignTrackWidth).Build();
+            RecurringLiveEventCalendar skyRace = TimelineTestQueries.Single(LiveEventCalendarCompiler.CompileInExportOrder(LiveOpsDesignSample.Document).RecurringCalendars,
+                calendar => calendar.EventType == "sky-race");
+            var sampleGeometry = new LiveOpsTimelineGeometry(sample.Minimap.RangeStartUtc, sample.Minimap.RangeEndUtc, sample.Minimap.Width);
+            var occurrences = new List<LiveEventInstance>();
+            LiveOpsTimelineModel.AppendOccurrences(skyRace, sampleGeometry.RangeStartUtc, sampleGeometry.RangeEndUtc, occurrences);
+            var segments = new List<(DateTime startUtc, DateTime endUtc)>();
+            LiveOpsTimelineModel.AppendMinimapRecurringSegments(skyRace, sampleGeometry, segments);
+            Assert.Greater(occurrences.Count, 1, "tiền đề: nhiều lần lặp trong khoảng minimap mẫu");
+            CollectionAssert.AreEqual(TimelineTestQueries.Map(occurrences, occurrence => (occurrence.StartUtc, occurrence.EndUtc)), segments);
         }
 
         [Test]
