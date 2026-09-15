@@ -107,9 +107,9 @@ namespace DreamTech.LiveOps.Editor
             _lastTickSeconds = _clockSeconds();
             IsVisible = true;
             _message.text = model.DisplayMessage;
-            // Tooltip mặc định là chính câu toast → dùng câu model đã dựng (có "Đã hoàn tác: " khi cần), view không tự ghép tiền tố (V-20 C-5).
-            // Tooltip riêng giữ nguyên: câu hiện trên toast đã mang tiền tố ở đầu nên không bị ellipsis cắt mất.
-            tooltip = string.Equals(model.Tooltip, model.Message, StringComparison.Ordinal) ? model.DisplayMessage : model.Tooltip;
+            // Tooltip luôn lấy DisplayTooltip: model tự ghép tiền tố "Đã hoàn tác: " cho cả tooltip mặc định (= câu toast)
+            // lẫn tooltip riêng (vd khung giờ) khi IsUndone, view không tự ghép (V-20 C-5, CC-FEEDBACK-2 / G-FIX-W2-4).
+            tooltip = model.DisplayTooltip;
             RemoveFromClassList(LiveOpsHubClassNames.ToastHidden);
             AddToClassList(LiveOpsHubClassNames.ToastVisible);
             RefreshActionState();
