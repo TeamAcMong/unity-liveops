@@ -12,6 +12,14 @@ namespace DreamTech.LiveOps.Editor
     /// cùng một câu ở mọi nơi, và thêm mã mới ở core mà quên câu thì <c>EveryRuleIdAndDetailCode_HasSentence</c> đỏ ngay.
     /// <para>Mọi giá trị thô (id, loại, configKey, chuỗi giờ người dùng gõ, message exception) bọc <c>&lt;noparse&gt;</c>: Label rich text
     /// của hub sẽ hiểu "&lt;b&gt;" trong một id là thẻ và làm mất chữ. Nơi hiện chữ không rich text (tooltip) gọi <see cref="PlainText"/>.</para>
+    /// <para>(V-22 CC-FT-1) Bản không ngữ cảnh không bao giờ nói sai nhưng bớt chữ, nên nơi gọi có dữ liệu BẮT BUỘC dùng overload có
+    /// ngữ cảnh — không thì chữ lệch thiết kế: <c>Headline(…, latestStamp)</c> khi có dấu đã đăng (G-OVERVIEW, G-VALIDATION),
+    /// <c>Meta(…, nowUtc)</c> khi có đồng hồ (G-OVERVIEW, G-VALIDATION, G-CALENDAR "Vấn đề (n)", G-CALENDAR-DEPTH),
+    /// <c>PrimaryButtonTooltip(…, calendarAssetName)</c> khi biết asset (G-VALIDATION). Tooltip rail/timeline (G-SESSION
+    /// <c>LiveOpsHubFindingRouting</c>, G-TIMELINE-VIEW) dùng <see cref="ShortLabel"/> + <see cref="PlainText"/>.</para>
+    /// <para>(V-22 CC-FT-2 chọn (a)) Chữ ở đây là chuẩn, thay chữ thiết kế: headline luật 12 đếm "mục" ("khác dấu 11/9 16:20: 2 mục")
+    /// vì <c>ExpectedText</c> đếm cả luật lặp, "đợt" có lúc sai; headline luật 8 không mang tiền tố "Kiểm lịch ·" — tiền tố chỉ thuộc
+    /// card tham chiếu của màn Loại event (G-EVENTTYPES) và màn đó tự thêm. (Chữ chuẩn thứ ba — hàng diff không giờ — ở LiveOpsChangeText.)</para>
     /// </summary>
     internal static class LiveOpsFindingText
     {
@@ -62,7 +70,10 @@ namespace DreamTech.LiveOps.Editor
             return Headline(finding, format, null);
         }
 
-        /// <summary>Như trên, kèm dấu đã đăng mới nhất để luật 12 nêu giờ dấu ("Bản remote khác dấu 11/9 16:20: 2 mục").</summary>
+        /// <summary>
+        /// Như trên, kèm dấu đã đăng mới nhất để luật 12 nêu giờ dấu ("Bản remote khác dấu 11/9 16:20: 2 mục"). (V-22 CC-FT-1) BẮT BUỘC khi
+        /// nơi gọi có dấu đã đăng (G-OVERVIEW hàng Việc cần làm, G-VALIDATION); <paramref name="latestStamp"/> null = bản không ngữ cảnh.
+        /// </summary>
         public static string Headline(LiveEventCalendarFinding finding, LiveOpsHubFormat format, PublishedCalendarStamp latestStamp)
         {
             if (finding == null) throw new ArgumentNullException(nameof(finding));
@@ -81,6 +92,7 @@ namespace DreamTech.LiveOps.Editor
         /// <summary>
         /// Như trên, biết BÂY GIỜ: câu nêu được giai đoạn đợt ("đợt chưa bắt đầu (14/9 00:00 UTC)" thay cho "đợt bắt đầu 14/9 00:00 UTC").
         /// Tách overload thay vì đổi chữ ký V-8: nơi chưa có đồng hồ (tooltip dựng sớm) vẫn có câu đúng, chỉ bớt một chữ.
+        /// (V-22 CC-FT-1) BẮT BUỘC khi nơi gọi có đồng hồ: G-OVERVIEW, G-VALIDATION, G-CALENDAR (card "Vấn đề (n)"), G-CALENDAR-DEPTH.
         /// </summary>
         public static string Meta(LiveEventCalendarFinding finding, LiveOpsHubFormat format, DateTime nowUtc)
         {
@@ -188,6 +200,7 @@ namespace DreamTech.LiveOps.Editor
         /// <summary>
         /// Như trên, biết tên file asset lịch đang mở: tooltip "Bỏ qua cảnh báo…" nói đúng chữ thiết kế "…lưu trong Main.asset" [SD2 §2.3 hàng 5].
         /// Tách overload vì tên asset tuỳ dự án và lớp câu không tự đọc đường dẫn; <paramref name="calendarAssetName"/> rỗng = câu chung.
+        /// (V-22 CC-FT-1) BẮT BUỘC khi nơi gọi biết asset lịch đang mở (G-VALIDATION).
         /// </summary>
         public static string PrimaryButtonTooltip(LiveEventCalendarFinding finding, LiveOpsHubFormat format, string calendarAssetName)
         {

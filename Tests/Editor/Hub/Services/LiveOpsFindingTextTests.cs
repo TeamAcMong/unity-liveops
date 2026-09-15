@@ -443,6 +443,7 @@ namespace DreamTech.LiveOps.Editor.Tests
                     LiveEventCalendarConsequence.ShouldReview, LiveEventCalendarTargetKind.EventType, "lucky-spin")
                 .WithTexts("2", string.Empty).WithRemoteSnapshotSubject(true).Build();
 
+            // (V-22 CC-FT-2 (a)) Chữ chuẩn: headline luật 8 ở Kiểm lịch KHÔNG mang tiền tố "Kiểm lịch ·" — card màn Loại event tự thêm.
             Assert.AreEqual("2 đợt lucky-spin thuộc loại chưa khai báo", LiveOpsFindingText.PlainText(LiveOpsFindingText.Headline(draft, Format)));
             Assert.AreEqual("2 đợt lucky-spin trong JSON đang chạy thuộc loại chưa khai báo", LiveOpsFindingText.PlainText(LiveOpsFindingText.Headline(remote, Format)));
             Assert.AreEqual("trong JSON đang chạy · không chặn Copy JSON của nháp", LiveOpsFindingText.Meta(remote, Format));
@@ -452,7 +453,8 @@ namespace DreamTech.LiveOps.Editor.Tests
             Assert.AreEqual("Khai báo", LiveOpsFindingText.PrimaryButtonText(remote));
             Assert.AreEqual(string.Empty, LiveOpsFindingText.LinkText(remote));
 
-            // Luật 12 lệch: câu nêu giờ dấu mới nhất, id khác nhau, và không chặn Copy; nút "Xem diff".
+            // Luật 12 lệch: câu nêu giờ dấu mới nhất, id khác nhau, và không chặn Copy; nút "Xem diff". (V-22 CC-FT-2 (a)) Chữ chuẩn
+            // "2 mục" chứ không "2 đợt" thiết kế: ExpectedText đếm cả luật lặp.
             LiveEventCalendarFinding drift = Builder(LiveEventCalendarRuleIds.RemoteSnapshotDrift, LiveEventCalendarDetailCodes.RemoteDiffers,
                     LiveEventCalendarConsequence.ShouldReview, LiveEventCalendarTargetKind.RemoteSnapshot, string.Empty)
                 .WithTexts("hunt-0914" + LiveEventCalendarFindingBuilder.ValueSeparator + "weekly-pass", "2").WithRemoteSnapshotSubject(true).Build();

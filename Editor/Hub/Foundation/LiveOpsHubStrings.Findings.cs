@@ -133,6 +133,7 @@ namespace DreamTech.LiveOps.Editor
         internal const string FindingShadowedConsequenceFormat = "Người chơi không thấy đợt {0}; lần lặp {1} của luật chạy thay.";
 
         // ----- Luật 8 unknown-event-type -----
+        // (V-22 CC-FT-2 (a)) Không tiền tố "Kiểm lịch ·": tiền tố chỉ thuộc card tham chiếu màn Loại event, màn đó tự thêm.
         internal const string FindingUnknownTypeDraftHeadlineFormat = "{0} đợt {1} thuộc loại chưa khai báo";
         internal const string FindingUnknownTypeRemoteHeadlineFormat = "{0} đợt {1} trong JSON đang chạy thuộc loại chưa khai báo";
         internal const string FindingUnknownTypeDraftShortLabel = "loại chưa khai báo";
@@ -209,6 +210,7 @@ namespace DreamTech.LiveOps.Editor
         internal const string FindingLongGapConsequenceFormat = "Người chơi không có đợt {0} nào trong {1}.";
 
         // ----- Luật 12 remote-snapshot-drift -----
+        // (V-22 CC-FT-2 (a)) "mục" chứ không "đợt": số đếm lấy từ ExpectedText gồm cả luật lặp.
         internal const string FindingRemoteDiffersHeadlineFormat = "Bản remote khác dấu {0}: {1} mục";
         internal const string FindingRemoteDiffersWithoutStampHeadlineFormat = "Bản remote khác dấu đã đăng mới nhất: {0} mục";
         internal const string FindingRemoteNoStampHeadlineFormat = "Bản remote có {0} mục nhưng chưa có dấu đã đăng để so";
