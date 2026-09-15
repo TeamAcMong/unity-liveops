@@ -142,29 +142,39 @@ namespace DreamTech.LiveOps.Editor.Tests
             Assert.AreEqual(HealthState.Blocked, schedule.State, "dấu tầng = mức nặng nhất các màn trong tầng");
             Assert.AreEqual("2 bị bỏ", schedule.Badge, "badge tầng nêu số của mức nặng nhất trước");
             Assert.AreEqual(HealthState.Blocked, schedule.BadgeState);
-            Assert.AreEqual("2 bị bỏ · 1 mất tiến độ", schedule.BadgeTooltip,
-                "tooltip hàng tầng là danh sách đếm [FD §3.5], không phải câu lý do của từng màn (câu đó ở tooltip hàng màn)");
+            Assert.AreEqual("2 bị bỏ · 1 mất tiến độ · 2 nên xem", schedule.BadgeTooltip,
+                "tooltip hàng tầng là danh sách đếm cộng từ Counts của Lịch (2 · 0 · 2) + Luật lặp (0 · 1 · 0) [FD §3.5], không phải câu lý do "
+                + "của từng màn (câu đó ở tooltip hàng màn)");
             StringAssert.Contains("hunt-0916-bonus", schedule.Rows[0].Tooltip, "câu lý do vẫn ở hàng màn Lịch");
         }
 
         [Test]
-        public void StageCounts_SameKindSummedAcrossSections_OtherBadgesKeptOnce()
+        public void StageCounts_SummedFromHealthCounts_BadgeTextNeverParsed()
         {
+            // Chữ badge cố ý lệch số (V-21 CC-SHELL-5 (b)): rail phải lấy số từ Counts. Gộp từ chữ thì ra "9 bị bỏ" / "7 nên xem".
             List<FakeHubSection> sections = FakeHubSection.CreateRegistryShaped();
-            sections[2].Health = SectionHealth.Warning("2 nên xem", "hunt-0914 không tự khai configKey, lava-quest trống 11 ngày");
-            sections[3].Health = SectionHealth.Blocked("1 bị bỏ", "weekly-pass có chu kỳ 0");
+            sections[2].Health = SectionHealth.Warning("7 nên xem", "hunt-0914 không tự khai configKey, lava-quest trống 11 ngày")
+                .WithCounts(new LiveOpsHubFindingCounts(0, 0, 2, 0));
+            sections[3].Health = SectionHealth.Blocked("9 bị bỏ", "weekly-pass có chu kỳ 0").WithCounts(new LiveOpsHubFindingCounts(1, 0, 0, 0));
             LiveOpsHubRailStageRow schedule = Build(sections, null, false).Stages[1];
 
-            Assert.AreEqual("1 bị bỏ", schedule.Badge, "màn Blocked đứng trước dù đứng sau trên rail");
-            Assert.AreEqual("1 bị bỏ · 2 nên xem", schedule.BadgeTooltip);
+            Assert.AreEqual("1 bị bỏ", schedule.Badge, "số lấy từ Counts, không từ chữ badge \"9 bị bỏ\"; loại nặng nhất đứng trước dù màn đứng sau trên rail");
+            Assert.AreEqual(HealthState.Blocked, schedule.BadgeState);
+            Assert.AreEqual("1 bị bỏ · 2 nên xem", schedule.BadgeTooltip, "chữ badge của màn có Counts không lọt vào tooltip tầng");
 
-            sections[2].Health = SectionHealth.Blocked("1 bị bỏ", "hunt-0916-bonus chồng giờ");
-            Assert.AreEqual("2 bị bỏ", Build(sections, null, false).Stages[1].BadgeTooltip, "cùng loại đếm thì cộng dồn, không ghi \"1 bị bỏ · 1 bị bỏ\"");
+            sections[2].Health = SectionHealth.Blocked("1 bị bỏ · 2 nên xem", "hunt-0916-bonus chồng giờ").WithCounts(new LiveOpsHubFindingCounts(1, 0, 2, 0));
+            Assert.AreEqual("2 bị bỏ · 2 nên xem", Build(sections, null, false).Stages[1].BadgeTooltip,
+                "cùng loại cộng dồn theo Counts; một màn mang hai loại đếm vẫn đếm đủ (gộp từ chữ thì vỡ)");
+
+            sections[2].Health = SectionHealth.Blocked("2 bị bỏ", "chữ badge có số nhưng Counts rỗng");
+            sections[3].Health = SectionHealth.Blocked("1 bị bỏ", "weekly-pass có chu kỳ 0").WithCounts(new LiveOpsHubFindingCounts(1, 0, 0, 0));
+            Assert.AreEqual("1 bị bỏ · 2 bị bỏ", Build(sections, null, false).Stages[1].BadgeTooltip,
+                "màn không mang Counts góp nguyên chữ, KHÔNG được đọc số trong chữ ra để cộng thành \"3 bị bỏ\"");
 
             List<FakeHubSection> export = FakeHubSection.CreateRegistryShaped();
             export[5].Health = SectionHealth.Blocked("chặn", "Copy JSON bị khoá: 1 thay đổi bắt buộc chưa xem");
             LiveOpsHubRailStageRow exportStage = Build(export, null, false).Stages[3];
-            Assert.AreEqual("chặn", exportStage.Badge, "badge không theo format đếm giữ nguyên chữ");
+            Assert.AreEqual("chặn", exportStage.Badge, "màn không đếm phát hiện (Counts rỗng) giữ nguyên chữ badge");
             Assert.AreEqual("chặn", exportStage.BadgeTooltip);
         }
 

@@ -54,9 +54,9 @@ namespace DreamTech.LiveOps.Editor
             new ShellStyleSheet(ComponentsUss, true),
             new ShellStyleSheet(ShellUss, true),
             // INTERIM(G-SHELLPOLISH): ba sheet của gói khác (feedback G-FEEDBACK W2, controls G-CONTROLS W2, timeline G-TIMELINE-VIEW
-            // W3) chưa bắt buộc — bản dev dựng dở chưa có file nên cửa sổ không cảnh báo (mọi test UI assert không log lạ), probe chỉ
-            // ghi chú. G-SHELLPOLISH (W5, khi cả ba đã có) đổi ba cờ thành true: bản cài thiếu sheet nào cũng LogWarning đúng đường
-            // dẫn (8.1 bước 2) và probe báo lỗi.
+            // W3) chưa bắt buộc (mục 12 I-10) — bản dev dựng dở chưa có file nên cửa sổ không cảnh báo (mọi test UI assert không log
+            // lạ), probe chỉ ghi chú. G-SHELLPOLISH (W5, khi cả ba đã có) đổi ba cờ thành true: bản cài thiếu sheet nào cũng
+            // LogWarning đúng đường dẫn (8.1 bước 2) và probe báo lỗi.
             new ShellStyleSheet(FeedbackUss, false),
             new ShellStyleSheet(ControlsUss, false),
             new ShellStyleSheet(TimelineUss, false),
