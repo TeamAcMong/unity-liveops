@@ -116,6 +116,38 @@ namespace DreamTech.LiveOps.Editor.Tests
         }
 
         [Test]
+        public void SectionHealth_Counts_DefaultEmpty_KeptByStaleAndWorse_AddSums()
+        {
+            Assert.IsTrue(default(SectionHealth).Counts.IsEmpty, "màn không đếm phát hiện (Tổng quan, Xuất) không phải khai số");
+            Assert.IsTrue(SectionHealth.Blocked("chặn", "Copy JSON bị chặn").Counts.IsEmpty);
+
+            var calendarCounts = new LiveOpsHubFindingCounts(2, 0, 2, 0);
+            SectionHealth calendar = SectionHealth.Blocked("2 bị bỏ", "2 đợt sẽ bị game bỏ").WithCounts(calendarCounts);
+            Assert.AreEqual(HealthState.Blocked, calendar.State, "WithCounts không đổi trạng thái");
+            Assert.AreEqual("2 bị bỏ", calendar.Badge);
+            Assert.AreEqual("2 đợt sẽ bị game bỏ", calendar.Reason);
+            Assert.AreEqual(2, calendar.Counts.ShouldReview, "số đếm không phụ thuộc chữ badge — badge chỉ nói loại nặng nhất");
+
+            SectionHealth stale = calendar.AsStale(new DateTime(2026, 9, 13, 8, 46, 30, DateTimeKind.Utc));
+            Assert.AreEqual(calendarCounts, stale.Counts, "bản cũ giữ số của lần đo trước như giữ badge");
+            Assert.IsTrue(stale.WithCounts(new LiveOpsHubFindingCounts(0, 1, 0, 0)).IsStale, "WithCounts giữ cờ cũ");
+
+            SectionHealth recurring = SectionHealth.Warning("1 mất tiến độ", "weekly-pass đổi tiền tố").WithCounts(new LiveOpsHubFindingCounts(0, 1, 0, 0));
+            Assert.AreEqual(calendarCounts, SectionHealth.Worse(recurring, calendar).Counts, "Worse chọn nguyên một bên, không trộn số");
+
+            // Tầng LÊN LỊCH = Lịch + Luật lặp: cộng từng loại (8.2) — nguồn của "2 bị bỏ · 1 mất tiến độ · 2 nên xem".
+            LiveOpsHubFindingCounts schedule = calendar.Counts.Add(recurring.Counts);
+            Assert.AreEqual(2, schedule.Dropped);
+            Assert.AreEqual(1, schedule.ProgressLost);
+            Assert.AreEqual(2, schedule.ShouldReview);
+            Assert.AreEqual(0, schedule.NotMeasured);
+            Assert.AreEqual(5, schedule.Total);
+            Assert.IsFalse(schedule.IsEmpty);
+
+            Assert.Throws<ArgumentOutOfRangeException>(() => new LiveOpsHubFindingCounts(0, 0, -1, 0));
+        }
+
+        [Test]
         public void PipelineStages_OrderGatesCaptions()
         {
             CollectionAssert.AreEqual(

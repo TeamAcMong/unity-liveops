@@ -5,6 +5,10 @@
 # directory	<thư mục mới>	<gói chủ>	<đợt>
 # (đóng cổng W1, V-20) G-DIFF→G-VALIDATOR-A và G-HUBKIT→G-UNITY là phụ thuộc CÙNG ĐỢT có thật, đã merge ở cổng W1;
 #   check-ownership.py --wave-deps báo đúng 2 lỗi này có chủ đích. Lỗi thứ ba trở đi là thật.
+# (G-FIX-W2-1, V-21 duyệt 15/9/2026) W2 thêm 2 phụ thuộc CÙNG ĐỢT có thật: G-FEEDBACK→G-SHELL, G-CONTROLS→G-SHELL (biên dịch: partial
+#   LiveOpsHubCaptureScenarios + kiểu LiveOpsHubCaptureScenario; cổng gói: LiveOpsHubCaptureCommand + probe) — --wave-deps báo đúng 4 lỗi có
+#   chủ đích (2 của W1 + 2 này); lỗi thứ năm trở đi là thật. Bốn cạnh CHỈ-PROBE G-TIMELINE-MODEL/G-PREVIEW/G-FINDINGTEXT/G-EXPORTGATE→G-SHELL
+#   (W2-TIERS 3.1) KHÔNG ghi vào cột phụ thuộc: D-1 dời probe của gói logic ra cổng đợt (10.1 bước 6), bốn gói không chờ G-SHELL.
 # region	<vùng>	<họ=gói,...;...>	(tham khảo: LiveOpsHubStrings/ClassNames/Paths.<Vùng>.cs, LiveOpsHubCaptureScenarios.<Vùng>.cs)
 package	G-TOOLS	W0	M	-
 package	G-GOLDEN	W0	S	-
@@ -19,8 +23,8 @@ package	G-UNITY	W1	M	G-CORE,G-GOLDEN,G-SPIKE-A
 package	G-HUBKIT	W1	M	G-SKELETON,G-CORE,G-UNITY
 package	G-SPIKE-B	W1	M	G-SPIKE-A
 package	G-SHELL	W2	L	G-HUBBASE,G-HUBKIT
-package	G-FEEDBACK	W2	M	G-HUBBASE,G-HUBKIT,G-SPIKE-A
-package	G-CONTROLS	W2	M	G-HUBBASE,G-JSON,G-SPIKE-A
+package	G-FEEDBACK	W2	M	G-HUBBASE,G-HUBKIT,G-SPIKE-A,G-SHELL
+package	G-CONTROLS	W2	M	G-HUBBASE,G-JSON,G-SPIKE-A,G-SHELL
 package	G-TIMELINE-MODEL	W2	M	G-HUBBASE,G-VALIDATOR-A,G-DIFF,G-SPIKE-A
 package	G-VALIDATOR-B	W2	M	G-VALIDATOR-A,G-JSON
 package	G-ROUNDTRIP	W2	M	G-UNITY,G-JSON,G-HUBKIT,G-VALIDATOR-A
@@ -180,7 +184,7 @@ file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubStrings.Expo
 file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubStrings.ExportGate.cs	G-EXPORTGATE	G-EXPORTGATE vùng ExportGate
 file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubStrings.Feedback.cs	G-FEEDBACK	G-FEEDBACK vùng Feedback
 file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubStrings.Findings.cs	G-FINDINGTEXT	G-FINDINGTEXT vùng Findings
-file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubStrings.Foundation.cs	G-HUBBASE	G-HUBBASE vùng Foundation
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubStrings.Foundation.cs	G-HUBBASE,G-FIX-W2-1	G-HUBBASE vùng Foundation; G-FIX-W2-1 thêm câu lỗi số đếm âm (V-21 CC-SHELL-5)
 file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubStrings.Inspector.cs	G-INSPECTOR	G-INSPECTOR vùng Inspector
 file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubStrings.Kit.cs	G-HUBKIT,G-PASTE,G-ACCEPT	G-HUBKIT vùng Kit; G-PASTE hoặc G-ACCEPT được bỏ hằng KitActionNotBuiltInDevBuild khi hết người dùng (C-4, V-20)
 file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubStrings.Overview.cs	G-OVERVIEW,G-SHELLPOLISH	G-OVERVIEW vùng Overview; G-SHELLPOLISH vùng Overview
@@ -196,7 +200,7 @@ file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubStrings.Vali
 file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubStrings.cs	G-SKELETON	G-SKELETON tạo
 file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubStyle.cs	G-HUBBASE	G-HUBBASE tạo
 file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/PipelineStage.cs	G-HUBBASE	G-HUBBASE tạo
-file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/SectionHealth.cs	G-HUBBASE	G-HUBBASE tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/SectionHealth.cs	G-HUBBASE,G-FIX-W2-1	G-HUBBASE tạo; G-FIX-W2-1 thêm SectionHealth.Counts + LiveOpsHubFindingCounts (V-21 CC-SHELL-5 (b))
 file	Packages/com.dreamtech.liveops/Editor/Hub/Icons/d_liveops-hub-calendar.png	G-HUBBASE	G-HUBBASE tạo
 file	Packages/com.dreamtech.liveops/Editor/Hub/Icons/d_liveops-hub-calendar@2x.png	G-HUBBASE	G-HUBBASE tạo
 file	Packages/com.dreamtech.liveops/Editor/Hub/Icons/d_liveops-hub-clipboard.png	G-HUBBASE	G-HUBBASE tạo
@@ -357,7 +361,7 @@ file	Packages/com.dreamtech.liveops/Runtime/Core/Calendar/Json/LiveEventCalendar
 file	Packages/com.dreamtech.liveops/Runtime/Core/Calendar/Json/LiveEventCalendarJsonWriter.cs	G-JSON	G-JSON tạo
 file	Packages/com.dreamtech.liveops/Runtime/Core/Calendar/Json/LiveEventCalendarSha256.cs	G-JSON	G-JSON tạo
 file	Packages/com.dreamtech.liveops/Runtime/Core/Calendar/Validation/ILiveEventCalendarRule.cs	G-VALIDATOR-A	G-VALIDATOR-A tạo
-file	Packages/com.dreamtech.liveops/Runtime/Core/Calendar/Validation/LiveEventCalendarCheckContext.cs	G-VALIDATOR-A	G-VALIDATOR-A tạo
+file	Packages/com.dreamtech.liveops/Runtime/Core/Calendar/Validation/LiveEventCalendarCheckContext.cs	G-VALIDATOR-A,G-FIX-W2-1	G-VALIDATOR-A tạo; G-FIX-W2-1 thêm LatestStampBaseline + WithLatestStampBaseline (V-21 CC-VALB-1)
 file	Packages/com.dreamtech.liveops/Runtime/Core/Calendar/Validation/LiveEventCalendarCheckReport.cs	G-VALIDATOR-A	G-VALIDATOR-A tạo
 file	Packages/com.dreamtech.liveops/Runtime/Core/Calendar/Validation/LiveEventCalendarCheckRun.cs	G-VALIDATOR-A	G-VALIDATOR-A tạo
 file	Packages/com.dreamtech.liveops/Runtime/Core/Calendar/Validation/LiveEventCalendarCheckSummary.cs	G-VALIDATOR-A	G-VALIDATOR-A tạo
@@ -404,7 +408,7 @@ file	Packages/com.dreamtech.liveops/Tests/Editor/Calendar/Validation/DuplicateEv
 file	Packages/com.dreamtech.liveops/Tests/Editor/Calendar/Validation/EndBeforeStartRuleTests.cs	G-VALIDATOR-A	
 file	Packages/com.dreamtech.liveops/Tests/Editor/Calendar/Validation/InvalidIdentifierRuleTests.cs	G-VALIDATOR-A	
 file	Packages/com.dreamtech.liveops/Tests/Editor/Calendar/Validation/LiveEventCalendarCheckSummaryTests.cs	G-VALIDATOR-A	
-file	Packages/com.dreamtech.liveops/Tests/Editor/Calendar/Validation/LiveEventCalendarValidatorTests.cs	G-VALIDATOR-A	
+file	Packages/com.dreamtech.liveops/Tests/Editor/Calendar/Validation/LiveEventCalendarValidatorTests.cs	G-VALIDATOR-A,G-FIX-W2-1	G-FIX-W2-1 thêm test LatestStampBaseline (V-21 CC-VALB-1)
 file	Packages/com.dreamtech.liveops/Tests/Editor/Calendar/Validation/LongGapBetweenEventsRuleTests.cs	G-VALIDATOR-B	
 file	Packages/com.dreamtech.liveops/Tests/Editor/Calendar/Validation/OverlapSameTypeRuleTests.cs	G-VALIDATOR-A	
 file	Packages/com.dreamtech.liveops/Tests/Editor/Calendar/Validation/RecurringRuleInvalidRuleTests.cs	G-VALIDATOR-A	
@@ -439,6 +443,7 @@ file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Capture/LiveOpsHubCaptureSc
 file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Capture/LiveOpsHubCaptureScenarios.Validation.cs	G-VALIDATION	G-VALIDATION vùng Validation
 file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Capture/LiveOpsHubCaptureScenarios.ValidationDepth.cs	G-VALIDATION-DEPTH	G-VALIDATION-DEPTH vùng ValidationDepth
 file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Capture/LiveOpsHubCaptureScenarios.cs	G-SHELL	G-SHELL tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Controls/ControlsSkinTokenTests.cs	G-CONTROLS	G-CONTROLS tạo; JSON view + cycle bar của SelfDrawnElements_ResolveTokens_BothSkinClasses (V-21 D-3)
 file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Controls/ControlsUxmlTests.cs	G-CONTROLS	G-CONTROLS tạo
 file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Controls/JsonViewTests.cs	G-CONTROLS	G-CONTROLS tạo
 file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Controls/RuleCycleBarTests.cs	G-CONTROLS	G-CONTROLS tạo
@@ -459,14 +464,14 @@ file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Feedback/ToastTests.cs	G-FE
 file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Feedback/UndoTrackerTests.cs	G-FEEDBACK	G-FEEDBACK tạo
 file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Foundation/EditorFontTests.cs	G-HUBBASE	G-HUBBASE tạo
 file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Foundation/FormatTests.cs	G-HUBBASE	G-HUBBASE tạo
-file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Foundation/HubStyleTests.cs	G-HUBBASE	G-HUBBASE tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Foundation/HubStyleTests.cs	G-HUBBASE,G-FIX-W2-1	G-HUBBASE tạo; G-FIX-W2-1 thêm test SectionHealth.Counts (V-21 CC-SHELL-5)
 file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Foundation/IconsTests.cs	G-HUBBASE	G-HUBBASE tạo
 file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Foundation/KeyLabelTests.cs	G-HUBBASE	G-HUBBASE tạo
 file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Foundation/StateMarkTests.cs	G-HUBBASE	G-HUBBASE tạo
 file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Foundation/Uxml/StateMarkAttributes.uxml	G-HUBBASE	G-HUBBASE tạo
 file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Inspector/LiveEventCalendarAssetInspectorTests.cs	G-INSPECTOR	G-INSPECTOR tạo
 file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Journey/EndToEndJourneyTests.cs	G-JOURNEY	G-JOURNEY tạo
-file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/LiveOpsHubProbeCommand.cs	G-SHELL	G-SHELL tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/LiveOpsHubProbeCommand.cs	G-SHELL,G-SESSION	G-SHELL tạo; G-SESSION nối phiên thật cho 4 ngữ cảnh probe (V-21 CC-SHELL-1)
 file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Sections/AddEventFlowModelTests.cs	G-CALENDAR	G-CALENDAR tạo
 file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Sections/AddEventPopoverTests.cs	G-CALENDAR	G-CALENDAR tạo
 file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Sections/CalendarCommandTests.cs	G-CALENDAR-DEPTH	G-CALENDAR-DEPTH tạo
@@ -515,14 +520,14 @@ file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Services/TestAdaptersTests.
 file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Services/ToastModelTests.cs	G-HUBKIT	G-HUBKIT tạo
 file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Shell/HubDiskConflictTests.cs	G-SHELLPOLISH	G-SHELLPOLISH tạo
 file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Shell/HubHostIntegrationTests.cs	G-HOSTUI	G-HOSTUI tạo
-file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Shell/HubLayoutTests.cs	G-SHELL	G-SHELL tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Shell/HubLayoutTests.cs	G-SHELL	G-SHELL tạo; NarrowRail_Is36px KHÔNG ở đây — sang HubNarrowTests (V-21 CC-SHELL-2)
 file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Shell/HubMenuTests.cs	G-SHELLPOLISH	G-SHELLPOLISH tạo
-file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Shell/HubNarrowTests.cs	G-SHELLPOLISH	G-SHELLPOLISH tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Shell/HubNarrowTests.cs	G-SHELLPOLISH	G-SHELLPOLISH tạo; gồm NarrowRail_Is36px chuyển từ HubLayoutTests (V-21 CC-SHELL-2)
 file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Shell/HubRailTests.cs	G-SHELL	G-SHELL tạo
 file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Shell/HubSectionContractTests.cs	G-SHELL	G-SHELL tạo
 file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Shell/HubShortcutTests.cs	G-HOSTUI	G-HOSTUI tạo
-file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Shell/HubSkinTests.cs	G-SHELL	G-SHELL tạo
-file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Shell/HubWindowTests.cs	G-SHELL	G-SHELL tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Shell/HubSkinTests.cs	G-SHELL	G-SHELL tạo; chỉ SkinProbe_* — SelfDrawnElements_* tách sang ControlsSkinTokenTests + TimelineSkinTokenTests (V-21 D-3)
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Shell/HubWindowTests.cs	G-SHELL,G-SESSION	G-SHELL tạo; G-SESSION nối phiên thật cho ngữ cảnh NoAsset/Empty/DesignSample/StaleCheck (V-21 CC-SHELL-1)
 file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Shell/LiveOpsHubHeaderChipModelTests.cs	G-HOSTUI	G-HOSTUI tạo
 file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Shell/LiveOpsHubRailModelTests.cs	G-SHELL	G-SHELL tạo
 file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Shell/LiveOpsHubStatusBarModelTests.cs	G-HOSTUI	G-HOSTUI tạo
@@ -534,6 +539,7 @@ file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Timeline/TimelineGeometryTe
 file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Timeline/TimelineInteractionTests.cs	G-TIMELINE-VIEW	G-TIMELINE-VIEW tạo
 file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Timeline/TimelineModelTests.cs	G-TIMELINE-MODEL	G-TIMELINE-MODEL tạo
 file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Timeline/TimelineMultiSelectTests.cs	G-OPT-TIMELINE	G-OPT-TIMELINE tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Timeline/TimelineSkinTokenTests.cs	G-TIMELINE-VIEW	G-TIMELINE-VIEW tạo; lane + minimap của SelfDrawnElements_ResolveTokens_BothSkinClasses (V-21 D-3)
 file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Timeline/TimelineUxmlTests.cs	G-TIMELINE-VIEW	G-TIMELINE-VIEW tạo
 file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Timeline/TimelineVertexBudgetEstimateTests.cs	G-TIMELINE-MODEL	G-TIMELINE-MODEL tạo
 file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Timeline/TimelineVertexBudgetRenderTests.cs	G-TIMELINE-VIEW	G-TIMELINE-VIEW tạo
@@ -550,6 +556,7 @@ file	Packages/com.dreamtech.liveops/Tests/Editor/Unity/JsonUtilityBehaviourTests
 file	Packages/com.dreamtech.liveops/Tests/Editor/Unity/LiveEventCalendarAssetTests.cs	G-UNITY	G-UNITY tạo
 file	Packages/com.dreamtech.liveops/Tests/Editor/Unity/LiveEventCalendarRemoteFailurePolicyTests.cs	G-UNITY	G-UNITY tạo
 file	Packages/com.dreamtech.liveops/Tests/Editor/Unity/ReadmeSnippetCompileTests.cs	G-DOCS	G-DOCS tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Unity/RemoteSnapshotDriftParsedTests.cs	G-VALIDATOR-B	G-VALIDATOR-B tạo; parser thật + luật 12 (V-21 CC-VALB-5)
 file	Packages/com.dreamtech.liveops/package.json	G-TOOLS	G-TOOLS tạo
 file	Packages/packages-lock.json	G-TOOLS	G-TOOLS Unity sinh lại khi PKG/package.json thêm uielements
 file	tools/liveops-hub/PROPOSED_CLAUDE_MD.md	G-TOOLS,G-DOCS	G-TOOLS tạo; G-DOCS sửa
@@ -569,7 +576,7 @@ file	tools/liveops-hub/lint-samples/**	G-TOOLS	G-TOOLS tạo — bộ mẫu code
 file	tools/liveops-hub/make-temp-project-2022.sh	G-TOOLS	G-TOOLS tạo
 file	tools/liveops-hub/make-worktree.sh	G-TOOLS	G-TOOLS tạo
 file	tools/liveops-hub/measure-capture.py	G-TOOLS	G-TOOLS tạo
-file	tools/liveops-hub/ownership.tsv	G-TOOLS	G-TOOLS tạo
+file	tools/liveops-hub/ownership.tsv	G-TOOLS,G-FIX-W2-1	G-TOOLS tạo; G-FIX-W2-1 ghi V-21 (phụ thuộc cùng đợt W2, quyền ghi D-3/CC-SHELL-1/2/5/CC-VALB-1/5)
 file	tools/liveops-hub/run-editmode.sh	G-TOOLS	G-TOOLS tạo
 file	tools/liveops-hub/run-playmode.sh	G-TOOLS	G-TOOLS tạo
 file	tools/liveops-hub/unity-slot.sh	G-TOOLS	G-TOOLS tạo
