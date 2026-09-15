@@ -15,6 +15,9 @@ namespace DreamTech.LiveOps.Editor.Tests
     public sealed class PopoverTests
     {
         private const int MaximumFrames = 60;
+        // Chờ theo cả khung lẫn giờ thật: batch chạy 60 khung trong ~60 ms, máy bận (một Unity khác chạy song song) thì focus/layout
+        // chưa kịp và test đỏ giả — chỉ fail khi quá cả số khung lẫn số giây (cổng W2-CLOSE2 gặp đúng ca này ở 6000.6).
+        private const double MaximumWaitSeconds = 5.0;
 
         /// <summary>Popover thử: một ô nhập nhận focus đầu.</summary>
         private sealed class ProbePopover : LiveOpsPopoverContent
@@ -52,9 +55,10 @@ namespace DreamTech.LiveOps.Editor.Tests
             Assert.AreSame(popover, LiveOpsPopoverContent.Current);
 
             int frames = 0;
+            double deadline = UnityEditor.EditorApplication.timeSinceStartup + MaximumWaitSeconds;
             while (!IsFocusedInside(popover))
             {
-                if (++frames > MaximumFrames) Assert.Fail("ô đầu của popover không nhận focus sau " + MaximumFrames + " khung (GeometryChangedEvent)");
+                if (++frames > MaximumFrames && UnityEditor.EditorApplication.timeSinceStartup > deadline) Assert.Fail("ô đầu của popover không nhận focus sau " + MaximumFrames + " khung và " + MaximumWaitSeconds + " giây (GeometryChangedEvent)");
                 yield return null;
             }
 
