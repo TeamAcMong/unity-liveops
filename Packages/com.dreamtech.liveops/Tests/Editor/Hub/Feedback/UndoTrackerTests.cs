@@ -102,7 +102,7 @@ namespace DreamTech.LiveOps.Editor.Tests
 
             _tracker.Dispose();
             Undo.PerformRedo();
-            Assert.AreEqual(1, calls, "field delegate đã gỡ — tracker cũ không nghe sau Dispose (không rò qua domain reload)");
+            Assert.AreEqual(1, calls, "field delegate đã gỡ — tracker cũ không nghe sau Dispose (Unity không còn giữ nó sống)");
         }
     }
 

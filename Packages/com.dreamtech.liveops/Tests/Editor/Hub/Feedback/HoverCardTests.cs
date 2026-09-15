@@ -93,6 +93,36 @@ namespace DreamTech.LiveOps.Editor.Tests
         }
 
         [Test]
+        public void HoverCard_MoveToAdjacentTarget_ShowsSecondAfter500ms()
+        {
+            VisualElement second = new VisualElement { name = "bar-hunt-0916-bonus" };
+            _root.Add(second);
+            _host.Attach(second, () => new Label("hunt-0916-bonus · 16/9 12:00 → 18/9 00:00 UTC"));
+
+            _host.HandlePointerEnter(_target);
+            Advance(LiveOpsHoverCardHost.ShowDelayMilliseconds);
+            Assert.AreSame(_target, _host.CurrentTarget);
+
+            // Lướt sang thanh sát bên: hạn ẩn thẻ cũ (100ms) tới trước hạn hiện thẻ mới (500ms) — ẩn thẻ cũ không được huỷ việc chờ thẻ mới.
+            _host.HandlePointerLeave(_target);
+            _host.HandlePointerEnter(second);
+            Advance(LiveOpsHoverCardHost.HideDelayMilliseconds);
+            Assert.IsFalse(_host.IsVisible, "đủ 100ms sau khi rời đích đầu thì thẻ cũ tắt");
+            Advance(LiveOpsHoverCardHost.ShowDelayMilliseconds - LiveOpsHoverCardHost.HideDelayMilliseconds - 1);
+            Assert.IsFalse(_host.IsVisible, "chưa đủ 500ms trên đích mới thì chưa hiện");
+            Advance(1);
+            Assert.IsTrue(_host.IsVisible, "đứng yên 500ms trên đích mới thì hiện, không cần PointerEnter lần nữa");
+            Assert.AreSame(second, _host.CurrentTarget);
+
+            // Hide công khai vẫn huỷ cả việc đang chờ.
+            _host.HandlePointerLeave(second);
+            _host.HandlePointerEnter(_target);
+            _host.Hide();
+            Advance(LiveOpsHoverCardHost.ShowDelayMilliseconds * 2);
+            Assert.IsFalse(_host.IsVisible, "Hide (Esc/điều hướng) huỷ luôn thẻ đang chờ");
+        }
+
+        [Test]
         public void HoverCard_ShowPinned_IgnoresLeaveUntilHide()
         {
             _host.ShowPinned(_target, new Label("F8"));
