@@ -1,11 +1,11 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.IO;
 using System.Reflection;
 using System.Text;
 using System.Text.RegularExpressions;
 using NUnit.Framework;
-using UnityEngine;
 
 namespace DreamTech.LiveOps.Editor.Tests
 {
@@ -13,15 +13,18 @@ namespace DreamTech.LiveOps.Editor.Tests
     /// Khung catalog (§1.2, §1.3 đặc tả G-I18N): mọi thành viên <see cref="LiveOpsHubStrings"/> tra được chữ, mọi khoá catalog
     /// có đúng một thành viên dùng nó, chỗ giữ chỗ khớp giữa hai bản, khoá trùng bị chặn, thiếu khoá không ném.
     /// <para>
-    /// Bước 1 của G-I18N mới dựng hạ tầng: bản tiếng Anh cố tình để trống, gói dịch (bước 2) mới điền. Nên khoá chưa dịch chỉ
-    /// là CẢNH BÁO liệt kê ra (<see cref="UntranslatedKeys_AreListedAsWarning"/>), không làm đỏ; khi bước 2 xong, đổi cảnh báo
-    /// đó thành assert là chốt được luật "đủ hai ngôn ngữ".
+    /// Bước dịch đã xong nên khoá thiếu một bản là ĐỎ (<see cref="EveryCatalogKey_HasBothLanguages_NonEmpty"/>), không còn là
+    /// cảnh báo: một khoá chưa dịch sẽ im lặng hiện câu tiếng Việt cho người đang đọc tiếng Anh, đúng thứ mà gói này sinh ra để
+    /// chặn. Mọi thành viên cũng phải tra được chữ ở TỪNG ngôn ngữ, không chỉ ngôn ngữ đang ghim.
     /// </para>
     /// </summary>
     [TestFixture]
     [Category(LiveOpsHubTestCategories.Logic)]
     public sealed class LiveOpsHubStringCatalogTests
     {
+        /// <summary>Biến môi trường trỏ chỗ ghi bảng đối chiếu bản dịch — lệnh chạy cổng gói đặt, người dùng thường không.</summary>
+        private const string TranslationReviewPathVariable = "LIVEOPS_HUB_TRANSLATION_REVIEW";
+
         private static readonly Regex PlaceholderPattern = new Regex(@"\{(\d+)(?::[^}]*)?\}", RegexOptions.Compiled);
 
         private static IReadOnlyList<PropertyInfo> StringMembers()
@@ -60,16 +63,42 @@ namespace DreamTech.LiveOps.Editor.Tests
         public void EveryStringsMember_ResolvesToText_NeverBracketedKey()
         {
             List<string> offenders = new List<string>();
-            foreach (PropertyInfo member in StringMembers())
+            // Fixture ghim Tiếng Việt cho cả assembly, nên phải tự mở scope từng ngôn ngữ: đọc đúng ngôn ngữ đang ghim thì
+            // một khoá chỉ có bản Việt vẫn xanh, mà đó chính là ca người dùng English gặp câu tiếng Việt.
+            foreach (LiveOpsHubLanguageId language in LiveOpsHubLanguage.Available)
             {
-                string text = (string)member.GetValue(null, null);
-                if (string.IsNullOrEmpty(text) || text.StartsWith(LiveOpsHubStringCatalog.MissingTextOpenMark, StringComparison.Ordinal))
+                using (LiveOpsHubLanguage.Override(language))
                 {
-                    offenders.Add(member.Name);
+                    foreach (PropertyInfo member in StringMembers())
+                    {
+                        string text = (string)member.GetValue(null, null);
+                        if (string.IsNullOrEmpty(text) || text.StartsWith(LiveOpsHubStringCatalog.MissingTextOpenMark, StringComparison.Ordinal))
+                        {
+                            offenders.Add(member.Name + " [" + language + "]");
+                        }
+                    }
                 }
             }
 
             Assert.IsEmpty(offenders, "khoá không tra được chữ (rơi về ⟨khoá⟩): " + string.Join(", ", offenders.ToArray()));
+        }
+
+        [Test]
+        public void EveryCatalogKey_HasBothLanguages_NonEmpty()
+        {
+            List<string> offenders = new List<string>();
+            foreach (string key in LiveOpsHubStringCatalog.Keys)
+            {
+                foreach (LiveOpsHubLanguageId language in LiveOpsHubLanguage.Available)
+                {
+                    string text;
+                    // TryGetExact KHÔNG rơi về ngôn ngữ khác: null lẫn chuỗi rỗng đều trả false, đúng luật "một bản rỗng = ĐỎ".
+                    if (!LiveOpsHubStringCatalog.TryGetExact(language, key, out text)) offenders.Add(key + " [" + language + "]");
+                }
+            }
+
+            Assert.IsEmpty(offenders, "khoá thiếu chữ ở một ngôn ngữ (người dùng ngôn ngữ đó sẽ thấy câu của ngôn ngữ kia): "
+                + string.Join(", ", offenders.ToArray()));
         }
 
         [Test]
@@ -112,8 +141,11 @@ namespace DreamTech.LiveOps.Editor.Tests
                 {
                     if (language == LiveOpsHubStringCatalog.SourceLanguage) continue;
                     string translated;
-                    // Chưa dịch thì không có gì để so — ca đó do UntranslatedKeys_AreListedAsWarning lo.
-                    if (!LiveOpsHubStringCatalog.TryGetExact(language, key, out translated)) continue;
+                    if (!LiveOpsHubStringCatalog.TryGetExact(language, key, out translated))
+                    {
+                        offenders.Add(key + " [" + language + "] chưa có chữ để so chỗ giữ chỗ");
+                        continue;
+                    }
                     string sourceShape = DescribePlaceholders(source);
                     string translatedShape = DescribePlaceholders(translated);
                     if (!string.Equals(sourceShape, translatedShape, StringComparison.Ordinal))
@@ -191,29 +223,101 @@ namespace DreamTech.LiveOps.Editor.Tests
         }
 
         /// <summary>
-        /// Không assert: bước 1 của G-I18N cố tình để trống bản tiếng Anh. Cảnh báo in ra danh sách khoá còn thiếu để gói dịch
-        /// biết chính xác phải điền gì, và để cổng gói bước 2 thấy con số về 0.
+        /// Thứ tự tra dự phòng của §1.3: thiếu chữ ở ngôn ngữ đang chọn thì rơi về ENGLISH (mặc định của hub), không rơi về
+        /// bản gốc tiếng Việt. Soi trên bảng riêng vì bảng thật không được phép có khoá thiếu chữ.
         /// </summary>
         [Test]
-        public void UntranslatedKeys_AreListedAsWarning()
+        public void MissingTextInCurrentLanguage_FallsBackToEnglish()
         {
-            foreach (LiveOpsHubLanguageId language in LiveOpsHubLanguage.Available)
-            {
-                if (language == LiveOpsHubStringCatalog.SourceLanguage) continue;
-                List<string> missing = new List<string>();
-                foreach (string key in LiveOpsHubStringCatalog.Keys)
-                {
-                    string text;
-                    if (!LiveOpsHubStringCatalog.TryGetExact(language, key, out text)) missing.Add(key);
-                }
+            LiveOpsHubStringTable table = new LiveOpsHubStringTable();
+            table.Add("OnlyEnglishKey", null, "English only");
+            table.Add("OnlyVietnameseKey", "Chỉ có tiếng Việt", null);
 
-                if (missing.Count == 0) continue;
-                StringBuilder report = new StringBuilder();
-                report.Append("LiveOps Hub i18n: ").Append(missing.Count.ToString(CultureInfo.InvariantCulture))
-                    .Append('/').Append(LiveOpsHubStringCatalog.Keys.Count.ToString(CultureInfo.InvariantCulture))
-                    .Append(" khoá chưa có bản ").Append(language).Append(" — ").Append(string.Join(", ", missing.ToArray()));
-                Debug.LogWarning(report.ToString());
+            using (LiveOpsHubLanguage.Override(LiveOpsHubLanguageId.Vietnamese))
+            {
+                Assert.AreEqual("English only", LiveOpsHubStringCatalog.Resolve(table, "OnlyEnglishKey"),
+                    "thiếu bản tiếng Việt thì rơi về English, không được trả rỗng");
+                Assert.AreEqual("Chỉ có tiếng Việt", LiveOpsHubStringCatalog.Resolve(table, "OnlyVietnameseKey"));
             }
+
+            using (LiveOpsHubLanguage.Override(LiveOpsHubLanguageId.English))
+            {
+                Assert.AreEqual("English only", LiveOpsHubStringCatalog.Resolve(table, "OnlyEnglishKey"));
+                Assert.AreEqual("Chỉ có tiếng Việt", LiveOpsHubStringCatalog.Resolve(table, "OnlyVietnameseKey"),
+                    "hết đường dự phòng thì vẫn phải có chữ để cửa sổ dựng được");
+            }
+        }
+
+        /// <summary>
+        /// Bảng đối chiếu bản dịch cho user soát ở cổng gói (§8 bước 9, §9): sinh bằng reflection từ chính catalog, KHÔNG gõ
+        /// tay. Luôn dựng nội dung để đường sinh có test đi qua; chỉ ghi ra file khi lệnh chạy đặt biến môi trường
+        /// <see cref="TranslationReviewPathVariable"/> — test không được tự ý ghi vào máy người chạy.
+        /// </summary>
+        [Test]
+        public void TranslationReviewTable_IsGeneratedFromCatalog()
+        {
+            string markdown = BuildTranslationReview();
+
+            Assert.IsTrue(markdown.Contains(nameof(LiveOpsHubStrings.ShellOverviewTitle)),
+                "bảng đối chiếu phải liệt kê mọi khoá của catalog");
+            Assert.AreEqual(LiveOpsHubStringCatalog.Keys.Count, CountTableRows(markdown), "mỗi khoá đúng một hàng");
+
+            string outputPath = Environment.GetEnvironmentVariable(TranslationReviewPathVariable);
+            if (string.IsNullOrEmpty(outputPath)) return;
+            string directory = Path.GetDirectoryName(outputPath);
+            if (!string.IsNullOrEmpty(directory)) Directory.CreateDirectory(directory);
+            File.WriteAllText(outputPath, markdown, new UTF8Encoding(false));
+        }
+
+        private static string BuildTranslationReview()
+        {
+            int sharedCount = 0;
+            foreach (string key in LiveOpsHubStringCatalog.Keys)
+            {
+                if (LiveOpsHubStringCatalog.IsShared(key)) sharedCount++;
+            }
+
+            StringBuilder markdown = new StringBuilder();
+            markdown.Append("# LiveOps Hub — bảng đối chiếu bản dịch\n\n");
+            markdown.Append("Sinh tự động bằng reflection từ `LiveOpsHubStringCatalog` (test `")
+                .Append(nameof(TranslationReviewTable_IsGeneratedFromCatalog)).Append("`), không gõ tay.\n\n");
+            markdown.Append("Tổng ").Append(LiveOpsHubStringCatalog.Keys.Count.ToString(CultureInfo.InvariantCulture))
+                .Append(" khoá, trong đó ").Append(sharedCount.ToString(CultureInfo.InvariantCulture))
+                .Append(" khoá ký hiệu dùng chung hai ngôn ngữ (`AddShared`). Thứ tự hàng = thứ tự đăng ký trong file catalog.\n\n");
+            markdown.Append("| # | Khoá | Tiếng Việt | English |\n|---|---|---|---|\n");
+
+            int row = 0;
+            foreach (string key in LiveOpsHubStringCatalog.Keys)
+            {
+                row++;
+                string vietnamese;
+                string english;
+                LiveOpsHubStringCatalog.TryGetExact(LiveOpsHubLanguageId.Vietnamese, key, out vietnamese);
+                LiveOpsHubStringCatalog.TryGetExact(LiveOpsHubLanguageId.English, key, out english);
+                markdown.Append("| ").Append(row.ToString(CultureInfo.InvariantCulture))
+                    .Append(" | `").Append(key).Append("` | ").Append(ForMarkdownCell(vietnamese))
+                    .Append(" | ").Append(ForMarkdownCell(english)).Append(" |\n");
+            }
+
+            return markdown.ToString();
+        }
+
+        private static int CountTableRows(string markdown)
+        {
+            int rows = 0;
+            foreach (string line in markdown.Split('\n'))
+            {
+                if (line.StartsWith("| ", StringComparison.Ordinal) && line.Contains("` |")) rows++;
+            }
+
+            return rows;
+        }
+
+        /// <summary>Ô bảng markdown: gạch đứng và xuống dòng phải thoát, nếu không bảng vỡ và người soát đọc nhầm cột.</summary>
+        private static string ForMarkdownCell(string text)
+        {
+            if (string.IsNullOrEmpty(text)) return "**(thiếu)**";
+            return text.Replace("|", "\\|").Replace("\n", "<br>").Replace("\r", string.Empty);
         }
 
         /// <summary>Tập chỉ số <c>{n}</c> kèm số lần dùng, viết thành chuỗi so sánh được; <c>{</c> lạc cũng lộ ra.</summary>
