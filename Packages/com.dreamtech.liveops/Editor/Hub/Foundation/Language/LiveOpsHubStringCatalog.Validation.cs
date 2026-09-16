@@ -29,6 +29,7 @@ namespace DreamTech.LiveOps.Editor
             table.Add(nameof(LiveOpsHubStrings.ValidationSafeRepairNothingReason),
                 vietnamese: "Không có lỗi nào sửa nhanh an toàn được",
                 english: "No error can be fixed safely");
+
             table.Add(nameof(LiveOpsHubStrings.ValidationBulkRepairNotBuiltReason),
                 vietnamese: "Sửa nhiều lỗi một lượt chưa có trong bản dev này",
                 english: "Fixing several errors at once is not in this dev build yet");
@@ -216,6 +217,27 @@ namespace DreamTech.LiveOps.Editor
             table.Add(nameof(LiveOpsHubStrings.ValidationProposalApplyShiftFormat),
                 vietnamese: "Áp: dời {0}",
                 english: "Apply: move {0}");
+            table.Add(nameof(LiveOpsHubStrings.ValidationProposalApplyRenameFormat),
+                vietnamese: "Áp: đổi {0}",
+                english: "Apply: rename {0}");
+            table.Add(nameof(LiveOpsHubStrings.ValidationProposalApplyNormalizeFormat),
+                vietnamese: "Áp: chuẩn hoá giờ {0}",
+                english: "Apply: normalise the time of {0}");
+            table.Add(nameof(LiveOpsHubStrings.ValidationProposalApplySetDurationFormat),
+                vietnamese: "Áp: đặt {0} dài 24 giờ",
+                english: "Apply: set {0} to 24 hours");
+            table.Add(nameof(LiveOpsHubStrings.ValidationProposalApplySwapFormat),
+                vietnamese: "Áp: đảo giờ của {0}",
+                english: "Apply: swap the times of {0}");
+            table.Add(nameof(LiveOpsHubStrings.ValidationProposalApplySetActiveFormat),
+                vietnamese: "Áp: đặt số giờ chạy của {0}",
+                english: "Apply: set the active hours of {0}");
+            table.Add(nameof(LiveOpsHubStrings.ValidationProposalApplyRevertFormat),
+                vietnamese: "Áp: hoàn về cho {0}",
+                english: "Apply: revert {0}");
+            table.Add(nameof(LiveOpsHubStrings.ValidationProposalApplyDeferFormat),
+                vietnamese: "Áp: hẹn lại {0}",
+                english: "Apply: defer {0}");
             table.Add(nameof(LiveOpsHubStrings.ValidationProposalOptionDetailFormat),
                 vietnamese: "bắt đầu {0} → {1} · dài {2}",
                 english: "start {0} → {1} · lasts {2}");
