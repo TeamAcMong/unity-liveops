@@ -20,6 +20,10 @@ namespace DreamTech.LiveOps.Editor
         /// <summary>Khối bị ẩn hoàn toàn (empty (a) hoặc thân mặc định) — display:none, không chỉ trong suốt.</summary>
         internal const string OverviewHidden = "liveops-hub-overview-hidden";
 
+        // (b) nhiều asset lịch [SD1 §1.3] — HelpBox info ở đầu thân, item căn giữa dọc, nút "Đổi…" ở mép phải.
+        internal const string OverviewMultipleAssets = "liveops-hub-overview-multiple-assets";
+        internal const string OverviewMultipleAssetsText = "liveops-hub-overview-multiple-assets-text";
+
         /// <summary>Metric cuối hàng: bỏ margin-right (USS không có <c>:last-child</c>, class bật từ C#).</summary>
         internal const string OverviewMetricLast = "liveops-hub-overview-metric--last";
 

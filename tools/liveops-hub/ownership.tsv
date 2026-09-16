@@ -272,7 +272,7 @@ file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Overview/OverviewNeedsAc
 file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Overview/OverviewPipelineFlow.cs	G-OVERVIEW	G-OVERVIEW tạo
 file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Overview/OverviewRemoteKeyPopover.cs	G-SHELLPOLISH	G-SHELLPOLISH tạo
 file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Overview/OverviewSection.cs	G-SHELL,G-SESSION,G-OVERVIEW,G-SHELLPOLISH	G-SHELL tạo; G-SESSION sửa; G-OVERVIEW sửa; G-SHELLPOLISH sửa
-file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Overview/OverviewSection.uss	G-OVERVIEW	G-OVERVIEW tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Overview/OverviewSection.uss	G-OVERVIEW,G-SHELLPOLISH	G-OVERVIEW tạo; G-SHELLPOLISH thêm class HelpBox nhiều asset (mục 12 I-9 — gói đã sở hữu OverviewSection.cs/.uxml, dòng .uss bị sót)
 file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Overview/OverviewSection.uxml	G-OVERVIEW,G-SHELLPOLISH	G-OVERVIEW tạo; G-SHELLPOLISH sửa
 file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Overview/OverviewUpcomingTable.cs	G-OVERVIEW	G-OVERVIEW tạo
 file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/RecurringRules/LiveOpsRulePresetLibrary.cs	G-RECURRING	G-RECURRING tạo
