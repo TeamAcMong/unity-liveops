@@ -173,7 +173,9 @@ namespace DreamTech.LiveOps.Editor.Tests
         {
             if (!AssetDatabase.IsValidFolder(TestFolder) || !Directory.Exists(AbsoluteTestFolder))
             {
-                // Hai vế: AssetDatabase chưa biết thư mục, HOẶC nó tưởng còn mà đĩa đã hết (xem ghi chú ở ReleaseAll).
+                // (cổng W5, GW-1) Hai vế: AssetDatabase chưa biết thư mục, HOẶC nó TƯỞNG còn mà đĩa đã hết — vế sau xảy ra khi
+                // ReleaseAll xoá thư mục rồi tạo lại ngay trong CÙNG một frame (IsValidFolder chưa kịp cập nhật), làm kịch bản chụp
+                // h07e chết ở "Parent directory must exist". Refresh chỉ gọi đúng lúc đó, không gọi ở ReleaseAll (mất focus test UI).
                 if (AssetDatabase.IsValidFolder(TestFolder)) AssetDatabase.Refresh();
                 if (!AssetDatabase.IsValidFolder(TestFolder))
                 {
@@ -221,10 +223,9 @@ namespace DreamTech.LiveOps.Editor.Tests
             {
                 AssetDatabase.DeleteAsset(TestFolder);
                 _createdTestFolder = false;
-                // (cổng W5) Refresh ngay: sau DeleteAsset trong CÙNG một frame, AssetDatabase.IsValidFolder còn trả true trong khi
-                // thư mục đã biến mất trên đĩa — lượt chụp kế tiếp vì thế bỏ qua CreateFolder rồi chết ở "Parent directory must
-                // exist". Chỉ lộ ra khi chạy ĐỦ kịch bản (một kịch bản W5 tạo asset thật trước đó thì DeleteAsset mới có việc).
-                AssetDatabase.Refresh();
+                // KHÔNG Refresh() ở đây: Refresh giữa một lượt test UI làm mất focus của element đang kiểm
+                // (RecurringRulesSectionTests.TokenClick_FocusesItsField đỏ ở cả hai bản). Hậu quả "IsValidFolder còn trả true cho
+                // thư mục vừa xoá" được CreateAssetFile xử lý tại chỗ cần — xem ghi chú ở đó.
             }
         }
     }
