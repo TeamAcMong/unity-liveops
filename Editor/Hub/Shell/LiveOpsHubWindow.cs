@@ -91,7 +91,8 @@ namespace DreamTech.LiveOps.Editor
         [NonSerialized] private Action _detachBreakpoints;
         [NonSerialized] private double _nextHealthRefreshSeconds;
         [NonSerialized] private bool _isUpdateRegistered;
-        [NonSerialized] private int _lastStatusMinute = -1;
+        [NonSerialized] private StatusBarSignature _statusSignature;
+        [NonSerialized] private bool _hasStatusSignature;
         [NonSerialized] private Action _saveMenuCommandForTest;
 
         IReadOnlyList<IHubSection> IHubHost.Sections => _sections;
@@ -292,6 +293,7 @@ namespace DreamTech.LiveOps.Editor
             _header = new LiveOpsHubHeader(_hubRoot);
             _sectionHeader = new LiveOpsHubSectionHeader(_hubRoot);
             _statusBar = new LiveOpsHubStatusBar(_hubRoot);
+            _hasStatusSignature = false;
             _notes = _hubRoot.Q(LiveOpsHubPaths.ShellElementNames.ShellNotes);
             _body = _hubRoot.Q(LiveOpsHubPaths.ShellElementNames.SectionBody);
             _outcomeHost = _hubRoot.Q(LiveOpsHubPaths.ShellElementNames.OutcomeHost);
@@ -340,8 +342,8 @@ namespace DreamTech.LiveOps.Editor
             // (10)
             UpdateCompilingNote();
             _notes.schedule.Execute(UpdateCompilingNote).Every(CompilationPollMilliseconds);
-            // Giờ ở status bar chỉ đổi mỗi phút: nhịp 1 giây nhưng chỉ dựng lại chữ khi phút đổi (8.3).
-            _statusBar.Element.schedule.Execute(RefreshStatusBarOnMinuteChange).Every(StatusClockPollMilliseconds);
+            // Giờ ở status bar chỉ đổi mỗi phút: nhịp 1 giây nhưng chỉ dựng lại chữ khi ĐẦU VÀO đổi (8.3, M-6).
+            _statusBar.Element.schedule.Execute(RefreshStatusBarIfChanged).Every(StatusClockPollMilliseconds);
         }
 
         // ------------------------------------------------------------------------------------------------------------ header
@@ -449,9 +451,21 @@ namespace DreamTech.LiveOps.Editor
             Navigate(navigation);
         }
 
+        /// <summary>
+        /// Toast là ĐƯỜNG DUY NHẤT câu "Vừa làm: …" tới được status bar. Vì sao không đọc
+        /// <see cref="LiveOpsHubUndoTracker"/>: phiên mở group Undo thẳng qua <c>Undo.IncrementCurrentGroup</c>
+        /// (<c>LiveOpsHubCalendarSession.Apply</c>), không qua <c>BeginGroup</c> của tracker, nên
+        /// <c>LastActionText</c> của tracker luôn rỗng ở hub thật và phần " · Vừa làm: …" không bao giờ hiện (H-1).
+        /// Câu + số group đi cùng toast nên ghi thẳng vào trạng thái cửa sổ — field đã serialize, sống qua domain reload.
+        /// </summary>
         private void OnToastRequested(LiveOpsToastModel toast)
         {
             _toast?.Show(toast);
+            if (toast != null && toast.HasUndo)
+            {
+                windowState.RecentActionText = toast.Message;
+                windowState.RecentActionUndoGroup = toast.UndoGroup;
+            }
             RefreshStatusBar();
         }
 
@@ -472,32 +486,124 @@ namespace DreamTech.LiveOps.Editor
 
         // ------------------------------------------------------------------------------------------------------------ status bar
 
-        private void RefreshStatusBarOnMinuteChange()
+        /// <summary>
+        /// Nhịp 1 giây (schedule của status bar và <see cref="RefreshHealth"/>) đi qua đây: chỉ dựng lại chữ khi ĐẦU VÀO đổi.
+        /// Bộ lọc "chỉ khi đổi phút" cũ không bao giờ có tác dụng — <see cref="RefreshHealth"/> gọi thẳng
+        /// <see cref="RefreshStatusBar"/> mỗi giây và chính hàm đó ghi lại mốc phút, nên mốc luôn "chưa đổi" khi schedule
+        /// chạy tới (M-6).
+        /// </summary>
+        private void RefreshStatusBarIfChanged()
         {
-            if (_services == null || _statusBar == null) return;
-            int minute = _services.Clock.UtcNow.Minute;
-            if (minute == _lastStatusMinute) return;
-            RefreshStatusBar();
+            RefreshStatusBarCore(false);
         }
 
+        /// <summary>Dựng lại chữ ngay, kể cả khi đầu vào không đổi: dựng lại khung, đổi ngôn ngữ, toast, Undo/Redo.</summary>
         internal void RefreshStatusBar()
+        {
+            RefreshStatusBarCore(true);
+        }
+
+        /// <summary>
+        /// Một chỗ dựng chữ status bar. <paramref name="force"/> = false thì so chữ ký đầu vào trước: 8.3 nói vế phải đổi mỗi
+        /// PHÚT, vế trái chỉ đổi khi lần kiểm / thao tác gần nhất / dấu đã đăng đổi — dựng lại mỗi giây là một
+        /// <c>StringBuilder</c> + vài <c>string.Format</c> cho MỖI cửa sổ hub đang mở, để ra đúng chữ cũ. Chữ ký có
+        /// <c>CompletedRuleCount</c> nên ca "đang kiểm" vẫn đếm từng luật như trước.
+        /// </summary>
+        private void RefreshStatusBarCore(bool force)
         {
             if (_statusBar == null) return;
             if (_services == null)
             {
                 _statusBar.Clear();
+                _hasStatusSignature = false;
                 return;
             }
             LiveOpsHubCalendarSession session = _services.Session;
             DateTime nowUtc = _services.Clock.UtcNow;
-            _lastStatusMinute = nowUtc.Minute;
-            bool hasRecentAction = _undoTracker != null && _undoTracker.LastActionGroup != LiveOpsToastModel.NoUndoGroup;
-            LiveOpsHubStatusBarModel model = LiveOpsHubStatusBarModel.Build(session.Check,
-                hasRecentAction ? _undoTracker.LastActionText : string.Empty,
-                hasRecentAction && _undoTracker.IsGroupOnTop(_undoTracker.LastActionGroup),
-                nowUtc, session.Publish.ActiveStamp, _services.Format, LiveOpsHubKeyLabels.Undo);
+            string recentActionText = windowState.RecentActionText;
+            int recentActionGroup = windowState.RecentActionUndoGroup;
+            bool hasRecentAction = recentActionGroup != LiveOpsToastModel.NoUndoGroup && recentActionText.Length > 0;
+            if (!hasRecentAction) recentActionText = string.Empty;
+            bool isRecentActionOnTop = hasRecentAction && _undoTracker != null && _undoTracker.IsGroupOnTop(recentActionGroup);
+
+            StatusBarSignature signature = new StatusBarSignature(session, nowUtc, recentActionText, isRecentActionOnTop);
+            if (!force && _hasStatusSignature && signature.Equals(_statusSignature)) return;
+            _statusSignature = signature;
+            _hasStatusSignature = true;
+
+            LiveOpsHubStatusBarModel model = LiveOpsHubStatusBarModel.Build(session.Check, session.Asset != null, recentActionText,
+                isRecentActionOnTop, nowUtc, session.Publish.ActiveStamp, _services.Format, LiveOpsHubKeyLabels.Undo);
             _statusBar.SetLeft(model.LeftMark, model.LeftText, string.Empty);
             _statusBar.SetRight(model.RightText, model.RightTooltip);
+        }
+
+        /// <summary>
+        /// Chữ ký đầu vào của status bar: mọi thứ <see cref="LiveOpsHubStatusBarModel.Build"/> đọc, gọn lại thành giá trị so
+        /// được. Giờ hiện tại chỉ giữ tới PHÚT vì cả hai vế đều in tới phút (câu "Kiểm lúc …" in giây nhưng lấy từ báo cáo,
+        /// không phải từ đồng hồ đang chạy).
+        /// </summary>
+        private readonly struct StatusBarSignature : IEquatable<StatusBarSignature>
+        {
+            private readonly bool _hasCheck;
+            private readonly bool _hasAsset;
+            private readonly bool _isRunning;
+            private readonly int _completedRuleCount;
+            private readonly int _ruleCount;
+            private readonly int _staleReason;
+            private readonly long _calendarEditedTicks;
+            private readonly long _passedMilestoneTicks;
+            private readonly object _lastReport;
+            private readonly object _activeStamp;
+            private readonly long _minuteStamp;
+            private readonly string _recentActionText;
+            private readonly bool _isRecentActionOnTop;
+
+            public StatusBarSignature(LiveOpsHubCalendarSession session, DateTime nowUtc, string recentActionText,
+                bool isRecentActionOnTop)
+            {
+                LiveOpsHubCheckState check = session != null ? session.Check : null;
+                _hasCheck = check != null;
+                _hasAsset = session != null && session.Asset != null;
+                _isRunning = check != null && check.IsRunning;
+                _completedRuleCount = check != null ? check.CompletedRuleCount : 0;
+                _ruleCount = check != null ? check.RuleCount : 0;
+                _staleReason = check != null ? (int)check.StaleReason : -1;
+                _calendarEditedTicks = check != null && check.CalendarEditedUtc.HasValue ? check.CalendarEditedUtc.Value.Ticks : -1L;
+                _passedMilestoneTicks = check != null && check.PassedMilestoneUtc.HasValue ? check.PassedMilestoneUtc.Value.Ticks : -1L;
+                _lastReport = check != null ? check.LastReport : null;
+                _activeStamp = session != null ? session.Publish.ActiveStamp : null;
+                _minuteStamp = nowUtc.Ticks / TimeSpan.TicksPerMinute;
+                _recentActionText = recentActionText ?? string.Empty;
+                _isRecentActionOnTop = isRecentActionOnTop;
+            }
+
+            public bool Equals(StatusBarSignature other)
+            {
+                return _hasCheck == other._hasCheck
+                    && _hasAsset == other._hasAsset
+                    && _isRunning == other._isRunning
+                    && _completedRuleCount == other._completedRuleCount
+                    && _ruleCount == other._ruleCount
+                    && _staleReason == other._staleReason
+                    && _calendarEditedTicks == other._calendarEditedTicks
+                    && _passedMilestoneTicks == other._passedMilestoneTicks
+                    && ReferenceEquals(_lastReport, other._lastReport)
+                    && ReferenceEquals(_activeStamp, other._activeStamp)
+                    && _minuteStamp == other._minuteStamp
+                    && string.Equals(_recentActionText, other._recentActionText, StringComparison.Ordinal)
+                    && _isRecentActionOnTop == other._isRecentActionOnTop;
+            }
+
+            public override bool Equals(object other)
+            {
+                return other is StatusBarSignature signature && Equals(signature);
+            }
+
+            public override int GetHashCode()
+            {
+                // Không dùng làm khoá dictionary; đủ để giữ hợp đồng Equals/GetHashCode.
+                return _minuteStamp.GetHashCode() ^ _completedRuleCount ^ _staleReason ^ _recentActionText.GetHashCode();
+            }
         }
 
         // ------------------------------------------------------------------------------------------------------------ băng đĩa
@@ -791,7 +897,8 @@ namespace DreamTech.LiveOps.Editor
             LiveEventCalendarCheckSummary summary = check != null && check.LastReport != null ? check.LastReport.Summary : null;
             _rail.Build(LiveOpsHubRailModel.Build(_sections, healths, summary, check != null && check.IsStale));
             _rail.SetActiveSection(ActiveSectionId);
-            RefreshStatusBar();
+            // Nhịp 1 giây: KHÔNG ép dựng lại chữ status bar — cổng chữ ký lo phần "chỉ khi đổi" (M-6).
+            RefreshStatusBarIfChanged();
         }
 
         internal SectionHealth HealthOf(IHubSection section)
@@ -1077,7 +1184,9 @@ namespace DreamTech.LiveOps.Editor
             LiveOpsHubHeaderChipModel chips = LiveOpsHubHeaderChipModel.Build(session, format,
                 LiveOpsHubKeyLabels.For(LiveOpsHubShortcuts.SaveCalendarId));
             _header?.SetChips(chips);
-            if (chips.HasUnsavedChanges) saveChangesMessage = chips.SaveChangesMessage;
+            // Gán VÔ ĐIỀU KIỆN: model trả "" ở mọi dạng khác, nên sau khi lưu xong câu cũ ("Main.asset có 3 thay đổi chưa
+            // lưu: …") không còn nằm lại trên EditorWindow (L-1).
+            saveChangesMessage = chips.SaveChangesMessage;
             if (hasUnsavedChanges != chips.HasUnsavedChanges) hasUnsavedChanges = chips.HasUnsavedChanges;
         }
 

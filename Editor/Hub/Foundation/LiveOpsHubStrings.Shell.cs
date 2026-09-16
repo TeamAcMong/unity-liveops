@@ -106,6 +106,13 @@ namespace DreamTech.LiveOps.Editor
         internal static string ShellStatusCheckedFormat => LiveOpsHubStringCatalog.Text(nameof(ShellStatusCheckedFormat));
         internal static string ShellStatusCheckingFormat => LiveOpsHubStringCatalog.Text(nameof(ShellStatusCheckingFormat));
         internal static string ShellStatusNeverChecked => LiveOpsHubStringCatalog.Text(nameof(ShellStatusNeverChecked));
+
+        /// <summary>
+        /// Chưa có asset lịch: câu này thay cho "Chưa kiểm lần nào — F5 để kiểm". Không có asset thì F5
+        /// (<c>StartCheckFromShortcut</c>) không làm gì và mục "Kiểm lại tất cả (F5)" của menu ⋮ đã disabled — mời bấm một phím
+        /// không làm gì là hai bề mặt nói hai điều khác nhau về cùng một phím (L-1 của soát 16/9, câu lấy từ 7.0).
+        /// </summary>
+        internal static string ShellStatusNoCalendarAsset => LiveOpsHubStringCatalog.Text(nameof(ShellStatusNoCalendarAsset));
         internal static string ShellStatusStaleEditedFormat => LiveOpsHubStringCatalog.Text(nameof(ShellStatusStaleEditedFormat));
         internal static string ShellStatusStaleMilestoneFormat => LiveOpsHubStringCatalog.Text(nameof(ShellStatusStaleMilestoneFormat));
         internal static string ShellStatusStaleInterrupted => LiveOpsHubStringCatalog.Text(nameof(ShellStatusStaleInterrupted));

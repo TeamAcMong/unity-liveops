@@ -23,6 +23,12 @@ namespace DreamTech.LiveOps.Editor
         internal const string ChipHidden = "liveops-hub-chip--hidden";
         internal const string ChipClickable = "liveops-hub-chip--clickable";
 
+        /// <summary>Dấu trạng thái 7 px đầu chip nháp — dạng (c) của [FD §3.3] là một vòng RỖNG trước chữ "Chưa có dấu đã đăng".</summary>
+        internal const string ChipMark = "liveops-hub-chip-mark";
+
+        /// <summary>Nửa trái chip nháp dạng (a) in đậm ([FD §3.3]) — chip duy nhất mời làm một việc.</summary>
+        internal const string ChipTextStrong = "liveops-hub-chip-text--strong";
+
         // Chỗ cắm outcome ở cuối cột nội dung (8.1 bước 7).
         internal const string OutcomeHost = "liveops-hub-outcome-host";
 

@@ -88,9 +88,9 @@ namespace DreamTech.LiveOps.Editor.Tests
         {
             LiveOpsHubServices services = LiveOpsHubTestServices.ForScenario(LiveOpsHubTestServices.DesignSampleScenario);
 
-            LiveOpsHubStatusBarModel onTop = LiveOpsHubStatusBarModel.Build(services.Session.Check, "Xoá hunt-0916-bonus", true, NowUtc,
+            LiveOpsHubStatusBarModel onTop = LiveOpsHubStatusBarModel.Build(services.Session.Check, true, "Xoá hunt-0916-bonus", true, NowUtc,
                 services.Session.Publish.ActiveStamp, Format, UndoKeyLabel);
-            LiveOpsHubStatusBarModel buried = LiveOpsHubStatusBarModel.Build(services.Session.Check, "Xoá hunt-0916-bonus", false, NowUtc,
+            LiveOpsHubStatusBarModel buried = LiveOpsHubStatusBarModel.Build(services.Session.Check, true, "Xoá hunt-0916-bonus", false, NowUtc,
                 services.Session.Publish.ActiveStamp, Format, UndoKeyLabel);
 
             StringAssert.EndsWith(" · Vừa làm: Xoá hunt-0916-bonus (⌘Z)", onTop.LeftText);
@@ -104,7 +104,7 @@ namespace DreamTech.LiveOps.Editor.Tests
         {
             LiveOpsHubServices services = LiveOpsHubTestServices.ForScenario(LiveOpsHubTestServices.DesignSampleScenario);
 
-            LiveOpsHubStatusBarModel model = LiveOpsHubStatusBarModel.Build(services.Session.Check, "Dời lava-quest-2026-09b", true, NowUtc,
+            LiveOpsHubStatusBarModel model = LiveOpsHubStatusBarModel.Build(services.Session.Check, true, "Dời lava-quest-2026-09b", true, NowUtc,
                 services.Session.Publish.ActiveStamp, Format, string.Empty);
 
             StringAssert.EndsWith(" · Vừa làm: Dời lava-quest-2026-09b", model.LeftText);
@@ -135,11 +135,24 @@ namespace DreamTech.LiveOps.Editor.Tests
         [Test]
         public void NoSession_LeftIsEmptyWithoutMark()
         {
-            LiveOpsHubStatusBarModel model = LiveOpsHubStatusBarModel.Build(null, string.Empty, false, NowUtc, null, Format, UndoKeyLabel);
+            LiveOpsHubStatusBarModel model = LiveOpsHubStatusBarModel.Build(null, false, string.Empty, false, NowUtc, null, Format, UndoKeyLabel);
 
             Assert.IsNull(model.LeftMark);
             Assert.AreEqual(string.Empty, model.LeftText, "khung trần chưa có phiên: một vòng rỗng không kèm lý do sẽ bị đọc thành trạng thái thật");
             Assert.AreEqual("13/9 08:47 UTC", model.RightText);
+        }
+
+        [Test]
+        public void NoAsset_SaysNoCalendarInsteadOfInvitingF5()
+        {
+            LiveOpsHubServices services = LiveOpsHubTestServices.ForScenario(LiveOpsHubTestServices.NoAssetScenario);
+
+            LiveOpsHubStatusBarModel model = Build(services);
+
+            Assert.IsNull(model.LeftMark, "chưa có asset thì không có kết quả nào để đeo dấu");
+            Assert.AreEqual(LiveOpsHubStrings.ShellStatusNoCalendarAsset, model.LeftText);
+            Assert.AreNotEqual(LiveOpsHubStrings.ShellStatusNeverChecked, model.LeftText,
+                "F5 không chạy được lần kiểm nào khi chưa có asset — mục \"Kiểm lại tất cả (F5)\" của menu ⋮ cũng đang disabled");
         }
 
         private static LiveOpsHubStatusBarModel Build(LiveOpsHubServices services)
@@ -149,7 +162,7 @@ namespace DreamTech.LiveOps.Editor.Tests
 
         private static LiveOpsHubStatusBarModel Build(LiveOpsHubServices services, DateTime nowUtc)
         {
-            return LiveOpsHubStatusBarModel.Build(services.Session.Check, string.Empty, false, nowUtc,
+            return LiveOpsHubStatusBarModel.Build(services.Session.Check, services.Session.Asset != null, string.Empty, false, nowUtc,
                 services.Session.Publish.ActiveStamp, Format, UndoKeyLabel);
         }
 

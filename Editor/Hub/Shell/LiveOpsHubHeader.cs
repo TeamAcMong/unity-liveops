@@ -19,6 +19,7 @@ namespace DreamTech.LiveOps.Editor
         private readonly Label _goToKey;
         private readonly Label _assetChipKey;
         private readonly Label _assetChipText;
+        private readonly LiveOpsStateMark _draftMark;
         private readonly Label _draftLeft;
         private readonly VisualElement _draftDivider;
         private readonly Label _draftRight;
@@ -41,6 +42,11 @@ namespace DreamTech.LiveOps.Editor
             _assetChipText = hubRoot.Q<Label>(LiveOpsHubPaths.ShellElementNames.HeaderAssetChipText);
 
             DraftChip = hubRoot.Q(LiveOpsHubPaths.ShellElementNames.HeaderDraftChip);
+            // Dấu dựng bằng C# rồi chèn lên đầu chip — cùng cách LiveOpsHubStatusBar làm, để UXML khung không phụ thuộc thẻ
+            // control dual-path (chỗ 8 [FD §2.14]).
+            _draftMark = new LiveOpsStateMark { Size = LiveOpsStateMark.MarkSize.Small };
+            _draftMark.AddToClassList(LiveOpsHubClassNames.ChipMark);
+            DraftChip.Insert(0, _draftMark);
             _draftLeft = hubRoot.Q<Label>(LiveOpsHubPaths.ShellElementNames.HeaderDraftChipLeft);
             _draftDivider = hubRoot.Q(LiveOpsHubPaths.ShellElementNames.HeaderDraftChipDivider);
             _draftRight = hubRoot.Q<Label>(LiveOpsHubPaths.ShellElementNames.HeaderDraftChipRight);
@@ -57,6 +63,9 @@ namespace DreamTech.LiveOps.Editor
 
         /// <summary>Phần trái của chip nháp — nơi nhận bấm "Lưu"; test đọc chữ từ đây.</summary>
         internal Label DraftLeftLabel => _draftLeft;
+
+        /// <summary>Dấu trạng thái đầu chip nháp; chỉ hiện ở dạng (c) "Chưa có dấu đã đăng" ([FD §3.3]).</summary>
+        internal LiveOpsStateMark DraftMark => _draftMark;
 
         /// <summary>Phần phải của chip nháp — nơi nhận bấm "sang Xuất JSON".</summary>
         internal Label DraftRightLabel => _draftRight;
@@ -83,7 +92,14 @@ namespace DreamTech.LiveOps.Editor
             AssetChip.tooltip = hasAsset
                 ? string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.ShellChipAssetTooltipFormat, model.AssetChipTooltip)
                 : LiveOpsHubStrings.ShellChipNoCalendarTooltip;
-            AssetChip.EnableInClassList(LiveOpsHubClassNames.ChipClickable, hasAsset);
+            // Màu link đặt trên NHÃN CHỮ, không đặt trên chip: class ở container thừa kế xuống cả "Lịch" (khoá chip), mà [FD §3.3]
+            // tả khoá là chữ mờ 10px chứ không phải chữ link (L-3).
+            _assetChipText.EnableInClassList(LiveOpsHubClassNames.ChipClickable, hasAsset);
+
+            // Dạng (c) mang vòng RỖNG trước chữ ([FD §3.3]); mọi dạng khác không có bằng chứng nào để đeo dấu.
+            bool isNeverPublished = model.DraftChipForm == LiveOpsHubHeaderChipModel.FormNeverPublished;
+            _draftMark.EnableInClassList(LiveOpsHubClassNames.ChipHidden, !isNeverPublished);
+            if (isNeverPublished) _draftMark.SetHealth(HealthState.NotMeasured);
 
             _draftLeft.text = model.DraftLeftText;
             _draftRight.text = model.DraftRightText;
@@ -91,7 +107,10 @@ namespace DreamTech.LiveOps.Editor
             _draftDivider.EnableInClassList(LiveOpsHubClassNames.ChipHidden, !hasRight);
             _draftRight.EnableInClassList(LiveOpsHubClassNames.ChipHidden, !hasRight);
             // Chỉ dạng (a) có nửa trái bấm được (Lưu); mọi dạng khác chip chỉ là chữ nên không mời bấm.
-            _draftLeft.EnableInClassList(LiveOpsHubClassNames.ChipClickable, model.DraftChipForm == LiveOpsHubHeaderChipModel.FormUnsaved);
+            bool isUnsaved = model.DraftChipForm == LiveOpsHubHeaderChipModel.FormUnsaved;
+            _draftLeft.EnableInClassList(LiveOpsHubClassNames.ChipClickable, isUnsaved);
+            // Chỉ dạng (a) in đậm ([FD §3.3]) — chip duy nhất mời làm một việc.
+            _draftLeft.EnableInClassList(LiveOpsHubClassNames.ChipTextStrong, isUnsaved);
             _draftRight.EnableInClassList(LiveOpsHubClassNames.ChipClickable, hasRight);
             _draftLeft.tooltip = model.DraftChipForm == LiveOpsHubHeaderChipModel.FormUnsaved
                 ? LiveOpsHubStrings.ShellChipUnsavedTooltip

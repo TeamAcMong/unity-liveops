@@ -29,18 +29,22 @@ namespace DreamTech.LiveOps.Editor
         }
 
         /// <param name="check">null = chưa có phiên lịch (khung trần của W2) — câu trái để trống, không vẽ vòng rỗng vô nghĩa.</param>
+        /// <param name="hasCalendarAsset">
+        /// false = phiên có nhưng KHÔNG có asset lịch. Câu trái nói đúng chuyện đó thay vì mời bấm F5: không có asset thì F5 không
+        /// chạy được lần kiểm nào và mục "Kiểm lại tất cả (F5)" của menu ⋮ đã disabled (7.0).
+        /// </param>
         /// <param name="lastActionText">Câu của thao tác Undo được gần nhất ("" = chưa làm gì trong phiên).</param>
         /// <param name="isLastActionOnTop">Bước Undo của thao tác đó còn là bước kế tiếp của ⌘Z.</param>
         /// <param name="activeStamp">Dấu đã đăng đang chọn; null = chưa từng ghi dấu (phần "đã đăng …· sha …" biến mất).</param>
         /// <param name="undoKeyLabel">Nhãn phím Undo thật của người dùng ("⌘Z", "Ctrl Z"); "" = không gán phím → bỏ luôn ngoặc.</param>
-        public static LiveOpsHubStatusBarModel Build(LiveOpsHubCheckState check, string lastActionText, bool isLastActionOnTop,
-            DateTime nowUtc, PublishedCalendarStamp activeStamp, LiveOpsHubFormat format, string undoKeyLabel)
+        public static LiveOpsHubStatusBarModel Build(LiveOpsHubCheckState check, bool hasCalendarAsset, string lastActionText,
+            bool isLastActionOnTop, DateTime nowUtc, PublishedCalendarStamp activeStamp, LiveOpsHubFormat format, string undoKeyLabel)
         {
             if (format == null) throw new ArgumentNullException(nameof(format));
             DateTime utcNow = DateTime.SpecifyKind(nowUtc, DateTimeKind.Utc);
 
             HealthState? leftMark;
-            string leftText = BuildCheckSentence(check, out leftMark);
+            string leftText = BuildCheckSentence(check, hasCalendarAsset, out leftMark);
             leftText = AppendRecentAction(leftText, lastActionText, isLastActionOnTop, undoKeyLabel);
 
             return new LiveOpsHubStatusBarModel(leftMark, leftText, BuildRightText(utcNow, activeStamp, format),
@@ -58,10 +62,13 @@ namespace DreamTech.LiveOps.Editor
 
         // ------------------------------------------------------------------------------------------------------------ trái
 
-        private static string BuildCheckSentence(LiveOpsHubCheckState check, out HealthState? mark)
+        private static string BuildCheckSentence(LiveOpsHubCheckState check, bool hasCalendarAsset, out HealthState? mark)
         {
             mark = null;
             if (check == null) return string.Empty;
+            // Không có asset: nói "chưa có lịch", không mời F5. Xét TRƯỚC mọi ca kiểm vì phiên không asset vẫn mang
+            // StaleReason = NeverChecked, và câu "Chưa kiểm lần nào — F5 để kiểm" ở đó là một lời mời vào phím không làm gì.
+            if (!hasCalendarAsset) return LiveOpsHubStrings.ShellStatusNoCalendarAsset;
 
             if (check.IsRunning)
             {

@@ -101,6 +101,16 @@
     max-width: 240px;
 }
 
+/* Dấu 7 px đầu chip nháp ([FD §3.3] dạng (c)) — cùng cách status bar đeo dấu, không phải hình vẽ riêng của header. */
+.liveops-hub-chip-mark {
+    margin-right: 4px;
+}
+
+/* Dạng (a) in đậm ([FD §3.3]): "Chưa lưu · ⌘S" là chip duy nhất mời người dùng làm một việc. */
+.liveops-hub-chip-text--strong {
+    -unity-font-style: bold;
+}
+
 .liveops-hub-chip-divider {
     width: 1px;
     height: 12px;
