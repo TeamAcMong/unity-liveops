@@ -63,7 +63,11 @@ namespace DreamTech.LiveOps.Editor.Tests
             string documentBefore = LiveOpsHubDocumentSnapshot.Write(services.Session.Document);
 
             Assert.IsTrue(Section.SafeRepairSlot.Button.enabledSelf, "lịch mẫu có đúng một lỗi sửa nhanh được nên nút phải bật");
-            yield return ClickHeaderButton(ValidationSection.SafeRepairButtonElementName);
+            // Động từ "Sửa" của HÀNG áp ngay ([SD2 §2.4]); nút section header "Sửa các lỗi an toàn (n)…" từ W5 mở card xem
+            // trước trước khi áp ([SD2 §2.5]) nên nó không còn là đường đo "áp ngay" — luồng của card ở ValidationDepthTests.
+            ValidationFindingRow safeRepairRow = FindSafeRepairRow();
+            Assert.IsNotNull(safeRepairRow, "lịch mẫu phải có một hàng sửa nhanh được");
+            yield return Click(safeRepairRow.ActionButton);
 
             Assert.AreNotEqual(documentBefore, LiveOpsHubDocumentSnapshot.Write(services.Session.Document), "bấm Sửa phải đổi lịch thật");
             Assert.IsNotNull(toast, "mỗi lệnh sửa một toast Hoàn tác");
@@ -211,6 +215,15 @@ namespace DreamTech.LiveOps.Editor.Tests
             _scope.Window.SendEvent(new Event { type = EventType.MouseDown, mousePosition = center, button = 0, clickCount = 1 });
             _scope.Window.SendEvent(new Event { type = EventType.MouseUp, mousePosition = center, button = 0, clickCount = 1 });
             yield return null;
+        }
+
+        private ValidationFindingRow FindSafeRepairRow()
+        {
+            for (int index = 0; index < Section.VisibleRows.Count; index++)
+            {
+                if (Section.VisibleRows[index].Row.Action == ValidationRowAction.SafeRepair) return Section.VisibleRows[index];
+            }
+            return null;
         }
 
         private ValidationFindingRow FindRow(string ruleId)

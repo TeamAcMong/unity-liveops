@@ -460,7 +460,7 @@ file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Capture/LiveOpsHubCaptureSc
 file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Capture/LiveOpsHubCaptureScenarios.ShellPolish.cs	G-SHELLPOLISH	G-SHELLPOLISH vùng ShellPolish
 file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Capture/LiveOpsHubCaptureScenarios.ShortcutHelp.cs	G-OPT-SHORTCUTHELP	G-OPT-SHORTCUTHELP vùng ShortcutHelp
 file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Capture/LiveOpsHubCaptureScenarios.Timeline.cs	G-TIMELINE-VIEW,G-OPT-TIMELINE	G-TIMELINE-VIEW vùng Timeline; G-OPT-TIMELINE vùng Timeline
-file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Capture/LiveOpsHubCaptureScenarios.Validation.cs	G-VALIDATION	G-VALIDATION vùng Validation
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Capture/LiveOpsHubCaptureScenarios.Validation.cs	G-VALIDATION,G-VALIDATION-DEPTH	G-VALIDATION vùng Validation; G-VALIDATION-DEPTH đổi h17-8 sang nút "Sửa" CỦA HÀNG vì nút section header từ W5 mở card xem trước ([SD2 §2.5]) — ảnh không đổi, chỉ đường bấm đổi (tự duyệt theo uỷ quyền user 15/9)
 file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Capture/LiveOpsHubCaptureScenarios.ValidationDepth.cs	G-VALIDATION-DEPTH	G-VALIDATION-DEPTH vùng ValidationDepth
 file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Capture/LiveOpsHubCaptureScenarios.cs	G-SHELL	G-SHELL tạo
 file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Controls/ControlsSkinTokenTests.cs	G-CONTROLS	G-CONTROLS tạo; JSON view + cycle bar của SelfDrawnElements_ResolveTokens_BothSkinClasses (V-21 D-3)
@@ -520,7 +520,7 @@ file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Sections/RecurringRuleModel
 file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Sections/RecurringRulesSectionTests.cs	G-RECURRING	G-RECURRING tạo
 file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Sections/SectionTestScope.cs	G-SHELL	G-SHELL tạo
 file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Sections/ValidationDepthTests.cs	G-VALIDATION-DEPTH	G-VALIDATION-DEPTH tạo
-file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Sections/ValidationSectionTests.cs	G-VALIDATION	G-VALIDATION tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Sections/ValidationSectionTests.cs	G-VALIDATION,G-VALIDATION-DEPTH	G-VALIDATION tạo; G-VALIDATION-DEPTH đổi SafeFix_AppliesOneUndoGroupAndRechecks sang nút "Sửa" của hàng (cùng lý do h17-8) — luồng card xem trước nằm ở ValidationDepthTests
 file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Sections/ValidationViewModelTests.cs	G-VALIDATION	G-VALIDATION tạo
 file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Services/AssetLocatorTests.cs	G-SESSION	G-SESSION tạo
 file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Services/CalendarSessionTests.cs	G-SESSION	G-SESSION tạo
