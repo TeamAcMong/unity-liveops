@@ -18,7 +18,7 @@ namespace DreamTech.LiveOps.Editor
                 english: "SCHEDULE");
             table.Add(nameof(LiveOpsHubStrings.StageCaptionCheck),
                 vietnamese: "KIỂM",
-                english: "VALIDATE");
+                english: "CHECK");
             table.Add(nameof(LiveOpsHubStrings.StageCaptionExport),
                 vietnamese: "XUẤT",
                 english: "EXPORT");
@@ -28,7 +28,7 @@ namespace DreamTech.LiveOps.Editor
 
             table.Add(nameof(LiveOpsHubStrings.StaleHealthReason),
                 vietnamese: "Kết quả cũ — kiểm lại để cập nhật.",
-                english: "Result is stale — validate again to refresh.");
+                english: "Result is stale — check again to refresh.");
             table.Add(nameof(LiveOpsHubStrings.HealthReasonRequiredFormat),
                 vietnamese: "Trạng thái {0} bắt buộc có lý do — người dùng phải biết vì sao và làm gì tiếp.",
                 english: "State {0} must carry a reason — the user has to know why and what to do next.");
@@ -66,7 +66,7 @@ namespace DreamTech.LiveOps.Editor
                 english: "ago");
             table.Add(nameof(LiveOpsHubStrings.RemainingPrefix),
                 vietnamese: "còn",
-                english: "remaining");
+                english: "time left:");
 
             table.Add(nameof(LiveOpsHubStrings.UtcLabel),
                 vietnamese: "UTC",

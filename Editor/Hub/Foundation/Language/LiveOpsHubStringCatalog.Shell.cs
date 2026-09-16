@@ -43,7 +43,7 @@ namespace DreamTech.LiveOps.Editor
                 english: "Events generated on a cycle — id, open and end time");
             table.Add(nameof(LiveOpsHubStrings.ShellValidationTitle),
                 vietnamese: "Kiểm lịch",
-                english: "Validation");
+                english: "Calendar check");
 
             table.Add(nameof(LiveOpsHubStrings.ShellValidationSubtitle),
                 vietnamese: "Game sẽ làm gì với lịch — nhóm theo hậu quả với người chơi",
@@ -78,7 +78,7 @@ namespace DreamTech.LiveOps.Editor
                 english: "{0} progress loss");
             table.Add(nameof(LiveOpsHubStrings.ShellRailShouldReviewCountFormat),
                 vietnamese: "{0} nên xem",
-                english: "{0} should review");
+                english: "{0} worth reviewing");
             table.Add(nameof(LiveOpsHubStrings.ShellRailNotMeasuredCountFormat),
                 vietnamese: "{0} chưa kiểm",
                 english: "{0} not measured");

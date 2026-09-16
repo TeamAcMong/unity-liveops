@@ -117,7 +117,7 @@ namespace DreamTech.LiveOps.Editor
                 english: "Warning");
             table.Add(nameof(LiveOpsHubStrings.TimelineMinimapShouldReviewLabel),
                 vietnamese: "Nên xem",
-                english: "Should review");
+                english: "Worth reviewing");
             table.Add(nameof(LiveOpsHubStrings.TimelineMinimapUnplaceableReason),
                 vietnamese: "không đặt được",
                 english: "cannot be placed");
