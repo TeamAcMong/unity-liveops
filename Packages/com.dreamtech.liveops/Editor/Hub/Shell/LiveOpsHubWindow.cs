@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using UnityEditor;
 using UnityEngine;
+using DreamTech.LiveOps.Unity;
 using UnityEngine.UIElements;
 
 namespace DreamTech.LiveOps.Editor
@@ -10,8 +11,8 @@ namespace DreamTech.LiveOps.Editor
     /// <summary>
     /// Cửa sổ LiveOps Hub — khung cho 6 màn P1 (8.1, [FD §3]). Khung chỉ biết màn qua <see cref="IHubSection"/>; lỗi của một màn
     /// không kéo sập cửa sổ (card lỗi thay thân màn, rail vẫn dùng được), thiếu bố cục không bao giờ thành cửa sổ trắng (Label
-    /// thay cả cửa sổ). G-SESSION thêm services (<c>OpenWithServices</c>, <c>OpenWithAsset</c>, lưu/huỷ), G-HOSTUI thêm chip,
-    /// palette, toast, phím — trình tự <see cref="CreateGUI"/> đã chừa đúng chỗ cho các bước đó.
+    /// thay cả cửa sổ). G-SESSION thêm services (<see cref="OpenWithServices"/>, <see cref="OpenWithAsset"/>, lưu/huỷ, bus → cửa sổ),
+    /// G-HOSTUI thêm chip, palette, toast, phím — trình tự <see cref="CreateGUI"/> đã chừa đúng chỗ cho các bước đó.
     /// </summary>
     public sealed class LiveOpsHubWindow : EditorWindow, IHubHost, IHasCustomMenu
     {
@@ -43,6 +44,14 @@ namespace DreamTech.LiveOps.Editor
         [NonSerialized] private ILiveOpsHubLayoutLoader _injectedLayoutLoader;
         [NonSerialized] private string _pendingSectionId;
         [NonSerialized] private bool _isIsolatedFromSessionState;
+        [NonSerialized] private LiveOpsHubServices _injectedServices;
+        [NonSerialized] private LiveEventCalendarAsset _pendingAsset;
+
+        // Services sống cùng cửa sổ (không dựng lại mỗi CreateGUI): phiên giữ nháp, bản chụp và lần kiểm đang chạy. Cửa sổ chỉ Dispose
+        // services do chính nó dựng — services tiêm từ test/chụp ảnh thuộc về nơi tiêm.
+        [NonSerialized] private LiveOpsHubServices _services;
+        [NonSerialized] private bool _ownsServices;
+        [NonSerialized] private bool _isServicesSubscribed;
 
         [NonSerialized] private readonly List<IHubSection> _sections = new List<IHubSection>();
         [NonSerialized] private readonly Dictionary<string, LiveOpsHealthThrottle> _throttles = new Dictionary<string, LiveOpsHealthThrottle>(StringComparer.Ordinal);
@@ -66,6 +75,8 @@ namespace DreamTech.LiveOps.Editor
         [NonSerialized] private bool _isUpdateRegistered;
 
         IReadOnlyList<IHubSection> IHubHost.Sections => _sections;
+
+        LiveOpsHubServices IHubHost.Services => _services;
 
         // ------------------------------------------------------------------------------------------------------------ mở
 
@@ -94,9 +105,47 @@ namespace DreamTech.LiveOps.Editor
         }
 
         /// <summary>
+        /// Mở hub với asset này (inspector "Mở trong LiveOps Hub"): cửa sổ đã mở thì đổi asset của phiên (và nhớ GUID theo project),
+        /// chưa mở thì dựng phiên với asset này thay vì asset đã nhớ.
+        /// </summary>
+        public static LiveOpsHubWindow OpenWithAsset(LiveEventCalendarAsset asset)
+        {
+            if (asset == null) throw new ArgumentNullException(nameof(asset));
+            LiveOpsHubWindow window = GetWindow<LiveOpsHubWindow>();
+            // CreateGUI có thể chạy ngay trong GetWindow hoặc ở lần vẽ sau: có phiên thì đổi asset, chưa thì để phiên dựng với asset này.
+            if (window._services != null) window._services.Session.TrySelectAsset(asset);
+            else window._pendingAsset = asset;
+            window.Show();
+            return window;
+        }
+
+        /// <summary>
+        /// Test + chụp ảnh với services dựng sẵn (<c>LiveOpsHubTestServices</c>): <c>CreateInstance</c> + <c>Show</c>, không <c>GetWindow</c>,
+        /// không đọc/ghi SessionState màn đang mở. Cửa sổ không Dispose services tiêm vào — nơi tạo services dọn (asset bộ nhớ, SessionState).
+        /// </summary>
+        internal static LiveOpsHubWindow OpenWithServices(LiveOpsHubServices services, string sectionId)
+        {
+            return OpenWithServices(services, null, sectionId);
+        }
+
+        /// <summary>Như trên, với registry giả (test khung cần màn giả mang health định tuyến từ đúng phiên này).</summary>
+        /// <param name="sections">null = registry thật dựng từ <paramref name="services"/>.</param>
+        internal static LiveOpsHubWindow OpenWithServices(LiveOpsHubServices services, IReadOnlyList<IHubSection> sections, string sectionId)
+        {
+            if (services == null) throw new ArgumentNullException(nameof(services));
+            LiveOpsHubWindow window = CreateInstance<LiveOpsHubWindow>();
+            window._injectedServices = services;
+            window._injectedSections = sections;
+            window._pendingSectionId = sectionId;
+            window._isIsolatedFromSessionState = true;
+            window.Show();
+            return window;
+        }
+
+        /// <summary>
         /// Test + chụp ảnh trước khi có services (G-SHELL). <c>CreateInstance</c> + <c>Show</c>, không <c>GetWindow</c> — không đụng
         /// layout đã lưu của người dùng và mỗi test có cửa sổ riêng. Cửa sổ test không đọc/ghi SessionState để thứ tự test không
-        /// ảnh hưởng màn mở đầu.
+        /// ảnh hưởng màn mở đầu. Từ W3 cửa sổ tự dựng services KHÔNG asset (không tìm asset, không tự kiểm) để khung vẫn có phiên thật.
         /// </summary>
         /// <param name="layoutLoader">null = AssetDatabase (V-16: h28b truyền <see cref="MissingPathsLiveOpsHubLayoutLoader"/>).</param>
         internal static LiveOpsHubWindow OpenForTest(IReadOnlyList<IHubSection> sections, ILiveOpsHubCompilationState compilationState,
@@ -126,6 +175,7 @@ namespace DreamTech.LiveOps.Editor
         {
             CaptureCurrentViewState();
             TearDownChrome();
+            ReleaseServices();
         }
 
         private void OnFocus()
@@ -146,10 +196,12 @@ namespace DreamTech.LiveOps.Editor
             VisualElement windowRoot = rootVisualElement;
             windowRoot.Clear();
 
-            _layoutLoader = _injectedLayoutLoader ?? new AssetDatabaseLiveOpsHubLayoutLoader();
-            _compilationState = _injectedCompilationState ?? new EditorLiveOpsHubCompilationState();
-            _clipboard = new EditorLiveOpsHubClipboard();
-            _fileDialog = new EditorLiveOpsHubFileDialog();
+            // (5, dựng trước) Services trước bố cục: loader của bố cục là port của services (V-16), và khung lỗi cũng cần clipboard/hộp file.
+            EnsureServices();
+            _layoutLoader = _injectedLayoutLoader ?? _services.LayoutLoader;
+            _compilationState = _injectedCompilationState ?? _services.CompilationState;
+            _clipboard = _services.Clipboard;
+            _fileDialog = _services.FileDialog;
 
             // (1)
             VisualTreeAsset layout = _layoutLoader.LoadVisualTree(LiveOpsHubPaths.ShellUxml);
@@ -196,7 +248,7 @@ namespace DreamTech.LiveOps.Editor
             _sections.Clear();
             _throttles.Clear();
             _failedSectionIds.Clear();
-            IReadOnlyList<IHubSection> sections = _injectedSections ?? LiveOpsHubSections.Create();
+            IReadOnlyList<IHubSection> sections = _injectedSections ?? LiveOpsHubSections.Create(_services);
             foreach (IHubSection section in sections)
             {
                 if (section == null) continue;
@@ -214,6 +266,8 @@ namespace DreamTech.LiveOps.Editor
             ShowSection(ResolveInitialSectionId());
 
             // (8)
+            SubscribeServices();
+            UpdateUnsavedState();
             _detachBreakpoints = LiveOpsHubBreakpoints.Attach(_hubRoot);
             EditorApplication.update -= OnEditorUpdate;
             EditorApplication.update += OnEditorUpdate;
@@ -268,6 +322,45 @@ namespace DreamTech.LiveOps.Editor
 
         // ------------------------------------------------------------------------------------------------------------ menu ⋮
 
+        // ------------------------------------------------------------------------------------------------------------ lưu / huỷ
+
+        /// <summary>
+        /// Unity hỏi khi đóng tab có *: lưu asset qua phiên; chỉ hạ cờ khi file đã ghi (lưu hỏng thì tab vẫn *). Lưu hỏng KHÔNG được im
+        /// lặng — Unity vẫn đóng cửa sổ sau lời gọi này, nên lý do phải đi qua bus để người dùng còn đọc được.
+        /// </summary>
+        public override void SaveChanges()
+        {
+            if (_services == null) return;
+            if (!_services.Session.Save())
+            {
+                _services.Bus.ShowOutcome(LiveOpsOutcomeRecord.Blocked(SaveFailureHeadline(_services.Session),
+                    LiveOpsHubStrings.ServicesSaveChangesFailedDetail, _services.Clock.UtcNow));
+                UpdateUnsavedState();
+                return;
+            }
+            base.SaveChanges();
+            UpdateUnsavedState();
+        }
+
+        /// <summary>Câu "vì sao không lưu được" theo đúng nhánh mà <c>Session.Save</c> vừa trượt.</summary>
+        private static string SaveFailureHeadline(LiveOpsHubCalendarSession session)
+        {
+            if (session.DiskConflict != null)
+            {
+                return string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.ServicesSaveFailedDiskConflictFormat, session.AssetFileName);
+            }
+            if (session.AssetPath.Length == 0) return LiveOpsHubStrings.ServicesSaveFailedNoPath;
+            return string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.ServicesSaveFailedFormat, session.AssetFileName);
+        }
+
+        /// <summary>"Không lưu": asset về bản chụp lúc lưu gần nhất (một Undo group), rồi hạ cờ.</summary>
+        public override void DiscardChanges()
+        {
+            _services?.Session.DiscardChanges();
+            base.DiscardChanges();
+            UpdateUnsavedState();
+        }
+
         public void AddItemsToMenu(GenericMenu menu)
         {
             // INTERIM(G-SHELLPOLISH): menu ⋮ mới có "Tắt chuyển động"; "Kiểm lại tất cả (F5)" cần phiên kiểm (G-HOSTUI), "Mở tài liệu"
@@ -294,6 +387,7 @@ namespace DreamTech.LiveOps.Editor
         internal string ActiveSectionId => _currentSection == null ? string.Empty : _currentSection.Id;
         internal LiveOpsHubWindowState WindowState => windowState;
         internal LiveOpsHubNavigation LastNavigation { get; private set; }
+        internal LiveOpsHubServices Services => _services;
 
         /// <summary>true khi cửa sổ đang hiện khung 2 (thiếu UXML hoặc element sống còn).</summary>
         internal bool IsLayoutMissing { get; private set; }
@@ -315,8 +409,10 @@ namespace DreamTech.LiveOps.Editor
             {
                 healths.Add(HealthOf(section));
             }
-            // W2 chưa có phiên kiểm: không có bộ tổng hợp, không có kết quả cũ — G-SESSION truyền CheckState thật ở đây.
-            _rail.Build(LiveOpsHubRailModel.Build(_sections, healths, null, false));
+            // Bộ tổng hợp + cờ cũ của lần kiểm gần nhất (badge tầng KIỂM "2 bị bỏ" / "cũ · 2 bị bỏ", ô chặn nhắc F5).
+            LiveOpsHubCheckState check = _services != null ? _services.Session.Check : null;
+            LiveEventCalendarCheckSummary summary = check != null && check.LastReport != null ? check.LastReport.Summary : null;
+            _rail.Build(LiveOpsHubRailModel.Build(_sections, healths, summary, check != null && check.IsStale));
             _rail.SetActiveSection(ActiveSectionId);
         }
 
@@ -474,7 +570,156 @@ namespace DreamTech.LiveOps.Editor
         {
             if (EditorApplication.timeSinceStartup < _nextHealthRefreshSeconds) return;
             _nextHealthRefreshSeconds = EditorApplication.timeSinceStartup + HealthRefreshIntervalSeconds;
+            // Nhịp 1 giây cũng là nhịp "kết quả kiểm thành cũ khi qua mốc" (PD-23) — trước RefreshHealth để rail đọc lý do mới.
+            _services?.Session.Tick();
             RefreshHealth();
+        }
+
+        // ------------------------------------------------------------------------------------------------------------ services
+
+        private void EnsureServices()
+        {
+            if (_services != null) return;
+            if (_injectedServices != null)
+            {
+                _services = _injectedServices;
+                _ownsServices = false;
+                return;
+            }
+            LiveOpsHubServicesBuilder builder = new LiveOpsHubServicesBuilder();
+            if (_isIsolatedFromSessionState)
+            {
+                // OpenForTest (G-SHELL): phiên thật nhưng không asset — không đọc GUID nhớ của người dùng, không tự chạy kiểm.
+                builder.WithCalendarAsset(null).WithAutoCheckOnOpen(false).WithCompilationState(_injectedCompilationState).WithLayoutLoader(_injectedLayoutLoader);
+            }
+            else if (_pendingAsset != null)
+            {
+                // Mở từ inspector: asset tường minh NHƯNG vẫn có bộ tìm — phiên nhớ GUID theo project (PD-16) và đếm được số
+                // LiveEventCalendarAsset cho HelpBox "Có 2 LiveEventCalendarAsset" (7.1).
+                builder.WithCalendarAsset(_pendingAsset).WithAssetLocator(new LiveOpsHubAssetLocator());
+            }
+            _pendingAsset = null;
+            _services = builder.Build();
+            _ownsServices = true;
+        }
+
+        private void SubscribeServices()
+        {
+            if (_services == null || _isServicesSubscribed) return;
+            LiveOpsHubCalendarSession session = _services.Session;
+            session.DocumentChanged += OnSessionDocumentChanged;
+            session.CheckChanged += OnSessionCheckChanged;
+            session.DiskChangeDetected += OnSessionDiskChangeDetected;
+            LiveOpsHubSectionBus bus = _services.Bus;
+            bus.NavigationRequested += Navigate;
+            bus.HealthInvalidated += OnHealthInvalidated;
+            bus.OutcomeRequested += OnOutcomeRequested;
+            bus.OutcomeCleared += OnOutcomeCleared;
+            _isServicesSubscribed = true;
+        }
+
+        private void UnsubscribeServices()
+        {
+            if (_services == null || !_isServicesSubscribed) return;
+            LiveOpsHubCalendarSession session = _services.Session;
+            session.DocumentChanged -= OnSessionDocumentChanged;
+            session.CheckChanged -= OnSessionCheckChanged;
+            session.DiskChangeDetected -= OnSessionDiskChangeDetected;
+            LiveOpsHubSectionBus bus = _services.Bus;
+            bus.NavigationRequested -= Navigate;
+            bus.HealthInvalidated -= OnHealthInvalidated;
+            bus.OutcomeRequested -= OnOutcomeRequested;
+            bus.OutcomeCleared -= OnOutcomeCleared;
+            _isServicesSubscribed = false;
+        }
+
+        private void ReleaseServices()
+        {
+            if (_services == null) return;
+            // R-25: domain reload/đóng cửa sổ giữa lúc kéo hoặc kiểm — phiên huỷ kéo dở (không để Undo group mở) và dừng nhịp kiểm.
+            if (_ownsServices) _services.Session.Dispose();
+            _services = null;
+            _ownsServices = false;
+        }
+
+        private void OnSessionDocumentChanged()
+        {
+            UpdateUnsavedState();
+            InvalidateAndRefreshHealth();
+        }
+
+        private void OnSessionCheckChanged()
+        {
+            InvalidateAndRefreshHealth();
+        }
+
+        private void OnSessionDiskChangeDetected()
+        {
+            // INTERIM(G-SHELLPOLISH): chưa có băng "asset đổi trên đĩa" (mục 12 I-8) — chỉ log; phiên vẫn giữ bản chụp nháp nên không mất việc.
+            Debug.LogWarning(string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.InterimDiskConflictLog, _services.Session.AssetFileName));
+            InvalidateAndRefreshHealth();
+        }
+
+        private void OnHealthInvalidated()
+        {
+            InvalidateAndRefreshHealth();
+        }
+
+        private void OnOutcomeRequested(LiveOpsOutcomeRecord outcome)
+        {
+            // Outcome sống trong trạng thái cửa sổ (qua domain reload); view outcome của G-HOSTUI đọc từ đây.
+            windowState.LastOutcome = outcome;
+        }
+
+        private void OnOutcomeCleared()
+        {
+            windowState.LastOutcome = null;
+        }
+
+        private void InvalidateAndRefreshHealth()
+        {
+            LiveOpsHealthThrottle.InvalidateAll();
+            RefreshHealth();
+        }
+
+        /// <summary>Tab có * khi và chỉ khi phiên còn thay đổi chưa lưu (8.3); câu hỏi nêu tên asset, số thay đổi và id ngắn.</summary>
+        internal void UpdateUnsavedState()
+        {
+            LiveOpsHubCalendarSession session = _services != null ? _services.Session : null;
+            bool hasUnsaved = session != null && session.HasUnsavedChanges;
+            if (hasUnsaved) saveChangesMessage = BuildSaveChangesMessage(session);
+            if (hasUnsavedChanges != hasUnsaved) hasUnsavedChanges = hasUnsaved;
+        }
+
+        private static string BuildSaveChangesMessage(LiveOpsHubCalendarSession session)
+        {
+            const int MaximumListedIds = 3;
+            LiveEventCalendarDiffResult diff = session.UnsavedDiff;
+
+            // PD-22: "chưa lưu" rộng hơn diff hậu quả (dấu đã đăng, cảnh báo đã bỏ qua, thứ tự mục). Diff rỗng thì KHÔNG có con số thật
+            // để nêu — câu hỏi nói đúng cái nó biết thay vì bịa "1 thay đổi".
+            if (diff.ChangeCount == 0)
+            {
+                return string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.ServicesSaveChangesMessageNoCountFormat, session.AssetFileName);
+            }
+
+            // "… và N mục khác" đếm theo MỤC (id duy nhất), không theo số thay đổi: hai thay đổi trên cùng một đợt không phải hai mục.
+            List<string> distinctItemIds = new List<string>();
+            foreach (LiveEventCalendarChange change in diff.Changes)
+            {
+                if (!string.IsNullOrEmpty(change.ItemId) && !distinctItemIds.Contains(change.ItemId)) distinctItemIds.Add(change.ItemId);
+            }
+            int listedCount = Math.Min(distinctItemIds.Count, MaximumListedIds);
+            string list = listedCount == 0
+                ? LiveOpsHubStrings.ServicesSaveChangesDocumentFields
+                : string.Join(LiveOpsHubStrings.ServicesHealthItemSeparator, distinctItemIds.GetRange(0, listedCount).ToArray());
+            if (distinctItemIds.Count > listedCount)
+            {
+                list = string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.ServicesSaveChangesMoreFormat, list,
+                    distinctItemIds.Count - listedCount);
+            }
+            return string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.ServicesSaveChangesMessageFormat, session.AssetFileName,
+                diff.ChangeCount, list);
         }
 
         private void OnSkinChanged()
@@ -487,6 +732,7 @@ namespace DreamTech.LiveOps.Editor
 
         private void TearDownChrome()
         {
+            UnsubscribeServices();
             if (_isUpdateRegistered)
             {
                 EditorApplication.update -= OnEditorUpdate;

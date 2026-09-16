@@ -4,9 +4,14 @@ namespace DreamTech.LiveOps.Editor
     /// <summary>Màn <c>export</c> ở tầng Export — registry, rail và điều hướng đã dùng id/tiêu đề/tầng thật từ bây giờ.</summary>
     internal sealed class ExportSection : InterimPlaceholderSection
     {
-        public ExportSection()
+        public ExportSection(LiveOpsHubServices services)
             : base(LiveOpsHubSections.Ids.Export, LiveOpsHubStrings.ShellExportTitle, LiveOpsHubStrings.ShellExportSubtitle, PipelineStage.Export)
         {
+            // Màn giữ chỗ chưa đọc dữ liệu, nhưng registry đã truyền services như màn thật W4 sẽ nhận — đổi thân lớp không đổi registry.
+            Services = services ?? throw new System.ArgumentNullException(nameof(services));
         }
+
+        /// <summary>Services của cửa sổ (G-SESSION) — màn W4 đọc phiên lịch từ đây.</summary>
+        internal LiveOpsHubServices Services { get; }
     }
 }
