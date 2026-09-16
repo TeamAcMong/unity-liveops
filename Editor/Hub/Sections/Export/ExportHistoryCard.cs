@@ -105,11 +105,29 @@ namespace DreamTech.LiveOps.Editor
 
         private void PopulateMenu(ContextualMenuPopulateEvent menuEvent, ExportHistoryRow row)
         {
-            menuEvent.menu.AppendAction(LiveOpsHubStrings.ExportHistoryMenuCompare, action => Raise(CompareRequested, row.Stamp));
-            menuEvent.menu.AppendAction(LiveOpsHubStrings.ExportHistoryMenuRestore, action => Raise(RestoreRequested, row.Stamp));
+            menuEvent.menu.AppendAction(LiveOpsHubStrings.ExportHistoryMenuCompare, action => RequestCompare(row.Stamp));
+            menuEvent.menu.AppendAction(LiveOpsHubStrings.ExportHistoryMenuRestore, action => RequestRestore(row.Stamp));
             // Gỡ dấu chỉ ở lần mới nhất: mục vẫn hiện nhưng mờ, để người dùng thấy nó tồn tại và hiểu vì sao không bấm được.
-            menuEvent.menu.AppendAction(LiveOpsHubStrings.ExportHistoryMenuRemoveStamp, action => Raise(RemoveStampRequested, row.Stamp),
+            menuEvent.menu.AppendAction(LiveOpsHubStrings.ExportHistoryMenuRemoveStamp, action => RequestRemoveStamp(row.Stamp),
                 action => row.CanRemoveStamp ? DropdownMenuAction.Status.Normal : DropdownMenuAction.Status.Disabled);
+        }
+
+        // Ba lối vào có tên của menu chuột phải. Menu bật lên trong batchmode không gửi được bằng SendEvent, nên test đi
+        // đúng ba hàm này — cùng chỗ mà mục menu gọi, không phải một cửa sau riêng cho test.
+
+        internal void RequestCompare(PublishedCalendarStamp stamp)
+        {
+            Raise(CompareRequested, stamp);
+        }
+
+        internal void RequestRestore(PublishedCalendarStamp stamp)
+        {
+            Raise(RestoreRequested, stamp);
+        }
+
+        internal void RequestRemoveStamp(PublishedCalendarStamp stamp)
+        {
+            Raise(RemoveStampRequested, stamp);
         }
 
         private static void Raise(Action<PublishedCalendarStamp> handler, PublishedCalendarStamp stamp)

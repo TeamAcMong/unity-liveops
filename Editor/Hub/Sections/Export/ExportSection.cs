@@ -508,6 +508,12 @@ namespace DreamTech.LiveOps.Editor
 
         private void OnCopyClicked()
         {
+            CopyJson();
+        }
+
+        /// <summary>Lệnh "Copy JSON" có tên: nút header và kịch bản chụp đi cùng một đường, không ai gọi lại phần thân bằng tay.</summary>
+        internal void CopyJson()
+        {
             LiveEventCalendarJsonText json = CopyCurrentJsonToClipboard();
             DateTime nowUtc = Services.Session.Clock.UtcNow;
             Services.Bus.ShowOutcome(LiveOpsOutcomeRecord.Ok(
