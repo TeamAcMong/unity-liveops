@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.Reflection;
 using DreamTech.LiveOps.Tests;
@@ -14,9 +15,10 @@ namespace DreamTech.LiveOps.Editor.Tests
     /// Inspector gọn của asset lịch (10.3 G-INSPECTOR): dựng được, tóm tắt đúng, cảnh báo khi asset hỏng, và nút đưa sang hub
     /// bằng ĐÚNG asset đang chọn.
     /// <para>
-    /// Nhóm Logic vì mọi khẳng định chỉ đọc cây element vừa dựng — không cần layout, không cần cửa sổ. Nút được thử bằng
-    /// cách gọi thẳng <c>RequestOpenInHub</c>, đúng hàm mà nút dựng với: Unity không có đường công khai nào bấm hộ một nút
-    /// chưa gắn vào cửa sổ, mà mở cửa sổ hub thật thì đụng đúng chỗ nhớ asset của người đang chạy test.
+    /// Nhóm Logic vì mọi khẳng định chỉ đọc cây element vừa dựng — không cần layout, không cần cửa sổ. Unity không có đường
+    /// công khai nào bấm hộ một nút chưa gắn vào cửa sổ, mà mở cửa sổ hub thật thì đụng đúng chỗ nhớ asset của người đang chạy
+    /// test; nên nút được kiểm hai lớp: <c>AssertButtonRuns</c> đọc delegate đang treo trên nút để chứng minh nó NỐI với
+    /// <c>RequestOpenInHub</c> (đổi nút sang <c>new Button()</c> là đỏ), rồi gọi thẳng hàm đó để kiểm nó mở đúng asset.
     /// </para>
     /// </summary>
     [TestFixture]
@@ -46,9 +48,13 @@ namespace DreamTech.LiveOps.Editor.Tests
             Button openInHubButton = root.Q<Button>(LiveEventCalendarAssetInspector.OpenInHubButtonElementName);
             Assert.IsNotNull(openInHubButton, "luôn có đường sang hub, kể cả khi asset hỏng");
             Assert.AreEqual(LiveOpsHubStrings.InspectorOpenInHubButton, openInHubButton.text);
-            Assert.AreEqual(LiveOpsHubStrings.InspectorEditHint,
-                root.Q<Label>(LiveEventCalendarAssetInspector.EditHintElementName).text,
+            Label editHint = root.Q<Label>(LiveEventCalendarAssetInspector.EditHintElementName);
+            Assert.AreEqual(LiveOpsHubStrings.InspectorEditHint, editHint.text,
                 "inspector nói rõ nó chỉ tóm tắt, sửa ở hub");
+            Assert.AreEqual(1, root.styleSheets.count,
+                "inspector tự nạp stylesheet của chính nó — panel cửa sổ Inspector không thấy sheet nào của hub");
+            Assert.IsTrue(editHint.ClassListContains(LiveOpsHubClassNames.InspectorLine),
+                "mọi dòng chữ mang class xuống dòng: câu dài nhất của màn này hơn 100 ký tự, mà white-space khởi đầu là nowrap");
             LogAssert.NoUnexpectedReceived();
         }
 
@@ -174,8 +180,10 @@ namespace DreamTech.LiveOps.Editor.Tests
                 return null;
             }))
             {
-                Assert.IsNotNull(root.Q<Button>(LiveEventCalendarAssetInspector.OpenInHubButtonElementName),
-                    "nút phải có mặt — nó dựng với chính RequestOpenInHub làm hành động");
+                Button openInHubButton = root.Q<Button>(LiveEventCalendarAssetInspector.OpenInHubButtonElementName);
+                Assert.IsNotNull(openInHubButton, "luôn có nút sang hub");
+                AssertButtonRuns(openInHubButton, _inspector,
+                    nameof(LiveEventCalendarAssetInspector.RequestOpenInHub));
                 ((LiveEventCalendarAssetInspector)_inspector).RequestOpenInHub();
             }
 
@@ -184,6 +192,101 @@ namespace DreamTech.LiveOps.Editor.Tests
             Assert.AreEqual(LiveEventCalendarAssetInspector.DefaultOpenInHub, FieldOpenInHub(),
                 "ra khỏi scope thì trả lại đường thật");
             LogAssert.NoUnexpectedReceived();
+        }
+
+        /// <summary>
+        /// Hub sửa / đăng / Hoàn tác trong khi asset vẫn đang chọn ở Project view: inspector phải dựng lại, không thì mọi con số
+        /// đứng yên ở lúc bấm chọn và cảnh báo cũ còn doạ sau khi đã sửa xong (mục 7.0).
+        /// </summary>
+        [Test]
+        public void AssetChangedWhileShown_RebuildsEveryNumberAndWarning()
+        {
+            MethodInfo trackSerializedObjectValue = typeof(UnityEditor.UIElements.BindingExtensions).GetMethod(
+                nameof(UnityEditor.UIElements.BindingExtensions.TrackSerializedObjectValue),
+                BindingFlags.Public | BindingFlags.Static, null,
+                new[] { typeof(VisualElement), typeof(UnityEditor.SerializedObject), typeof(Action<UnityEditor.SerializedObject>) },
+                null);
+            Assert.AreEqual(trackSerializedObjectValue, LiveEventCalendarAssetInspector.DefaultTrackSerializedObject.Method,
+                "đường nghe thật phải là TrackSerializedObjectValue của Unity — có ở cả 2022.3 lẫn 6000.6");
+            LiveEventCalendarAsset asset = LiveOpsHubTestServices.CreateMemoryAsset(LiveEventCalendarDocument.Empty);
+            VisualElement trackedElement = null;
+            UnityEditor.SerializedObject trackedSerializedObject = null;
+            Action<UnityEditor.SerializedObject> rebuild = null;
+            VisualElement root;
+
+            using (LiveEventCalendarAssetInspector.OverrideTrackSerializedObject((element, serialized, callback) =>
+            {
+                trackedElement = element;
+                trackedSerializedObject = serialized;
+                rebuild = callback;
+            }))
+            {
+                root = BuildInspector(asset);
+            }
+
+            Assert.AreSame(root, trackedElement, "nghe trên chính cây vừa dựng");
+            Assert.IsNotNull(trackedSerializedObject);
+            Assert.AreSame(asset, trackedSerializedObject.targetObject, "nghe đúng asset đang hiện");
+            Assert.IsNotNull(rebuild, "inspector phải đăng ký một hàm dựng lại, không chỉ dựng một lần rồi đứng yên");
+            Assert.AreEqual(string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.InspectorSummaryFormat, "0", "0", "0"),
+                root.Q<Label>(LiveEventCalendarAssetInspector.SummaryElementName).text);
+            AssertNoWarnings(root);
+
+            AddEventTypeEntryWithEmptyId(asset);
+            rebuild(trackedSerializedObject);
+
+            Assert.AreEqual(string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.InspectorSummaryFormat, "1", "0", "0"),
+                root.Q<Label>(LiveEventCalendarAssetInspector.SummaryElementName).text,
+                "số của tóm tắt theo asset lúc này, không phải lúc bấm chọn");
+            Assert.AreEqual(string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.InspectorBrokenEventTypesFormat, "1"),
+                root.Q<HelpBox>(LiveEventCalendarAssetInspector.BrokenEventTypesHelpElementName).text,
+                "cảnh báo asset hỏng hiện ra ngay khi asset hỏng đi");
+            Button openInHubButton = root.Q<Button>(LiveEventCalendarAssetInspector.OpenInHubButtonElementName);
+            Assert.IsNotNull(openInHubButton, "dựng lại vẫn còn đường sang hub");
+            AssertButtonRuns(openInHubButton, _inspector, nameof(LiveEventCalendarAssetInspector.RequestOpenInHub));
+            LogAssert.NoUnexpectedReceived();
+        }
+
+        /// <summary>
+        /// Khẳng định nút CHẠY đúng hàm của inspector khi bấm — không chỉ "nút có mặt". Vì sao bằng reflection:
+        /// <c>Clickable.SimulateSingleClick</c> là internal của Unity và <c>SendEvent</c> cần một panel thật, nên với nút chưa
+        /// gắn vào cửa sổ, đọc delegate đang treo trên nút là đường duy nhất thấy được nó nối vào đâu.
+        /// </summary>
+        private static void AssertButtonRuns(Button button, object expectedTarget, string expectedMethodName)
+        {
+            MethodInfo expectedMethod = expectedTarget.GetType().GetMethod(expectedMethodName,
+                BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+            Assert.IsNotNull(expectedMethod, expectedMethodName + ": không có hàm này trên " + expectedTarget.GetType().Name);
+            List<Delegate> handlers = new List<Delegate>();
+            CollectDelegateFields(button, handlers);
+            CollectDelegateFields(button.clickable, handlers);
+
+            for (int index = 0; index < handlers.Count; index++)
+            {
+                if (!ReferenceEquals(handlers[index].Target, expectedTarget)) continue;
+                if (handlers[index].Method != expectedMethod) continue;
+                return;
+            }
+
+            Assert.Fail("nút không nối với " + expectedMethodName + " — bấm vào sẽ không làm gì (" + handlers.Count
+                + " hành động đang treo)");
+        }
+
+        private static void CollectDelegateFields(object owner, List<Delegate> handlers)
+        {
+            if (owner == null) return;
+            for (Type type = owner.GetType(); type != null; type = type.BaseType)
+            {
+                FieldInfo[] fields = type.GetFields(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic
+                    | BindingFlags.DeclaredOnly);
+                for (int index = 0; index < fields.Length; index++)
+                {
+                    if (!typeof(Delegate).IsAssignableFrom(fields[index].FieldType)) continue;
+                    Delegate handler = fields[index].GetValue(owner) as Delegate;
+                    if (handler == null) continue;
+                    handlers.AddRange(handler.GetInvocationList());
+                }
+            }
         }
 
         private VisualElement BuildInspector(LiveEventCalendarAsset asset)

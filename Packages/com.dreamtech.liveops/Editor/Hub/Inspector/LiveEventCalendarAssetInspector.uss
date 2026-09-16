@@ -1,0 +1,14 @@
+/*
+ * LiveEventCalendarAssetInspector.uss — inspector gọn của asset lịch (G-INSPECTOR, kế hoạch 10.3).
+ * Nạp vào gốc cây do CreateInspectorGUI dựng; đây là panel của cửa sổ Inspector nên KHÔNG có sheet nào của hub tới được —
+ * file này phải tự đủ và không dựa vào theme của hub.
+ *
+ * Vì sao cần: giá trị khởi đầu của white-space là nowrap, mà cột Inspector hẹp còn câu dài nhất của màn này hơn 100 ký tự —
+ * không khai thì chữ bị cắt cụt. [FD §2.14] không cho C# gán style inline cho chữ, nên luật xuống dòng nằm ở đây.
+ */
+
+.liveops-hub-inspector-line {
+    white-space: normal;
+    margin-top: 2px;
+    margin-bottom: 2px;
+}
