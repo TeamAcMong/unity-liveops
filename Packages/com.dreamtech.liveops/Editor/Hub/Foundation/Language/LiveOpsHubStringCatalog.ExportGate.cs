@@ -19,26 +19,26 @@ namespace DreamTech.LiveOps.Editor
 
             table.Add(nameof(LiveOpsHubStrings.ExportGateDroppedOk),
                 vietnamese: "Kiểm lịch: không có đợt bị bỏ",
-                english: "Validation: no events dropped");
+                english: "Calendar check: no events dropped");
             table.Add(nameof(LiveOpsHubStrings.ExportGateDroppedBlockedFormat),
                 vietnamese: "Kiểm lịch: {0} đợt bị bỏ",
-                english: "Validation: {0} events dropped");
+                english: "Calendar check: {0} events dropped");
             table.Add(nameof(LiveOpsHubStrings.ExportGateDroppedNeverChecked),
                 vietnamese: "Kiểm lịch chưa chạy — chưa biết đợt nào bị bỏ",
-                english: "Validation has not run — which events get dropped is unknown");
+                english: "The calendar check has not run — which events get dropped is unknown");
             table.Add(nameof(LiveOpsHubStrings.ExportGateDroppedRunning),
                 vietnamese: "Đang kiểm lại — chờ kết quả đợt bị bỏ",
-                english: "Validating again — waiting for the dropped-event result");
+                english: "Checking again — waiting for the dropped-event result");
             table.Add(nameof(LiveOpsHubStrings.ExportGateDroppedStale),
                 vietnamese: "Kiểm lịch cũ — kiểm lại để biết còn đợt bị bỏ không",
-                english: "Validation is stale — validate again to see whether events are still dropped");
+                english: "The calendar check is stale — check again to see whether events are still dropped");
             table.Add(nameof(LiveOpsHubStrings.ExportGateDroppedStaleMetaFormat),
                 vietnamese: "lần kiểm trước: {0} đợt bị bỏ",
-                english: "previous validation: {0} events dropped");
+                english: "previous check: {0} events dropped");
 
             table.Add(nameof(LiveOpsHubStrings.ExportGateReadBackOkFormat),
                 vietnamese: "Parser của game xác nhận: giữ {0}/{1} mục, khớp Kiểm lịch",
-                english: "The game parser confirms: {0}/{1} entries kept, matches Validation");
+                english: "The game parser confirms: {0}/{1} entries kept, matches the calendar check");
 
             table.Add(nameof(LiveOpsHubStrings.ExportGateReadBackOkCompilerFormat),
                 vietnamese: "Parser của game xác nhận: giữ {0}/{1} mục, khớp bộ biên dịch của hub",
@@ -57,19 +57,19 @@ namespace DreamTech.LiveOps.Editor
                 english: "The game parser confirms: {0}/{1} entries kept");
             table.Add(nameof(LiveOpsHubStrings.ExportGateReadBackMismatchKeptFormat),
                 vietnamese: "Parser giữ {0}/{1} nhưng Kiểm lịch báo {2} bị bỏ — lỗi của hub",
-                english: "The parser keeps {0}/{1} but Validation reports {2} dropped — hub bug");
+                english: "The parser keeps {0}/{1} but the calendar check reports {2} dropped — hub bug");
             table.Add(nameof(LiveOpsHubStrings.ExportGateReadBackMismatchSameCountFormat),
                 vietnamese: "Parser giữ {0}/{1}, Kiểm lịch cũng báo {2} bị bỏ nhưng khác mục — lỗi của hub",
-                english: "The parser keeps {0}/{1}, Validation also reports {2} dropped but not the same entries — hub bug");
+                english: "The parser keeps {0}/{1}, the calendar check also reports {2} dropped but not the same entries — hub bug");
             table.Add(nameof(LiveOpsHubStrings.ExportGateReadBackMismatchEntryCountFormat),
                 vietnamese: "Parser đọc {0} mục nhưng Kiểm lịch có {1} mục — lỗi của hub",
-                english: "The parser reads {0} entries but Validation has {1} entries — hub bug");
+                english: "The parser reads {0} entries but the calendar check has {1} entries — hub bug");
             table.Add(nameof(LiveOpsHubStrings.ExportGateReadBackMismatchNarrow),
                 vietnamese: "Parser lệch Kiểm lịch — lỗi của hub",
-                english: "The parser disagrees with Validation — hub bug");
+                english: "The parser disagrees with the calendar check — hub bug");
             table.Add(nameof(LiveOpsHubStrings.ExportGateReadBackMismatchMetaFormat),
                 vietnamese: "mục thứ {0}: parser {1}, Kiểm lịch {2}",
-                english: "entry {0}: parser {1}, Validation {2}");
+                english: "entry {0}: parser {1}, calendar check {2}");
             table.Add(nameof(LiveOpsHubStrings.ExportGateReadBackFailed),
                 vietnamese: "Parser của game không đọc lại được JSON này — lỗi của hub",
                 english: "The game parser cannot read this JSON back — hub bug");
@@ -118,39 +118,39 @@ namespace DreamTech.LiveOps.Editor
 
             table.Add(nameof(LiveOpsHubStrings.ExportGateMismatchReportHeaderFormat),
                 vietnamese: "LiveOps Hub: parser của game đọc lại JSON (sha {0}) lệch Kiểm lịch",
-                english: "LiveOps Hub: the game parser read the JSON back (sha {0}) and disagrees with Validation");
+                english: "LiveOps Hub: the game parser read the JSON back (sha {0}) and disagrees with the calendar check");
             table.Add(nameof(LiveOpsHubStrings.ExportGateMismatchReportCountsFormat),
                 vietnamese: "Parser giữ {0}/{1} mục · Kiểm lịch giữ {2}/{3} mục",
-                english: "The parser keeps {0}/{1} entries · Validation keeps {2}/{3} entries");
+                english: "The parser keeps {0}/{1} entries · the calendar check keeps {2}/{3} entries");
 
             table.Add(nameof(LiveOpsHubStrings.ExportGateFreshnessOkFormat),
                 vietnamese: "Kiểm lịch chạy sau lần sửa cuối ({0} UTC)",
-                english: "Validation ran after the last edit ({0} UTC)");
+                english: "The calendar check ran after the last edit ({0} UTC)");
             table.Add(nameof(LiveOpsHubStrings.ExportGateFreshnessStaleChangedFormat),
                 vietnamese: "Kiểm lịch cũ: lịch đổi lúc {0}, sau lần kiểm {1}",
-                english: "Validation is stale: the calendar changed at {0}, after the validation at {1}");
+                english: "The calendar check is stale: the calendar changed at {0}, after the check at {1}");
             table.Add(nameof(LiveOpsHubStrings.ExportGateFreshnessStaleMilestoneFormat),
                 vietnamese: "Kiểm lịch cũ: đã qua mốc {0} sau lần kiểm {1}",
-                english: "Validation is stale: milestone {0} passed after the validation at {1}");
+                english: "The calendar check is stale: milestone {0} passed after the check at {1}");
 
             table.Add(nameof(LiveOpsHubStrings.ExportGateFreshnessStaleFormat),
                 vietnamese: "Kiểm lịch cũ: kết quả lúc {0} có thể không còn đúng",
-                english: "Validation is stale: the result from {0} may no longer hold");
+                english: "The calendar check is stale: the result from {0} may no longer hold");
             table.Add(nameof(LiveOpsHubStrings.ExportGateFreshnessStaleNarrow),
                 vietnamese: "Kiểm lịch cũ",
-                english: "Validation is stale");
+                english: "The calendar check is stale");
             table.Add(nameof(LiveOpsHubStrings.ExportGateFreshnessNeverChecked),
                 vietnamese: "Kiểm lịch chưa chạy lần nào",
-                english: "Validation has never run");
+                english: "The calendar check has never run");
             table.Add(nameof(LiveOpsHubStrings.ExportGateFreshnessRunningFormat),
                 vietnamese: "Đang kiểm lại {0}/{1} luật…",
-                english: "Validating {0}/{1} rules…");
+                english: "Checking {0}/{1} rules…");
             table.Add(nameof(LiveOpsHubStrings.ExportGateFreshnessRunningMeta),
                 vietnamese: "tự chạy khi mở màn",
                 english: "runs automatically when the screen opens");
             table.Add(nameof(LiveOpsHubStrings.ExportGateStartCheckAction),
                 vietnamese: "Kiểm lại (F5)",
-                english: "Validate again (F5)");
+                english: "Check again (F5)");
 
             table.Add(nameof(LiveOpsHubStrings.ExportGateRemoteNotPasted),
                 vietnamese: "Bản remote: chưa dán — không biết Firebase đang giữ gì",
@@ -201,7 +201,7 @@ namespace DreamTech.LiveOps.Editor
 
             table.Add(nameof(LiveOpsHubStrings.ExportGateFieldIdPrefix),
                 vietnamese: "tiền tố",
-                english: "prefix");
+                english: "id prefix");
             table.Add(nameof(LiveOpsHubStrings.ExportGateFieldAnchor),
                 vietnamese: "neo",
                 english: "anchor");
@@ -234,16 +234,16 @@ namespace DreamTech.LiveOps.Editor
                 english: "the parser cannot read the JSON back");
             table.Add(nameof(LiveOpsHubStrings.ExportGateReasonReadBackMismatch),
                 vietnamese: "parser lệch Kiểm lịch",
-                english: "the parser disagrees with Validation");
+                english: "the parser disagrees with the calendar check");
             table.Add(nameof(LiveOpsHubStrings.ExportGateReasonNeverChecked),
                 vietnamese: "chưa kiểm lịch",
-                english: "validation has not run");
+                english: "the calendar check has not run");
             table.Add(nameof(LiveOpsHubStrings.ExportGateReasonStale),
                 vietnamese: "Kiểm lịch cũ",
-                english: "Validation is stale");
+                english: "The calendar check is stale");
             table.Add(nameof(LiveOpsHubStrings.ExportGateReasonRunning),
                 vietnamese: "đang kiểm lại lịch",
-                english: "validating the calendar again");
+                english: "checking the calendar again");
             table.Add(nameof(LiveOpsHubStrings.ExportGateReasonDroppedFormat),
                 vietnamese: "{0} đợt bị bỏ",
                 english: "{0} events dropped");
@@ -277,16 +277,16 @@ namespace DreamTech.LiveOps.Editor
                 english: "the game parser cannot read back the JSON the hub produced");
             table.Add(nameof(LiveOpsHubStrings.ExportGateCopyTooltipReadBackMismatch),
                 vietnamese: "parser của game lệch Kiểm lịch",
-                english: "the game parser disagrees with Validation");
+                english: "the game parser disagrees with the calendar check");
             table.Add(nameof(LiveOpsHubStrings.ExportGateCopyTooltipNeverChecked),
                 vietnamese: "Kiểm lịch chưa chạy — bấm F5",
-                english: "Validation has not run — press F5");
+                english: "The calendar check has not run — press F5");
             table.Add(nameof(LiveOpsHubStrings.ExportGateCopyTooltipStale),
                 vietnamese: "Kiểm lịch cũ — kiểm lại (F5) trước",
-                english: "Validation is stale — validate again (F5) first");
+                english: "The calendar check is stale — check again (F5) first");
             table.Add(nameof(LiveOpsHubStrings.ExportGateCopyTooltipRunning),
                 vietnamese: "đang kiểm lại lịch",
-                english: "validating the calendar again");
+                english: "checking the calendar again");
             table.Add(nameof(LiveOpsHubStrings.ExportGateCopyTooltipDiffMissing),
                 vietnamese: "chưa so được với bản đã đăng",
                 english: "cannot compare with the published baseline");

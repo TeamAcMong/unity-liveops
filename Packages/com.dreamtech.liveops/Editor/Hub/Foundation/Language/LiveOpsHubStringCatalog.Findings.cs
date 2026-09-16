@@ -413,11 +413,11 @@ namespace DreamTech.LiveOps.Editor
 
             table.Add(nameof(LiveOpsHubStrings.FindingRunningManualFixFixedFormat),
                 vietnamese: "Không lệnh hoàn về nào giữ được {0}: mục khác trong nháp đang chắn (vd trùng id hoặc chồng giờ). Mở Lịch, khôi phục đợt id {0} cùng loại với khung {1}, rồi đổi id hoặc dời mục đang chắn và kiểm lại.",
-                english: "No revert command can keep {0}: another entry in the draft is blocking it (for example a duplicate id or an overlap). Open Calendar, restore the event with id {0}, the same type and the window {1}, then rename or move the blocking entry and validate again.");
+                english: "No revert command can keep {0}: another entry in the draft is blocking it (for example a duplicate id or an overlap). Open Calendar, restore the event with id {0}, the same type and the window {1}, then rename or move the blocking entry and check again.");
 
             table.Add(nameof(LiveOpsHubStrings.FindingRunningManualFixRecurringFormat),
                 vietnamese: "Không lệnh hoàn về nào giữ được {0}: nháp không sinh lại được lần lặp này (vd mục khác đang chắn). Mở luật {1}, trả tiền tố, neo và chu kỳ về như bản đã đăng để lần lặp đang chạy vẫn là {0} ({2}), gỡ mục đang chắn trong Lịch rồi kiểm lại.",
-                english: "No revert command can keep {0}: the draft cannot generate this occurrence again (for example another entry is blocking it). Open rule {1}, set the id prefix, anchor and period back to the published baseline so the running occurrence is still {0} ({2}), remove the blocking entry in Calendar, then validate again.");
+                english: "No revert command can keep {0}: the draft cannot generate this occurrence again (for example another entry is blocking it). Open rule {1}, set the id prefix, anchor and period back to the published baseline so the running occurrence is still {0} ({2}), remove the blocking entry in Calendar, then check again.");
 
             table.Add(nameof(LiveOpsHubStrings.FindingConfigKeyFixedHeadlineFormat),
                 vietnamese: "{0} không tự khai configKey — xuất sẽ ghi {1}",

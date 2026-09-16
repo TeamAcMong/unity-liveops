@@ -41,7 +41,7 @@ namespace DreamTech.LiveOps.Editor
 
             table.Add(nameof(LiveOpsHubStrings.TimelineRulerMonthFormat),
                 vietnamese: "THÁNG {0} {1}",
-                english: "MONTH {0} {1}");
+                english: "{0}/{1}");
             table.Add(nameof(LiveOpsHubStrings.TimelineRulerMondayPrefix),
                 vietnamese: "T2",
                 english: "Mon");

@@ -88,13 +88,13 @@ namespace DreamTech.LiveOps.Editor
                 english: "no findings left from that check");
             table.Add(nameof(LiveOpsHubStrings.ServicesHealthDroppedGroupFormat),
                 vietnamese: "{0} đợt bị bỏ: {1}",
-                english: "{0} dropped: {1}");
+                english: "{0} events dropped: {1}");
             table.Add(nameof(LiveOpsHubStrings.ServicesHealthProgressLostGroupFormat),
                 vietnamese: "{0} mất tiến độ: {1}",
                 english: "{0} progress loss: {1}");
             table.Add(nameof(LiveOpsHubStrings.ServicesHealthShouldReviewGroupFormat),
                 vietnamese: "{0} nên xem: {1}",
-                english: "{0} should review: {1}");
+                english: "{0} worth reviewing: {1}");
             table.Add(nameof(LiveOpsHubStrings.ServicesHealthNotMeasuredGroupFormat),
                 vietnamese: "{0} luật chưa kiểm",
                 english: "{0} rules not measured");
