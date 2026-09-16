@@ -34,6 +34,7 @@ namespace DreamTech.LiveOps.Editor
 
         // Băng "tệp đã đổi trên đĩa" (4.3, SPIKE-B SP-8b) — dựng trong hub-shell-notes như note đang biên dịch.
         internal const string DiskBanner = "liveops-hub-disk-banner";
+        internal const string DiskBannerHead = "liveops-hub-disk-banner-head";
         internal const string DiskBannerText = "liveops-hub-disk-banner-text";
         internal const string DiskBannerActions = "liveops-hub-disk-banner-actions";
 
@@ -50,6 +51,17 @@ namespace DreamTech.LiveOps.Editor
         internal const string GutterLineBottom = "liveops-hub-gutter-line--bottom";
         internal const string GutterLineHidden = "liveops-hub-gutter-line--hidden";
         internal const string RailBlockerHost = "liveops-hub-rail-blocker-host";
+
+        // Rail 36 px của cửa sổ hẹp ([FD §3.7], mục 12 I-8) — một ô icon cho MỖI TẦNG, dấu 7px góc phải trên, ô icon lỗi ở đáy.
+        internal const string RailPin = "liveops-hub-rail-pin";
+        internal const string RailNarrow = "liveops-hub-rail-narrow";
+        internal const string RailNarrowCell = "liveops-hub-rail-narrow-cell";
+        internal const string RailNarrowCellActive = "liveops-hub-rail-narrow-cell--active";
+        internal const string RailNarrowCellBlocker = "liveops-hub-rail-narrow-cell--blocker";
+        internal const string RailNarrowMark = "liveops-hub-rail-narrow-mark";
+
+        /// <summary>Người dùng ghim rail mở ở cửa sổ hẹp (EditorPrefs) — class trên root vì nó thắng cả <c>--narrow</c>.</summary>
+        internal const string RailPinnedOpen = "liveops-hub--rail-pinned-open";
         internal const string RailBlockerHead = "liveops-hub-rail-blocker-head";
         internal const string RailBlockerTitle = "liveops-hub-rail-blocker-title";
         internal const string RailBlockerDetail = "liveops-hub-rail-blocker-detail";

@@ -152,7 +152,7 @@ file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/Language/LiveOpsHubStr
 file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/Language/LiveOpsHubStringTable.cs	G-I18N	G-I18N tạo — bảng chữ một vùng, hai ngôn ngữ
 file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubClassNames.Calendar.cs	G-CALENDAR	G-CALENDAR vùng Calendar
 file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubClassNames.CalendarDepth.cs	G-CALENDAR-DEPTH	G-CALENDAR-DEPTH vùng CalendarDepth
-file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubClassNames.Controls.cs	G-CONTROLS	G-CONTROLS vùng Controls
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubClassNames.Controls.cs	G-CONTROLS,G-SHELLPOLISH	G-CONTROLS vùng Controls; G-SHELLPOLISH vùng Controls (V-34 nợ SP-3: class nhãn lý do cạnh tab — trường region Controls classnames đã ghi G-SHELLPOLISH, dòng file này bị sót)
 file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubClassNames.EventTypes.cs	G-EVENTTYPES	G-EVENTTYPES vùng EventTypes
 file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubClassNames.Export.cs	G-EXPORT	G-EXPORT vùng Export
 file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubClassNames.Feedback.cs	G-FEEDBACK	G-FEEDBACK vùng Feedback
@@ -208,7 +208,7 @@ file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubStrings.Kit.
 file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubStrings.Overview.cs	G-OVERVIEW,G-SHELLPOLISH	G-OVERVIEW vùng Overview; G-SHELLPOLISH vùng Overview
 file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubStrings.Paste.cs	G-PASTE	G-PASTE vùng Paste
 file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubStrings.Recurring.cs	G-RECURRING,G-RECURRING-JSON	G-RECURRING vùng Recurring; G-RECURRING-JSON vùng Recurring
-file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubStrings.Services.cs	G-SESSION,G-I18N	G-SESSION vùng Services; G-I18N sửa (ngôn ngữ, W3.5)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubStrings.Services.cs	G-SESSION,G-I18N,G-SHELLPOLISH	G-SESSION vùng Services; G-I18N sửa (ngôn ngữ, W3.5); G-SHELLPOLISH bỏ hằng InterimDiskConflictLog (đổi tên thành ShellDiskConflictLogFormat) (sổ INTERIM mục 12 I-8 giao gói gỡ định danh này, mà nó nằm ở vùng Services — không gói nào khác của W5 đụng file)
 file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubStrings.Shell.cs	G-SHELL,G-I18N,G-HOSTUI,G-SHELLPOLISH	G-SHELL vùng Shell; G-HOSTUI vùng Shell; G-SHELLPOLISH vùng Shell; G-I18N sửa (ngôn ngữ, W3.5)
 file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubStrings.ShortcutHelp.cs	G-OPT-SHORTCUTHELP	G-OPT-SHORTCUTHELP vùng ShortcutHelp
 file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubStrings.Timeline.cs	G-TIMELINE-VIEW,G-I18N,G-OPT-TIMELINE	G-TIMELINE-VIEW vùng Timeline; G-OPT-TIMELINE vùng Timeline; G-I18N sửa (ngôn ngữ, W3.5)
@@ -258,7 +258,7 @@ file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Export/ExportGateCard.cs
 file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Export/ExportHistoryCard.cs	G-EXPORT	G-EXPORT tạo
 file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Export/ExportHistoryModel.cs	G-EXPORT	G-EXPORT tạo
 file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Export/ExportMetrics.cs	G-EXPORT	G-EXPORT tạo
-file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Export/ExportSection.cs	G-SHELL,G-SESSION,G-EXPORT	G-SHELL tạo; G-SESSION sửa; G-EXPORT sửa
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Export/ExportSection.cs	G-SHELL,G-SESSION,G-EXPORT,G-SHELLPOLISH	G-SHELL tạo; G-SESSION sửa; G-EXPORT sửa; G-SHELLPOLISH gỡ dấu INTERIM(G-SHELLPOLISH) của I-11 và mở RevealFileActionId thành internal (dấu nằm ở file này nhưng việc sửa ở LiveOpsHubWindow.cs — check-interim --for G-SHELLPOLISH chặn nếu dấu còn; không gói W5 nào khác đụng file)
 file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Export/ExportSection.uss	G-EXPORT	G-EXPORT tạo
 file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Export/ExportSection.uxml	G-EXPORT	G-EXPORT tạo
 file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Export/ExportSessionState.cs	G-EXPORT	G-EXPORT tạo
@@ -272,7 +272,7 @@ file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Overview/OverviewNeedsAc
 file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Overview/OverviewPipelineFlow.cs	G-OVERVIEW	G-OVERVIEW tạo
 file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Overview/OverviewRemoteKeyPopover.cs	G-SHELLPOLISH	G-SHELLPOLISH tạo
 file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Overview/OverviewSection.cs	G-SHELL,G-SESSION,G-OVERVIEW,G-SHELLPOLISH	G-SHELL tạo; G-SESSION sửa; G-OVERVIEW sửa; G-SHELLPOLISH sửa
-file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Overview/OverviewSection.uss	G-OVERVIEW	G-OVERVIEW tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Overview/OverviewSection.uss	G-OVERVIEW,G-SHELLPOLISH	G-OVERVIEW tạo; G-SHELLPOLISH thêm class HelpBox nhiều asset (mục 12 I-9 — gói đã sở hữu OverviewSection.cs/.uxml, dòng .uss bị sót)
 file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Overview/OverviewSection.uxml	G-OVERVIEW,G-SHELLPOLISH	G-OVERVIEW tạo; G-SHELLPOLISH sửa
 file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Overview/OverviewUpcomingTable.cs	G-OVERVIEW	G-OVERVIEW tạo
 file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/RecurringRules/LiveOpsRulePresetLibrary.cs	G-RECURRING	G-RECURRING tạo
@@ -586,7 +586,7 @@ file	Packages/packages-lock.json	G-TOOLS	G-TOOLS Unity sinh lại khi PKG/packag
 file	tools/liveops-hub/PROPOSED_CLAUDE_MD.md	G-TOOLS,G-DOCS	G-TOOLS tạo; G-DOCS sửa
 file	tools/liveops-hub/README.md	G-TOOLS	G-TOOLS tạo
 file	tools/liveops-hub/capture.sh	G-TOOLS	G-TOOLS tạo
-file	tools/liveops-hub/check-class-names.py	G-TOOLS	G-TOOLS tạo
+file	tools/liveops-hub/check-class-names.py	G-TOOLS,G-SHELLPOLISH	G-TOOLS tạo; G-SHELLPOLISH sửa regex selector (bỏ lookbehind nuốt vế sau của selector ghép .a.b — --strict báo nhầm 11 hằng là không có selector; tự duyệt theo uỷ quyền user 15/9, mục "tools")
 file	tools/liveops-hub/check-interim.sh	G-TOOLS	G-TOOLS tạo
 file	tools/liveops-hub/check-meta.sh	G-TOOLS	G-TOOLS tạo
 file	tools/liveops-hub/check-ownership.py	G-TOOLS,G-I18N	G-TOOLS tạo; G-I18N sửa (ngôn ngữ, W3.5)
@@ -600,7 +600,7 @@ file	tools/liveops-hub/lint-samples/**	G-TOOLS,G-I18N	G-TOOLS tạo — bộ m�
 file	tools/liveops-hub/make-temp-project-2022.sh	G-TOOLS	G-TOOLS tạo
 file	tools/liveops-hub/make-worktree.sh	G-TOOLS	G-TOOLS tạo
 file	tools/liveops-hub/measure-capture.py	G-TOOLS	G-TOOLS tạo
-file	tools/liveops-hub/ownership.tsv	G-TOOLS,G-FIX-W2-1,G-I18N,G-HOSTUI,G-INSPECTOR,G-FIX-W4-1,G-FIX-W4-2,G-RECURRING-JSON	G-TOOLS tạo; G-FIX-W2-1 ghi V-21 (phụ thuộc cùng đợt W2, quyền ghi D-3/CC-SHELL-1/2/5/CC-VALB-1/5); G-I18N sửa (ngôn ngữ, W3.5); G-HOSTUI ghi ngoại lệ quyền ghi liveops-hub-feedback.uss (H-2 của soát 16/9); G-INSPECTOR thêm một dòng file USS của chính thư mục mình (vá review F-4, tự duyệt theo uỷ quyền user 15/9); G-FIX-W4-1/G-FIX-W4-2 ghi quyền sửa của hai gói sửa ở cổng W4 (phiếu D-1…D-6, CC-HOSTUI-4); G-RECURRING-JSON thêm mình vào năm dòng RecurringRulesSection.cs/.uss + RecurringRulesSectionTests.cs + LiveOpsJsonSyntaxLocator.cs + JsonSyntaxLocatorTests.cs (lệch kỹ thuật tự duyệt — bốn tập W5 vẫn rời nhau, năm file này không gói W5 nào khác đụng; LiveOpsJsonSyntaxLocator.cs thêm ở bước cổng gói để sửa lỗi nhỏ thấy khi chạy EditMode lần đầu)
+file	tools/liveops-hub/ownership.tsv	G-TOOLS,G-FIX-W2-1,G-I18N,G-HOSTUI,G-INSPECTOR,G-FIX-W4-1,G-FIX-W4-2,G-RECURRING-JSON,G-SHELLPOLISH	G-TOOLS tạo; G-FIX-W2-1 ghi V-21 (phụ thuộc cùng đợt W2, quyền ghi D-3/CC-SHELL-1/2/5/CC-VALB-1/5); G-I18N sửa (ngôn ngữ, W3.5); G-HOSTUI ghi ngoại lệ quyền ghi liveops-hub-feedback.uss (H-2 của soát 16/9); G-INSPECTOR thêm một dòng file USS của chính thư mục mình (vá review F-4, tự duyệt theo uỷ quyền user 15/9); G-FIX-W4-1/G-FIX-W4-2 ghi quyền sửa của hai gói sửa ở cổng W4 (phiếu D-1…D-6, CC-HOSTUI-4); G-SHELLPOLISH thêm dòng file LiveOpsHubClassNames.Controls.cs bị sót ở V-34 (region Controls classnames đã ghi gói); G-RECURRING-JSON thêm mình vào năm dòng RecurringRulesSection.cs/.uss + RecurringRulesSectionTests.cs + LiveOpsJsonSyntaxLocator.cs + JsonSyntaxLocatorTests.cs (lệch kỹ thuật tự duyệt — bốn tập W5 vẫn rời nhau, năm file này không gói W5 nào khác đụng; LiveOpsJsonSyntaxLocator.cs thêm ở bước cổng gói để sửa lỗi nhỏ thấy khi chạy EditMode lần đầu)
 file	tools/liveops-hub/run-editmode.sh	G-TOOLS	G-TOOLS tạo
 file	tools/liveops-hub/run-playmode.sh	G-TOOLS	G-TOOLS tạo
 file	tools/liveops-hub/unity-slot.sh	G-TOOLS	G-TOOLS tạo

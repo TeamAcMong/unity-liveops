@@ -29,9 +29,6 @@ namespace DreamTech.LiveOps.Editor
         internal static string ServicesAssetDeletedHeadlineFormat => LiveOpsHubStringCatalog.Text(nameof(ServicesAssetDeletedHeadlineFormat));
         internal static string ServicesAssetDeletedDetail => LiveOpsHubStringCatalog.Text(nameof(ServicesAssetDeletedDetail));
 
-        // INTERIM(G-SHELLPOLISH): câu log tạm thay băng "asset đổi trên đĩa" (mục 12 I-8) — G-SHELLPOLISH xoá cùng dòng nối log ở cửa sổ.
-        internal static string InterimDiskConflictLog => LiveOpsHubStringCatalog.Text(nameof(InterimDiskConflictLog));
-
         // Health theo đích (6.4). "Chưa kiểm" luôn kèm cách làm cho hết chưa kiểm (F5), vì vòng rỗng không có câu là vô dụng.
         internal static string ServicesHealthNoAsset => LiveOpsHubStringCatalog.Text(nameof(ServicesHealthNoAsset));
         internal static string ServicesHealthNeverChecked => LiveOpsHubStringCatalog.Text(nameof(ServicesHealthNeverChecked));

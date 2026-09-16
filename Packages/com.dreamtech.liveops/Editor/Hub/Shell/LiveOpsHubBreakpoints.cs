@@ -30,7 +30,8 @@ namespace DreamTech.LiveOps.Editor
         {
             if (root == null) throw new ArgumentNullException(nameof(root));
             if (float.IsNaN(width) || width <= 0f) return;
-            // INTERIM(G-SHELLPOLISH): --narrow chỉ bật class; rail vẫn 196 px, rail 36 px + menu tầng làm ở G-SHELLPOLISH (mục 12 I-8).
+            // --narrow chỉ BẬT CLASS; rail 36 px, menu tầng và nút ghim nằm ở USS + LiveOpsHubRail (mục 12 I-8, [FD §3.7]) —
+            // lớp này không bao giờ biết một breakpoint làm gì, chỉ biết bề rộng nào thuộc lớp nào.
             root.EnableInClassList(LiveOpsHubClassNames.Medium, width < MediumBelowWidth);
             root.EnableInClassList(LiveOpsHubClassNames.Narrow, width < NarrowBelowWidth);
             root.EnableInClassList(LiveOpsHubClassNames.Compact, width < CompactBelowWidth);

@@ -31,9 +31,6 @@ namespace DreamTech.LiveOps.Editor
         internal static string ShellExportTitle => LiveOpsHubStringCatalog.Text(nameof(ShellExportTitle));
         internal static string ShellExportSubtitle => LiveOpsHubStringCatalog.Text(nameof(ShellExportSubtitle));
 
-        // INTERIM(G-SHELLPOLISH): lý do health + dòng đầu thân của màn giữ chỗ (mục 12 I-2) — xoá cùng InterimPlaceholderSection.
-        internal static string InterimPlaceholderReason => LiveOpsHubStringCatalog.Text(nameof(InterimPlaceholderReason));
-
         // Rail — [FD §3.5]
         internal static string ShellRailCaption => LiveOpsHubStringCatalog.Text(nameof(ShellRailCaption));
         internal static string ShellRailNotMeasuredBadge => LiveOpsHubStringCatalog.Text(nameof(ShellRailNotMeasuredBadge));
@@ -49,6 +46,17 @@ namespace DreamTech.LiveOps.Editor
         internal static string ShellRailBlockerDroppedDetailFormat => LiveOpsHubStringCatalog.Text(nameof(ShellRailBlockerDroppedDetailFormat));
         internal static string ShellRailBlockerStaleDetailFormat => LiveOpsHubStringCatalog.Text(nameof(ShellRailBlockerStaleDetailFormat));
         internal static string ShellRailHealthCountMismatchFormat => LiveOpsHubStringCatalog.Text(nameof(ShellRailHealthCountMismatchFormat));
+
+        // Rail 36 px của cửa sổ hẹp ([FD §3.7], mục 12 I-8).
+
+        /// <summary>Tooltip nút ‹› trên đầu rail — một câu cho cả hai chiều: chiều chevron đã nói rõ đang mở hay đang thu.</summary>
+        internal static string ShellRailPinTooltip => LiveOpsHubStringCatalog.Text(nameof(ShellRailPinTooltip));
+
+        /// <summary>Mục menu của ô tầng: "Kiểm lịch — 2 bị bỏ" ([FD §3.7]); màn không có lý do thì chỉ còn tên màn.</summary>
+        internal static string ShellRailNarrowMenuItemFormat => LiveOpsHubStringCatalog.Text(nameof(ShellRailNarrowMenuItemFormat));
+
+        /// <summary>Tooltip ô icon lỗi ở đáy rail thu gọn: "Dừng ở Kiểm lịch: 2 đợt sẽ bị game bỏ khi đọc lịch" ([FD §3.7]).</summary>
+        internal static string ShellRailNarrowBlockerTooltipFormat => LiveOpsHubStringCatalog.Text(nameof(ShellRailNarrowBlockerTooltipFormat));
 
         // Health
         internal static string ShellHealthThrewReason => LiveOpsHubStringCatalog.Text(nameof(ShellHealthThrewReason));
@@ -129,12 +137,66 @@ namespace DreamTech.LiveOps.Editor
         internal static string ShellCheckAllMenuFormat => LiveOpsHubStringCatalog.Text(nameof(ShellCheckAllMenuFormat));
         internal static string ShellCheckAllMenuWithoutKey => LiveOpsHubStringCatalog.Text(nameof(ShellCheckAllMenuWithoutKey));
 
-        // Băng "tệp đã đổi trên đĩa" (4.3, SPIKE-B SP-8b) — hub KHÔNG BAO GIỜ tự đè nháp; ba nút là ba quyết định của người dùng.
-        internal static string ShellDiskBannerFormat => LiveOpsHubStringCatalog.Text(nameof(ShellDiskBannerFormat));
+        /// <summary>Mở README của package — cùng địa chỉ với link "Vì sao? (tài liệu luật)" của Kiểm lịch ([FD §3.3]).</summary>
+        internal static string ShellOpenDocumentationMenu => LiveOpsHubStringCatalog.Text(nameof(ShellOpenDocumentationMenu));
+
+        /// <summary>Mở cửa sổ hub thứ hai chạy trên tài liệu mẫu — ngoặc "(chỉ để xem giao diện)" là của thiết kế, giữ nguyên.</summary>
+        internal static string ShellShowDesignSampleMenu => LiveOpsHubStringCatalog.Text(nameof(ShellShowDesignSampleMenu));
+
+        // Băng "tệp đã đổi trên đĩa" (Hình 28 khung 4, 4.3, SPIKE-B SP-8b) — hub KHÔNG BAO GIỜ tự đè nháp; ba nút là ba quyết
+        // định của người dùng, nên băng phải nói đủ ba câu: đổi bao nhiêu mục · Tải lại mất gì · Giữ bản trong Editor ghi đè gì.
+
+        /// <summary>Câu 1 — tên file, giờ đổi, số mục khác nhau và chính các id đó.</summary>
+        internal static string ShellDiskBannerHeadFormat => LiveOpsHubStringCatalog.Text(nameof(ShellDiskBannerHeadFormat));
+
+        /// <summary>Câu 1 khi diff không nêu id nào (vd chỉ khác key remote): không in cặp ngoặc rỗng.</summary>
+        internal static string ShellDiskBannerHeadWithoutItemsFormat => LiveOpsHubStringCatalog.Text(nameof(ShellDiskBannerHeadWithoutItemsFormat));
+
+        /// <summary>Câu 2 — hậu quả của "Tải lại".</summary>
+        internal static string ShellDiskBannerReloadLineFormat => LiveOpsHubStringCatalog.Text(nameof(ShellDiskBannerReloadLineFormat));
+
+        internal static string ShellDiskBannerReloadLineWithoutItemsFormat => LiveOpsHubStringCatalog.Text(nameof(ShellDiskBannerReloadLineWithoutItemsFormat));
+
+        /// <summary>Câu 3 — hậu quả của "Giữ bản trong Editor": lần lưu tới sẽ ghi đè.</summary>
+        internal static string ShellDiskBannerKeepLineFormat => LiveOpsHubStringCatalog.Text(nameof(ShellDiskBannerKeepLineFormat));
+
+        /// <summary>Tên hiển thị của một LUẬT LẶP trong danh sách mục ("luật weekly-pass") — Hình 28 khung 4 gọi tên loại mục
+        /// chứ không để id trần lẫn với id đợt.</summary>
+        internal static string ShellDiskBannerRuleItemFormat => LiveOpsHubStringCatalog.Text(nameof(ShellDiskBannerRuleItemFormat));
+
+        /// <summary>Động từ của một thay đổi chưa lưu trong câu "Tải lại": mục MỚI thêm.</summary>
+        internal static string ShellDiskBannerChangeAddedFormat => LiveOpsHubStringCatalog.Text(nameof(ShellDiskBannerChangeAddedFormat));
+
+        /// <summary>Động từ: mục đã xoá khỏi nháp.</summary>
+        internal static string ShellDiskBannerChangeRemovedFormat => LiveOpsHubStringCatalog.Text(nameof(ShellDiskBannerChangeRemovedFormat));
+
+        /// <summary>Động từ: đổi giờ bắt đầu/kết thúc — "Dời lava-quest-2026-09b" của Hình 28 khung 4.</summary>
+        internal static string ShellDiskBannerChangeMovedFormat => LiveOpsHubStringCatalog.Text(nameof(ShellDiskBannerChangeMovedFormat));
+
+        /// <summary>Động từ chung cho mọi thay đổi còn lại (config key, tiền tố luật, thuộc tính loại…).</summary>
+        internal static string ShellDiskBannerChangeEditedFormat => LiveOpsHubStringCatalog.Text(nameof(ShellDiskBannerChangeEditedFormat));
+
+        internal static string ShellDiskBannerSentenceSeparator => LiveOpsHubStringCatalog.Text(nameof(ShellDiskBannerSentenceSeparator));
+        internal static string ShellDiskBannerItemSeparator => LiveOpsHubStringCatalog.Text(nameof(ShellDiskBannerItemSeparator));
         internal static string ShellDiskBannerReloadButton => LiveOpsHubStringCatalog.Text(nameof(ShellDiskBannerReloadButton));
         internal static string ShellDiskBannerDiffButton => LiveOpsHubStringCatalog.Text(nameof(ShellDiskBannerDiffButton));
         internal static string ShellDiskBannerKeepButton => LiveOpsHubStringCatalog.Text(nameof(ShellDiskBannerKeepButton));
         internal static string ShellDiskBannerReloadTooltipFormat => LiveOpsHubStringCatalog.Text(nameof(ShellDiskBannerReloadTooltipFormat));
+
+        // Hộp cấp 1 khi ⌘S sau khi đã chọn "Giữ bản trong Editor" (Hình 28 khung 4 dòng cuối, 8.6 bảng 7.0
+        // LiveOpsEditOperation.OverwriteDiskChanges). Tiêu đề là câu thiết kế; ba câu còn lại CHƯA có trong thiết kế (chờ user).
+        internal static string ShellOverwriteDiskConfirmTitleFormat => LiveOpsHubStringCatalog.Text(nameof(ShellOverwriteDiskConfirmTitleFormat));
+        internal static string ShellOverwriteDiskConfirmBodyFormat => LiveOpsHubStringCatalog.Text(nameof(ShellOverwriteDiskConfirmBodyFormat));
+        internal static string ShellOverwriteDiskConfirmBodyWithoutItemsFormat => LiveOpsHubStringCatalog.Text(nameof(ShellOverwriteDiskConfirmBodyWithoutItemsFormat));
+        internal static string ShellOverwriteDiskConfirmKeyHint => LiveOpsHubStringCatalog.Text(nameof(ShellOverwriteDiskConfirmKeyHint));
+        internal static string ShellOverwriteDiskConfirmDestructive => LiveOpsHubStringCatalog.Text(nameof(ShellOverwriteDiskConfirmDestructive));
+        internal static string ShellOverwriteDiskConfirmSafe => LiveOpsHubStringCatalog.Text(nameof(ShellOverwriteDiskConfirmSafe));
+
+        /// <summary>Nhãn nút của outcome (c′) "vừa lưu file" — khung giữ câu vì khung là nơi gọi Reveal (mục 12 I-11).</summary>
+        internal static string ShellOutcomeRevealFileButton => LiveOpsHubStringCatalog.Text(nameof(ShellOutcomeRevealFileButton));
+
+        /// <summary>Console giữ dấu vết lần file đổi ngoài — băng trả lời xong thì Console vẫn còn lịch sử để đối chiếu với git.</summary>
+        internal static string ShellDiskConflictLogFormat => LiveOpsHubStringCatalog.Text(nameof(ShellDiskConflictLogFormat));
 
         // Phím tắt toàn hub (8.7) — displayName tiếng Việt trong Edit → Shortcuts (PD-15).
         internal static string ShellShortcutOpenPalette => LiveOpsHubStringCatalog.Text(nameof(ShellShortcutOpenPalette));

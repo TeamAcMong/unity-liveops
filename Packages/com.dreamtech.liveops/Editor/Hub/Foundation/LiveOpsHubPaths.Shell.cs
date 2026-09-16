@@ -75,19 +75,19 @@ namespace DreamTech.LiveOps.Editor
             new ShellStyleSheet(ThemeUss, true),
             new ShellStyleSheet(ComponentsUss, true),
             new ShellStyleSheet(ShellUss, true),
-            // INTERIM(G-SHELLPOLISH): ba sheet của gói khác (feedback G-FEEDBACK W2, controls G-CONTROLS W2, timeline G-TIMELINE-VIEW
-            // W3) chưa bắt buộc (mục 12 I-10) — bản dev dựng dở chưa có file nên cửa sổ không cảnh báo (mọi test UI assert không log
-            // lạ), probe chỉ ghi chú. G-SHELLPOLISH (W5, khi cả ba đã có) đổi ba cờ thành true: bản cài thiếu sheet nào cũng
-            // LogWarning đúng đường dẫn (8.1 bước 2) và probe báo lỗi.
-            new ShellStyleSheet(FeedbackUss, false),
-            new ShellStyleSheet(ControlsUss, false),
-            new ShellStyleSheet(TimelineUss, false),
+            // Ba sheet dưới do gói khác tạo (feedback G-FEEDBACK W2, controls G-CONTROLS W2, timeline G-TIMELINE-VIEW W3). Từ W5
+            // cả ba đã có trên đĩa nên chúng BẮT BUỘC như sheet khung: thiếu một cái là bản cài hỏng (mất toast, mất tab, mất
+            // timeline) — cửa sổ LogWarning đúng đường dẫn (8.1 bước 2) và probe CLI báo lỗi thay vì chỉ ghi chú.
+            new ShellStyleSheet(FeedbackUss, true),
+            new ShellStyleSheet(ControlsUss, true),
+            new ShellStyleSheet(TimelineUss, true),
             new ShellStyleSheet(MotionUss, true),
         });
 
         /// <summary>
         /// Một stylesheet của khung. <see cref="IsRequired"/> = thiếu trên đĩa là package hỏng: cửa sổ <c>LogWarning</c> nêu đường
-        /// dẫn, probe CLI báo lỗi. false chỉ cho sheet chưa tới lượt gói tạo ở bản dev (nhánh tạm có dấu INTERIM ở trên).
+        /// dẫn, probe CLI báo lỗi. Từ W5 mọi sheet của thứ tự nạp đều bắt buộc; cờ giữ lại để bản dev sau này thêm sheet mới của
+        /// một gói chưa tới lượt vẫn dựng được cửa sổ mà không cảnh báo giả.
         /// </summary>
         internal sealed class ShellStyleSheet
         {

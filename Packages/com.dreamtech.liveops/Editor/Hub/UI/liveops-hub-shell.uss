@@ -351,6 +351,119 @@
     white-space: normal;
 }
 
+/* ---------------------------------------------------------------- Rail 36px của cửa sổ hẹp — [FD §3.7], mục 12 I-8
+
+   Hai hình dạng dựng SẴN trong cây, USS chọn bằng class trên root: đổi bề rộng cửa sổ không dựng lại rail (giữ focus, giữ hover).
+   Nút ‹› ghim mở thắng --narrow vì selector có thêm một class trên cùng element root (specificity cao hơn). */
+
+.liveops-hub-rail-pin {
+    display: none;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    height: 20px;
+    flex-shrink: 0;
+    margin: 4px 4px 0 4px;
+    padding: 0;
+    border-width: 0;
+    background-color: transparent;
+}
+
+.liveops-hub-rail-pin:hover {
+    background-color: var(--unity-colors-highlight-background-hover);
+}
+
+.liveops-hub-rail-narrow {
+    display: none;
+    flex-grow: 1;
+    flex-shrink: 1;
+    flex-direction: column;
+    align-items: center;
+    padding-top: 4px;
+}
+
+/* Ô tầng 36×32 với icon 16 ở giữa và dấu 7px ghim góc phải trên (right 5, top 5). */
+.liveops-hub-rail-narrow-cell {
+    width: 36px;
+    height: 32px;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+}
+
+.liveops-hub-rail-narrow-cell:hover {
+    background-color: var(--unity-colors-highlight-background-hover);
+}
+
+.liveops-hub-rail-narrow-cell--active {
+    background-color: var(--unity-colors-highlight-background-inactive);
+}
+
+.liveops-hub-rail--has-focus .liveops-hub-rail-narrow-cell--active {
+    background-color: var(--unity-colors-highlight-background);
+}
+
+/* Ô icon lỗi ở ĐÁY rail thu gọn (ô chặn thu lại còn đúng một dấu) — margin-top:auto đẩy xuống đáy cột. */
+.liveops-hub-rail-narrow-cell--blocker {
+    margin-top: auto;
+    margin-bottom: 4px;
+}
+
+.liveops-hub-rail-narrow-mark {
+    position: absolute;
+    right: 5px;
+    top: 5px;
+}
+
+.liveops-hub--narrow .liveops-hub-rail {
+    width: 36px;
+}
+
+.liveops-hub--narrow .liveops-hub-rail-pin {
+    display: flex;
+}
+
+.liveops-hub--narrow .liveops-hub-rail-narrow {
+    display: flex;
+}
+
+.liveops-hub--narrow .liveops-hub-rail-caption {
+    display: none;
+}
+
+.liveops-hub--narrow .liveops-hub-rail-scroll {
+    display: none;
+}
+
+.liveops-hub--narrow .liveops-hub-rail-blocker-host {
+    display: none;
+}
+
+/* Đã ghim mở: rail về đúng 196 px dù cửa sổ vẫn hẹp — người dùng chọn thấy đủ chữ và chịu mất chỗ của cột nội dung.
+   Năm luật dưới CÙNG specificity với sáu luật --narrow ở trên (hai class) nên thắng nhờ ĐỨNG SAU; viết rời (không ghép
+   .liveops-hub--narrow.liveops-hub--rail-pinned-open) để mỗi class còn một selector của riêng mình. Cửa sổ rộng thì năm
+   luật này không đổi gì: rail vốn đã 196, ba phần kia (caption, scroll, ô chặn) vốn đã hiện và hình rail thu gọn vốn đã ẩn.
+   Luật --narrow thứ sáu là nút ‹› ghim: nút chỉ hiện ở cửa sổ hẹp nên ghim mở KHÔNG được ẩn nó — bấm xong còn phải bấm lại. */
+.liveops-hub--rail-pinned-open .liveops-hub-rail {
+    width: 196px;
+}
+
+.liveops-hub--rail-pinned-open .liveops-hub-rail-narrow {
+    display: none;
+}
+
+.liveops-hub--rail-pinned-open .liveops-hub-rail-caption {
+    display: flex;
+}
+
+.liveops-hub--rail-pinned-open .liveops-hub-rail-scroll {
+    display: flex;
+}
+
+.liveops-hub--rail-pinned-open .liveops-hub-rail-blocker-host {
+    display: flex;
+}
+
 /* ---------------------------------------------------------------- Cột nội dung 1084px */
 
 .liveops-hub-content {
@@ -571,16 +684,27 @@
 }
 
 /* Băng "tệp đã đổi trên đĩa" (4.3): dựng trong hub-shell-notes cùng khuôn với note đang biên dịch, thêm hàng nút. */
+/* Hình 28 khung 4 là HelpBox CẢNH BÁO: sọc trái 3px màu warning + icon, để băng này không lẫn với note "đang biên dịch"
+   (cùng lớp .liveops-hub-note) — một cái chỉ báo tin, cái kia đang đòi người dùng quyết. */
 .liveops-hub-disk-banner {
     flex-direction: column;
     align-items: stretch;
+    border-left-width: 3px;
+    border-left-color: var(--liveops-hub-color-warning-fill);
+}
+
+.liveops-hub-disk-banner-head {
+    flex-direction: row;
+    align-items: flex-start;
 }
 
 .liveops-hub-disk-banner-text {
+    flex-grow: 1;
+    flex-shrink: 1;
     font-size: 11px;
     white-space: normal;
     padding: 0;
-    margin: 0;
+    margin: 0 0 0 6px;
 }
 
 .liveops-hub-disk-banner-actions {
