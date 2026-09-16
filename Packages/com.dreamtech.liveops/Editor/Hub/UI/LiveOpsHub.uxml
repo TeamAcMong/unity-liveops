@@ -8,6 +8,21 @@
     <ui:VisualElement name="hub-root" class="liveops-hub-root">
         <ui:VisualElement name="hub-header" class="liveops-hub-header">
             <ui:Label name="hub-header-title" class="liveops-hub-header-title" />
+            <!-- Ô "Đi tới màn…": VisualElement chứ không phải Button — nó là một ô nhập giả (chữ mờ + nhãn phím), bấm mở palette. -->
+            <ui:VisualElement name="hub-header-goto" class="liveops-hub-goto">
+                <ui:Label name="hub-header-goto-label" class="liveops-hub-goto-label" />
+                <ui:Label name="hub-header-goto-key" class="liveops-hub-goto-key" />
+            </ui:VisualElement>
+            <ui:VisualElement name="hub-header-spacer" class="liveops-hub-header-spacer" />
+            <ui:VisualElement name="hub-header-asset-chip" class="liveops-hub-chip">
+                <ui:Label name="hub-header-asset-chip-key" class="liveops-hub-chip-key" />
+                <ui:Label name="hub-header-asset-chip-text" class="liveops-hub-chip-text" />
+            </ui:VisualElement>
+            <ui:VisualElement name="hub-header-draft-chip" class="liveops-hub-chip">
+                <ui:Label name="hub-header-draft-chip-left" class="liveops-hub-chip-text" />
+                <ui:VisualElement name="hub-header-draft-chip-divider" class="liveops-hub-chip-divider" />
+                <ui:Label name="hub-header-draft-chip-right" class="liveops-hub-chip-text" />
+            </ui:VisualElement>
         </ui:VisualElement>
         <ui:VisualElement name="hub-main" class="liveops-hub-main">
             <ui:VisualElement name="hub-rail" class="liveops-hub-rail">
@@ -25,6 +40,8 @@
                 </ui:VisualElement>
                 <ui:VisualElement name="hub-shell-notes" class="liveops-hub-shell-notes" />
                 <ui:VisualElement name="hub-section-body" class="liveops-hub-section-body" />
+                <!-- Chỗ cắm outcome (8.1 bước 7): con cuối cột nội dung, sau thân màn. Toast gắn sau nó từ C# nên toast luôn nằm trên. -->
+                <ui:VisualElement name="hub-outcome-host" class="liveops-hub-outcome-host" />
             </ui:VisualElement>
         </ui:VisualElement>
         <ui:VisualElement name="hub-status" class="liveops-hub-status">
