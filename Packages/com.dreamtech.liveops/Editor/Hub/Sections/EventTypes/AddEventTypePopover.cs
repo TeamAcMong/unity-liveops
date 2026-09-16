@@ -10,7 +10,9 @@ namespace DreamTech.LiveOps.Editor
     /// <c>LiveEventTypeColorSlots.DefaultSlotFor</c> rồi đổi được ngay trong inspector, hỏi thêm một câu ở bước tạo chỉ làm chậm.
     /// <para>
     /// Nút chính khoá kèm lý do in thành chữ khi id rỗng / sai ký tự / trùng loại đã có (SPIKE-B SP-3: lý do là chữ, tooltip chỉ
-    /// là phụ). Esc đóng popover do lớp gốc lo; Enter trong ô id nhảy xuống ô tên (ô <c>isDelayed</c> commit trước).
+    /// là phụ). Esc đóng popover do lớp gốc lo. Hai ô KHÔNG đặt <c>isDelayed</c> và popover không bắt phím: lý do khoá phải đổi
+    /// theo từng ký tự gõ vào (đó là điểm của SP-3), mà <c>isDelayed</c> thì <c>ChangeEvent</c> chỉ bắn lúc commit. Enter vì thế
+    /// là phím mặc định của ô text, không phải một đường đi riêng của popover này.
     /// </para>
     /// </summary>
     internal sealed class AddEventTypePopover : LiveOpsPopoverContent

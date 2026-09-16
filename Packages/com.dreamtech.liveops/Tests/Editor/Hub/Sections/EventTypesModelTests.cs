@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using DreamTech.LiveOps.Tests;
 using DreamTech.LiveOps.Unity;
 using NUnit.Framework;
@@ -128,18 +129,37 @@ namespace DreamTech.LiveOps.Editor.Tests
         [Test]
         public void CanDeleteType_MatchesConfirmationPolicy()
         {
-            LiveEventCalendarDocument document = LiveOpsDesignSample.Document;
-            EventTypesModel model = EventTypesModel.Build(document, null, null);
+            AssertDeleteAgreesWithPolicy(LiveOpsDesignSample.Document);
+        }
 
-            for (int index = 0; index < document.EventTypes.Count; index++)
-            {
-                string typeId = document.EventTypes[index].TypeId;
-                LiveOpsConfirmDecision decision = LiveOpsConfirmationPolicy.Decide(LiveOpsEditOperation.RemoveEventType, document, null,
-                    null, LiveOpsDesignSample.NowUtc, typeId);
-                bool canDelete = model.CanDeleteType(typeId, out _, out _);
-                Assert.AreEqual(decision.Requirement == LiveOpsConfirmRequirement.None, canDelete,
-                    typeId + ": nhãn menu và bảng 7.0 phải nói cùng một chuyện");
-            }
+        /// <summary>
+        /// Tài liệu dán vào có thể có NHIỀU luật cùng loại (core giữ luật đứng trước). Hỏi <c>TryGetRecurringRule</c> chỉ ra
+        /// một luật, nên con số trong "Xoá loại (còn n đợt)" và trong lý do khoá ô id đếm thiếu so với policy — mà con số đó là
+        /// chữ người dùng đọc. So cả BOOLEAN lẫn CON SỐ.
+        /// </summary>
+        [Test]
+        public void DuplicateRecurringRules_UsageCountCountsEveryRule()
+        {
+            LiveEventCalendarDocument document = new LiveEventCalendarDocumentBuilder()
+                .WithEventType(new LiveEventTypeDefinition(SkyRace, "Đua trên mây", 2, false, string.Empty))
+                .WithRecurringRule(new RecurringLiveEventRule(SkyRace, "2026-01-05T00:00:00Z", "sky-race-", 24, 20, string.Empty))
+                .WithRecurringRule(new RecurringLiveEventRule(SkyRace, "2026-02-05T00:00:00Z", "sky-race-b-", 48, 20, string.Empty))
+                .Build();
+            EventTypesModel model = EventTypesModel.Build(document, null, null);
+            EventTypeRow row = FindRow(model, SkyRace);
+
+            Assert.IsNotNull(row);
+            Assert.AreEqual(2, row.RecurringRuleCount, "hai luật cùng loại trong tài liệu");
+            Assert.AreEqual(2, row.UsageCount, "không đợt cố định nào — hai luật là hai mục dùng loại");
+            Assert.IsTrue(row.HasRecurringRule, "cột Nguồn/ô Đợt vẫn chỉ cần CÓ hay KHÔNG");
+
+            Assert.IsFalse(model.CanDeleteType(SkyRace, out string menuLabel, out string reason));
+            StringAssert.Contains("2", menuLabel, "nhãn menu nêu đúng số mục còn dùng loại");
+            StringAssert.Contains("2", reason);
+            Assert.IsFalse(model.CanEditTypeId(SkyRace, out string lockReason));
+            StringAssert.Contains("2", lockReason, "lý do khoá ô id đếm cùng cách");
+
+            AssertDeleteAgreesWithPolicy(document);
         }
 
         [Test]
@@ -275,6 +295,44 @@ namespace DreamTech.LiveOps.Editor.Tests
                 session.Document, services.Format);
             Assert.AreEqual(routed.State, model.Health.State,
                 context + ": model của màn và nguồn health chính thức của rail không được nói hai chuyện khác nhau");
+        }
+
+        /// <summary>Nhãn menu "Xoá loại" và bảng 7.0 phải nói cùng một chuyện — cả cho phép/không lẫn CON SỐ nêu trong nhãn.</summary>
+        private static void AssertDeleteAgreesWithPolicy(LiveEventCalendarDocument document)
+        {
+            EventTypesModel model = EventTypesModel.Build(document, null, null);
+            for (int index = 0; index < document.EventTypes.Count; index++)
+            {
+                string typeId = document.EventTypes[index].TypeId;
+                LiveOpsConfirmDecision decision = LiveOpsConfirmationPolicy.Decide(LiveOpsEditOperation.RemoveEventType, document, null,
+                    null, LiveOpsDesignSample.NowUtc, typeId);
+                bool canDelete = model.CanDeleteType(typeId, out string menuLabel, out _);
+                Assert.AreEqual(decision.Requirement == LiveOpsConfirmRequirement.None, canDelete,
+                    typeId + ": nhãn menu và bảng 7.0 phải nói cùng một chuyện");
+                if (canDelete) continue;
+                StringAssert.Contains(decision.InUseCount.ToString(CultureInfo.InvariantCulture), menuLabel,
+                    typeId + ": số trong nhãn menu phải đúng bằng số policy đếm");
+            }
+        }
+
+        /// <summary>
+        /// (V-8) Câu dòng dưới bảng của loại lạ trong bản dán trùng TỪNG CHỮ với câu hậu quả luật 8 ở vùng Findings. Hai khoá
+        /// tồn tại vì màn phải nói được câu này trước lần kiểm đầu tiên (chưa có finding nào) — test này chặn hai bên trôi lệch.
+        /// </summary>
+        [Test]
+        public void UnknownTypeInRemote_TextMatchesFindingText()
+        {
+            IReadOnlyList<LiveOpsHubLanguageId> languages = LiveOpsHubLanguage.Available;
+            for (int index = 0; index < languages.Count; index++)
+            {
+                LiveOpsHubLanguageId language = languages[index];
+                Assert.IsTrue(LiveOpsHubStringCatalog.TryGetExact(language,
+                    nameof(LiveOpsHubStrings.EventTypesUnknownTypeInRemoteFormat), out string eventTypesText), language.ToString());
+                Assert.IsTrue(LiveOpsHubStringCatalog.TryGetExact(language,
+                    nameof(LiveOpsHubStrings.FindingUnknownTypeRemoteConsequenceFormat), out string findingText), language.ToString());
+                Assert.AreEqual(findingText, eventTypesText,
+                    language + ": một câu người dùng đọc thì một chữ — sửa vùng Findings phải sửa vùng EventTypes cùng nhịp");
+            }
         }
 
         private static EventTypeRow FindRow(EventTypesModel model, string typeId)

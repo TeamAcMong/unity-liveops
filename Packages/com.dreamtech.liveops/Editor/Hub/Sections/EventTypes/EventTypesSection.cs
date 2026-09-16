@@ -155,11 +155,25 @@ namespace DreamTech.LiveOps.Editor
         public void PopulateHeaderActions(VisualElement container)
         {
             if (container == null) throw new ArgumentNullException(nameof(container));
-            Button addButton = new Button(OnAddTypeClicked) { text = LiveOpsHubStrings.EventTypesAddTypeButton };
+            // Button LÀ TextElement: `text` được chính nút vẽ trên toàn bộ hộp nội dung, nên Image con nằm ĐÈ lên chữ chứ không
+            // đẩy chữ sang phải (ảnh h10 của lần trước: dấu cộng đè chữ "h", chữ sát viền). Chữ phải là Label con đặt SAU Image.
+            Button addButton = new Button(OnAddTypeClicked) { name = AddButtonName };
             addButton.AddToClassList(LiveOpsHubClassNames.Button);
             addButton.AddToClassList(LiveOpsHubClassNames.ButtonPrimary);
-            addButton.Insert(0, LiveOpsHubIcons.CreateImage(AddIconName, 14));
+            addButton.AddToClassList(LiveOpsHubClassNames.EventTypesAddButton);
+            Image addIcon = LiveOpsHubIcons.CreateImage(AddIconName, 14);
+            addIcon.name = AddButtonIconName;
+            addIcon.AddToClassList(LiveOpsHubClassNames.EventTypesAddButtonIcon);
+            addButton.Add(addIcon);
+            Label addLabel = new Label(LiveOpsHubStrings.EventTypesAddTypeButton) { name = AddButtonLabelName };
+            addLabel.AddToClassList(LiveOpsHubClassNames.EventTypesAddButtonLabel);
+            addButton.Add(addLabel);
+
             _addTypeSlot = new LiveOpsButtonSlot(addButton);
+            // Nút sống trong section header của shell, còn EventTypesSection.uss chỉ được nạp lên thân màn (cây khác) — không
+            // nạp thêm ở đây thì ba class của nút không có style. Sheet dùng chung (components.uss) thuộc gói khác, không sửa.
+            StyleSheet sheet = _services.LayoutLoader.LoadStyleSheet(LiveOpsHubPaths.EventTypesSectionUss);
+            if (sheet != null) _addTypeSlot.styleSheets.Add(sheet);
             _addTypeSlot.SetEnabledWithReason(HasAsset, HasAsset ? string.Empty : LiveOpsHubStrings.EventTypesEmptyNoAssetTitle);
             container.Add(_addTypeSlot);
         }
@@ -193,8 +207,19 @@ namespace DreamTech.LiveOps.Editor
         /// <summary>Icon dấu cộng của nút chính ([SD1 §2.1]) — tên có trong <see cref="LiveOpsHubIcons.AllDesignNames"/>.</summary>
         internal const string AddIconName = "Toolbar Plus";
 
+        /// <summary>Icon err 16px của hàng phát hiện trong card tham chiếu ([SD1 §2.2] "sọc Blocked, icon err").</summary>
+        internal const string ReferenceIconName = "console.erroricon.sml";
+
+        /// <summary>Nút chính "Thêm loại" và hai con của nó — test đo icon đứng TRƯỚC chữ và không đè lên chữ.</summary>
+        internal const string AddButtonName = "event-types-add";
+        internal const string AddButtonIconName = "event-types-add-icon";
+        internal const string AddButtonLabelName = "event-types-add-label";
+
         /// <summary>Tên element nút "Khai báo" của dòng loại chưa khai báo — test bấm đúng nút này.</summary>
         internal const string DeclareButtonName = "event-types-declare";
+
+        /// <summary>Tên element icon err của hàng phát hiện trong card tham chiếu.</summary>
+        internal const string ReferenceIconElementName = "event-types-reference-icon";
 
         private bool HasAsset
         {
@@ -288,16 +313,18 @@ namespace DreamTech.LiveOps.Editor
             {
                 EventTypeRow row = rows[index];
                 if (row.IsDeclared) continue;
+                _unknownBar.Add(BuildUndeclaredRow(row.TypeId, hasUndeclared));
                 hasUndeclared = true;
-                _unknownBar.Add(BuildUndeclaredRow(row.TypeId));
             }
             EventTypesVisibility.SetHidden(_unknownBar, !hasUndeclared);
         }
 
-        private VisualElement BuildUndeclaredRow(string typeId)
+        /// <param name="isStacked">Hàng thứ hai trở đi (USS không có <c>:first-child</c>) — chỉ nó mới cần khoảng cách trên.</param>
+        private VisualElement BuildUndeclaredRow(string typeId, bool isStacked)
         {
             VisualElement row = new VisualElement();
             row.AddToClassList(LiveOpsHubClassNames.EventTypesUnknownRow);
+            if (isStacked) row.AddToClassList(LiveOpsHubClassNames.EventTypesUnknownRowStacked);
 
             LiveOpsStateMark mark = new LiveOpsStateMark();
             mark.SetHealth(HealthState.Blocked);
@@ -329,6 +356,13 @@ namespace DreamTech.LiveOps.Editor
             VisualElement findingRow = new VisualElement();
             findingRow.AddToClassList(LiveOpsHubClassNames.FindingRow);
             findingRow.AddToClassList(LiveOpsHubClassNames.FindingStripeBlocked);
+
+            // [SD1 §2.2] "card chứa hàng phát hiện (sọc Blocked, icon err)": thiếu icon thì hàng này và dòng Blocked ngay trên
+            // nó (có LiveOpsStateMark) nói khác nhau về cùng một mức. Cỡ 16 là cỡ của hàng phát hiện ([FD §2.12]).
+            Image findingIcon = LiveOpsHubIcons.CreateImage(ReferenceIconName, 16);
+            findingIcon.name = ReferenceIconElementName;
+            findingIcon.AddToClassList(LiveOpsHubClassNames.EventTypesReferenceIcon);
+            findingRow.Add(findingIcon);
 
             // Hàng phát hiện là flex-row (sọc bên trái), nên hai dòng chữ phải nằm trong một cột riêng — không bọc thì headline
             // và dòng id luật dính vào nhau trên cùng một dòng.
@@ -374,7 +408,7 @@ namespace DreamTech.LiveOps.Editor
             LiveEventTypeDefinition type = new LiveEventTypeDefinition(typeId, displayName,
                 LiveEventTypeColorSlots.DefaultSlotFor(typeId), false, string.Empty);
             string message = string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.EventTypesToastAddedFormat, typeId);
-            if (ApplyEdit(new SetEventTypeEdit(type), message)) SelectType(typeId);
+            if (ApplyEdit(null, typeId, new SetEventTypeEdit(type), message)) SelectType(typeId);
         }
 
         private void DeclareType(string typeId)
@@ -382,7 +416,7 @@ namespace DreamTech.LiveOps.Editor
             LiveEventTypeDefinition type = new LiveEventTypeDefinition(typeId, string.Empty,
                 LiveEventTypeColorSlots.DefaultSlotFor(typeId), false, string.Empty);
             string message = string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.EventTypesToastDeclaredFormat, typeId);
-            if (ApplyEdit(new SetEventTypeEdit(type), message)) SelectType(typeId);
+            if (ApplyEdit(null, typeId, new SetEventTypeEdit(type), message)) SelectType(typeId);
         }
 
         private void OnTypeIdCommitted(string typeId, string newTypeId)
@@ -399,7 +433,7 @@ namespace DreamTech.LiveOps.Editor
             {
                 new RemoveEventTypeEdit(typeId), new SetEventTypeEdit(renamed),
             });
-            if (ApplyEdit(edit, message)) SelectType(newTypeId);
+            if (ApplyEdit(LiveOpsEditOperation.EditEventTypeFields, typeId, edit, message)) SelectType(newTypeId);
         }
 
         private void OnDisplayNameCommitted(string typeId, string displayName)
@@ -407,7 +441,7 @@ namespace DreamTech.LiveOps.Editor
             LiveEventTypeDefinition type = _model.DeclaredType(typeId);
             if (type == null || string.Equals(type.DisplayName, displayName, StringComparison.Ordinal)) return;
             string message = string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.EventTypesToastDisplayNameChangedFormat, typeId);
-            ApplyEdit(new SetEventTypeEdit(type.WithDisplayName(displayName)), message);
+            ApplyEdit(LiveOpsEditOperation.EditEventTypeFields, typeId, new SetEventTypeEdit(type.WithDisplayName(displayName)), message);
         }
 
         private void OnColorSlotPicked(string typeId, int colorSlot)
@@ -416,7 +450,7 @@ namespace DreamTech.LiveOps.Editor
             if (type == null || type.ColorSlot == colorSlot) return;
             string message = string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.EventTypesToastColorChangedFormat, typeId,
                 EventTypesModel.SlotNamedText(colorSlot));
-            ApplyEdit(new SetEventTypeEdit(type.WithColorSlot(colorSlot)), message);
+            ApplyEdit(LiveOpsEditOperation.EditEventTypeFields, typeId, new SetEventTypeEdit(type.WithColorSlot(colorSlot)), message);
         }
 
         private void OnResetColorRequested(string typeId)
@@ -431,7 +465,7 @@ namespace DreamTech.LiveOps.Editor
             string format = requiresJoin
                 ? LiveOpsHubStrings.EventTypesToastRequiresJoinOnFormat
                 : LiveOpsHubStrings.EventTypesToastRequiresJoinOffFormat;
-            ApplyEdit(new SetEventTypeEdit(type.WithRequiresJoin(requiresJoin)),
+            ApplyEdit(LiveOpsEditOperation.EditEventTypeFields, typeId, new SetEventTypeEdit(type.WithRequiresJoin(requiresJoin)),
                 string.Format(CultureInfo.InvariantCulture, format, typeId));
         }
 
@@ -440,7 +474,7 @@ namespace DreamTech.LiveOps.Editor
             LiveEventTypeDefinition type = _model.DeclaredType(typeId);
             if (type == null || string.Equals(type.DefaultConfigKey, configKey, StringComparison.Ordinal)) return;
             string message = string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.EventTypesToastConfigKeyChangedFormat, typeId);
-            ApplyEdit(new SetEventTypeEdit(type.WithDefaultConfigKey(configKey)), message);
+            ApplyEdit(LiveOpsEditOperation.EditEventTypeFields, typeId, new SetEventTypeEdit(type.WithDefaultConfigKey(configKey)), message);
         }
 
         private void OnShowInCalendarRequested(string typeId)
@@ -472,16 +506,30 @@ namespace DreamTech.LiveOps.Editor
         /// <summary>Xoá loại: bảng 7.0 cho xoá thẳng (toast Hoàn tác) khi không còn đợt/luật, và KHÔNG CHO khi còn.</summary>
         internal void DeleteType(string typeId)
         {
-            LiveOpsConfirmDecision decision = LiveOpsConfirmationPolicy.Decide(LiveOpsEditOperation.RemoveEventType,
-                _services.Session.Document, null, _services.Session.Publish.ActiveBaseline, _services.Clock.UtcNow, typeId);
-            if (decision.Requirement != LiveOpsConfirmRequirement.None) return;
             string message = string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.EventTypesToastRemovedFormat, typeId);
-            if (ApplyEdit(new RemoveEventTypeEdit(typeId), message)) SelectType(string.Empty);
+            if (ApplyEdit(LiveOpsEditOperation.RemoveEventType, typeId, new RemoveEventTypeEdit(typeId), message)) SelectType(string.Empty);
         }
 
-        /// <summary>Một chỗ duy nhất: phiên dựng Undo group tên bằng câu toast → toast Hoàn tác → health thành cũ.</summary>
-        private bool ApplyEdit(LiveEventCalendarEdit edit, string undoName)
+        /// <summary>
+        /// Một chỗ duy nhất cho MỌI lệnh sửa của màn: hỏi <see cref="LiveOpsConfirmationPolicy"/> đúng một lần (7.0 "mức xác
+        /// nhận — một nguồn duy nhất"), rồi phiên dựng Undo group tên bằng câu toast → toast Hoàn tác → health thành cũ.
+        /// </summary>
+        /// <param name="operation">
+        /// Ô của bảng 7.0. <c>null</c> = lệnh không có ô nào trong bảng: "Thêm loại" / "Khai báo" tạo định nghĩa mới, không
+        /// đụng mục nào đang có, và enum chưa khai <c>AddEventType</c> (mục 3 chỉ có <c>AddFixedEvent</c>/<c>AddRecurringRule</c>).
+        /// </param>
+        /// <param name="targetKey">Id loại mà lệnh đụng tới — policy đếm đợt/luật của đúng loại này.</param>
+        private bool ApplyEdit(LiveOpsEditOperation? operation, string targetKey, LiveEventCalendarEdit edit, string undoName)
         {
+            if (operation.HasValue)
+            {
+                LiveOpsConfirmDecision decision = LiveOpsConfirmationPolicy.Decide(operation.Value, _services.Session.Document,
+                    null, _services.Session.Publish.ActiveBaseline, _services.Clock.UtcNow, targetKey);
+                // P1: màn này không có ô nào cần hộp xác nhận (sửa field = "luôn", xoá loại = "không cho" khi còn đợt), nên mọi
+                // mức khác None là "không làm". Ô nào của bảng 7.0 đổi sang cấp 1/cấp 2 thì thêm nhánh mở hộp ở ĐÂY, một chỗ.
+                if (decision.Requirement != LiveOpsConfirmRequirement.None) return false;
+            }
+
             LiveOpsHubEditOutcome outcome = _services.Session.Apply(edit, undoName);
             if (!outcome.Applied) return false;
             _services.Bus.ShowToast(LiveOpsToastModel.ForEdit(undoName, outcome.UndoGroup));

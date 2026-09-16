@@ -58,6 +58,9 @@ namespace DreamTech.LiveOps.Editor
         private readonly Button _showInCalendarButton;
 
         private string _typeId = string.Empty;
+
+        /// <summary>Ô màu của loại đang hiện (-1 = chưa hiện loại nào) — để nhận ra "bấm lại chính ô đang bật".</summary>
+        private int _appliedColorSlot = -1;
         private bool _isApplyingModel;
 
         internal EventTypeInspector(VisualElement root)
@@ -185,7 +188,11 @@ namespace DreamTech.LiveOps.Editor
                 EventTypesVisibility.SetHidden(_titleLabel, !hasType);
                 EventTypesVisibility.SetHidden(_titleSwatch, !hasType);
                 EventTypesVisibility.SetHidden(_menuButton, !hasType);
-                if (!hasType) return;
+                if (!hasType)
+                {
+                    _appliedColorSlot = -1;
+                    return;
+                }
 
                 _titleLabel.text = row.TypeId;
                 for (int slot = 0; slot < _colorToggles.Length; slot++)
@@ -227,6 +234,7 @@ namespace DreamTech.LiveOps.Editor
 
         private void ApplyColorToggles(EventTypesModel model, EventTypeRow row)
         {
+            _appliedColorSlot = row.ColorSlot;
             IReadOnlyList<int> suggestions = model.SuggestedFreeSlots(row.TypeId);
             for (int slot = 0; slot < _colorToggles.Length; slot++)
             {
@@ -252,9 +260,19 @@ namespace DreamTech.LiveOps.Editor
             return null;
         }
 
+        /// <summary>Tên element của ô màu thứ <paramref name="colorSlot"/> — lệnh chụp chỉ ghi số đo element CÓ TÊN.</summary>
+        internal static string ColorSlotElementName(int colorSlot)
+        {
+            return ColorSlotsElementName + "-" + colorSlot.ToString(CultureInfo.InvariantCulture);
+        }
+
         private ToolbarToggle BuildColorToggle(int colorSlot)
         {
-            ToolbarToggle toggle = new ToolbarToggle { tooltip = ColorSlotTooltip(colorSlot) };
+            ToolbarToggle toggle = new ToolbarToggle
+            {
+                name = ColorSlotElementName(colorSlot),
+                tooltip = ColorSlotTooltip(colorSlot),
+            };
             toggle.AddToClassList(LiveOpsHubClassNames.EventTypesColorSlot);
             VisualElement swatch = new VisualElement();
             swatch.AddToClassList(LiveOpsHubClassNames.Swatch);
@@ -273,7 +291,15 @@ namespace DreamTech.LiveOps.Editor
 
         private void OnColorToggleChanged(int colorSlot, bool isOn)
         {
-            if (_isApplyingModel || !isOn || _typeId.Length == 0) return;
+            if (_isApplyingModel || _typeId.Length == 0) return;
+            if (!isOn)
+            {
+                // Tám ô màu là MỘT nhóm, luôn có đúng một ô bật ([SD1 §2.1] mục 3). ToolbarToggle là Toggle nên bấm lại ô đang
+                // bật sẽ tự lật về false; thoát im lặng ở đây là tài liệu không đổi → không có DocumentChanged → Show() không
+                // chạy lại → tâm ô về "không ô nào bật" và không bao giờ được vẽ lại. Trả lại ngay tại chỗ.
+                if (colorSlot == _appliedColorSlot) _colorToggles[colorSlot].SetValueWithoutNotify(true);
+                return;
+            }
             ColorSlotPicked?.Invoke(_typeId, colorSlot);
         }
 

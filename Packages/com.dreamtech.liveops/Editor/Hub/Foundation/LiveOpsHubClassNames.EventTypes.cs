@@ -11,6 +11,14 @@ namespace DreamTech.LiveOps.Editor
         internal const string EventTypesBody = "liveops-hub-event-types-body";
 
         /// <summary>
+        /// Nút chính "Thêm loại" của section header: <c>Button.text</c> được chính Button vẽ trên TOÀN BỘ hộp nội dung, nên
+        /// icon con sẽ nằm đè lên chữ. Nút này để rỗng <c>text</c> và xếp Image rồi Label thành hàng ([FD §2.12]).
+        /// </summary>
+        internal const string EventTypesAddButton = "liveops-hub-event-types-add-button";
+        internal const string EventTypesAddButtonIcon = "liveops-hub-event-types-add-button-icon";
+        internal const string EventTypesAddButtonLabel = "liveops-hub-event-types-add-button-label";
+
+        /// <summary>
         /// Ẩn một phần của màn. UI Toolkit KHÔNG có <c>VisualElement.hidden</c>, và gán <c>style.display</c> là style inline
         /// (ngoài 10 chỗ được phép [FD §2.14]) — nên trạng thái "không hiện" là một class như mọi trạng thái khác.
         /// </summary>
@@ -34,9 +42,15 @@ namespace DreamTech.LiveOps.Editor
         internal const string EventTypesRowUndeclared = "liveops-hub-event-types-row--undeclared";
         internal const string EventTypesSwatchUndeclared = "liveops-hub-event-types-swatch--undeclared";
 
-        /// <summary>Dòng dưới bảng của loại chưa khai báo: dấu Blocked + câu + nút "Khai báo".</summary>
+        /// <summary>
+        /// Dòng dưới bảng của loại chưa khai báo: dấu Blocked + câu + nút "Khai báo". Dải là CỘT (mỗi loại chưa khai báo một
+        /// hàng riêng), hàng mới là hàng ngang — hai loại lạ cùng lúc phải xếp chồng, không bóp cạnh nhau.
+        /// </summary>
         internal const string EventTypesUnknownBar = "liveops-hub-event-types-unknown-bar";
         internal const string EventTypesUnknownRow = "liveops-hub-event-types-unknown-row";
+
+        /// <summary>Hàng thứ hai trở đi của dải: USS không có <c>:first-child</c> nên khoảng cách 4px bật bằng class từ C#.</summary>
+        internal const string EventTypesUnknownRowStacked = "liveops-hub-event-types-unknown-row--stacked";
         internal const string EventTypesUnknownText = "liveops-hub-event-types-unknown-text";
 
         /// <summary>Card tham chiếu phát hiện của Kiểm lịch (sọc Blocked) nằm trong cột bảng.</summary>
@@ -44,6 +58,9 @@ namespace DreamTech.LiveOps.Editor
 
         /// <summary>Cột chữ trong hàng phát hiện: headline rồi dòng id luật — hàng gốc là flex-row nên phải có bọc riêng.</summary>
         internal const string EventTypesReferenceText = "liveops-hub-event-types-reference-text";
+
+        /// <summary>Icon err 16px mở đầu hàng phát hiện của card tham chiếu ([SD1 §2.2] "sọc Blocked, icon err").</summary>
+        internal const string EventTypesReferenceIcon = "liveops-hub-event-types-reference-icon";
 
         // Inspector 300px.
         internal const string EventTypesInspector = "liveops-hub-event-types-inspector";

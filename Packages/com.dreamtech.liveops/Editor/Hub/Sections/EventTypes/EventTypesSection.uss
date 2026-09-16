@@ -54,6 +54,29 @@
     width: 240px;
 }
 
+/* ---------------------------------------------------------------- Nút chính "Thêm loại" của section header [SD1 §2.1] */
+
+/*
+ * Button LÀ một TextElement: `Button.text` được chính nút vẽ trên toàn bộ hộp nội dung, nên Image con chỉ chồng lên chữ chứ
+ * không đẩy chữ sang phải. Nút này bỏ `text`, xếp Image rồi Label thành hàng — [FD §2.12]: icon 14×14, margin-left −2,
+ * margin-right 4, flex-shrink 0.
+ */
+.liveops-hub-event-types-add-button {
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+}
+
+.liveops-hub-event-types-add-button-icon {
+    margin-left: -2px;
+    margin-right: 4px;
+}
+
+.liveops-hub-event-types-add-button-label {
+    margin: 0;
+    padding: 0;
+}
+
 /* ---------------------------------------------------------------- Bảng */
 
 .liveops-hub-event-types-cell {
@@ -101,10 +124,14 @@
 
 /* ---------------------------------------------------------------- Dòng Blocked của loại chưa khai báo [SD1 §2.2] */
 
+/*
+ * Dải là CỘT: BuildUnknownBar thêm một hàng cho MỖI loại chưa khai báo, mà bản dán có thể có hai loại lạ cùng lúc. Để dải là
+ * hàng ngang thì hai hàng nằm cạnh nhau và bị bóp — và hàng con không có flex-grow nên nút "Khai báo" dừng ngay sau chữ thay
+ * vì ra mép phải như [SD1 §2.2] vẽ.
+ */
 .liveops-hub-event-types-unknown-bar {
     flex-shrink: 0;
-    flex-direction: row;
-    align-items: center;
+    flex-direction: column;
     padding: 6px;
     border-top-width: 1px;
     border-top-color: var(--unity-colors-window-border);
@@ -113,6 +140,11 @@
 .liveops-hub-event-types-unknown-row {
     flex-direction: row;
     align-items: center;
+    flex-shrink: 0;
+}
+
+/* Hàng đầu sát viền trên của dải (đã có padding 6); từ hàng thứ hai mới cần khoảng cách — USS không có :first-child. */
+.liveops-hub-event-types-unknown-row--stacked {
     margin-top: 4px;
 }
 
@@ -134,6 +166,11 @@
     flex-grow: 1;
     padding: 4px 0;
     min-width: 0;
+}
+
+/* Icon err 16px của hàng phát hiện ([FD §2.12]: hàng phát hiện dùng cỡ 16); 6px là khoảng cách tới cột chữ. */
+.liveops-hub-event-types-reference-icon {
+    margin-right: 6px;
 }
 
 /* ---------------------------------------------------------------- Inspector */
