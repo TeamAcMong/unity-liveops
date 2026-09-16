@@ -23,15 +23,18 @@ namespace DreamTech.LiveOps.Editor
         private readonly VisualElement _container;
         private readonly Action<OverviewNeedsActionRow> _rowActivated;
         private readonly Action<LiveOpsHubNavigation> _navigate;
+        private readonly Func<OverviewNeedsActionRow, string> _disabledReasonOf;
 
         /// <param name="rowActivated">Nút của hàng bị bấm — màn quyết định làm gì (điều hướng, kiểm lại, dán JSON).</param>
         /// <param name="navigate">Hai nút của empty (c) đi thẳng tới màn, không qua hàng nào.</param>
+        /// <param name="disabledReasonOf">Câu vì sao nút của hàng đang khoá — bắt buộc có khi khoá ([FD §2.16]).</param>
         internal OverviewNeedsActionList(VisualElement container, Action<OverviewNeedsActionRow> rowActivated,
-            Action<LiveOpsHubNavigation> navigate)
+            Action<LiveOpsHubNavigation> navigate, Func<OverviewNeedsActionRow, string> disabledReasonOf)
         {
             _container = container ?? throw new ArgumentNullException(nameof(container));
             _rowActivated = rowActivated ?? throw new ArgumentNullException(nameof(rowActivated));
             _navigate = navigate ?? throw new ArgumentNullException(nameof(navigate));
+            _disabledReasonOf = disabledReasonOf ?? throw new ArgumentNullException(nameof(disabledReasonOf));
         }
 
         /// <param name="showEmpty">true = trạng thái (c): empty thay danh sách, hàng NotMeasured vẫn liệt kê.</param>
@@ -141,7 +144,7 @@ namespace DreamTech.LiveOps.Editor
             LiveOpsButtonSlot slot = new LiveOpsButtonSlot(button);
             slot.AddToClassList(LiveOpsHubClassNames.OverviewNeedButton);
             // Nút khoá LUÔN in lý do thành chữ cạnh nút (SPIKE-B SP-3) — tooltip chỉ là đường phụ.
-            LiveOpsHubStyle.SetEnabledWithReason(slot, row.IsButtonEnabled, row.DisabledReason);
+            LiveOpsHubStyle.SetEnabledWithReason(slot, row.IsButtonEnabled, _disabledReasonOf(row));
             return slot;
         }
     }

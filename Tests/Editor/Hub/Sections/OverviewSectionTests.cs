@@ -197,6 +197,7 @@ namespace DreamTech.LiveOps.Editor.Tests
         private void AssertRequiredElements()
         {
             VisualElement view = View();
+            Assert.AreEqual(OverviewSection.BodyElementName, view.name, "root của view phải là thân màn Tổng quan");
             foreach (IHubSection section in ((IHubHost)_window).Sections)
             {
                 if (!string.Equals(section.Id, LiveOpsHubSections.Ids.Overview, StringComparison.Ordinal)) continue;
@@ -250,13 +251,17 @@ namespace DreamTech.LiveOps.Editor.Tests
             return null;
         }
 
-        /// <summary>Bấm nút bằng đúng đường của UI Toolkit (ClickEvent) thay vì gọi callback tay — nút khoá phải thật sự không chạy.</summary>
+        /// <summary>
+        /// Bấm nút bằng đúng đường của UI Toolkit thay vì gọi callback tay: <c>NavigationSubmitEvent</c> đi qua chính
+        /// <c>Clickable</c> của Button (đường Enter), nên nút đang khoá thật sự không chạy. ClickEvent gửi tay KHÔNG đủ —
+        /// Clickable phát ClickEvent chứ không nghe nó.
+        /// </summary>
         private static void Click(Button button)
         {
-            using (ClickEvent clickEvent = ClickEvent.GetPooled())
+            using (NavigationSubmitEvent submitEvent = NavigationSubmitEvent.GetPooled(EventModifiers.None))
             {
-                clickEvent.target = button;
-                button.SendEvent(clickEvent);
+                submitEvent.target = button;
+                button.SendEvent(submitEvent);
             }
         }
     }
