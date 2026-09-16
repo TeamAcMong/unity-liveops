@@ -159,6 +159,136 @@ namespace DreamTech.LiveOps.Editor
             table.Add(nameof(LiveOpsHubStrings.ShellUnknownSectionWarningFormat),
                 vietnamese: "LiveOps Hub: không có màn id '{0}'. Id hợp lệ ở LiveOpsHubSections.Ids — hiện Tổng quan.",
                 english: "LiveOps Hub: there is no section with id '{0}'. Valid ids are in LiveOpsHubSections.Ids — showing Overview.");
+
+            // Header 26 px (G-HOSTUI, W4)
+            table.Add(nameof(LiveOpsHubStrings.ShellGoToPlaceholder),
+                vietnamese: "Đi tới màn…",
+                english: "Go to section…");
+            table.Add(nameof(LiveOpsHubStrings.ShellGoToTooltip),
+                vietnamese: "Mở bảng đi tới màn",
+                english: "Open the go-to-section palette");
+            table.Add(nameof(LiveOpsHubStrings.ShellChipCalendarKey),
+                vietnamese: "Lịch",
+                english: "Calendar");
+            table.Add(nameof(LiveOpsHubStrings.ShellChipNoCalendar),
+                vietnamese: "Chưa có lịch",
+                english: "No calendar");
+            table.Add(nameof(LiveOpsHubStrings.ShellChipNoCalendarDraft),
+                vietnamese: "Mở Tổng quan để tạo lịch",
+                english: "Open Overview to create a calendar");
+            table.Add(nameof(LiveOpsHubStrings.ShellChipNoCalendarTooltip),
+                vietnamese: "Chưa có LiveEventCalendarAsset nào được chọn — mở Tổng quan để tạo hoặc chọn lịch.",
+                english: "No LiveEventCalendarAsset is selected — open Overview to create or pick one.");
+            table.Add(nameof(LiveOpsHubStrings.ShellChipAssetTooltipFormat),
+                vietnamese: "{0} — bấm để chọn asset trong Project.",
+                english: "{0} — click to ping the asset in the Project window.");
+            table.Add(nameof(LiveOpsHubStrings.ShellChipUnsaved),
+                vietnamese: "Chưa lưu",
+                english: "Unsaved");
+            table.Add(nameof(LiveOpsHubStrings.ShellChipUnsavedWithKeyFormat),
+                vietnamese: "Chưa lưu · {0}",
+                english: "Unsaved · {0}");
+            table.Add(nameof(LiveOpsHubStrings.ShellChipUnsavedTooltip),
+                vietnamese: "Lưu lịch vào asset.",
+                english: "Save the calendar to the asset.");
+            table.Add(nameof(LiveOpsHubStrings.ShellChipPublishedDiffFormat),
+                vietnamese: "{0} khác bản đã đăng",
+                english: "{0} differ from the published copy");
+            table.Add(nameof(LiveOpsHubStrings.ShellChipPublishedDiffTooltip),
+                vietnamese: "Mở Xuất JSON để xem từng thay đổi so với bản đã đăng.",
+                english: "Open Export JSON to review each change against the published copy.");
+            table.Add(nameof(LiveOpsHubStrings.ShellChipDiffersFromPublishedFormat),
+                vietnamese: "Khác bản đã đăng · {0} thay đổi",
+                english: "Differs from published · {0} changes");
+            table.Add(nameof(LiveOpsHubStrings.ShellChipNeverPublished),
+                vietnamese: "Chưa có dấu đã đăng",
+                english: "No publish stamp yet");
+            table.Add(nameof(LiveOpsHubStrings.ShellChipMatchesPublishedFormat),
+                vietnamese: "Khớp dấu đã đăng {0}",
+                english: "Matches publish stamp {0}");
+            table.Add(nameof(LiveOpsHubStrings.ShellChipMatchesPublishedWithoutTime),
+                vietnamese: "Khớp dấu đã đăng",
+                english: "Matches publish stamp");
+
+            // Status bar 20 px (G-HOSTUI, W4)
+            table.Add(nameof(LiveOpsHubStrings.ShellStatusCheckedFormat),
+                vietnamese: "Kiểm lúc {0} UTC · {1} luật · {2} phát hiện · lịch chưa đổi từ lần kiểm",
+                english: "Checked at {0} UTC · {1} rules · {2} findings · calendar unchanged since the check");
+            table.Add(nameof(LiveOpsHubStrings.ShellStatusCheckingFormat),
+                vietnamese: "Đang kiểm {0}/{1} luật…",
+                english: "Checking rule {0}/{1}…");
+            table.Add(nameof(LiveOpsHubStrings.ShellStatusNeverChecked),
+                vietnamese: "Chưa kiểm lần nào — F5 để kiểm",
+                english: "Never checked — press F5 to check");
+            table.Add(nameof(LiveOpsHubStrings.ShellStatusStaleEditedFormat),
+                vietnamese: "Lịch đã đổi lúc {0} UTC, sau lần kiểm {1} — F5 để kiểm lại",
+                english: "Calendar changed at {0} UTC, after the {1} check — press F5 to check again");
+            table.Add(nameof(LiveOpsHubStrings.ShellStatusStaleMilestoneFormat),
+                vietnamese: "Đã qua mốc {0} sau lần kiểm {1} — F5 để kiểm lại",
+                english: "Passed the {0} milestone after the {1} check — press F5 to check again");
+            table.Add(nameof(LiveOpsHubStrings.ShellStatusStaleInterrupted),
+                vietnamese: "Lần kiểm bị cắt ngang khi Unity nạp lại script — F5 để kiểm lại",
+                english: "The check was cut short when Unity reloaded scripts — press F5 to check again");
+            table.Add(nameof(LiveOpsHubStrings.ShellStatusRecentActionWithKeyFormat),
+                vietnamese: "Vừa làm: {0} ({1})",
+                english: "Just did: {0} ({1})");
+            table.Add(nameof(LiveOpsHubStrings.ShellStatusRecentActionFormat),
+                vietnamese: "Vừa làm: {0}",
+                english: "Just did: {0}");
+            table.Add(nameof(LiveOpsHubStrings.ShellStatusPublishedFormat),
+                vietnamese: "đã đăng {0}",
+                english: "published {0}");
+            table.Add(nameof(LiveOpsHubStrings.ShellStatusShaFormat),
+                vietnamese: "sha {0}",
+                english: "sha {0}");
+            table.Add(nameof(LiveOpsHubStrings.ShellStatusDeviceTimeFormat),
+                vietnamese: "{0} {1} ({2})",
+                english: "{0} {1} ({2})");
+
+            // Menu ⋮
+            table.Add(nameof(LiveOpsHubStrings.ShellCheckAllMenuFormat),
+                vietnamese: "Kiểm lại tất cả ({0})",
+                english: "Check everything again ({0})");
+            table.Add(nameof(LiveOpsHubStrings.ShellCheckAllMenuWithoutKey),
+                vietnamese: "Kiểm lại tất cả",
+                english: "Check everything again");
+
+            // Băng tệp đã đổi trên đĩa (SPIKE-B SP-8b)
+            table.Add(nameof(LiveOpsHubStrings.ShellDiskBannerFormat),
+                vietnamese: "{0} đã đổi trên đĩa lúc {1}. Bản đang sửa trong Editor vẫn còn — chọn giữ bản nào.",
+                english: "{0} changed on disk at {1}. Your in-editor draft is still here — choose which copy to keep.");
+            table.Add(nameof(LiveOpsHubStrings.ShellDiskBannerReloadButton),
+                vietnamese: "Tải lại",
+                english: "Reload");
+            table.Add(nameof(LiveOpsHubStrings.ShellDiskBannerDiffButton),
+                vietnamese: "Xem khác biệt",
+                english: "View differences");
+            table.Add(nameof(LiveOpsHubStrings.ShellDiskBannerKeepButton),
+                vietnamese: "Giữ bản trong Editor",
+                english: "Keep the editor copy");
+            table.Add(nameof(LiveOpsHubStrings.ShellDiskBannerReloadTooltipFormat),
+                vietnamese: "Lấy bản trên đĩa; {0} thay đổi chưa lưu sẽ mất.",
+                english: "Take the disk copy; {0} unsaved changes are lost.");
+
+            // Phím tắt toàn hub (8.7)
+            table.Add(nameof(LiveOpsHubStrings.ShellShortcutOpenPalette),
+                vietnamese: "Mở bảng đi tới màn",
+                english: "Open go-to-section palette");
+            table.Add(nameof(LiveOpsHubStrings.ShellShortcutSaveCalendar),
+                vietnamese: "Lưu lịch",
+                english: "Save calendar");
+            table.Add(nameof(LiveOpsHubStrings.ShellShortcutCheckAll),
+                vietnamese: "Kiểm lại tất cả",
+                english: "Check everything again");
+            table.Add(nameof(LiveOpsHubStrings.ShellShortcutNextFinding),
+                vietnamese: "Phát hiện kế tiếp",
+                english: "Next finding");
+            table.Add(nameof(LiveOpsHubStrings.ShellShortcutPreviousFinding),
+                vietnamese: "Phát hiện trước đó",
+                english: "Previous finding");
+            table.Add(nameof(LiveOpsHubStrings.ShellShortcutGoToSectionFormat),
+                vietnamese: "Đi tới màn {0}",
+                english: "Go to section {0}");
         }
     }
 }
