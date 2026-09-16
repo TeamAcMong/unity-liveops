@@ -20,6 +20,21 @@ namespace DreamTech.LiveOps.Editor.Tests
         private const string RunningEventId = "weekly-pass-35";
         private const string RenamedRunningEventId = "pass-35";
 
+        // Số của thiết kế ([SD2 §2.1] "Tất cả 6 | Bị bỏ 2 | Mất tiến độ 1 | Nên xem 2 | Chưa kiểm 1", "6 luật đã qua").
+        // Ghim số TUYỆT ĐỐI chứ không so lại với chính báo cáo vừa sinh ra model: so với chính nó thì model đếm sai kiểu gì
+        // cũng xanh, và bảng tab của hub sẽ nói dối đúng như validator nói dối.
+        private const int DesignAllTabCount = 6;
+        private const int DesignDroppedCount = 2;
+        private const int DesignProgressLostCount = 1;
+        private const int DesignShouldReviewCount = 2;
+        private const int DesignNotMeasuredCount = 1;
+        private const int DesignPassedRuleCount = 6;
+
+        private const string CleanEventType = "treasure-hunt";
+        private const string CleanEventTypeName = "Săn kho báu";
+        private const string CleanConfigKey = "hunt_default";
+        private const int CleanColorSlot = 2;
+
         [SetUp]
         public void SetUp()
         {
@@ -53,6 +68,124 @@ namespace DreamTech.LiveOps.Editor.Tests
             Assert.AreEqual(report.RuleResults.Count, report.Summary.PassedRuleCount + report.Summary.NotMeasuredRuleCount
                 + report.Summary.NotApplicableRuleCount + RulesWithFindings(report), "mỗi luật chỉ được đếm một lần");
             Assert.AreEqual(5, model.SummaryParts.Count, "dải summary đúng năm cặp dấu + số");
+
+            Assert.AreEqual(DesignAllTabCount, model.Tabs[0].Count, "[SD2 §2.1] tab \"Tất cả 6\"");
+            Assert.AreEqual(DesignDroppedCount, TotalOf(model, ValidationGroupKind.Dropped), "[SD2 §2.1] \"Bị bỏ 2\"");
+            Assert.AreEqual(DesignProgressLostCount, TotalOf(model, ValidationGroupKind.ProgressLost), "[SD2 §2.1] \"Mất tiến độ 1\"");
+            Assert.AreEqual(DesignShouldReviewCount, TotalOf(model, ValidationGroupKind.ShouldReview), "[SD2 §2.1] \"Nên xem 2\"");
+            Assert.AreEqual(DesignNotMeasuredCount, TotalOf(model, ValidationGroupKind.NotMeasured), "[SD2 §2.1] \"Chưa kiểm 1\"");
+            Assert.AreEqual(DesignPassedRuleCount, TotalOf(model, ValidationGroupKind.Passed), "[SD2 §2.1] card \"6 luật đã qua\"");
+        }
+
+        [Test]
+        public void StaleByEdit_NoticeShowsBothMomentsWithSeconds()
+        {
+            // [SD2 §2.8]: "Lịch đã đổi lúc 08:46:50 UTC, sau lần kiểm 08:46:30." Hai mốc cách nhau 20 GIÂY — in bằng giờ chỉ
+            // tới phút thì câu thành "đã đổi lúc 08:46, sau lần kiểm 08:46" và mất hẳn nghĩa "sau".
+            LiveOpsHubServices services = LiveOpsHubTestServices.ForScenario(LiveOpsHubTestServices.StaleCheckScenario);
+            Assume.That(services.Session.Check.StaleReason, Is.EqualTo(LiveOpsHubCheckStaleReason.CalendarEdited));
+
+            ValidationViewModel model = Build(services);
+
+            Assert.AreEqual(ValidationBodyState.Stale, model.BodyState);
+            string editedAt = ClockWithSeconds(LiveOpsHubTestServices.EditedAfterCheckUtc);
+            string checkedAt = ClockWithSeconds(LiveOpsHubTestServices.CheckedAtUtc);
+            Assert.AreNotEqual(editedAt, checkedAt, "fixture phải có hai mốc khác nhau, nếu không test không chứng minh được gì");
+            StringAssert.Contains(editedAt, model.StaleNotice, "câu phải nêu giờ lịch đổi, có giây");
+            StringAssert.Contains(checkedAt, model.StaleNotice, "câu phải nêu giờ lần kiểm, có giây");
+            StringAssert.Contains(checkedAt, model.SummaryRightText, "câu phải của dải summary cũng in giây ([SD2 §2.1])");
+        }
+
+        [Test]
+        public void NoErrors_KeepsNotMeasuredGroupBesideEmptyBlock()
+        {
+            // [SD2 §2.8] "Không còn lỗi" = khối empty + hàng Chưa kiểm VẪN Ở LẠI. Nhóm Chưa kiểm là chỗ duy nhất nói
+            // "luật này không tính là đã qua" và là chỗ duy nhất có nút "Dán JSON đang chạy…".
+            LiveOpsHubServices services = ServicesFor(CleanDocument());
+            services.Session.RunCheckToCompletion();
+
+            ValidationViewModel model = Build(services);
+
+            Assert.AreEqual(ValidationBodyState.NoErrors, model.BodyState);
+            Assert.AreEqual(0, TotalOf(model, ValidationGroupKind.Dropped));
+            Assert.AreEqual(0, TotalOf(model, ValidationGroupKind.ProgressLost));
+            Assert.AreEqual(0, TotalOf(model, ValidationGroupKind.ShouldReview));
+            Assert.Greater(TotalOf(model, ValidationGroupKind.NotMeasured), 0, "remote-snapshot-drift chưa dán JSON nên vẫn là một luật chưa kiểm");
+            Assert.Greater(RowsOf(model, ValidationGroupKind.NotMeasured).Count, 0, "hàng của nhóm Chưa kiểm phải còn để vẽ");
+        }
+
+        [Test]
+        public void ShouldReviewOnly_KeepsCardsInsteadOfEmptyBlock()
+        {
+            // [SD2 §4 mục 23]: hết Bị bỏ / Mất tiến độ mà còn Nên xem thì KHÔNG dùng empty — card vẫn vẽ, chỉ thêm dòng note Ok.
+            LiveOpsHubServices services = ServicesFor(ShouldReviewOnlyDocument());
+            services.Session.RunCheckToCompletion();
+
+            ValidationViewModel model = Build(services);
+
+            Assert.AreEqual(ValidationBodyState.ShouldReviewOnly, model.BodyState);
+            Assert.AreEqual(0, TotalOf(model, ValidationGroupKind.Dropped));
+            Assert.AreEqual(0, TotalOf(model, ValidationGroupKind.ProgressLost));
+            Assert.Greater(RowsOf(model, ValidationGroupKind.ShouldReview).Count, 0, "phải còn hàng Nên xem để vẽ card");
+        }
+
+        [Test]
+        public void IgnorableFinding_HasNeitherButtonNorLink()
+        {
+            // Mục 12 I-7: W4 ẩn hẳn "Bỏ qua cảnh báo…". Đổ chữ nút vào link sẽ ra một link mang chính chữ đó mà bấm vào lại
+            // nhảy sang màn Lịch — hàng nói một đằng làm một nẻo.
+            LiveOpsHubServices services = LiveOpsHubTestServices.FromDesignSample();
+            ValidationViewModel model = Build(services);
+            ValidationRow ignorableRow = FindIgnorableRow(model);
+
+            Assume.That(ignorableRow, Is.Not.Null, "lịch mẫu có một cảnh báo bỏ qua được (long gap)");
+            Assert.AreEqual(ValidationRowAction.None, ignorableRow.Action);
+            Assert.IsEmpty(ignorableRow.ActionText);
+            Assert.IsEmpty(ignorableRow.LinkText, "W4 không có nút lẫn link cho hàng Bỏ qua cảnh báo…");
+        }
+
+        private static ValidationRow FindIgnorableRow(ValidationViewModel model)
+        {
+            foreach (ValidationGroup group in model.Groups)
+            {
+                foreach (ValidationRow row in group.Rows)
+                {
+                    if (row.Finding != null && row.Finding.RepairKind == LiveEventCalendarRepairKind.Ignorable) return row;
+                }
+            }
+            return null;
+        }
+
+        /// <summary>Cùng khuôn giờ có giây mà status bar và màn Kiểm lịch dùng — test không được tự viết một khuôn khác.</summary>
+        private static string ClockWithSeconds(DateTime utc)
+        {
+            return utc.ToString("HH:mm:ss", System.Globalization.CultureInfo.InvariantCulture);
+        }
+
+        /// <summary>Lịch sạch: một loại, một đợt tương lai TỰ khai config key — không luật nào có gì để nói.</summary>
+        private static LiveEventCalendarDocument CleanDocument()
+        {
+            return new LiveEventCalendarDocumentBuilder()
+                .WithEventType(new LiveEventTypeDefinition(CleanEventType, CleanEventTypeName, CleanColorSlot, false, CleanConfigKey))
+                .WithFixedEvent(new FixedLiveEventEntry("entry-hunt-clean", "hunt-1001", CleanEventType,
+                    "2026-10-01T00:00:00Z", "2026-10-02T00:00:00Z", "hunt_v1"))
+                .Build();
+        }
+
+        /// <summary>Cùng lịch đó nhưng đợt KHÔNG tự khai config key: chỉ còn một phát hiện Nên xem.</summary>
+        private static LiveEventCalendarDocument ShouldReviewOnlyDocument()
+        {
+            return new LiveEventCalendarDocumentBuilder()
+                .WithEventType(new LiveEventTypeDefinition(CleanEventType, CleanEventTypeName, CleanColorSlot, false, CleanConfigKey))
+                .WithFixedEvent(new FixedLiveEventEntry("entry-hunt-inherit", "hunt-1001", CleanEventType,
+                    "2026-10-01T00:00:00Z", "2026-10-02T00:00:00Z", string.Empty))
+                .Build();
+        }
+
+        private static LiveOpsHubServices ServicesFor(LiveEventCalendarDocument document)
+        {
+            return LiveOpsHubTestServices.Build(LiveOpsHubTestServices.CreateBuilder(null)
+                .WithCalendarAsset(LiveOpsHubTestServices.CreateMemoryAsset(document)));
         }
 
         [Test]
@@ -145,7 +278,8 @@ namespace DreamTech.LiveOps.Editor.Tests
             Assert.IsNotEmpty(model.StaleNotice);
             StringAssert.Contains(services.Format.ShortDateTimeUtc(check.PassedMilestoneUtc.Value), model.StaleNotice,
                 "câu phải nêu đúng mốc đã qua, không chỉ nói chung chung là cũ");
-            StringAssert.Contains(services.Format.ShortDateTimeUtc(check.LastReport.CheckedAtUtc), model.StaleNotice);
+            // Mốc là một điểm trên lịch (ngày + giờ), lần kiểm là một thời điểm trong phiên nên in có giây ([SD2 §2.8]).
+            StringAssert.Contains(ClockWithSeconds(check.LastReport.CheckedAtUtc), model.StaleNotice);
         }
 
         /// <summary>Đủ xa để vượt mốc gần nhất của lịch mẫu (đợt 14/9 và 16/9 nằm trong tầm này).</summary>

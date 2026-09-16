@@ -13,6 +13,9 @@ namespace DreamTech.LiveOps.Editor
         internal ValidationGroupCard(ValidationGroup group, bool isStale)
         {
             Group = group ?? throw new ArgumentNullException(nameof(group));
+            // Card có TÊN để lệnh chụp ghi được số đo của nó (9.5): card "Đã bỏ qua" phải đúng 170px, card "đã qua" giãn phần
+            // còn lại — hai số của [SD2 §2.1] chỉ kiểm được trên ảnh khi element có tên.
+            name = ElementNameOf(group.Kind);
             AddToClassList(LiveOpsHubClassNames.Card);
             AddToClassList(LiveOpsHubClassNames.ValidationGroupCard);
             AddToClassList(GroupClassOf(group.Kind));
@@ -129,6 +132,19 @@ namespace DreamTech.LiveOps.Editor
                 if (index == rows.Count - 1) row.MarkAsLast();
                 Body.Add(row);
                 _rows.Add(row);
+            }
+        }
+
+        private static string ElementNameOf(ValidationGroupKind kind)
+        {
+            switch (kind)
+            {
+                case ValidationGroupKind.Dropped: return LiveOpsHubPaths.ValidationElementNames.GroupCardPrefix + "dropped";
+                case ValidationGroupKind.ProgressLost: return LiveOpsHubPaths.ValidationElementNames.GroupCardPrefix + "progress-lost";
+                case ValidationGroupKind.ShouldReview: return LiveOpsHubPaths.ValidationElementNames.GroupCardPrefix + "should-review";
+                case ValidationGroupKind.NotMeasured: return LiveOpsHubPaths.ValidationElementNames.GroupCardPrefix + "not-measured";
+                case ValidationGroupKind.Passed: return LiveOpsHubPaths.ValidationElementNames.GroupCardPrefix + "passed";
+                default: return LiveOpsHubPaths.ValidationElementNames.GroupCardPrefix + "ignored";
             }
         }
 

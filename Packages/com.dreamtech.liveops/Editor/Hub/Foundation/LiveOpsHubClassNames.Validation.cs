@@ -14,7 +14,14 @@ namespace DreamTech.LiveOps.Editor
         internal const string ValidationPage = "liveops-hub-validation-page";
         internal const string ValidationToolbar = "liveops-hub-validation-toolbar";
         internal const string ValidationToolbarSpacer = "liveops-hub-validation-toolbar-spacer";
+
+        /// <summary>Vùng bọc ToolbarMenu "Loại event: …" — khe 6px sau nhóm tab ([SD2 §2.1]) nằm ở đây, không ở từng tab.</summary>
+        internal const string ValidationTypeMenu = "liveops-hub-validation-type-menu";
+
         internal const string ValidationSearch = "liveops-hub-validation-search";
+
+        /// <summary>Icon search 10px trong ô tìm ([SD2 §2.1]): ô không có nhãn nên icon là thứ duy nhất nói ô để làm gì.</summary>
+        internal const string ValidationSearchIcon = "liveops-hub-validation-search-icon";
         internal const string ValidationSummary = "liveops-hub-validation-summary";
         internal const string ValidationSummaryItem = "liveops-hub-validation-summary-item";
         internal const string ValidationSummaryRight = "liveops-hub-validation-summary-right";
@@ -76,7 +83,6 @@ namespace DreamTech.LiveOps.Editor
         internal const string ValidationProposal = "liveops-hub-validation-proposal";
         internal const string ValidationProposalHeader = "liveops-hub-validation-proposal-header";
         internal const string ValidationProposalOption = "liveops-hub-validation-proposal-option";
-        internal const string ValidationProposalOptionTitle = "liveops-hub-validation-proposal-option-title";
         internal const string ValidationProposalOptionDetail = "liveops-hub-validation-proposal-option-detail";
         internal const string ValidationProposalQuickCheck = "liveops-hub-validation-proposal-quick-check";
         internal const string ValidationProposalConsequence = "liveops-hub-validation-proposal-consequence";

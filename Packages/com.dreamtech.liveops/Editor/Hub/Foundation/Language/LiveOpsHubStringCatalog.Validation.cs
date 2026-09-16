@@ -213,6 +213,15 @@ namespace DreamTech.LiveOps.Editor
             table.Add(nameof(LiveOpsHubStrings.ValidationProposalApplyFormat),
                 vietnamese: "Áp: {0}",
                 english: "Apply: {0}");
+            table.Add(nameof(LiveOpsHubStrings.ValidationProposalApplyShiftFormat),
+                vietnamese: "Áp: dời {0}",
+                english: "Apply: move {0}");
+            table.Add(nameof(LiveOpsHubStrings.ValidationProposalOptionDetailFormat),
+                vietnamese: "bắt đầu {0} → {1} · dài {2}",
+                english: "start {0} → {1} · lasts {2}");
+            table.Add(nameof(LiveOpsHubStrings.ValidationProposalConsequenceFormat),
+                vietnamese: "Đợt sẽ xuất hiện với người chơi từ {0}.",
+                english: "The event will show up for players from {0}.");
             table.Add(nameof(LiveOpsHubStrings.ValidationProposalBackButton),
                 vietnamese: "Quay lại",
                 english: "Back");
