@@ -77,6 +77,52 @@ namespace DreamTech.LiveOps.Editor.Tests
         }
 
         [Test]
+        public void StripBarKey_IsNotAnEvent()
+        {
+            LiveOpsHubServices services = LiveOpsHubTestServices.FromDesignSample();
+            CalendarInspectorModel model = CalendarInspectorModel.Build(services.Session, "sky-race#strip#0",
+                services.Clock.UtcNow, services.Format);
+            Assert.AreEqual(CalendarInspectorModel.StateNothingSelected, model.State,
+                "dải gom không ánh xạ ra một đợt (V-22 CC-TLMODEL-1) — cắt trước dấu ngăn sẽ ra tên loại và rơi nhầm vào (b)");
+            Assert.IsTrue(CalendarInspectorModel.IsStripBarKey("sky-race#fixed-strip#entry-1"));
+            Assert.IsFalse(CalendarInspectorModel.IsStripBarKey("weekly-pass#35"));
+        }
+
+        [Test]
+        public void RecurringOccurrence_ShowsRealIdAndTimes()
+        {
+            LiveOpsHubServices services = LiveOpsHubTestServices.FromDesignSample();
+            CalendarTimelinePresenter presenter = new CalendarTimelinePresenter(services);
+            DateTime rangeStartUtc = new DateTime(2026, 9, 8, 0, 0, 0, DateTimeKind.Utc);
+            LiveOpsTimelineModel timelineModel = presenter.BuildModel(rangeStartUtc, rangeStartUtc.AddDays(21), 635f);
+            LiveOpsTimelineBarModel bar = FindRecurringBar(timelineModel);
+            Assert.IsNotNull(bar, "lịch mẫu có làn weekly-pass sinh từ luật");
+
+            CalendarInspectorModel model = CalendarInspectorModel.Build(services.Session, bar.BarKey, services.Clock.UtcNow,
+                services.Format, bar);
+            Assert.AreEqual(CalendarInspectorModel.StateRecurringEvent, model.State);
+            Assert.AreEqual(bar.EventId, model.EventId,
+                "pane-title in id lần lặp ('weekly-pass-35'), không in khoá nội bộ của timeline ('weekly-pass#35')");
+            Assert.AreEqual(bar.StartUtc, model.OccurrenceStartUtc, "field Bắt đầu của (b) đọc giờ của chính lần lặp đang chọn");
+            Assert.AreEqual(bar.EndUtc, model.OccurrenceEndUtc);
+        }
+
+        private static LiveOpsTimelineBarModel FindRecurringBar(LiveOpsTimelineModel model)
+        {
+            System.Collections.Generic.IReadOnlyList<LiveOpsTimelineLaneModel> lanes = model.Lanes;
+            for (int laneIndex = 0; laneIndex < lanes.Count; laneIndex++)
+            {
+                System.Collections.Generic.IReadOnlyList<LiveOpsTimelineBarModel> bars = lanes[laneIndex].Bars;
+                for (int barIndex = 0; barIndex < bars.Count; barIndex++)
+                {
+                    LiveOpsTimelineBarModel bar = bars[barIndex];
+                    if (!bar.IsStrip && bar.Source == LiveOpsTimelineBarSource.Recurring) return bar;
+                }
+            }
+            return null;
+        }
+
+        [Test]
         public void UnreadableDate_KeptRawInAsset()
         {
             LiveOpsHubServices services = LiveOpsHubTestServices.FromDesignSample();

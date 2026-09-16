@@ -15,7 +15,6 @@ namespace DreamTech.LiveOps.Editor
     {
         private readonly LiveOpsHubServices _services;
         private readonly CalendarTimelinePresenter _presenter;
-        private readonly List<string> _hiddenLanes = new List<string>();
 
         private IHubHost _host;
         private VisualElement _root;
@@ -142,7 +141,7 @@ namespace DreamTech.LiveOps.Editor
                 zoom = (int)_zoom,
                 rangeStartUtcText = _hasRangeStart ? LiveEventUtcText.Format(_rangeStartUtc) : string.Empty,
                 selectedBarKey = _presenter.SelectedBarKey,
-                hiddenLanes = _hiddenLanes.ToArray(),
+                hiddenLanes = HiddenLaneArray(),
                 snapMode = _toolbar == null ? 0 : (int)_toolbar.SnapMode,
             };
             return JsonUtility.ToJson(state);
@@ -164,10 +163,23 @@ namespace DreamTech.LiveOps.Editor
             if (state == null) return;
             _zoom = ZoomOf(state.zoom);
             _hasRangeStart = LiveEventUtcText.TryParse(state.rangeStartUtcText ?? string.Empty, out _rangeStartUtc);
-            _hiddenLanes.Clear();
-            if (state.hiddenLanes != null) _hiddenLanes.AddRange(state.hiddenLanes);
+            // Làn ẩn chỉ có MỘT bản, ở presenter: bản thứ hai trong màn từng làm chip "Đang ẩn n làn" đếm một danh sách mà
+            // timeline không bao giờ đọc.
+            _presenter.SetHiddenLanes(state.hiddenLanes);
             _presenter.SetSelectedBarKey(state.selectedBarKey ?? string.Empty);
             _toolbar?.SetSnapMode(SnapOf(state.snapMode));
+            // RestoreViewState chạy SAU CreateView, nên tab zoom đã dựng với giá trị mặc định — không đồng bộ lại thì tab sáng
+            // "3 tuần" trong khi trục vẽ theo zoom vừa khôi phục.
+            _toolbar?.SetZoomWithoutNotify(_zoom);
+            Refresh();
+        }
+
+        private string[] HiddenLaneArray()
+        {
+            IReadOnlyList<string> hiddenLanes = _presenter.HiddenLanes;
+            string[] result = new string[hiddenLanes.Count];
+            for (int index = 0; index < hiddenLanes.Count; index++) result[index] = hiddenLanes[index];
+            return result;
         }
 
         // ============================================================================================================ dựng cây
@@ -192,7 +204,7 @@ namespace DreamTech.LiveOps.Editor
             _toolbar = new CalendarToolbar(host, _services.Format);
             _toolbar.RangeStepRequested += StepRange;
             _toolbar.TodayRequested += GoToToday;
-            _toolbar.PickRangeStartRequested += GoToToday;
+            _toolbar.PickRangeStartRequested += OpenRangeStartPopover;
             _toolbar.ZoomChanged += zoom =>
             {
                 _zoom = zoom;
@@ -200,6 +212,7 @@ namespace DreamTech.LiveOps.Editor
             };
             _toolbar.SnapModeChanged += _ => Refresh();
             _toolbar.SearchChanged += OnSearchChanged;
+            _toolbar.SearchSubmitted += OnSearchSubmitted;
             _toolbar.SetZoomWithoutNotify(_zoom);
         }
 
@@ -245,7 +258,7 @@ namespace DreamTech.LiveOps.Editor
                 _timeline.Select(_presenter.SelectedBarKey, false);
             }
             _toolbar?.SetRange(rangeStartUtc, rangeEndUtc, _services.Clock.UtcNow);
-            _toolbar?.SetHiddenLaneCount(_hiddenLanes.Count);
+            _toolbar?.SetHiddenLaneCount(_presenter.HiddenLanes.Count);
             _inspector?.Refresh(_presenter.SelectedBarKey);
         }
 
@@ -291,21 +304,58 @@ namespace DreamTech.LiveOps.Editor
         private void OnSearchChanged(string searchText)
         {
             _searchText = searchText ?? string.Empty;
+            SelectMatch(false);
+        }
+
+        /// <summary>Enter trong ô tìm: đợt khớp KẾ TIẾP sau đợt đang chọn, hết danh sách thì vòng lại đầu (7.3).</summary>
+        private void OnSearchSubmitted(string searchText)
+        {
+            _searchText = searchText ?? string.Empty;
+            SelectMatch(true);
+        }
+
+        /// <param name="afterSelection">
+        /// true = bắt đầu dò từ NGAY SAU đợt đang chọn. Danh sách thanh phẳng hoá theo thứ tự làn rồi thứ tự thanh, nên "kế tiếp"
+        /// là thứ tự người dùng nhìn thấy trên trục.
+        /// </param>
+        private void SelectMatch(bool afterSelection)
+        {
             if (_searchText.Length == 0 || _presenter.Model == null) return;
+            List<LiveOpsTimelineBarModel> bars = MatchableBars();
+            if (bars.Count == 0) return;
+            int startIndex = 0;
+            if (afterSelection)
+            {
+                for (int index = 0; index < bars.Count; index++)
+                {
+                    if (!string.Equals(bars[index].BarKey, _presenter.SelectedBarKey, StringComparison.Ordinal)) continue;
+                    startIndex = index + 1;
+                    break;
+                }
+            }
+            for (int step = 0; step < bars.Count; step++)
+            {
+                LiveOpsTimelineBarModel bar = bars[(startIndex + step) % bars.Count];
+                if (bar.EventId.IndexOf(_searchText, StringComparison.OrdinalIgnoreCase) < 0) continue;
+                _presenter.SetSelectedBarKey(bar.BarKey);
+                FrameSelected();
+                return;
+            }
+        }
+
+        private List<LiveOpsTimelineBarModel> MatchableBars()
+        {
+            List<LiveOpsTimelineBarModel> result = new List<LiveOpsTimelineBarModel>();
             IReadOnlyList<LiveOpsTimelineLaneModel> lanes = _presenter.Model.Lanes;
             for (int laneIndex = 0; laneIndex < lanes.Count; laneIndex++)
             {
                 IReadOnlyList<LiveOpsTimelineBarModel> bars = lanes[laneIndex].Bars;
                 for (int barIndex = 0; barIndex < bars.Count; barIndex++)
                 {
-                    LiveOpsTimelineBarModel bar = bars[barIndex];
-                    if (bar.IsStrip) continue;
-                    if (bar.EventId.IndexOf(_searchText, StringComparison.OrdinalIgnoreCase) < 0) continue;
-                    _presenter.SetSelectedBarKey(bar.BarKey);
-                    FrameSelected();
-                    return;
+                    if (!bars[barIndex].IsStrip) result.Add(bars[barIndex]);
                 }
             }
+            return result;
         }
 
         private void FrameSelected()
@@ -357,9 +407,25 @@ namespace DreamTech.LiveOps.Editor
 
         private void ShowAddEventPopover(AddEventFlowModel flow)
         {
-            AddEventPopover popover = new AddEventPopover(_services, flow, SubmitAddEvent);
+            LiveOpsPopoverContent.ShowSingle(ActivatorRect(), new AddEventPopover(_services, flow, SubmitAddEvent));
+        }
+
+        /// <summary>Mở popover "Chọn ngày bắt đầu…" của menu khoảng — mục menu này TỪNG gọi thẳng "Hôm nay", tức làm khác hẳn nhãn.</summary>
+        private void OpenRangeStartPopover()
+        {
+            DateTime currentStartUtc = RangeStartUtc();
+            LiveOpsPopoverContent.ShowSingle(ActivatorRect(), new RangeStartPopover(_services, currentStartUtc, startUtc =>
+            {
+                _rangeStartUtc = startUtc;
+                _hasRangeStart = true;
+                Refresh();
+            }));
+        }
+
+        private Rect ActivatorRect()
+        {
             Rect anchor = _root == null ? new Rect(0f, 0f, 1f, 1f) : _root.worldBound;
-            UnityEditor.PopupWindow.Show(new Rect(anchor.x, anchor.y, 1f, 1f), popover);
+            return new Rect(anchor.x, anchor.y, 1f, 1f);
         }
 
         private void SubmitAddEvent(AddEventFlowModel flow)
@@ -388,6 +454,9 @@ namespace DreamTech.LiveOps.Editor
         {
             _services.Session.DocumentChanged -= OnSessionChanged;
             _services.Session.CheckChanged -= OnSessionChanged;
+            // PD-21 chỉ đúng KHI đang ở màn Lịch: rời màn mà để class nâng toast thì minimap/chú giải của màn khác cũng bị đẩy
+            // xuống dưới toast. Bật ở CreateView thì phải tắt ở đây.
+            _services.Bus.SetContentClass(LiveOpsHubClassNames.ContentRaisedToast, false);
             _presenter.AbortDrag();
             _host?.SetSectionViewState(Id, CaptureViewState());
         }
@@ -411,6 +480,78 @@ namespace DreamTech.LiveOps.Editor
                 case 3: return CalendarSnapMode.Day;
                 case 4: return CalendarSnapMode.Off;
                 default: return CalendarSnapMode.Automatic;
+            }
+        }
+
+        /// <summary>
+        /// Popover một ô của mục menu "Chọn ngày bắt đầu…" [SD1 §3.1]: đặt mốc trái của khung. Ô giờ chỉ nhận UTC như mọi ô giờ
+        /// khác của hub; Esc đóng và không đổi gì (lớp gốc lo).
+        /// </summary>
+        private sealed class RangeStartPopover : LiveOpsPopoverContent
+        {
+            private const float PopoverWidthPixels = 320f;
+            private const float PopoverHeightPixels = 116f;
+
+            private readonly LiveOpsHubServices _services;
+            private readonly DateTime _initialStartUtc;
+            private readonly Action<DateTime> _apply;
+
+            private LiveOpsUtcDateTimeField _field;
+
+            internal RangeStartPopover(LiveOpsHubServices services, DateTime initialStartUtc, Action<DateTime> apply)
+            {
+                _services = services ?? throw new ArgumentNullException(nameof(services));
+                _initialStartUtc = initialStartUtc;
+                _apply = apply ?? throw new ArgumentNullException(nameof(apply));
+            }
+
+            protected override Vector2 PopoverSize
+            {
+                get { return new Vector2(PopoverWidthPixels, PopoverHeightPixels); }
+            }
+
+            protected override Focusable InitialFocus
+            {
+                get { return _field; }
+            }
+
+            internal LiveOpsUtcDateTimeField Field => _field;
+
+            protected override VisualElement BuildContent()
+            {
+                VisualElement content = new VisualElement();
+                StyleSheet sheet = _services.LayoutLoader.LoadStyleSheet(LiveOpsHubPaths.CalendarSectionUss);
+                if (sheet != null) content.styleSheets.Add(sheet);
+
+                Label title = new Label(LiveOpsHubStrings.CalendarRangeMenuPickStart);
+                title.AddToClassList(LiveOpsHubClassNames.Caption);
+                content.Add(title);
+
+                _field = new LiveOpsUtcDateTimeField(LiveOpsHubStrings.CalendarFieldStartLabel);
+                _field.SetDeviceOffset(_services.TimeZone.DeviceOffsetAt(_services.Clock.UtcNow));
+                _field.SetValueWithoutNotify(_initialStartUtc);
+                content.Add(_field);
+
+                VisualElement buttons = new VisualElement();
+                buttons.AddToClassList(LiveOpsHubClassNames.CalendarFlowButtons);
+                Button cancel = new Button(ClosePopover) { text = LiveOpsHubStrings.CalendarAddCancelButton };
+                cancel.AddToClassList(LiveOpsHubClassNames.Button);
+                buttons.Add(cancel);
+                Button apply = new Button(ApplyAndClose) { text = LiveOpsHubStrings.CalendarPickRangeStartApplyButton };
+                apply.AddToClassList(LiveOpsHubClassNames.Button);
+                apply.AddToClassList(LiveOpsHubClassNames.ButtonPrimary);
+                buttons.Add(apply);
+                content.Add(buttons);
+                return content;
+            }
+
+            /// <summary>Chuỗi không đọc được thì KHÔNG đổi khung và KHÔNG đóng: ô giữ nguyên câu lỗi của chính nó (7.0).</summary>
+            internal void ApplyAndClose()
+            {
+                if (_field == null) return;
+                if (!LiveOpsUtcDateTimeField.TryParseParts(_field.RawDateText, _field.RawTimeText, out DateTime startUtc)) return;
+                _apply(startUtc);
+                ClosePopover();
             }
         }
 

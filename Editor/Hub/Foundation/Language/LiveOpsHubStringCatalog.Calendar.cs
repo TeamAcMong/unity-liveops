@@ -36,9 +36,9 @@ namespace DreamTech.LiveOps.Editor
             table.Add(nameof(LiveOpsHubStrings.CalendarZoomChoices),
                 vietnamese: "Ngày|3 tuần|Tháng",
                 english: "Day|3 weeks|Month");
-            table.Add(nameof(LiveOpsHubStrings.CalendarSnapMenuFormat),
-                vietnamese: "Bắt lưới: {0}",
-                english: "Snap: {0}");
+            table.Add(nameof(LiveOpsHubStrings.CalendarSnapMenuInterimFormat),
+                vietnamese: "Bắt lưới: {0} · bước lưới nối ở bản sau",
+                english: "Snap: {0} · the grid step is wired in a later build");
             table.Add(nameof(LiveOpsHubStrings.CalendarSnapAuto),
                 vietnamese: "Tự động",
                 english: "Automatic");
@@ -205,6 +205,21 @@ namespace DreamTech.LiveOps.Editor
             table.Add(nameof(LiveOpsHubStrings.CalendarUndoHintFormat),
                 vietnamese: "Hoàn tác được bằng {0} tới khi đóng Unity.",
                 english: "You can undo with {0} until Unity is closed.");
+
+            table.Add(nameof(LiveOpsHubStrings.CalendarEditRunningConfirmTitleFormat),
+                vietnamese: "Sửa đợt đang chạy {0}?",
+                english: "Edit the running event {0}?");
+            table.Add(nameof(LiveOpsHubStrings.CalendarEditDestructiveLabel),
+                vietnamese: "Sửa đợt",
+                english: "Edit event");
+
+            table.Add(nameof(LiveOpsHubStrings.CalendarDeletePublishedNoStampBodyFormat),
+                vietnamese: "Đợt chưa bắt đầu ({0} → {1} UTC) nhưng đã có trong bản đăng: lần đăng tới người chơi sẽ không thấy đợt này.",
+                english: "The event has not started ({0} → {1} UTC) but it is in the published version: after the next publish players will not see it.");
+
+            table.Add(nameof(LiveOpsHubStrings.CalendarPickRangeStartApplyButton),
+                vietnamese: "Đi tới ngày này",
+                english: "Go to this date");
 
             table.Add(nameof(LiveOpsHubStrings.CalendarShortenConfirmTitleFormat),
                 vietnamese: "Rút ngắn đợt đang chạy {0}?",

@@ -22,7 +22,11 @@ namespace DreamTech.LiveOps.Editor
         internal static string CalendarTodayDisabledReason => LiveOpsHubStringCatalog.Text(nameof(CalendarTodayDisabledReason));
 
         internal static string CalendarZoomChoices => LiveOpsHubStringCatalog.Text(nameof(CalendarZoomChoices));
-        internal static string CalendarSnapMenuFormat => LiveOpsHubStringCatalog.Text(nameof(CalendarSnapMenuFormat));
+
+        // INTERIM(G-CALENDAR-DEPTH): bước lưới của cử chỉ kéo nằm trong LiveOpsTimelineDragController (gói G-TIMELINE-VIEW) và
+        // chưa có đường tiêm, nên chọn mục trong menu mới chỉ lưu vào trạng thái view. Nhãn menu NÓI THẲNG chuyện đó — một menu
+        // im lặng không đổi gì còn khó hiểu hơn (7.0: lý do luôn in thành chữ).
+        internal static string CalendarSnapMenuInterimFormat => LiveOpsHubStringCatalog.Text(nameof(CalendarSnapMenuInterimFormat));
         internal static string CalendarSnapAuto => LiveOpsHubStringCatalog.Text(nameof(CalendarSnapAuto));
         internal static string CalendarSnapFifteenMinutes => LiveOpsHubStringCatalog.Text(nameof(CalendarSnapFifteenMinutes));
         internal static string CalendarSnapHour => LiveOpsHubStringCatalog.Text(nameof(CalendarSnapHour));
@@ -105,6 +109,17 @@ namespace DreamTech.LiveOps.Editor
         // Hộp xoá nêu luôn đợt hết chồng giờ nhờ xoá: tính bằng CheckLane trước/sau nên là hệ quả thật, không phải lời hứa.
         internal static string CalendarOverlapClearedFormat => LiveOpsHubStringCatalog.Text(nameof(CalendarOverlapClearedFormat));
         internal static string CalendarUndoHintFormat => LiveOpsHubStringCatalog.Text(nameof(CalendarUndoHintFormat));
+
+        // Lệnh sửa từ inspector (đổi id, đổi loại, config key, áp đề xuất) trên đợt đang chạy: hộp phải hỏi bằng câu hỏi và nút
+        // phá huỷ phải nói đúng việc sắp làm — nhãn "Rút ngắn đợt" ở đây là nói sai việc (7.3).
+        internal static string CalendarEditRunningConfirmTitleFormat => LiveOpsHubStringCatalog.Text(nameof(CalendarEditRunningConfirmTitleFormat));
+        internal static string CalendarEditDestructiveLabel => LiveOpsHubStringCatalog.Text(nameof(CalendarEditDestructiveLabel));
+
+        // Hộp xoá cấp 1 khi phiên chưa có dấu đã đăng đọc được: biến thể KHÔNG chừa chỗ cho giờ đăng, kẻo câu cụt "trong bản đăng :".
+        internal static string CalendarDeletePublishedNoStampBodyFormat => LiveOpsHubStringCatalog.Text(nameof(CalendarDeletePublishedNoStampBodyFormat));
+
+        // Menu khoảng: "Chọn ngày bắt đầu…" mở popover một ô ngày; nút chính nói thẳng kết quả sẽ xảy ra.
+        internal static string CalendarPickRangeStartApplyButton => LiveOpsHubStringCatalog.Text(nameof(CalendarPickRangeStartApplyButton));
 
         // Rút ngắn đợt đang chạy [SD1 §3.15]: nhãn nút an toàn nêu giờ sẽ giữ, để đọc nút là biết kết quả.
         internal static string CalendarShortenConfirmTitleFormat => LiveOpsHubStringCatalog.Text(nameof(CalendarShortenConfirmTitleFormat));

@@ -19,9 +19,6 @@ namespace DreamTech.LiveOps.Editor
         /// <summary>Dưới bề rộng này cửa sổ ở <c>--medium</c>: toast xoá rút còn ngày, giờ đủ nằm ở tooltip (PD của 7.3).</summary>
         internal const float ShortToastWidthThreshold = 1100f;
 
-        /// <summary>Ngày không giờ trong toast dạng ngắn — "16/9", cùng cách viết ngắn của [SD1 §3.13].</summary>
-        private const string DayMonthFormat = "d/M";
-
         private readonly LiveOpsHubCalendarSession _session;
         private readonly LiveOpsHubFormat _format;
         private readonly FixedLiveEventEntry _entry;
@@ -83,8 +80,10 @@ namespace DreamTech.LiveOps.Editor
                 _entry.EventId, _entry.StartUtcText, _entry.EndUtcText);
             if (contentWidth > 0f && contentWidth < ShortToastWidthThreshold)
             {
+                // "16/9" viết bằng CHÍNH hàm mà mọi câu ngắn khác của hub dùng: khuôn "d/M" riêng ở đây in theo quy ước ngày/tháng
+                // kiểu Việt cả khi hub đang chạy tiếng Anh, và không theo luật "không số 0 đầu" của [FD §6.1].
                 return string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.CalendarDeleteToastShortFormat, _entry.EventId,
-                    startUtc.ToString(DayMonthFormat, CultureInfo.InvariantCulture), endUtc.ToString(DayMonthFormat, CultureInfo.InvariantCulture));
+                    LiveOpsFindingText.DayMonth(startUtc), LiveOpsFindingText.DayMonth(endUtc));
             }
             return string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.CalendarDeleteToastFormat, _entry.EventId,
                 _format.ShortDateTime(startUtc), _format.ShortDateTime(endUtc));
@@ -126,9 +125,13 @@ namespace DreamTech.LiveOps.Editor
                     .Build();
             }
 
+            // Phiên chưa có dấu đã đăng đọc được → biến thể câu KHÔNG chừa chỗ cho giờ đăng; ghép chuỗi rỗng vào khuôn có {2} cho
+            // ra câu cụt "…đã có trong bản đăng : lần đăng tới…".
             string publishedStamp = PublishedStampText();
-            string body = string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.CalendarDeletePublishedBodyFormat, times,
-                endTimes, publishedStamp);
+            string body = publishedStamp.Length == 0
+                ? string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.CalendarDeletePublishedNoStampBodyFormat, times, endTimes)
+                : string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.CalendarDeletePublishedBodyFormat, times,
+                    endTimes, publishedStamp);
             return new LiveOpsConfirmRequest.Builder()
                 .WithTitle(string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.CalendarDeleteConfirmTitleFormat, _entry.EventId))
                 .WithBody(JoinSentences(body, OverlapClearedSentence(), undoHint))

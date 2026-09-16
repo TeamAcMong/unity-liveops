@@ -29,11 +29,16 @@ namespace DreamTech.LiveOps.Editor.Tests
             Assert.IsFalse(flow.CanAdvance(), "chưa chọn loại thì nút Tiếp tắt");
 
             flow = flow.WithType("treasure-hunt");
-            Assert.AreEqual(AddEventFlowModel.StepChooseTimes, flow.Step);
+            Assert.AreEqual(AddEventFlowModel.StepChooseType, flow.Step,
+                "bấm một hàng loại là ĐANG TRỎ, chưa đi tiếp [SD1 §3.11 bước 1]");
             Assert.IsTrue(flow.CanAdvance());
+            flow = flow.Next();
+            Assert.AreEqual(AddEventFlowModel.StepChooseTimes, flow.Step, "Enter / nút Tiếp mới mở bước 2");
 
             // 15/9 00:00 + 72 giờ chồng hẳn lên hunt-0914 (14/9 → 17/9) — đúng biến thể "chồng giờ" của Hình 13b.
             flow = flow.WithTimes("2026-09-15", "00:00", 72);
+            Assert.AreEqual(AddEventFlowModel.StepChooseTimes, flow.Step, "gõ giờ cũng không tự sang bước sau");
+            flow = flow.Next();
             Assert.AreEqual(AddEventFlowModel.StepReview, flow.Step);
             Assert.IsNotEmpty(flow.SuggestedEventId, "bước xem lại luôn có id đề nghị (PD-20)");
             Assert.AreEqual(new DateTime(2026, 9, 18, 0, 0, 0, DateTimeKind.Utc), flow.EndUtc, "kết thúc tự tính từ Dài");
@@ -48,7 +53,9 @@ namespace DreamTech.LiveOps.Editor.Tests
             LiveOpsHubServices services = LiveOpsHubTestServices.FromDesignSample();
             AddEventFlowModel flow = AddEventFlowModel.Create(services.Session, services.Clock.UtcNow)
                 .WithType("treasure-hunt")
-                .WithTimes("2026-11-02", "00:00", 24);
+                .Next()
+                .WithTimes("2026-11-02", "00:00", 24)
+                .Next();
             Assert.IsFalse(flow.WillBeDropped, "tháng 11 chưa có đợt treasure-hunt nào — không chồng");
             AddFixedEventEdit edit = flow.ToEdit();
             Assert.IsNotNull(edit);
@@ -83,7 +90,9 @@ namespace DreamTech.LiveOps.Editor.Tests
             LiveOpsHubServices services = LiveOpsHubTestServices.FromDesignSample();
             AddEventFlowModel flow = AddEventFlowModel.Create(services.Session, services.Clock.UtcNow)
                 .WithType("lava-quest")
-                .WithTimes("2026-11-02", "00:00", 24);
+                .Next()
+                .WithTimes("2026-11-02", "00:00", 24)
+                .Next();
             AddEventFlowModel back = flow.Back();
             Assert.AreEqual(AddEventFlowModel.StepChooseTimes, back.Step);
             Assert.AreEqual("2026-11-02", back.StartDateText, "Quay lại giữ nguyên giờ đã gõ");
@@ -101,6 +110,24 @@ namespace DreamTech.LiveOps.Editor.Tests
             Assert.AreEqual("treasure-hunt", flow.EventType);
             Assert.AreEqual("2026-09-21", flow.StartDateText);
             Assert.AreEqual(72, flow.DurationHours);
+        }
+
+        [Test]
+        public void Next_WithoutTypeStaysOnFirstStep()
+        {
+            LiveOpsHubServices services = LiveOpsHubTestServices.FromDesignSample();
+            AddEventFlowModel flow = AddEventFlowModel.Create(services.Session, services.Clock.UtcNow);
+            Assert.AreSame(flow, flow.Next(), "chưa đủ dữ liệu thì Tiếp không đi đâu cả — nút đã tắt, model cũng không đổi");
+        }
+
+        [Test]
+        public void TypeChoicesOf_SharedWithInspector_OnlyFixedTypesAreEnabled()
+        {
+            LiveOpsHubServices services = LiveOpsHubTestServices.FromDesignSample();
+            IReadOnlyList<AddEventTypeChoice> choices = AddEventFlowModel.TypeChoicesOf(services.Session.Document, string.Empty);
+            AddEventTypeChoice weeklyPass = FindChoice(choices, "weekly-pass");
+            Assert.IsFalse(weeklyPass.IsEnabled,
+                "ô Loại của inspector đọc chính danh sách này — hai đường vào một quyết định thì không được lệch nhau");
         }
 
         private static AddEventTypeChoice FindChoice(IReadOnlyList<AddEventTypeChoice> choices, string typeId)

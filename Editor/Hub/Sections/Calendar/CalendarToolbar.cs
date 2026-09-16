@@ -1,6 +1,7 @@
 using System;
 using System.Globalization;
 using UnityEditor.UIElements;
+using UnityEngine;
 using UnityEngine.UIElements;
 
 namespace DreamTech.LiveOps.Editor
@@ -87,7 +88,14 @@ namespace DreamTech.LiveOps.Editor
 
             _search = new ToolbarSearchField();
             _search.AddToClassList(LiveOpsHubClassNames.CalendarSearch);
+            // ToolbarSearchField không có chữ dẫn sẵn ở 2022.3; ô nhập là TextField con nên gắn vào đó. Không tìm thấy thì bỏ
+            // qua — ô tìm thiếu chữ dẫn vẫn dùng được, ném ở đây sẽ làm sập cả màn.
+            TextField searchInput = _search.Q<TextField>();
+            if (searchInput != null) LiveOpsPlaceholder.Attach(searchInput, LiveOpsHubStrings.CalendarSearchPlaceholder);
             _search.RegisterValueChangedCallback(change => SearchChanged?.Invoke(change.newValue ?? string.Empty));
+            // Enter = đợt kế tiếp khớp chuỗi đang gõ (7.3). Không có nó thì ô tìm chỉ tới được đợt khớp ĐẦU TIÊN và mọi đợt sau
+            // trùng tiền tố id trở thành không tìm ra bằng bàn phím.
+            _search.RegisterCallback<KeyDownEvent>(OnSearchKeyDown);
             _host.Add(_search);
 
             SetSnapMode(CalendarSnapMode.Automatic);
@@ -101,6 +109,9 @@ namespace DreamTech.LiveOps.Editor
         public event Action<LiveOpsTimelineZoom> ZoomChanged;
         public event Action<CalendarSnapMode> SnapModeChanged;
         public event Action<string> SearchChanged;
+
+        /// <summary>Enter trong ô tìm: nhảy tới đợt khớp KẾ TIẾP, vòng lại đầu danh sách khi hết.</summary>
+        public event Action<string> SearchSubmitted;
 
         public CalendarSnapMode SnapMode { get; private set; } = CalendarSnapMode.Automatic;
 
@@ -128,10 +139,12 @@ namespace DreamTech.LiveOps.Editor
             _zoomTabs.SetSelectedIndexWithoutNotify(IndexOf(zoom));
         }
 
+        // INTERIM(G-CALENDAR-DEPTH): bước lưới thật nằm trong LiveOpsTimelineDragController (G-TIMELINE-VIEW) và chưa có đường
+        // tiêm, nên W4 mới chỉ NHỚ lựa chọn. Nhãn menu nói thẳng chuyện đó thay vì để menu im lặng không đổi gì (7.0).
         public void SetSnapMode(CalendarSnapMode mode)
         {
             SnapMode = mode;
-            _snapMenu.text = string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.CalendarSnapMenuFormat, LabelOf(mode));
+            _snapMenu.text = string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.CalendarSnapMenuInterimFormat, LabelOf(mode));
         }
 
         /// <summary>Chip chỉ hiện khi thật sự có làn ẩn — không có làn ẩn thì không chiếm chỗ trên toolbar.</summary>
@@ -141,6 +154,22 @@ namespace DreamTech.LiveOps.Editor
             if (hiddenLaneCount <= 0) return;
             _hiddenLanesChip.text = string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.CalendarHiddenLanesChipFormat,
                 hiddenLaneCount);
+        }
+
+        /// <summary>
+        /// Test gọi thẳng nhánh phím của ô tìm. Không gửi <c>KeyDownEvent</c> qua <c>SendEvent</c>: ở 2022.3 phím được dispatch
+        /// theo ELEMENT ĐANG FOCUS chứ không theo target đã gán, nên cùng một test xanh ở 6000.6 và đỏ ở 2022.3.
+        /// </summary>
+        internal void HandleSearchKeyDownForTest(KeyDownEvent keyEvent)
+        {
+            OnSearchKeyDown(keyEvent);
+        }
+
+        private void OnSearchKeyDown(KeyDownEvent keyEvent)
+        {
+            if (keyEvent.keyCode != KeyCode.Return && keyEvent.keyCode != KeyCode.KeypadEnter) return;
+            keyEvent.StopPropagation();
+            SearchSubmitted?.Invoke(_search.value ?? string.Empty);
         }
 
         private void AppendSnapChoice(CalendarSnapMode mode, string label)

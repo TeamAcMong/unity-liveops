@@ -26,6 +26,10 @@ namespace DreamTech.LiveOps.Editor
         /// <summary>Ngăn giữa loại và chỉ số lần lặp trong <c>BarKey</c> của timeline (fixed: chính EntryKey, không có ngăn này).</summary>
         private const char BarKeyTypeSeparator = '#';
 
+        /// <summary>Khoá của dải GOM (<c>LiveOpsTimelineBarModel.BarKey</c>): dải lặp và dải cố định — không ánh xạ ra một đợt.</summary>
+        private const string RecurringStripKeyInfix = "#strip#";
+        private const string FixedStripKeyInfix = "#fixed-strip#";
+
         /// <summary>Giờ trong nhãn nút "Sửa thành …" — cùng dạng ô giờ của <see cref="LiveOpsUtcDateTimeField"/>.</summary>
         private const string FixButtonTimeFormat = "HH:mm";
 
@@ -118,13 +122,22 @@ namespace DreamTech.LiveOps.Editor
         /// <summary>(V-22 CC-FT-1) "Khác bản đã đăng: …" lấy từ <see cref="LiveOpsChangeText"/> khi có dấu đã đăng; "" khi không.</summary>
         public string ChangedTooltip { get; private set; }
 
+        /// <summary>(b) giờ của chính lần lặp đang chọn, đọc từ thanh trên trục; <c>null</c> khi không biết thanh nào.</summary>
+        public DateTime? OccurrenceStartUtc { get; private set; }
+
+        public DateTime? OccurrenceEndUtc { get; private set; }
+
         /// <summary>
         /// Dựng từ phiên: tài liệu nháp, báo cáo kiểm (có thể cũ), bản so đã đăng và giờ hiện tại. <paramref name="selectedBarKey"/>
         /// là <c>BarKey</c> của timeline — đợt cố định dùng chính <c>EntryKey</c>, đợt sinh từ luật có dạng
         /// <c>&lt;loại&gt;#&lt;chỉ số&gt;</c>, nên tra EntryKey trước rồi mới cắt phần trước dấu ngăn.
         /// </summary>
+        /// <param name="selectedBar">
+        /// Thanh đang chọn trên trục (<c>null</c> khi màn chưa dựng model timeline). Trạng thái (b) lấy id lần lặp và giờ TỪ ĐÂY:
+        /// <c>BarKey</c> là khoá nội bộ ("weekly-pass#35") và in nó ra pane-title là in một chuỗi người dùng không bao giờ gõ.
+        /// </param>
         public static CalendarInspectorModel Build(LiveOpsHubCalendarSession session, string selectedBarKey, DateTime nowUtc,
-            LiveOpsHubFormat format)
+            LiveOpsHubFormat format, LiveOpsTimelineBarModel selectedBar = null)
         {
             if (session == null) throw new ArgumentNullException(nameof(session));
             if (format == null) throw new ArgumentNullException(nameof(format));
@@ -136,15 +149,24 @@ namespace DreamTech.LiveOps.Editor
             {
                 return BuildFixed(session, document, entry, now, format);
             }
-            if (barKey.Length > 0)
+            // Dải gom không phải một đợt (V-22 CC-TLMODEL-1): cắt phần trước dấu ngăn sẽ ra đúng tên loại và rơi nhầm vào (b).
+            if (barKey.Length > 0 && !IsStripBarKey(barKey))
             {
                 string eventType = TypeIdOfBarKey(barKey);
                 if (eventType.Length > 0 && document.TryGetRecurringRule(eventType, out RecurringLiveEventRule rule))
                 {
-                    return BuildRecurring(document, rule, barKey);
+                    return BuildRecurring(document, rule, barKey, selectedBar, now);
                 }
             }
             return BuildNothingSelected(document, now);
+        }
+
+        /// <summary>Khoá của một dải GOM ("sky-race#strip#0", "sky-race#fixed-strip#…") — bấm dải là zoom, không phải chọn đợt.</summary>
+        internal static bool IsStripBarKey(string barKey)
+        {
+            if (string.IsNullOrEmpty(barKey)) return false;
+            return barKey.IndexOf(RecurringStripKeyInfix, StringComparison.Ordinal) >= 0
+                || barKey.IndexOf(FixedStripKeyInfix, StringComparison.Ordinal) >= 0;
         }
 
         /// <summary>Loại của một <c>BarKey</c> sinh từ luật; "" khi khoá không có dấu ngăn (tức là EntryKey của đợt cố định).</summary>
@@ -222,12 +244,26 @@ namespace DreamTech.LiveOps.Editor
             return model;
         }
 
-        private static CalendarInspectorModel BuildRecurring(LiveEventCalendarDocument document, RecurringLiveEventRule rule, string barKey)
+        private static CalendarInspectorModel BuildRecurring(LiveEventCalendarDocument document, RecurringLiveEventRule rule,
+            string barKey, LiveOpsTimelineBarModel selectedBar, DateTime nowUtc)
         {
             CalendarInspectorModel model = new CalendarInspectorModel(StateRecurringEvent);
             model.EventTypeId = rule.EventType;
             model.RuleEventType = rule.EventType;
-            model.EventId = barKey;
+            // Id thật của lần lặp ("weekly-pass-35") nằm trên thanh; chỉ khi không có thanh mới đành in khoá nội bộ.
+            model.EventId = selectedBar == null || selectedBar.EventId.Length == 0 ? barKey : selectedBar.EventId;
+            model.NowUtcForTests = nowUtc;
+            if (selectedBar != null)
+            {
+                model.OccurrenceStartUtc = selectedBar.StartUtc;
+                model.OccurrenceEndUtc = selectedBar.EndUtc;
+                model.Phase = PhaseOf(true, selectedBar.StartUtc, true, selectedBar.EndUtc, nowUtc);
+                model.PhaseTagText = PhaseTextOf(model.Phase, false);
+                if (selectedBar.EndUtc > selectedBar.StartUtc)
+                {
+                    model.DurationHours = (int)(selectedBar.EndUtc - selectedBar.StartUtc).TotalHours;
+                }
+            }
             if (document.TryGetEventType(rule.EventType, out LiveEventTypeDefinition typeDefinition))
             {
                 model.EventTypeDefinition = typeDefinition;

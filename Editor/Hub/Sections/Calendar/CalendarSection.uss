@@ -51,7 +51,14 @@
     overflow: hidden;
 }
 
-/* Inspector là sibling ngoài split nên bề rộng cố định giữ được; --medium (W5) đổi nó thành drawer phủ bên phải. */
+/* Inspector là sibling ngoài split nên bề rộng cố định giữ được; --medium (W5) đổi nó thành drawer phủ bên phải.
+   Luật bề rộng 280px khai Ở ĐÂY chứ không ở liveops-hub-components.uss: class dùng chung nhưng chưa gói nào viết luật cho nó,
+   và không có luật thì inspector co giãn theo nội dung — timeline bị bóp còn vài chục pixel [SD1 §3.9]. */
+.liveops-hub-inspector {
+    width: 280px;
+    flex-shrink: 0;
+}
+
 .liveops-hub-calendar-inspector-title {
     flex-direction: row;
     align-items: center;

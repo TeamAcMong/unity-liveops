@@ -40,7 +40,8 @@ namespace DreamTech.LiveOps.Editor
 
         public void Refresh(string selectedBarKey)
         {
-            _model = CalendarInspectorModel.Build(_services.Session, selectedBarKey, _services.Clock.UtcNow, _services.Format);
+            _model = CalendarInspectorModel.Build(_services.Session, selectedBarKey, _services.Clock.UtcNow, _services.Format,
+                _presenter.FindBar(selectedBarKey));
             _titleHost.Clear();
             _bodyHost.Clear();
             BuildTitle();
@@ -94,8 +95,22 @@ namespace DreamTech.LiveOps.Editor
             _bodyHost.Add(empty);
         }
 
+        /// <summary>
+        /// (b) đợt sinh từ luật [SD1 §3.10]: vẽ ĐỦ field như đợt cố định rồi <c>SetEnabled(false)</c>. Bỏ hẳn field thì pane (b)
+        /// trông như một màn khác và người dùng không đối chiếu được giờ của lần lặp; hiện field xám nói đúng "xem được, sửa ở
+        /// Luật lặp".
+        /// </summary>
         private void BuildRecurring()
         {
+            VisualElement fields = new VisualElement();
+            fields.Add(ReadOnlyTextField(LiveOpsHubStrings.CalendarFieldIdLabel, _model.EventId, true));
+            fields.Add(ReadOnlyTextField(LiveOpsHubStrings.CalendarFieldTypeLabel, _model.EventTypeId, true));
+            fields.Add(ReadOnlyTextField(LiveOpsHubStrings.CalendarFieldStartLabel, OccurrenceText(_model.OccurrenceStartUtc), false));
+            fields.Add(ReadOnlyTextField(LiveOpsHubStrings.CalendarFieldEndLabel, OccurrenceText(_model.OccurrenceEndUtc), false));
+            fields.Add(BuildReadOnlyDurationRow());
+            fields.SetEnabled(false);
+            _bodyHost.Add(fields);
+
             Label note = new Label(_model.RecurringNoteText);
             note.AddToClassList(LiveOpsHubClassNames.Note);
             _bodyHost.Add(note);
@@ -107,6 +122,28 @@ namespace DreamTech.LiveOps.Editor
             openRule.AddToClassList(LiveOpsHubClassNames.Button);
             _bodyHost.Add(openRule);
             _bodyHost.Add(SourceRow());
+        }
+
+        private TextField ReadOnlyTextField(string label, string value, bool isMono)
+        {
+            TextField field = new TextField(label) { value = value, isReadOnly = true };
+            if (isMono) field.AddToClassList(LiveOpsHubClassNames.Mono);
+            return field;
+        }
+
+        private string OccurrenceText(DateTime? utc)
+        {
+            return utc == null ? string.Empty : _services.Format.ShortDateTimeUtc(utc.Value);
+        }
+
+        private VisualElement BuildReadOnlyDurationRow()
+        {
+            VisualElement row = new VisualElement();
+            row.AddToClassList(LiveOpsHubClassNames.CalendarFieldRow);
+            row.Add(new IntegerField(LiveOpsHubStrings.CalendarFieldDurationLabel) { value = _model.DurationHours, isReadOnly = true });
+            row.Add(new Label(LiveOpsHubStrings.CalendarDurationUnitLabel));
+            row.Add(AddEventPopover.BuildDurationNote(_model.DurationHours, _services.Format));
+            return row;
         }
 
         private void BuildFixed()
@@ -144,11 +181,29 @@ namespace DreamTech.LiveOps.Editor
             return field;
         }
 
+        /// <summary>
+        /// Ô "Loại" (7.3: "swatch + id; chỉ loại cố định"). Danh sách lấy từ CHÍNH hàm mà popover Thêm đợt dùng — loại có luật lặp
+        /// không tạo đợt cố định được nên không được có mặt ở đây; swatch đứng trước ô để màu của loại đang chọn đọc được ngay.
+        /// </summary>
         private VisualElement BuildTypeField(FixedLiveEventEntry entry)
         {
+            VisualElement row = new VisualElement();
+            row.AddToClassList(LiveOpsHubClassNames.CalendarFieldRow);
+
+            VisualElement swatch = new VisualElement();
+            swatch.AddToClassList(LiveOpsHubClassNames.Swatch);
+            LiveOpsHubStyle.SetEventColor(swatch, _model.EventTypeDefinition == null ? 0 : _model.EventTypeDefinition.ColorSlot);
+            row.Add(swatch);
+
             List<string> choices = new List<string>();
-            IReadOnlyList<LiveEventTypeDefinition> types = (_services.Session.Document ?? LiveEventCalendarDocument.Empty).EventTypes;
-            for (int index = 0; index < types.Count; index++) choices.Add(types[index].TypeId);
+            IReadOnlyList<AddEventTypeChoice> fixedChoices = AddEventFlowModel.TypeChoicesOf(
+                _services.Session.Document ?? LiveEventCalendarDocument.Empty, string.Empty);
+            for (int index = 0; index < fixedChoices.Count; index++)
+            {
+                if (fixedChoices[index].IsEnabled) choices.Add(fixedChoices[index].TypeId);
+            }
+            // Loại của đợt đang xem có thể là loại lạ (JSON đã dán) hoặc loại có luật lặp: vẫn phải hiện, kẻo ô rơi về loại khác.
+            if (IndexOfType(choices, entry.EventType) < 0 && entry.EventType.Length > 0) choices.Insert(0, entry.EventType);
             DropdownField field = new DropdownField(LiveOpsHubStrings.CalendarFieldTypeLabel, choices,
                 Math.Max(0, IndexOfType(choices, entry.EventType)));
             field.RegisterValueChangedCallback(change =>
@@ -160,7 +215,8 @@ namespace DreamTech.LiveOps.Editor
                 _presenter.ApplyEdit(new ReplaceFixedEventEdit(entry.WithEventType(newType)),
                     LiveOpsEditOperation.RenameOrRetypeFixedEvent, entry.EntryKey, message, string.Empty);
             });
-            return field;
+            row.Add(field);
+            return row;
         }
 
         /// <summary>
@@ -233,6 +289,7 @@ namespace DreamTech.LiveOps.Editor
             });
             row.Add(field);
             row.Add(new Label(LiveOpsHubStrings.CalendarDurationUnitLabel));
+            row.Add(AddEventPopover.BuildDurationNote(_model.DurationHours, _services.Format));
             return row;
         }
 

@@ -109,6 +109,35 @@ namespace DreamTech.LiveOps.Editor.Tests
             Assert.AreEqual(string.Empty, section.Presenter.SelectedBarKey);
         }
 
+        /// <summary>Enter trong ô tìm phải sang đợt khớp KẾ TIẾP, rồi vòng lại đầu — không đứng mãi ở đợt khớp đầu tiên (7.3).</summary>
+        [UnityTest]
+        public IEnumerator SearchEnter_StepsThroughMatches()
+        {
+            yield return OpenCalendar(LiveOpsHubTestServices.DesignSampleScenario);
+            CalendarSection section = (CalendarSection)((IHubHost)_window).Sections[2];
+            section.Toolbar.SearchField.value = "hunt";
+            string firstMatch = section.Presenter.SelectedBarKey;
+            Assert.IsNotEmpty(firstMatch, "gõ vào ô tìm là chọn đợt khớp đầu tiên");
+
+            using (KeyDownEvent enterKey = KeyDownEvent.GetPooled('\n', KeyCode.Return, EventModifiers.None))
+            {
+                section.Toolbar.HandleSearchKeyDownForTest(enterKey);
+            }
+            Assert.AreNotEqual(firstMatch, section.Presenter.SelectedBarKey, "Enter sang đợt khớp kế tiếp");
+        }
+
+        /// <summary>Trạng thái view khôi phục SAU CreateView, nên tab zoom phải được đồng bộ lại — không thì tab nói một đằng, trục vẽ một nẻo.</summary>
+        [UnityTest]
+        public IEnumerator RestoreViewState_SyncsZoomTabs()
+        {
+            yield return OpenCalendar(LiveOpsHubTestServices.DesignSampleScenario);
+            CalendarSection section = (CalendarSection)((IHubHost)_window).Sections[2];
+            section.RestoreViewState("{\"zoom\":2,\"rangeStartUtcText\":\"\",\"selectedBarKey\":\"\",\"hiddenLanes\":[],\"snapMode\":0}");
+            Assert.AreEqual(LiveOpsTimelineZoom.Month, section.Toolbar.Zoom,
+                "tab zoom phải theo trạng thái vừa khôi phục");
+            Assert.AreEqual(LiveOpsTimelineZoom.Month, section.Timeline.Zoom, "và trục vẽ theo đúng zoom đó");
+        }
+
         [Test]
         public void Health_RoutesCalendarFindings()
         {
@@ -234,6 +263,14 @@ namespace DreamTech.LiveOps.Editor.Tests
             Assert.AreEqual(0, drag.PreviewOverlaps.Count, "dời +12 giờ là vừa đủ hết chồng giờ với hunt-0914");
             Assert.IsTrue(timeline.FindBar(LiveOpsDesignSample.HuntBonusEntryKey)
                 .ClassListContains(LiveOpsHubClassNames.TimelineBarDragging));
+            using (LiveOpsHubLanguage.Override(LiveOpsHubLanguageId.Vietnamese))
+            {
+                string readout = drag.ReadoutMainText(new LiveOpsHubFormat(LiveOpsDesignSample.DeviceOffset));
+                StringAssert.Contains("17/9 00:00", readout, "readout bám mép đầu [SD1 §3.8 khung 5]");
+                StringAssert.Contains("18/9 12:00", readout);
+                Assert.AreEqual(string.Empty, drag.ReadoutOverlapText(new LiveOpsHubFormat(LiveOpsDesignSample.DeviceOffset)),
+                    "khung 5 đã hết chồng giờ nên readout KHÔNG còn vế chồng");
+            }
         }
 
         [UnityTest]
@@ -271,6 +308,14 @@ namespace DreamTech.LiveOps.Editor.Tests
             Assert.IsTrue(timeline.FindBar(LiveOpsDesignSample.HuntBonusEntryKey)
                     .ClassListContains(LiveOpsHubClassNames.TimelineBarWillDrop),
                 "xem trước hiện TRƯỚC khi thả, không đợi sau [SD1 §3.8 khung 7]");
+            using (LiveOpsHubLanguage.Override(LiveOpsHubLanguageId.Vietnamese))
+            {
+                LiveOpsHubFormat format = new LiveOpsHubFormat(LiveOpsDesignSample.DeviceOffset);
+                StringAssert.Contains("17/9 12:00", drag.ReadoutMainText(format), "readout nêu mép cuối đang kéo");
+                string overlap = drag.ReadoutOverlapText(format);
+                StringAssert.Contains("hunt-0916-bonus", overlap, "vế chồng giờ nêu đúng đợt bị đè [SD1 §3.8 khung 7]");
+                StringAssert.Contains("12", overlap, "và nêu 12 giờ chồng");
+            }
         }
 
         [UnityTest]
@@ -314,6 +359,9 @@ namespace DreamTech.LiveOps.Editor.Tests
             Assert.IsFalse(lane.NextChip.ClassListContains(LiveOpsHubClassNames.TimelineHidden),
                 "làn trống trong khoảng thì hiện chip Đợt tới ở mép phải");
             StringAssert.Contains("star-tournament-2026-10", lane.NextChipLabel.text);
+            Assert.IsFalse(timeline.CursorLine.ClassListContains(LiveOpsHubClassNames.TimelineHidden),
+                "khung 13 là tư thế 'con trỏ đang ở chỗ trống của làn' — không có nó ảnh trùng từng byte với khung 1");
+            Assert.AreEqual(new DateTime(2026, 9, 16, 12, 0, 0, DateTimeKind.Utc), timeline.CursorUtc);
         }
 
         [UnityTest]
