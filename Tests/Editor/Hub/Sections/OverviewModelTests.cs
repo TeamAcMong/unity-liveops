@@ -152,7 +152,7 @@ namespace DreamTech.LiveOps.Editor.Tests
             Assert.AreEqual(1, model.NotMeasuredRuleCount);
         }
 
-        /// <summary>Hàng bản remote: nút "Dán JSON đang chạy…" khoá khi action chưa có (INTERIM(G-PASTE)) — lý do đến từ chính port.</summary>
+        /// <summary>Hàng bản remote: trạng thái và chữ nút "Dán JSON đang chạy…" theo đúng thứ port đang báo, không do model tự quyết.</summary>
         [Test]
         public void RemoteRow_PasteUnavailable_RowIsDisabled()
         {
