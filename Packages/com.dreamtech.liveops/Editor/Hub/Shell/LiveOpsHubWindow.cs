@@ -41,10 +41,12 @@ namespace DreamTech.LiveOps.Editor
         /// <summary>⌘S của Unity sau khi hub đã lưu lịch (8.7) — chuỗi menu, không phải shortcut id.</summary>
         internal const string SaveMenuPath = "File/Save";
 
-        internal const string DiskBannerElementName = "hub-disk-banner";
-        internal const string DiskBannerReloadElementName = "hub-disk-banner-reload";
-        internal const string DiskBannerDiffElementName = "hub-disk-banner-diff";
-        internal const string DiskBannerKeepElementName = "hub-disk-banner-keep";
+        // Tên element của băng đĩa do chính view giữ (LiveOpsHubDiskConflictBanner); cửa sổ chuyển tiếp để test đã có từ W4 và
+        // probe không phải đổi chỗ tra.
+        internal const string DiskBannerElementName = LiveOpsHubDiskConflictBanner.ElementName;
+        internal const string DiskBannerReloadElementName = LiveOpsHubDiskConflictBanner.ReloadButtonName;
+        internal const string DiskBannerDiffElementName = LiveOpsHubDiskConflictBanner.DiffButtonName;
+        internal const string DiskBannerKeepElementName = LiveOpsHubDiskConflictBanner.KeepButtonName;
 
         [SerializeField] private LiveOpsHubWindowState windowState = new LiveOpsHubWindowState();
 
@@ -100,6 +102,9 @@ namespace DreamTech.LiveOps.Editor
         [NonSerialized] private LiveEventCalendarAsset _ownedPreviewAsset;
         [NonSerialized] private bool _ownsInjectedServices;
         [NonSerialized] private Action<string> _openUrlForTest;
+
+        // Người dùng đã chọn "Giữ bản trong Editor" và chưa lưu lần nào từ đó — lần ⌘S tới mới thật sự ghi đè bản trên đĩa.
+        [NonSerialized] private bool _isOverwriteOfDiskPending;
 
         IReadOnlyList<IHubSection> IHubHost.Sections => _sections;
 
@@ -662,41 +667,55 @@ namespace DreamTech.LiveOps.Editor
             }
             if (_diskBanner != null) _diskBanner.RemoveFromHierarchy();
 
-            _diskBanner = new VisualElement { name = DiskBannerElementName };
-            _diskBanner.AddToClassList(LiveOpsHubClassNames.Note);
-            _diskBanner.AddToClassList(LiveOpsHubClassNames.DiskBanner);
-
-            Label text = new Label(string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.ShellDiskBannerFormat,
-                _services.Session.AssetFileName, _services.Format.ShortDateTimeUtc(conflict.DetectedUtc)));
-            text.AddToClassList(LiveOpsHubClassNames.DiskBannerText);
-            _diskBanner.Add(text);
-
-            VisualElement actions = new VisualElement();
-            actions.AddToClassList(LiveOpsHubClassNames.DiskBannerActions);
-            Button reload = new Button(ReloadFromDisk) { name = DiskBannerReloadElementName, text = LiveOpsHubStrings.ShellDiskBannerReloadButton };
-            reload.tooltip = string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.ShellDiskBannerReloadTooltipFormat,
-                conflict.LostIfReload.ChangeCount);
-            actions.Add(reload);
-            actions.Add(new Button(() => Navigate(LiveOpsHubNavigation.To(LiveOpsHubSections.Ids.Export).WithCompareSource(LiveOpsHubCompareSource.Disk)))
-            {
-                name = DiskBannerDiffElementName,
-                text = LiveOpsHubStrings.ShellDiskBannerDiffButton,
-            });
-            actions.Add(new Button(KeepEditorVersion) { name = DiskBannerKeepElementName, text = LiveOpsHubStrings.ShellDiskBannerKeepButton });
-            _diskBanner.Add(actions);
+            _diskBanner = LiveOpsHubDiskConflictBanner.Create(conflict, _services.Session.AssetFileName, _services.Format,
+                ReloadFromDisk,
+                () => Navigate(LiveOpsHubNavigation.To(LiveOpsHubSections.Ids.Export).WithCompareSource(LiveOpsHubCompareSource.Disk)),
+                KeepEditorVersion).Element;
             _notes.Add(_diskBanner);
         }
 
         private void ReloadFromDisk()
         {
             _services?.Session.ReloadFromDisk();
+            // Bản đĩa đã thắng: không còn gì để ghi đè, hộp ⌘S không được hỏi nữa.
+            _isOverwriteOfDiskPending = false;
             UpdateDiskBanner();
         }
 
+        /// <summary>
+        /// "Giữ bản trong Editor": phiên ghi nháp lại vào asset và hạ cờ xung đột, nhưng file trên đĩa VẪN là bản của đồng đội —
+        /// lần ⌘S tới mới thật sự ghi đè. Cửa sổ nhớ điều đó để mở hộp cấp 1 đúng lúc (Hình 28 khung 4 dòng cuối).
+        /// </summary>
         private void KeepEditorVersion()
         {
-            _services?.Session.KeepEditorVersion();
+            if (_services == null) return;
+            _services.Session.KeepEditorVersion();
+            _isOverwriteOfDiskPending = true;
             UpdateDiskBanner();
+        }
+
+        /// <summary>
+        /// Hộp cấp 1 "Ghi đè N mục vừa đổi trên đĩa?" — chỉ hỏi khi người dùng đã chọn "Giữ bản trong Editor" và chưa lưu lần nào
+        /// từ đó. Trả false = người dùng giữ lại bản trên đĩa, <see cref="SaveChanges"/> dừng (asset vẫn bẩn, tab vẫn có "*").
+        /// </summary>
+        private bool ConfirmOverwriteOfDiskIfNeeded()
+        {
+            if (!_isOverwriteOfDiskPending || _services == null) return true;
+            LiveEventCalendarDiffResult diff = _services.Session.UnsavedDiff;
+            string itemList = LiveOpsHubDiskConflictBanner.ItemListOf(diff);
+            string fileName = _services.Session.AssetFileName;
+            string body = itemList.Length == 0
+                ? string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.ShellOverwriteDiskConfirmBodyWithoutItemsFormat, fileName)
+                : string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.ShellOverwriteDiskConfirmBodyFormat, fileName, itemList);
+            LiveOpsConfirmRequest request = new LiveOpsConfirmRequest.Builder()
+                .WithLevel(LiveOpsConfirmLevel.Level1)
+                .WithTitle(string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.ShellOverwriteDiskConfirmTitleFormat,
+                    _services.Format.Integer(diff.ChangeCount)))
+                .WithBody(body)
+                .WithKeyHint(LiveOpsHubStrings.ShellOverwriteDiskConfirmKeyHint)
+                .WithButtons(LiveOpsHubStrings.ShellOverwriteDiskConfirmDestructive, LiveOpsHubStrings.ShellOverwriteDiskConfirmSafe)
+                .Build();
+            return _services.Confirmation.Confirm(request) == LiveOpsConfirmResult.Destructive;
         }
 
         /// <summary>
@@ -764,6 +783,9 @@ namespace DreamTech.LiveOps.Editor
         public override void SaveChanges()
         {
             if (_services == null) return;
+            // Mức xác nhận của thao tác này là LiveOpsEditOperation.OverwriteDiskChanges = cấp 1 (bảng 7.0) — hỏi TRƯỚC khi ghi,
+            // vì ghi rồi thì bản của đồng đội trên đĩa đã mất và Undo của hub không lấy lại được.
+            if (!ConfirmOverwriteOfDiskIfNeeded()) return;
             if (!_services.Session.Save())
             {
                 _services.Bus.ShowOutcome(LiveOpsOutcomeRecord.Blocked(SaveFailureHeadline(_services.Session),
@@ -772,6 +794,8 @@ namespace DreamTech.LiveOps.Editor
                 return;
             }
             base.SaveChanges();
+            // Đĩa đã mang bản trong Editor: lần ⌘S sau không còn gì để hỏi.
+            _isOverwriteOfDiskPending = false;
             UpdateUnsavedState();
         }
 
@@ -965,6 +989,9 @@ namespace DreamTech.LiveOps.Editor
         internal LiveOpsHoverCardHost HoverCardHost => _hoverCardHost;
         internal LiveOpsHubUndoTracker UndoTracker => _undoTracker;
         internal VisualElement DiskBanner => _diskBanner;
+
+        /// <summary>Đã chọn "Giữ bản trong Editor", chưa lưu — lần ⌘S tới mở hộp "Ghi đè N mục vừa đổi trên đĩa?".</summary>
+        internal bool IsOverwriteOfDiskPending => _isOverwriteOfDiskPending;
         internal LiveOpsHubRail Rail => _rail;
         internal LiveOpsHubSectionHeader SectionHeader => _sectionHeader;
         internal LiveOpsHubStatusBar StatusBar => _statusBar;
@@ -1265,8 +1292,10 @@ namespace DreamTech.LiveOps.Editor
 
         private void OnSessionDiskChangeDetected()
         {
-            // Hub không tự đè nháp (SP-8b): băng hỏi người dùng giữ bản nào. Log giữ nguyên để lịch sử Console còn dấu vết lần đổi.
-            Debug.LogWarning(string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.InterimDiskConflictLog, _services.Session.AssetFileName));
+            // Hub không tự đè nháp (SP-8b): băng hỏi người dùng giữ bản nào. Log giữ lại để lịch sử Console còn dấu vết lần đổi.
+            Debug.LogWarning(string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.ShellDiskConflictLogFormat, _services.Session.AssetFileName));
+            // Xung đột MỚI: câu trả lời cũ không còn nghĩa, người dùng phải chọn lại trước khi ⌘S ghi đè thứ gì.
+            _isOverwriteOfDiskPending = false;
             UpdateDiskBanner();
             InvalidateAndRefreshHealth();
         }

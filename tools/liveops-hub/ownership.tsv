@@ -208,7 +208,7 @@ file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubStrings.Kit.
 file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubStrings.Overview.cs	G-OVERVIEW,G-SHELLPOLISH	G-OVERVIEW vùng Overview; G-SHELLPOLISH vùng Overview
 file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubStrings.Paste.cs	G-PASTE	G-PASTE vùng Paste
 file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubStrings.Recurring.cs	G-RECURRING,G-RECURRING-JSON	G-RECURRING vùng Recurring; G-RECURRING-JSON vùng Recurring
-file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubStrings.Services.cs	G-SESSION,G-I18N	G-SESSION vùng Services; G-I18N sửa (ngôn ngữ, W3.5)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubStrings.Services.cs	G-SESSION,G-I18N,G-SHELLPOLISH	G-SESSION vùng Services; G-I18N sửa (ngôn ngữ, W3.5); G-SHELLPOLISH xoá hằng InterimDiskConflictLog (sổ INTERIM mục 12 I-8 giao gói gỡ định danh này, mà nó nằm ở vùng Services — không gói nào khác của W5 đụng file)
 file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubStrings.Shell.cs	G-SHELL,G-I18N,G-HOSTUI,G-SHELLPOLISH	G-SHELL vùng Shell; G-HOSTUI vùng Shell; G-SHELLPOLISH vùng Shell; G-I18N sửa (ngôn ngữ, W3.5)
 file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubStrings.ShortcutHelp.cs	G-OPT-SHORTCUTHELP	G-OPT-SHORTCUTHELP vùng ShortcutHelp
 file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubStrings.Timeline.cs	G-TIMELINE-VIEW,G-I18N,G-OPT-TIMELINE	G-TIMELINE-VIEW vùng Timeline; G-OPT-TIMELINE vùng Timeline; G-I18N sửa (ngôn ngữ, W3.5)

@@ -34,6 +34,7 @@ namespace DreamTech.LiveOps.Editor
 
         // Băng "tệp đã đổi trên đĩa" (4.3, SPIKE-B SP-8b) — dựng trong hub-shell-notes như note đang biên dịch.
         internal const string DiskBanner = "liveops-hub-disk-banner";
+        internal const string DiskBannerHead = "liveops-hub-disk-banner-head";
         internal const string DiskBannerText = "liveops-hub-disk-banner-text";
         internal const string DiskBannerActions = "liveops-hub-disk-banner-actions";
 

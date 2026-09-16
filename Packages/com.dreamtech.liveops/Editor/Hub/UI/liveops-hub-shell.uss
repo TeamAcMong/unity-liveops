@@ -683,16 +683,27 @@
 }
 
 /* Băng "tệp đã đổi trên đĩa" (4.3): dựng trong hub-shell-notes cùng khuôn với note đang biên dịch, thêm hàng nút. */
+/* Hình 28 khung 4 là HelpBox CẢNH BÁO: sọc trái 3px màu warning + icon, để băng này không lẫn với note "đang biên dịch"
+   (cùng lớp .liveops-hub-note) — một cái chỉ báo tin, cái kia đang đòi người dùng quyết. */
 .liveops-hub-disk-banner {
     flex-direction: column;
     align-items: stretch;
+    border-left-width: 3px;
+    border-left-color: var(--liveops-hub-color-warning-fill);
+}
+
+.liveops-hub-disk-banner-head {
+    flex-direction: row;
+    align-items: flex-start;
 }
 
 .liveops-hub-disk-banner-text {
+    flex-grow: 1;
+    flex-shrink: 1;
     font-size: 11px;
     white-space: normal;
     padding: 0;
-    margin: 0;
+    margin: 0 0 0 6px;
 }
 
 .liveops-hub-disk-banner-actions {
