@@ -1,0 +1,31 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:liveops="DreamTech.LiveOps.Editor" editor-extension-mode="True">
+    <!--
+        Hộp Đánh dấu đã đăng (410×330, ShowModalUtility) — [SD2 §3.11]. Tên element (name) là hợp đồng với
+        MarkPublishedWindow.*ElementName: đổi ở đây thì sửa hằng cùng nhịp. Không có chữ trong file này — mọi câu do C# đổ từ
+        LiveOpsHubStrings (code-lint chặn chữ hiển thị trong UXML). Stylesheet gắn từ C# (theme + components + sheet của hộp)
+        vì cửa sổ hộp là panel riêng, token của cửa sổ hub không tới đây.
+        Hàng nút dính đáy nhờ margin-top: auto nên chỗ dư nằm TRÊN hàng nút, không đẩy nút xuống khỏi khung.
+    -->
+    <ui:VisualElement name="mark-published-content" class="liveops-hub-export-mark-window">
+        <ui:Label name="mark-published-heading" class="liveops-hub-export-mark-heading" />
+        <ui:Label name="mark-published-body" class="liveops-hub-export-mark-body" />
+
+        <ui:VisualElement name="mark-published-sha-row" class="liveops-hub-export-mark-sha-row">
+            <liveops:LiveOpsStateMark name="mark-published-sha-mark" size="Small" />
+            <ui:Label name="mark-published-sha-text" class="liveops-hub-export-mark-sha-text" />
+        </ui:VisualElement>
+        <ui:VisualElement name="mark-published-copy-row" class="liveops-hub-export-mark-copy-row">
+            <ui:Button name="mark-published-copy" class="liveops-hub-button" />
+        </ui:VisualElement>
+
+        <ui:Toggle name="mark-published-confirm-toggle" />
+        <ui:Label name="mark-published-note-label" class="liveops-hub-export-mark-note-label" />
+        <ui:TextField name="mark-published-note" multiline="true" class="liveops-hub-export-mark-note-field" />
+
+        <ui:VisualElement name="mark-published-buttons" class="liveops-hub-export-mark-button-row">
+            <ui:Label name="mark-published-missing" class="liveops-hub-export-mark-missing" />
+            <ui:Button name="mark-published-cancel" class="liveops-hub-button" />
+            <ui:VisualElement name="mark-published-confirm-host" />
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

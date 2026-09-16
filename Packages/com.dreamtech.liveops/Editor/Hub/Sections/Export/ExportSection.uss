@@ -1,0 +1,432 @@
+/*
+ * Màn Xuất JSON (Hình 18, 19, 21). Số đo bám hình [SD2 §3.3]: thân padding 10 · hàng trên card cổng giãn + khối metric
+ * 560px · hàng dưới card JSON 520px + cột phải giãn · hai hàng và các card cách nhau 8. Dòng cổng cao 22px, padding 0 8.
+ * Hàng diff padding 3 8, hai dòng 11px/10px, tint 0,16 lấy từ token. Bảng lịch sử cột 90 / 110 / giãn / 60, hàng Active
+ * viền trái 3px.
+ * Mọi màu đi qua token của liveops-hub-theme.uss (hai skin); USS không có gap/:last-child nên khoảng cách dùng margin và
+ * class `--last` bật từ C#.
+ */
+
+.liveops-hub-export-page {
+    flex-grow: 1;
+    padding: var(--liveops-hub-space-10);
+}
+
+.liveops-hub-export-default {
+    flex-grow: 1;
+    flex-direction: column;
+}
+
+.liveops-hub-export-hidden {
+    display: none;
+}
+
+/* ---------------------------------------------------------------- Hai hàng bố cục */
+
+.liveops-hub-export-top-row {
+    flex-direction: row;
+    align-items: stretch;
+    flex-shrink: 0;
+    margin-bottom: var(--liveops-hub-space-8);
+}
+
+.liveops-hub-export-gate-column {
+    flex-grow: 1;
+    flex-shrink: 1;
+    flex-basis: 480px;
+    margin-right: var(--liveops-hub-space-8);
+}
+
+.liveops-hub-export-metric-host {
+    flex-grow: 0;
+    flex-shrink: 0;
+    flex-basis: 560px;
+}
+
+.liveops-hub-export-metric-row {
+    flex-direction: row;
+    align-items: stretch;
+}
+
+.liveops-hub-export-metric--last {
+    margin-right: 0;
+}
+
+.liveops-hub-export-metric-value-row {
+    flex-direction: row;
+    align-items: flex-end;
+    min-height: 22px;
+}
+
+.liveops-hub-export-metric-foot-row {
+    flex-direction: row;
+    align-items: center;
+    min-height: 14px;
+}
+
+.liveops-hub-export-bottom-row {
+    flex-direction: row;
+    align-items: stretch;
+    flex-grow: 1;
+}
+
+.liveops-hub-export-json-column {
+    flex-grow: 0;
+    flex-shrink: 0;
+    flex-basis: 520px;
+    margin-right: var(--liveops-hub-space-8);
+}
+
+.liveops-hub-export-json-host {
+    flex-grow: 1;
+}
+
+.liveops-hub-export-side-column {
+    flex-grow: 1;
+    flex-shrink: 1;
+    flex-direction: column;
+}
+
+/* Cửa sổ hẹp (< 720): JSON trên, diff dưới — hàng dưới xếp dọc và bỏ bề rộng cố định của card JSON. */
+
+.liveops-hub--compact .liveops-hub-export-bottom-row {
+    flex-direction: column;
+}
+
+.liveops-hub--compact .liveops-hub-export-json-column {
+    flex-basis: auto;
+    margin-right: 0;
+    margin-bottom: var(--liveops-hub-space-8);
+}
+
+.liveops-hub--compact .liveops-hub-export-top-row {
+    flex-direction: column;
+}
+
+.liveops-hub--compact .liveops-hub-export-gate-column {
+    flex-basis: auto;
+    margin-right: 0;
+    margin-bottom: var(--liveops-hub-space-8);
+}
+
+.liveops-hub--compact .liveops-hub-export-metric-host {
+    flex-basis: auto;
+}
+
+/* Cửa sổ hẹp (< 900): metric 2×2 — flex-wrap, mỗi tile nửa hàng. */
+
+.liveops-hub--narrow .liveops-hub-export-metric-row {
+    flex-wrap: wrap;
+}
+
+.liveops-hub--narrow .liveops-hub-export-metric-row > .liveops-hub-metric {
+    flex-basis: 45%;
+}
+
+/* ---------------------------------------------------------------- Nút header có icon, lý do cạnh nút */
+
+/*
+ * Button LÀ TextElement: `Button.text` do chính nút vẽ trên cả hộp nội dung nên Image con CHỒNG lên chữ ("Co[icon] JSON").
+ * Nút bỏ text, xếp Image rồi Label thành hàng — [FD §2.12]: icon margin-left −2, margin-right 4, flex-shrink 0.
+ * Sheet này được nạp thẳng lên từng slot ở PopulateHeaderActions vì nút sống trong section header của shell (cây khác thân màn).
+ */
+.liveops-hub-export-icon-button {
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+}
+
+.liveops-hub-export-icon-button-icon {
+    margin-left: -2px;
+    margin-right: 4px;
+    flex-shrink: 0;
+}
+
+.liveops-hub-export-icon-button-label {
+    margin: 0;
+    padding: 0;
+}
+
+/* Lý do cạnh nút ở mức quiet — (b) "Còn thiếu cho Đánh dấu…" và (f) "Không có thay đổi để ghi" không phải chữ chặn. */
+.liveops-hub-button-reason.liveops-hub-export-reason-quiet {
+    color: var(--liveops-hub-color-quiet);
+}
+
+/* Nút không phải nút mang lý do: chỉ tooltip, không in chữ (ba chữ cạnh nhau trên header sẽ chồng lên nhau). */
+.liveops-hub-button-slot--blocked > .liveops-hub-button-reason.liveops-hub-export-reason-tooltip-only {
+    display: none;
+}
+
+/* ---------------------------------------------------------------- Card: tiêu đề, meta */
+
+/*
+ * Header card ở 1280 phải co được: tiêu đề và meta cắt bằng ellipsis, hàng chip KHÔNG co (chip thứ tư "Giữ 3" là số người
+ * đọc cần). Thiếu min-width:0 thì flex-shrink không có tác dụng trên phần tử có chữ, nên meta bị cắt giữa chữ và chip
+ * tràn ra ngoài card.
+ */
+.liveops-hub-export-card-title {
+    -unity-font-style: bold;
+    font-size: 11px;
+    flex-shrink: 1;
+    min-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+.liveops-hub-export-card-meta {
+    font-size: 10px;
+    opacity: 0.82;
+    margin-left: var(--liveops-hub-space-6);
+    flex-shrink: 1;
+    min-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+.liveops-hub-export-card-spacer {
+    flex-grow: 1;
+}
+
+/* ---------------------------------------------------------------- Card Cổng xuất */
+
+.liveops-hub-export-gate-row {
+    flex-direction: row;
+    align-items: center;
+    height: 22px;
+    padding: 0 var(--liveops-hub-space-8);
+}
+
+.liveops-hub-export-gate-row--clickable {
+    cursor: link;
+}
+
+.liveops-hub-export-gate-row--running {
+    border-top-width: 1px;
+    border-top-color: var(--unity-colors-window-border);
+}
+
+.liveops-hub-export-gate-row-text {
+    font-size: 11px;
+    margin-left: var(--liveops-hub-space-8);
+    flex-shrink: 1;
+    min-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+.liveops-hub-export-gate-row-meta {
+    font-size: 10px;
+    opacity: 0.82;
+    margin-left: var(--liveops-hub-space-8);
+    flex-shrink: 1;
+    min-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+.liveops-hub-export-gate-row-spacer {
+    flex-grow: 1;
+}
+
+.liveops-hub-export-gate-compact-row {
+    flex-direction: row;
+    align-items: center;
+    height: 22px;
+    padding: 0 var(--liveops-hub-space-8);
+}
+
+.liveops-hub-export-gate-compact-remote {
+    font-size: 10px;
+    opacity: 0.82;
+    margin-left: var(--liveops-hub-space-8);
+}
+
+/* ---------------------------------------------------------------- Card lỗi (h), note (i) */
+
+.liveops-hub-export-failure-card {
+    margin-bottom: var(--liveops-hub-space-8);
+    border-left-width: 3px;
+    border-left-color: var(--liveops-hub-color-blocked-fill);
+}
+
+.liveops-hub-export-failure-symptom {
+    font-size: 11px;
+    white-space: normal;
+}
+
+.liveops-hub-export-failure-message {
+    font-size: 11px;
+    white-space: normal;
+    margin-top: var(--liveops-hub-space-4);
+}
+
+.liveops-hub-export-failure-position {
+    font-size: 10px;
+    opacity: 0.82;
+    margin-top: var(--liveops-hub-space-2);
+}
+
+.liveops-hub-export-failure-actions {
+    flex-direction: row;
+    align-items: center;
+    margin-top: var(--liveops-hub-space-6);
+}
+
+.liveops-hub-export-restoring-note {
+    flex-direction: row;
+    align-items: center;
+    margin-bottom: var(--liveops-hub-space-8);
+}
+
+/* ---------------------------------------------------------------- Card diff */
+
+.liveops-hub-export-diff-chip-row {
+    flex-direction: row;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+.liveops-hub-export-diff-group {
+    flex-direction: column;
+}
+
+.liveops-hub-export-diff-group--later {
+    border-top-width: 1px;
+    border-top-color: var(--unity-colors-window-border);
+    margin-top: var(--liveops-hub-space-4);
+    padding-top: var(--liveops-hub-space-4);
+}
+
+.liveops-hub-export-diff-group-header {
+    font-size: 10px;
+    -unity-font-style: bold;
+    opacity: 0.82;
+    padding: 0 var(--liveops-hub-space-8);
+}
+
+.liveops-hub-export-diff-row {
+    flex-direction: row;
+    align-items: center;
+    padding: 3px var(--liveops-hub-space-8);
+}
+
+.liveops-hub-export-diff-row--dropped {
+    background-color: var(--liveops-hub-color-blocked-tint);
+}
+
+.liveops-hub-export-diff-row--progress-lost {
+    background-color: var(--liveops-hub-color-warning-tint);
+}
+
+.liveops-hub-export-diff-symbol {
+    font-size: 14px;
+    -unity-font-style: bold;
+    width: 14px;
+}
+
+.liveops-hub-export-diff-row-text {
+    flex-direction: column;
+    flex-shrink: 1;
+    margin-left: var(--liveops-hub-space-6);
+    overflow: hidden;
+}
+
+.liveops-hub-export-diff-row-title {
+    flex-direction: row;
+    align-items: center;
+    font-size: 11px;
+}
+
+.liveops-hub-export-diff-row-consequence {
+    font-size: 10px;
+    opacity: 0.82;
+    white-space: normal;
+}
+
+.liveops-hub-export-diff-row-action {
+    flex-shrink: 0;
+    margin-left: var(--liveops-hub-space-6);
+}
+
+.liveops-hub-export-diff-empty {
+    font-size: 11px;
+    opacity: 0.82;
+    white-space: normal;
+    padding: var(--liveops-hub-space-6) var(--liveops-hub-space-8);
+}
+
+/* ---------------------------------------------------------------- Card Các lần đã đăng */
+
+.liveops-hub-export-history-table {
+    flex-direction: column;
+}
+
+.liveops-hub-export-history-head-row {
+    flex-direction: row;
+    align-items: center;
+    height: 18px;
+    padding: 0 var(--liveops-hub-space-8);
+    border-bottom-width: 1px;
+    border-bottom-color: var(--unity-colors-window-border);
+}
+
+.liveops-hub-export-history-row {
+    flex-direction: row;
+    align-items: center;
+    min-height: 20px;
+    /* Padding trái 5 + sọc 3 của liveops-hub-row--active = 8: chữ không xê dịch giữa hàng có và không có sọc. */
+    padding: 0 var(--liveops-hub-space-8) 0 5px;
+    border-left-width: 3px;
+    border-left-color: var(--unity-colors-window-background);
+}
+
+.liveops-hub-export-history-cell {
+    font-size: 11px;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+.liveops-hub-export-history-cell--time {
+    width: 90px;
+    flex-shrink: 0;
+}
+
+.liveops-hub-export-history-cell--publisher {
+    width: 110px;
+    flex-shrink: 0;
+}
+
+.liveops-hub-export-history-cell--note {
+    flex-grow: 1;
+    flex-shrink: 1;
+    flex-direction: row;
+    align-items: center;
+    overflow: hidden;
+}
+
+.liveops-hub-export-history-cell--sha {
+    width: 60px;
+    flex-shrink: 0;
+}
+
+.liveops-hub-export-history-verified {
+    font-size: 10px;
+    opacity: 0.7;
+    margin-left: var(--liveops-hub-space-4);
+}
+
+.liveops-hub-export-history-verified-mark {
+    margin-left: var(--liveops-hub-space-4);
+    flex-shrink: 0;
+}
+
+.liveops-hub-export-history-active-suffix {
+    font-size: 10px;
+    opacity: 0.7;
+    margin-left: var(--liveops-hub-space-4);
+}
