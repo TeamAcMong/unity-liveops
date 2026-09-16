@@ -36,12 +36,17 @@ namespace DreamTech.LiveOps.Editor
         internal const string EmptyStepsElementName = "overview-empty-steps";
         internal const string EmptyActionsElementName = "overview-empty-actions";
         internal const string RecheckAllButtonElementName = "overview-recheck-all";
+        internal const string RecheckAllLabelElementName = "overview-recheck-all-label";
         internal const string CreateAssetButtonElementName = "overview-create-asset";
         internal const string ImportJsonButtonElementName = "overview-import-json";
         internal const string SelectAssetButtonElementName = "overview-select-asset";
 
         internal const int DraftTabIndex = 0;
         internal const int PublishedTabIndex = 1;
+
+        /// <summary>Icon của nút "Kiểm lại tất cả" — 7.1 viết "[Refresh] Kiểm lại tất cả", cùng lối với "[Toolbar Plus] Thêm loại" của 7.2.</summary>
+        private const string RecheckIconName = "Refresh";
+        private const int RecheckIconSize = 12;
 
         // <see cref="BodyElementName"/> KHÔNG có trong danh sách: chính nó là root của view, mà Q() chỉ tìm con — probe 9.3
         // và HubWindowTests Q trên view nên để tên root vào đây sẽ luôn báo thiếu.
@@ -66,6 +71,7 @@ namespace DreamTech.LiveOps.Editor
         private OverviewPipelineFlow _pipelineFlow;
         private OverviewUpcomingTable _upcomingTable;
         private OverviewModel _model;
+        private StyleSheet _sectionStyleSheet;
         private bool _showPublishedSource;
         private bool _isSubscribed;
         private int _objectPickerControlId;
@@ -143,13 +149,23 @@ namespace DreamTech.LiveOps.Editor
         public void PopulateHeaderActions(VisualElement container)
         {
             if (container == null) throw new ArgumentNullException(nameof(container));
-            Button recheck = new Button(StartCheck)
-            {
-                name = RecheckAllButtonElementName,
-                text = LiveOpsHubStrings.OverviewRecheckAllButton,
-            };
+            // BẪY: `Button` là TextElement — nó tự đo theo `text` CHỈ KHI không có con. Thêm Image mà vẫn để `text` thì nút co
+            // về min-width 54px và icon đè lên chữ. Nên chữ đi vào một Label con, và nút xếp hàng ngang bằng class riêng.
+            Button recheck = new Button(StartCheck) { name = RecheckAllButtonElementName };
             recheck.AddToClassList(LiveOpsHubClassNames.Button);
             recheck.AddToClassList(LiveOpsHubClassNames.ButtonPrimary);
+            recheck.AddToClassList(LiveOpsHubClassNames.OverviewRecheckAllButton);
+            // Nút này sống trong header của CỬA SỔ, ngoài thân màn — stylesheet của màn gắn ở thân không với tới nó, nên gắn
+            // thêm vào chính nút. Không gán style inline ([FD §2.14] chỉ cho C# gán hình học suy từ dữ liệu).
+            StyleSheet sheet = LoadSectionStyleSheet();
+            if (sheet != null) recheck.styleSheets.Add(sheet);
+            recheck.Add(LiveOpsHubIcons.CreateImage(RecheckIconName, RecheckIconSize));
+            Label recheckLabel = new Label(LiveOpsHubStrings.OverviewRecheckAllButton)
+            {
+                name = RecheckAllLabelElementName,
+            };
+            recheckLabel.AddToClassList(LiveOpsHubClassNames.OverviewRecheckAllLabel);
+            recheck.Add(recheckLabel);
             container.Add(recheck);
         }
 
@@ -176,6 +192,13 @@ namespace DreamTech.LiveOps.Editor
 
         // ============================================================================================================ dựng lại
 
+        /// <summary>Stylesheet của màn; nạp lại là tra AssetDatabase đã cache, nhưng giữ một tham chiếu cho chỗ dùng thứ hai (header).</summary>
+        private StyleSheet LoadSectionStyleSheet()
+        {
+            if (_sectionStyleSheet == null) _sectionStyleSheet = _services.LayoutLoader.LoadStyleSheet(LiveOpsHubPaths.OverviewSectionUss);
+            return _sectionStyleSheet;
+        }
+
         private VisualElement LoadLayout()
         {
             VisualTreeAsset tree = _services.LayoutLoader.LoadVisualTree(LiveOpsHubPaths.OverviewSectionUxml);
@@ -189,7 +212,7 @@ namespace DreamTech.LiveOps.Editor
             VisualElement body = clone.Q(BodyElementName) ?? clone;
             // Stylesheet gắn vào CHÍNH element trả về, không vào TemplateContainer: cái bọc bị bỏ lại nên sheet gắn ở đó không
             // bao giờ vào panel — màn vẫn dựng nhưng mất sạch số đo (cột 96/150, thân flow 48, cột bảng 170/250/140/130).
-            StyleSheet sheet = _services.LayoutLoader.LoadStyleSheet(LiveOpsHubPaths.OverviewSectionUss);
+            StyleSheet sheet = LoadSectionStyleSheet();
             if (sheet != null) body.styleSheets.Add(sheet);
             return body;
         }
@@ -199,6 +222,10 @@ namespace DreamTech.LiveOps.Editor
             if (_isSubscribed) return;
             _services.Session.DocumentChanged += Refresh;
             _services.Session.CheckChanged += Refresh;
+            // Ghi dấu / gỡ dấu / đổi bản so KHÔNG phát sự kiện riêng (LiveOpsHubCalendarSession.NotifyPublishStateChanged chỉ
+            // tăng StateVersion, và chữ ký đó đóng băng theo PD-35). Bus.InvalidateHealth là tín hiệu "có thứ vật chất vừa đổi"
+            // của cả hub, nên nghe nó thay vì để metric ĐÃ ĐĂNG, hàng "Chưa có dấu đã đăng" và tab "Bản đã đăng" giữ số cũ.
+            _services.Bus.HealthInvalidated += Refresh;
             _isSubscribed = true;
         }
 
@@ -207,6 +234,7 @@ namespace DreamTech.LiveOps.Editor
             if (!_isSubscribed) return;
             _services.Session.DocumentChanged -= Refresh;
             _services.Session.CheckChanged -= Refresh;
+            _services.Bus.HealthInvalidated -= Refresh;
             _isSubscribed = false;
         }
 

@@ -13,6 +13,7 @@ namespace DreamTech.LiveOps.Editor
                 vietnamese: "Kiểm lại tất cả",
                 english: "Re-check everything");
             table.AddShared(nameof(LiveOpsHubStrings.OverviewPartSeparator), " · ");
+            table.AddShared(nameof(LiveOpsHubStrings.OverviewIdListSeparator), ", ");
 
             table.Add(nameof(LiveOpsHubStrings.OverviewDroppedCountFormat),
                 vietnamese: "{0} bị bỏ",
@@ -30,6 +31,9 @@ namespace DreamTech.LiveOps.Editor
             table.Add(nameof(LiveOpsHubStrings.OverviewMetricRunningUnit),
                 vietnamese: "đợt",
                 english: "events");
+            table.Add(nameof(LiveOpsHubStrings.OverviewMetricRunningUnitSingle),
+                vietnamese: "đợt",
+                english: "event");
             table.Add(nameof(LiveOpsHubStrings.OverviewMetricRunningEmptyFoot),
                 vietnamese: "không có đợt nào đang chạy",
                 english: "no event is running");
@@ -56,9 +60,15 @@ namespace DreamTech.LiveOps.Editor
             table.Add(nameof(LiveOpsHubStrings.OverviewMetricNotCheckedRulesFormat),
                 vietnamese: "{0} luật",
                 english: "{0} rules");
+            table.Add(nameof(LiveOpsHubStrings.OverviewMetricNotCheckedSingleRuleFormat),
+                vietnamese: "{0} luật",
+                english: "{0} rule");
             table.Add(nameof(LiveOpsHubStrings.OverviewMetricNotCheckedRemoteRulesFormat),
                 vietnamese: "{0} luật (bản remote)",
                 english: "{0} rules (remote snapshot)");
+            table.Add(nameof(LiveOpsHubStrings.OverviewMetricNotCheckedSingleRemoteRuleFormat),
+                vietnamese: "{0} luật (bản remote)",
+                english: "{0} rule (remote snapshot)");
             table.Add(nameof(LiveOpsHubStrings.OverviewMetricNotCheckedNoneFoot),
                 vietnamese: "mọi luật đã kiểm",
                 english: "every rule measured");
@@ -91,6 +101,9 @@ namespace DreamTech.LiveOps.Editor
             table.Add(nameof(LiveOpsHubStrings.OverviewNoBlockersEmptyFormat),
                 vietnamese: "Không còn việc chặn. {0} luật chưa kiểm — xem trước khi đăng.",
                 english: "Nothing blocking left. {0} rules not measured — review before publishing.");
+            table.Add(nameof(LiveOpsHubStrings.OverviewNoBlockersEmptySingleRuleFormat),
+                vietnamese: "Không còn việc chặn. {0} luật chưa kiểm — xem trước khi đăng.",
+                english: "Nothing blocking left. {0} rule not measured — review before publishing.");
             table.Add(nameof(LiveOpsHubStrings.OverviewNoBlockersEmptyNoRules),
                 vietnamese: "Không còn việc chặn.",
                 english: "Nothing blocking left.");
@@ -244,8 +257,8 @@ namespace DreamTech.LiveOps.Editor
                 vietnamese: "{0}…{1}",
                 english: "{0}…{1}");
             table.Add(nameof(LiveOpsHubStrings.OverviewUpcomingGroupedTimeFormat),
-                vietnamese: "{0} → {1} · {2} đợt",
-                english: "{0} → {1} · {2} events");
+                vietnamese: "{0} → {1}",
+                english: "{0} → {1}");
             table.Add(nameof(LiveOpsHubStrings.OverviewUpcomingGroupedNoteFormat),
                 vietnamese: "{0} mỗi ngày",
                 english: "{0} each day");
