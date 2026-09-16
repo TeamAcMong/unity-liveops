@@ -521,7 +521,7 @@ file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Sections/RecurringRulesSect
 file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Sections/SectionTestScope.cs	G-SHELL	G-SHELL tạo
 file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Sections/ValidationDepthTests.cs	G-VALIDATION-DEPTH	G-VALIDATION-DEPTH tạo
 file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Sections/ValidationSectionTests.cs	G-VALIDATION,G-VALIDATION-DEPTH	G-VALIDATION tạo; G-VALIDATION-DEPTH đổi SafeFix_AppliesOneUndoGroupAndRechecks sang nút "Sửa" của hàng (cùng lý do h17-8) — luồng card xem trước nằm ở ValidationDepthTests
-file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Sections/ValidationViewModelTests.cs	G-VALIDATION	G-VALIDATION tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Sections/ValidationViewModelTests.cs	G-VALIDATION,G-VALIDATION-DEPTH	G-VALIDATION tạo; G-VALIDATION-DEPTH đổi IgnorableFinding_HasNeitherButtonNorLink -> HasIgnoreWarningButton (test khoá đúng nhánh INTERIM I-7 mà gói này gỡ)
 file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Services/AssetLocatorTests.cs	G-SESSION	G-SESSION tạo
 file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Services/CalendarSessionTests.cs	G-SESSION	G-SESSION tạo
 file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Services/CheckStateStaleTests.cs	G-SESSION	G-SESSION tạo

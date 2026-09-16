@@ -130,18 +130,19 @@ namespace DreamTech.LiveOps.Editor.Tests
         }
 
         [Test]
-        public void IgnorableFinding_HasNeitherButtonNorLink()
+        public void IgnorableFinding_HasIgnoreWarningButton()
         {
-            // Mục 12 I-7: W4 ẩn hẳn "Bỏ qua cảnh báo…". Đổ chữ nút vào link sẽ ra một link mang chính chữ đó mà bấm vào lại
-            // nhảy sang màn Lịch — hàng nói một đằng làm một nẻo.
+            // [SD2 §2.4]: "Bỏ qua cảnh báo…" CHỈ có ở Warning, và nó là một động từ thật (mở popover §2.7) chứ không phải
+            // một link nhảy sang màn Lịch — hàng không được nói một đằng làm một nẻo. (W4 ẩn hẳn động từ này, mục 12 I-7;
+            // G-VALIDATION-DEPTH dựng nó.)
             LiveOpsHubServices services = LiveOpsHubTestServices.FromDesignSample();
             ValidationViewModel model = Build(services);
             ValidationRow ignorableRow = FindIgnorableRow(model);
 
             Assume.That(ignorableRow, Is.Not.Null, "lịch mẫu có một cảnh báo bỏ qua được (long gap)");
-            Assert.AreEqual(ValidationRowAction.None, ignorableRow.Action);
-            Assert.IsEmpty(ignorableRow.ActionText);
-            Assert.IsEmpty(ignorableRow.LinkText, "W4 không có nút lẫn link cho hàng Bỏ qua cảnh báo…");
+            Assert.AreEqual(ValidationRowAction.IgnoreWarning, ignorableRow.Action);
+            Assert.AreEqual(LiveOpsFindingText.PrimaryButtonText(ignorableRow.Finding), ignorableRow.ActionText,
+                "(V-8) chữ nút lấy nguyên từ LiveOpsFindingText");
         }
 
         private static ValidationRow FindIgnorableRow(ValidationViewModel model)
