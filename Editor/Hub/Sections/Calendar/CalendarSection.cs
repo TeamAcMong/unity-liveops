@@ -56,6 +56,12 @@ namespace DreamTech.LiveOps.Editor
             _commandHandler.LanesChanged += OnDocumentEdited;
             _commandHandler.FrameRequested += FrameBar;
             _commandHandler.FindingStepRequested += StepFinding;
+            // ⌘C đi qua ý định của timeline, nên timeline phải được BÁO là đã có đợt trong clipboard — không thì ⌘V tự tắt
+            // ngay sau khi người dùng vừa ⌘C.
+            _commandHandler.CopiedEventChanged += () =>
+            {
+                if (_timeline != null) _timeline.HasCopiedEvent = _commandHandler.HasCopiedEvent;
+            };
             _presenter.CommandHandler = _commandHandler;
         }
 

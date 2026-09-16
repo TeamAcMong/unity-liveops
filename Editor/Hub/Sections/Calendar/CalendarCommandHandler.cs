@@ -46,6 +46,9 @@ namespace DreamTech.LiveOps.Editor
         /// <summary>F8 / Shift+F8: ghim hover card lên phát hiện kế tiếp (+1) hoặc trước đó (−1).</summary>
         public event Action<int> FindingStepRequested;
 
+        /// <summary>Vừa copy một đợt — timeline cần biết để bật lệnh Dán (⌘V) và mục menu tương ứng.</summary>
+        public event Action CopiedEventChanged;
+
         /// <summary>Đợt vừa copy đang nằm trong clipboard hay không — timeline hỏi để bật/tắt lệnh Paste.</summary>
         public bool HasCopiedEvent
         {
@@ -145,6 +148,7 @@ namespace DreamTech.LiveOps.Editor
             _copiedJson = LiveEventCalendarJsonWriter.WriteFixedEventObject(Document, entry);
             _services.Clipboard.Text = _copiedJson;
             ShowToast(string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.CalendarDepthCopyJsonToastFormat, entry.EventId));
+            CopiedEventChanged?.Invoke();
             return true;
         }
 
@@ -259,8 +263,31 @@ namespace DreamTech.LiveOps.Editor
         /// <summary>Mục này chỉ có nghĩa khi bản so CÓ mục đó — đợt mới thêm thì không có gì để hoàn về.</summary>
         public bool CanRevertToCompare(string entryKey)
         {
+            return TryFindCompareEntry(entryKey, out FixedLiveEventEntry _, out FixedLiveEventEntry _);
+        }
+
+        /// <summary>
+        /// Tìm mục tương ứng ở bản so. Khớp theo <c>EntryKey</c> TRƯỚC, rồi mới theo <c>EventId</c>: bản đã đăng được đọc lại từ
+        /// JSON của dấu, mà JSON không mang EntryKey — mỗi lần parse sinh khoá mới. Khớp mỗi EntryKey thì "Hoàn về bản đã đăng"
+        /// im lặng không bao giờ dùng được, đúng thứ đã làm test đầu tiên của lệnh này đỏ.
+        /// </summary>
+        private bool TryFindCompareEntry(string entryKey, out FixedLiveEventEntry draft, out FixedLiveEventEntry baseline)
+        {
+            draft = null;
+            baseline = null;
             LiveEventCalendarDocument compare = CompareDocument;
-            return compare != null && compare.TryGetFixedEvent(entryKey, out FixedLiveEventEntry _);
+            if (compare == null || string.IsNullOrEmpty(entryKey)) return false;
+            if (!Document.TryGetFixedEvent(entryKey, out draft)) return false;
+            if (compare.TryGetFixedEvent(entryKey, out baseline)) return true;
+            IReadOnlyList<FixedLiveEventEntry> entries = compare.FixedEvents;
+            for (int index = 0; index < entries.Count; index++)
+            {
+                if (!string.Equals(entries[index].EventId, draft.EventId, StringComparison.Ordinal)) continue;
+                baseline = entries[index];
+                return true;
+            }
+            baseline = null;
+            return false;
         }
 
         /// <summary>
@@ -269,13 +296,16 @@ namespace DreamTech.LiveOps.Editor
         /// </summary>
         public bool RevertToCompare(string entryKey)
         {
-            LiveEventCalendarDocument compare = CompareDocument;
-            if (compare == null || !compare.TryGetFixedEvent(entryKey, out FixedLiveEventEntry baseline)) return false;
+            if (!TryFindCompareEntry(entryKey, out FixedLiveEventEntry draft, out FixedLiveEventEntry baseline)) return false;
             bool fromDisk = _services.Session.Publish.ActiveCompareSource == LiveOpsHubCompareSource.Disk;
             string message = string.Format(CultureInfo.InvariantCulture, fromDisk
                 ? LiveOpsHubStrings.CalendarDepthTakeFromDiskToastFormat
                 : LiveOpsHubStrings.CalendarDepthRevertToastFormat, baseline.EventId);
-            return _presenter.ApplyEdit(new ReplaceFixedEventEdit(baseline), LiveOpsEditOperation.ChangeFixedEventTimes, entryKey,
+            // Ghi vào ĐÚNG mục của nháp (giữ EntryKey của nháp) với giá trị của bản so — thay khoá là xoá rồi thêm, và mọi thứ
+            // đang trỏ vào mục đó (lựa chọn, hover card, phát hiện) sẽ trỏ vào hư không.
+            FixedLiveEventEntry reverted = new FixedLiveEventEntry(draft.EntryKey, baseline.EventId, baseline.EventType,
+                baseline.StartUtcText, baseline.EndUtcText, baseline.ConfigKey);
+            return _presenter.ApplyEdit(new ReplaceFixedEventEdit(reverted), LiveOpsEditOperation.ChangeFixedEventTimes, entryKey,
                 message, string.Empty);
         }
 
