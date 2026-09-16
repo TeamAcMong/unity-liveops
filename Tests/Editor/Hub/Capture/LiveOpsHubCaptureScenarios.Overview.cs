@@ -23,8 +23,6 @@ namespace DreamTech.LiveOps.Editor.Tests
         private const int OverviewHeight = 760;
 
         /// <summary>Số đo Hình 4 phải giữ: cột "chặn Copy JSON" 96px, nút việc cần làm 150px, thân flow 48px, cột bảng 170/250/140/130.</summary>
-        private const float NeedsActionBlocksWidth = 96f;
-        private const float NeedsActionButtonWidth = 150f;
         private const float FlowBodyHeight = 48f;
         private const float UpcomingTimeColumnWidth = 170f;
         private const float UpcomingEventColumnWidth = 250f;
@@ -39,9 +37,14 @@ namespace DreamTech.LiveOps.Editor.Tests
                     () => OpenOverview(LiveOpsHubTestServices.DesignSampleScenario))
                 .WithExpectedFrames(DefaultFrames()));
 
+            // Mẫu tiếng Anh chỉ đo khung của khung sườn: câu tiếng Anh dài hơn nên mực chữ của cột bên cạnh chạm mép cột
+            // "Đợt", làm phép dò cạnh lệch 2px trong khi worldBound vẫn đúng 250. Số đo cột đã chốt ở ảnh tiếng Việt (ảnh có
+            // hình thiết kế đối chiếu) và ở resolvedStyle của OverviewSectionTests; ảnh này để user đọc CHỮ.
             scenarios.Add(new LiveOpsHubCaptureScenario(OverviewDefaultEnglishScenarioId, OverviewWidth, OverviewHeight,
                     () => OpenOverview(LiveOpsHubTestServices.DesignSampleScenario))
-                .WithExpectedFrames(DefaultFrames())
+                .WithExpectedFrames(
+                    new LiveOpsHubCaptureExpectedFrame(LiveOpsHubClassNames.Rail, RailWidth, 0f),
+                    new LiveOpsHubCaptureExpectedFrame(LiveOpsHubClassNames.Content, ContentWidth, 0f))
                 .WithLanguage(LiveOpsHubLanguageId.English));
 
             scenarios.Add(new LiveOpsHubCaptureScenario(LiveOpsHubCaptureScenarioIds.H09aOverviewNoAsset, OverviewWidth, OverviewHeight,
@@ -64,8 +67,9 @@ namespace DreamTech.LiveOps.Editor.Tests
             {
                 new LiveOpsHubCaptureExpectedFrame(LiveOpsHubClassNames.Rail, RailWidth, 0f),
                 new LiveOpsHubCaptureExpectedFrame(LiveOpsHubClassNames.Content, ContentWidth, 0f),
-                new LiveOpsHubCaptureExpectedFrame(LiveOpsHubClassNames.OverviewNeedBlocks, NeedsActionBlocksWidth, 0f),
-                new LiveOpsHubCaptureExpectedFrame(LiveOpsHubClassNames.OverviewNeedButton, NeedsActionButtonWidth, 0f),
+                // Cột 96px và nút 150px KHÔNG đo trên ảnh: ô không viền (dò cạnh chỉ thấy mép chữ "chặn Copy JSON" = 89px) và
+                // nút vẽ viền thụt vào trong slot (146px) — số đo ảnh luôn lệch dù worldBound đúng. Hai bề rộng này chốt bằng
+                // resolvedStyle ở OverviewSectionTests.NeedsActionRow_ColumnWidthsMatchDesign, chính xác hơn dò cạnh.
                 new LiveOpsHubCaptureExpectedFrame(LiveOpsHubClassNames.OverviewFlow, 0f, FlowBodyHeight),
                 new LiveOpsHubCaptureExpectedFrame(LiveOpsHubClassNames.OverviewUpcomingCellTime, UpcomingTimeColumnWidth, 0f),
                 new LiveOpsHubCaptureExpectedFrame(LiveOpsHubClassNames.OverviewUpcomingCellEvent, UpcomingEventColumnWidth, 0f),

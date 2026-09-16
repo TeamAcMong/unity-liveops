@@ -15,6 +15,7 @@ namespace DreamTech.LiveOps.Editor
         internal const string HeadRowElementName = "overview-upcoming-head";
         internal const string RowElementNamePrefix = "overview-upcoming-row-";
         internal const string EmptyElementName = "overview-upcoming-empty";
+        internal const string HeadCellElementNamePrefix = "overview-upcoming-col-";
 
         private readonly VisualElement _container;
 
@@ -44,17 +45,19 @@ namespace DreamTech.LiveOps.Editor
         {
             VisualElement head = new VisualElement { name = HeadRowElementName };
             head.AddToClassList(LiveOpsHubClassNames.OverviewUpcomingHeadRow);
-            head.Add(BuildHeadCell(LiveOpsHubStrings.OverviewUpcomingColumnTime, LiveOpsHubClassNames.OverviewUpcomingCellTime));
-            head.Add(BuildHeadCell(LiveOpsHubStrings.OverviewUpcomingColumnEvent, LiveOpsHubClassNames.OverviewUpcomingCellEvent));
-            head.Add(BuildHeadCell(LiveOpsHubStrings.OverviewUpcomingColumnType, LiveOpsHubClassNames.OverviewUpcomingCellType));
-            head.Add(BuildHeadCell(LiveOpsHubStrings.OverviewUpcomingColumnKind, LiveOpsHubClassNames.OverviewUpcomingCellKind));
-            head.Add(BuildHeadCell(LiveOpsHubStrings.OverviewUpcomingColumnNote, LiveOpsHubClassNames.OverviewUpcomingCellNote));
+            head.Add(BuildHeadCell(LiveOpsHubStrings.OverviewUpcomingColumnTime, LiveOpsHubClassNames.OverviewUpcomingCellTime, 0));
+            head.Add(BuildHeadCell(LiveOpsHubStrings.OverviewUpcomingColumnEvent, LiveOpsHubClassNames.OverviewUpcomingCellEvent, 1));
+            head.Add(BuildHeadCell(LiveOpsHubStrings.OverviewUpcomingColumnType, LiveOpsHubClassNames.OverviewUpcomingCellType, 2));
+            head.Add(BuildHeadCell(LiveOpsHubStrings.OverviewUpcomingColumnKind, LiveOpsHubClassNames.OverviewUpcomingCellKind, 3));
+            head.Add(BuildHeadCell(LiveOpsHubStrings.OverviewUpcomingColumnNote, LiveOpsHubClassNames.OverviewUpcomingCellNote, 4));
             return head;
         }
 
-        private static VisualElement BuildHeadCell(string text, string columnClass)
+        /// <summary>Ô tiêu đề có TÊN để lệnh chụp ghi worldBound: bề rộng cột 170/250/140/130 là số đo của ma trận 9.5.</summary>
+        private static VisualElement BuildHeadCell(string text, string columnClass, int columnIndex)
         {
             VisualElement cell = BuildCell(columnClass);
+            cell.name = HeadCellElementNamePrefix + columnIndex.ToString(System.Globalization.CultureInfo.InvariantCulture);
             Label label = new Label(text);
             label.AddToClassList(LiveOpsHubClassNames.Caption);
             cell.Add(label);

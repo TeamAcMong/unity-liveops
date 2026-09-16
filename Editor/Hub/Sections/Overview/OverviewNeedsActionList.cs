@@ -18,7 +18,9 @@ namespace DreamTech.LiveOps.Editor
         internal const string EmptyElementName = "overview-needs-action-empty";
         internal const string RowElementNamePrefix = "overview-need-row-";
         internal const string RowButtonElementNamePrefix = "overview-need-button-";
+        internal const string RowButtonSlotElementNamePrefix = "overview-need-slot-";
         internal const string CaptionElementName = "overview-needs-action-caption";
+        internal const string RowBlocksElementNamePrefix = "overview-need-blocks-";
 
         private readonly VisualElement _container;
         private readonly Action<OverviewNeedsActionRow> _rowActivated;
@@ -111,15 +113,19 @@ namespace DreamTech.LiveOps.Editor
             text.Add(detail);
             element.Add(text);
 
-            element.Add(BuildBlocksColumn(row));
+            element.Add(BuildBlocksColumn(row, index));
             element.Add(BuildRowButton(row, index));
             return element;
         }
 
         /// <summary>Cột 96px: dấu Blocked 7px + "chặn Copy JSON". Hàng không chặn vẫn giữ cột (rỗng) để mọi nút thẳng hàng.</summary>
-        private static VisualElement BuildBlocksColumn(OverviewNeedsActionRow row)
+        private static VisualElement BuildBlocksColumn(OverviewNeedsActionRow row, int index)
         {
-            VisualElement blocks = new VisualElement();
+            // Đặt tên để lệnh chụp ghi được worldBound: số đo 96px của cột cổng là một hàng của ma trận 9.5.
+            VisualElement blocks = new VisualElement
+            {
+                name = RowBlocksElementNamePrefix + index.ToString(System.Globalization.CultureInfo.InvariantCulture),
+            };
             blocks.AddToClassList(LiveOpsHubClassNames.OverviewNeedBlocks);
             if (!row.BlocksCopy) return blocks;
 
@@ -141,7 +147,10 @@ namespace DreamTech.LiveOps.Editor
                 text = row.ButtonText,
             };
             button.AddToClassList(LiveOpsHubClassNames.Button);
-            LiveOpsButtonSlot slot = new LiveOpsButtonSlot(button);
+            LiveOpsButtonSlot slot = new LiveOpsButtonSlot(button)
+            {
+                name = RowButtonSlotElementNamePrefix + index.ToString(System.Globalization.CultureInfo.InvariantCulture),
+            };
             slot.AddToClassList(LiveOpsHubClassNames.OverviewNeedButton);
             // Nút khoá LUÔN in lý do thành chữ cạnh nút (SPIKE-B SP-3) — tooltip chỉ là đường phụ.
             LiveOpsHubStyle.SetEnabledWithReason(slot, row.IsButtonEnabled, _disabledReasonOf(row));
