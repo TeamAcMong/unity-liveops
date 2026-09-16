@@ -148,13 +148,23 @@ namespace DreamTech.LiveOps.Editor.Tests
             Assert.IsNotNull(FindRow(validation, LiveEventCalendarRuleIds.OverlapSameType), "hai đợt lava-quest chồng giờ phải ra phát hiện overlap-same-type");
 
             // ---- 3. "Sửa": đúng một lỗi sửa an toàn nên nút bật; sửa xong hub tự kiểm lại (PD-10).
-            //      Đếm thẳng trên báo cáo chứ KHÔNG suy từ nút: nút cũng tắt khi n > 1 vì nhánh TẠM I-7, nên phép suy
-            //      "nút bật ⇒ đúng một lỗi" sẽ tan ngay khi G-VALIDATION-DEPTH gỡ nhánh tạm đó.
+            //      Đếm thẳng trên báo cáo chứ KHÔNG suy từ nút: nút hàng loạt chỉ MỞ card xem trước ([SD2 §2.5]) nên
+            //      "nút bật ⇒ đúng một lỗi" là phép suy sai — số lỗi phải đọc từ chính báo cáo.
             Assert.AreEqual(1, SafeRepairCountOf(services.Session.Check.LastReport),
                 "lịch mẫu của hành trình phải để lại đúng MỘT lỗi sửa an toàn (giờ gõ sai) — nếu không thì lịch mẫu đã lệch");
             Assert.IsTrue(validation.SafeRepairSlot.Button.enabledSelf,
                 "đúng MỘT lỗi sửa an toàn thì nút \"Sửa\" phải bật");
             yield return ClickInWindow(_sectionScope.Window, validation.SafeRepairSlot.Button);
+
+            //      Nút header KHÔNG áp ngay, kể cả khi chỉ có một thay đổi ([SD2 §2.5]): nó mở card xem trước để người
+            //      soát đọc từng dòng rồi mới bấm "Áp n thay đổi". Hành trình phải đi đúng hai cú bấm đó — bỏ cú thứ hai
+            //      thì lịch không đổi gì và cả đoạn dưới kiểm một lịch chưa được sửa.
+            SafeRepairPreviewCard bulkPreview = validation.BulkPreview;
+            Assert.IsNotNull(bulkPreview, "bấm nút sửa hàng loạt phải mở card xem trước");
+            Assert.AreEqual(1, bulkPreview.ItemCount, "card phải liệt kê đúng một thay đổi — đúng số lỗi sửa an toàn của lịch mẫu");
+            Assert.AreEqual(1, bulkPreview.SelectedCount, "mỗi dòng của card bật sẵn, nên cú Áp bên dưới áp đúng thay đổi đó");
+            yield return WaitForLayoutOf(bulkPreview.ApplyButton);
+            yield return ClickInWindow(_sectionScope.Window, bulkPreview.ApplyButton);
             yield return WaitForCheckToFinish(services);
 
             Assert.AreEqual(RepairedStartUtcText, StartTextOf(services, TreasureHuntUnreadableEventId),
