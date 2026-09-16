@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using System.Globalization;
 using System.IO;
 using DreamTech.LiveOps.Tests;
 using NUnit.Framework;
@@ -82,12 +83,7 @@ namespace DreamTech.LiveOps.Editor.Tests
             services.Bus.NavigationRequested += handler;
             try
             {
-                Button diff = _window.DiskBanner.Q<Button>(LiveOpsHubDiskConflictBanner.DiffButtonName);
-                using (ClickEvent clickEvent = ClickEvent.GetPooled())
-                {
-                    clickEvent.target = diff;
-                    diff.SendEvent(clickEvent);
-                }
+                Click(_window.DiskBanner.Q<Button>(LiveOpsHubDiskConflictBanner.DiffButtonName));
                 yield return null;
             }
             finally
@@ -114,12 +110,7 @@ namespace DreamTech.LiveOps.Editor.Tests
             ApplyEdit(services);
             yield return ChangeAssetOnDiskThenNotify(services);
 
-            Button keep = _window.DiskBanner.Q<Button>(LiveOpsHubDiskConflictBanner.KeepButtonName);
-            using (ClickEvent clickEvent = ClickEvent.GetPooled())
-            {
-                clickEvent.target = keep;
-                keep.SendEvent(clickEvent);
-            }
+            Click(_window.DiskBanner.Q<Button>(LiveOpsHubDiskConflictBanner.KeepButtonName));
             yield return null;
             Assert.IsNull(services.Session.DiskConflict, "trả lời xong thì băng tắt — nhưng file trên đĩa VẪN là bản của đồng đội");
             Assert.IsNull(_window.DiskBanner);
@@ -163,12 +154,7 @@ namespace DreamTech.LiveOps.Editor.Tests
             ApplyEdit(services);
             yield return ChangeAssetOnDiskThenNotify(services);
 
-            Button reload = _window.DiskBanner.Q<Button>(LiveOpsHubDiskConflictBanner.ReloadButtonName);
-            using (ClickEvent clickEvent = ClickEvent.GetPooled())
-            {
-                clickEvent.target = reload;
-                reload.SendEvent(clickEvent);
-            }
+            Click(_window.DiskBanner.Q<Button>(LiveOpsHubDiskConflictBanner.ReloadButtonName));
             yield return null;
 
             Assert.IsFalse(_window.IsOverwriteOfDiskPending);
@@ -216,8 +202,25 @@ namespace DreamTech.LiveOps.Editor.Tests
             string assetPath = services.Session.AssetPath;
             Assert.IsNotEmpty(assetPath, "ca này cần asset thật trên đĩa");
             File.AppendAllText(Path.GetFullPath(assetPath), Environment.NewLine + DiskEditMarkerComment + Environment.NewLine);
+            // Cửa sổ ghi một cảnh báo CÓ CHỦ ĐÍCH để lịch sử Console còn dấu vết lần file đổi ngoài (SP-8b) — khai trước để
+            // LogAssert.NoUnexpectedReceived() ở cuối test vẫn bắt được cảnh báo thật.
+            LogAssert.Expect(LogType.Warning, string.Format(CultureInfo.InvariantCulture,
+                LiveOpsHubStrings.ShellDiskConflictLogFormat, services.Session.AssetFileName));
             services.Session.HandleAssetsChanged(new[] { assetPath }, null, null, null);
             yield return null;
+        }
+
+        /// <summary>
+        /// Bấm nút bằng <c>NavigationSubmitEvent</c> — <c>Clickable</c> PHÁT ClickEvent chứ không nghe nó, nên gửi ClickEvent
+        /// vào nút là không gọi được handler (cùng helper với OverviewSectionTests).
+        /// </summary>
+        private static void Click(Button button)
+        {
+            using (NavigationSubmitEvent submitEvent = NavigationSubmitEvent.GetPooled(EventModifiers.None))
+            {
+                submitEvent.target = button;
+                button.SendEvent(submitEvent);
+            }
         }
 
         private IEnumerator OpenWindow(LiveOpsHubServices services)

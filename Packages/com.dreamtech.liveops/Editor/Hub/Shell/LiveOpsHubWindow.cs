@@ -688,7 +688,9 @@ namespace DreamTech.LiveOps.Editor
 
             _diskBanner = LiveOpsHubDiskConflictBanner.Create(conflict, _services.Session.AssetFileName, _services.Format,
                 ReloadFromDisk,
-                () => Navigate(LiveOpsHubNavigation.To(LiveOpsHubSections.Ids.Export).WithCompareSource(LiveOpsHubCompareSource.Disk)),
+                // Đi qua BUS chứ không gọi thẳng Navigate: "Xem khác biệt" là một yêu cầu điều hướng như mọi yêu cầu khác của
+                // hub (V-13), nên nó phải quan sát được ở cùng một chỗ — cửa sổ vẫn là nơi nghe và thực hiện.
+                () => _services.Bus.Navigate(LiveOpsHubNavigation.To(LiveOpsHubSections.Ids.Export).WithCompareSource(LiveOpsHubCompareSource.Disk)),
                 KeepEditorVersion).Element;
             _notes.Add(_diskBanner);
         }
