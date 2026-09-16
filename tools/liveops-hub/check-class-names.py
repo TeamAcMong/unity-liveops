@@ -8,7 +8,8 @@ này đối chiếu máy:
   1. literal `liveops-hub-*` trong .uss (selector), .uxml (class="…"), .cs (chuỗi) phải bằng giá trị một hằng
   2. không hai hằng cùng giá trị (hai gói đặt trùng tên cho hai thứ khác nhau)
   3. giá trị `liveops-hub-<id màn>-…` chỉ khai trong file vùng của màn đó
-  4. --strict (từ cổng W5): mọi hằng có ít nhất một selector USS
+  4. --strict (từ cổng W5): mọi hằng có ít nhất một selector USS, trừ các hằng "chỉ là cờ trạng thái" đã ghi lý do
+     trong classnames-no-selector.tsv (cổng W5)
 Chạy trên worktree của gói: chỉ thấy file gốc + file vùng của gói — đủ để xanh độc lập.
 
 Cách dùng: check-class-names.py [--repository <worktree>] [--strict]
@@ -24,6 +25,7 @@ import sys
 PACKAGE_PREFIX = "Packages/com.dreamtech.liveops/"
 CLASS_NAMES_DIRECTORY = PACKAGE_PREFIX + "Editor/Hub/Foundation/"
 SCAN_ROOTS = [PACKAGE_PREFIX + "Editor", PACKAGE_PREFIX + "Tests/Editor/Hub"]
+NO_SELECTOR_ALLOW_FILE = "classnames-no-selector.tsv"
 CLASS_LITERAL = re.compile(r"^liveops-hub(?:-[a-z0-9_]+)*(?:--[a-z0-9-]+)?$")
 CONSTANT_DECLARATION = re.compile(r"\b(?:const\s+string|static\s+readonly\s+string)\s+(\w+)\s*=\s*\"([^\"]*)\"")
 # Id màn (LiveOpsHubSections.Ids, mục 7) → file vùng được khai class riêng của màn.
@@ -77,6 +79,21 @@ def region_of(file_name):
     if not match:
         return None
     return match.group(1) or ""
+
+
+def read_no_selector_allow_list():
+    """Hằng chỉ là CỜ TRẠNG THÁI (phần nhìn thấy do child element / SetStateText vẽ) — xem đầu file .tsv."""
+    path = os.path.join(os.path.dirname(os.path.abspath(__file__)), NO_SELECTOR_ALLOW_FILE)
+    allowed = set()
+    if not os.path.isfile(path):
+        return allowed
+    with open(path, encoding="utf-8") as handle:
+        for line in handle:
+            line = line.strip()
+            if not line or line.startswith("#"):
+                continue
+            allowed.add(line.split("\t")[0].strip())
+    return allowed
 
 
 def main():
@@ -161,9 +178,15 @@ def main():
                                 errors.append("%s:%d: chuỗi \"%s\" trông như class nhưng không có hằng — dùng LiveOpsHubClassNames.<Tên>" % (relative, number, literal))
 
     if arguments.strict:
+        allowed = read_no_selector_allow_list()
+        declared_names = set(name for _, _, name, _, _ in constants)
+        for name in sorted(allowed):
+            if name not in declared_names:
+                errors.append("%s: %s không còn là hằng class nào — xoá dòng rác" % (NO_SELECTOR_ALLOW_FILE, name))
         for relative, number, name, value, region in constants:
-            if value not in used_in_selectors:
-                errors.append("%s:%d: %s = \"%s\" không có selector USS nào (--strict)" % (relative, number, name, value))
+            if value in used_in_selectors or name in allowed:
+                continue
+            errors.append("%s:%d: %s = \"%s\" không có selector USS nào (--strict)" % (relative, number, name, value))
 
     if errors:
         for error in errors:
