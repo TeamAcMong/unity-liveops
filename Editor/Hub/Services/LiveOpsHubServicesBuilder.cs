@@ -61,7 +61,10 @@ namespace DreamTech.LiveOps.Editor
             return this;
         }
 
-        /// <summary>Mở đúng asset này và bỏ qua bộ tìm asset (test, chụp ảnh, inspector). null = phiên không có asset, không tìm.</summary>
+        /// <summary>
+        /// Mở đúng asset này và bỏ qua bộ tìm asset (test, chụp ảnh). null = phiên không có asset, không tìm. Kèm
+        /// <see cref="WithAssetLocator"/> thì vẫn có bộ tìm (đường inspector: mở asset này VÀ nhớ GUID theo project).
+        /// </summary>
         public LiveOpsHubServicesBuilder WithCalendarAsset(LiveEventCalendarAsset asset)
         {
             _calendarAsset = asset;
@@ -122,8 +125,10 @@ namespace DreamTech.LiveOps.Editor
             ILiveOpsHubPublisherIdentity publisherIdentity = _publisherIdentity ?? new GitLiveOpsHubPublisherIdentity();
             LiveEventCalendarValidator validator = _validator ?? LiveEventCalendarValidator.Default;
             LiveOpsHubSectionBus bus = new LiveOpsHubSectionBus();
-            // Asset tường minh (kể cả null) = không tìm: test/chụp ảnh không bao giờ đọc hay ghi GUID nhớ của người dùng.
-            LiveOpsHubAssetLocator locator = _hasCalendarAsset ? null : (_assetLocator ?? new LiveOpsHubAssetLocator());
+            // Asset tường minh (kể cả null) = không tìm: test/chụp ảnh không bao giờ đọc hay ghi GUID nhớ của người dùng. Bộ tìm truyền
+            // TƯỜNG MINH thì luôn thắng — đường inspector "Mở trong LiveOps Hub" mở đúng asset mà vẫn nhớ GUID và vẫn đếm được số lịch
+            // trong project (HelpBox "Có 2 LiveEventCalendarAsset", 7.1).
+            LiveOpsHubAssetLocator locator = _assetLocator ?? (_hasCalendarAsset ? null : new LiveOpsHubAssetLocator());
             LiveOpsHubCalendarSession session = new LiveOpsHubCalendarSession(clock, validator, publisherIdentity, locator, bus);
 
             LiveOpsHubServices services = new LiveOpsHubServices(

@@ -76,6 +76,23 @@ namespace DreamTech.LiveOps.Editor.Tests
         }
 
         [Test]
+        public void PublishState_MarkPublished_SaveFails_KeepsStampAndUndoGroup()
+        {
+            // Asset chỉ trong bộ nhớ: Apply chạy được, Save luôn trả false — đúng nhánh "lệnh đã áp nhưng lưu hỏng".
+            LiveOpsHubCalendarSession session = CalendarSessionTests.OpenSession(
+                LiveOpsHubTestServices.CreateMemoryAsset(LiveOpsDesignSample.DocumentWithoutPublishedStamp()));
+
+            LiveOpsHubEditOutcome outcome = session.Publish.MarkPublished("thử đăng khi không lưu được");
+
+            Assert.IsFalse(outcome.Applied, "lưu hỏng thì không được báo là xong");
+            Assert.IsNotEmpty(outcome.FailureText, "phải nói vì sao không lưu được");
+            Assert.IsNotNull(session.Document.LatestStamp, "dấu ĐÃ nằm trong tài liệu — câu trả về không được giả vờ là chưa có gì xảy ra");
+            Assert.IsTrue(session.HasUnsavedChanges, "tab phải còn * vì dấu chưa vào file");
+            Assert.AreNotEqual(LiveOpsHubEditOutcome.NoUndoGroup, outcome.UndoGroup, "toast phải mời được Hoàn tác cho dấu vừa thêm");
+            Assert.IsNotEmpty(outcome.UndoName, "tên Undo group = câu toast");
+        }
+
+        [Test]
         public void PublishState_RemoveLatestStamp_DoesNotSave()
         {
             LiveEventCalendarAsset asset = LiveOpsHubTestServices.CreateAssetFile(AssetFileName, LiveOpsDesignSample.Document);

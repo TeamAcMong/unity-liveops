@@ -41,8 +41,13 @@ namespace DreamTech.LiveOps.Editor
 
         /// <summary>
         /// Registry với services KHÔNG có asset, không tìm asset, không tự kiểm — cho nơi chỉ cần hình dạng registry (test hợp đồng màn,
-        /// kịch bản chụp khung của W2). Giữ chữ ký W2 để các file đó không phải đổi cùng đợt (contract-changes-G-SESSION.md CC-SESSION-1).
+        /// kịch bản chụp khung của W2). Overload này giữ chữ ký W2 để các file đó (thuộc quyền ghi của G-SHELL) không phải đổi cùng đợt.
         /// Phiên không asset không đăng ký sự kiện tĩnh nào nên không cần Dispose.
+        /// <para>
+        /// BẪY: nơi gọi <c>LiveOpsHubWindow.OpenForTest(LiveOpsHubSections.Create(), …)</c> có HAI phiên — màn cầm phiên dựng ở đây, cửa
+        /// sổ dựng phiên riêng của nó. Vô hại ở W3 vì màn giữ chỗ chưa đọc phiên; màn thật của W4 phải mở bằng
+        /// <c>OpenWithServices(services, …)</c> + <see cref="Create(LiveOpsHubServices)"/> trên CÙNG một services.
+        /// </para>
         /// </summary>
         internal static List<IHubSection> Create()
         {

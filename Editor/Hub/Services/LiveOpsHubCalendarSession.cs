@@ -22,6 +22,9 @@ namespace DreamTech.LiveOps.Editor
         internal const string SavedFileHashStoreName = "SavedFileHash";
         internal const string CheckRunningStoreName = "CheckRunning";
 
+        /// <summary>Cờ "phiên đang có băng xung đột đĩa" — nháp trong <see cref="DraftSnapshotStoreName"/> chỉ sống lại qua reload khi cờ này bật.</summary>
+        internal const string DiskConflictStoreName = "DiskConflict";
+
         private readonly ILiveOpsClock _clock;
         private readonly LiveEventCalendarValidator _validator;
         private readonly LiveOpsHubAssetLocator _locator;
@@ -51,6 +54,9 @@ namespace DreamTech.LiveOps.Editor
         private bool _continuousHasUpdate;
 
         private bool _isSaving;
+        private bool _autoCheckOnOpen;
+        private bool _undoWouldCrossDiskBaseline;
+        private bool _isDomainReloading;
         private bool _isUndoSubscribed;
         private bool _isPumpRegistered;
         private bool _isDisposed;
@@ -159,10 +165,14 @@ namespace DreamTech.LiveOps.Editor
         /// <summary>Nạp asset theo thứ tự: asset truyền tường minh (builder) → GUID đã nhớ của project → asset duy nhất/đầu tiên trong project.</summary>
         internal void Initialize(LiveEventCalendarAsset explicitAsset, bool useExplicitAsset, bool autoCheckOnOpen)
         {
+            _autoCheckOnOpen = autoCheckOnOpen;
             LiveEventCalendarAsset asset = useExplicitAsset ? explicitAsset : (_locator != null ? _locator.FindRemembered() : null);
+            // Asset tường minh KÈM bộ tìm (đường inspector "Mở trong LiveOps Hub") vẫn nhớ GUID theo project (PD-16); test và kịch bản
+            // chụp không truyền bộ tìm nên không bao giờ đè asset người dùng đang mở.
+            if (useExplicitAsset && asset != null && _locator != null) _locator.Remember(asset);
             _calendarAssetCount = _locator != null ? _locator.CountAssets() : 0;
             Load(asset);
-            if (autoCheckOnOpen && _asset != null && Check.LastReport == null && !Check.IsRunning) StartCheck();
+            StartAutoCheck();
         }
 
         /// <summary>Tạo asset rỗng tại đường dẫn (trong Assets/), nhớ GUID, mở nó; một Undo group "Tạo lịch LiveOps" (file tạo ra không nằm trong Undo).</summary>
@@ -187,6 +197,7 @@ namespace DreamTech.LiveOps.Editor
                 _calendarAssetCount = _locator.CountAssets();
             }
             Load(asset);
+            StartAutoCheck();
             return true;
         }
 
@@ -200,6 +211,7 @@ namespace DreamTech.LiveOps.Editor
                 _calendarAssetCount = _locator.CountAssets();
             }
             Load(asset);
+            StartAutoCheck();
             return true;
         }
 
@@ -296,10 +308,18 @@ namespace DreamTech.LiveOps.Editor
 
         // ============================================================================================================ lưu / đĩa
 
-        /// <summary>SaveAssetIfDirty + chụp lại bản đã lưu + hash file (phân biệt "mình vừa lưu" với "người khác đổi"). true khi file đã ghi.</summary>
+        /// <summary>
+        /// SaveAssetIfDirty + chụp lại bản đã lưu + hash file (phân biệt "mình vừa lưu" với "người khác đổi"). true khi file đã ghi.
+        /// <para>
+        /// Đang có <see cref="DiskConflict"/> thì KHÔNG lưu (trả false): lúc đó Unity có thể đã đè instance bằng bản đĩa [API §12.7],
+        /// nên ghi tiếp sẽ đẩy chính bản đĩa trở lại file rồi báo "đã lưu" trong khi nháp chưa hề được ghi. Ai chọn cái gì là quyết định
+        /// của người dùng (Tải lại · Xem khác biệt · Giữ bản trong Editor — 4.3), không phải của hàm lưu.
+        /// </para>
+        /// </summary>
         public bool Save()
         {
             if (_asset == null || _assetPath.Length == 0) return false;
+            if (DiskConflict != null) return false;
             if (IsContinuousEditOpen) CommitContinuousEdit(_continuousGroup);
             _isSaving = true;
             try
@@ -315,8 +335,9 @@ namespace DreamTech.LiveOps.Editor
             if (EditorUtility.IsDirty(_asset)) return false;
 
             _savedFileHash = ComputeFileHash(_assetPath);
-            _savedDocument = _document;
-            DiskConflict = null;
+            // Bản "đã lưu" đọc lại từ chính asset vừa ghi, không chép từ nháp: lệch giữa hai thứ (nếu có) phải hiện ra thành * trên tab
+            // chứ không được bị chính lần lưu này xoá đi.
+            _savedDocument = _asset.ToDocument();
             PersistSnapshots();
             MarkUnsavedDirty();
             RaiseDocumentChanged();
@@ -331,6 +352,7 @@ namespace DreamTech.LiveOps.Editor
             LiveEventCalendarDocument disk = ReadDiskDocument() ?? _asset.ToDocument();
             _asset.ApplyDocument(disk);
             EditorUtility.ClearDirty(_asset);
+            DropUndoHistoryForAsset();
             _savedFileHash = _assetPath.Length > 0 ? ComputeFileHash(_assetPath) : string.Empty;
             _savedDocument = _asset.ToDocument();
             DiskConflict = null;
@@ -351,6 +373,8 @@ namespace DreamTech.LiveOps.Editor
             WriteToAsset(draft, LiveOpsHubStrings.ServicesUndoKeepEditorVersion);
             Undo.CollapseUndoOperations(group);
             AcceptAssetDocument(true);
+            // Băng đã được trả lời: hạ cờ xung đột trong kho phiên, nếu không lần nạp lại sau sẽ dựng lại một băng đã giải quyết xong.
+            PersistSnapshots();
         }
 
         /// <summary>Bỏ thay đổi chưa lưu (cửa sổ đóng → "Không lưu"): asset về bản chụp lúc lưu, không còn bẩn.</summary>
@@ -477,6 +501,9 @@ namespace DreamTech.LiveOps.Editor
                 _isPumpRegistered = false;
             }
             Check.Cancel();
+            // R-25: cờ "đang kiểm" chỉ được sống sót khi Unity nạp lại script. Đóng cửa sổ bình thường mà giữ cờ thì lần mở sau báo sai
+            // lý do "bị cắt ngang khi Unity nạp lại script".
+            if (!_isDomainReloading) _store.Erase(CheckRunningStoreName);
             UnsubscribeAssetEvents();
             _isDisposed = true;
         }
@@ -526,6 +553,7 @@ namespace DreamTech.LiveOps.Editor
                     _asset.ApplyDocument(disk);
                     EditorUtility.ClearDirty(_asset);
                 }
+                DropUndoHistoryForAsset();
                 _savedDocument = _asset.ToDocument();
                 DiskConflict = null;
                 AcceptAssetDocument(true);
@@ -553,6 +581,7 @@ namespace DreamTech.LiveOps.Editor
             Check.Reset();
             DiskConflict = null;
             LastChangedUtc = null;
+            _undoWouldCrossDiskBaseline = false;
 
             _asset = asset;
             _assetPath = asset != null ? AssetDatabase.GetAssetPath(asset) ?? string.Empty : string.Empty;
@@ -574,6 +603,7 @@ namespace DreamTech.LiveOps.Editor
                 _savedDocument = savedText.Length > 0 && LiveOpsHubDocumentSnapshot.TryRead(savedText, out LiveEventCalendarDocument saved) ? saved : _document;
                 _savedFileHash = _store.GetString(SavedFileHashStoreName, string.Empty);
                 if (_savedFileHash.Length == 0 && _assetPath.Length > 0) _savedFileHash = ComputeFileHash(_assetPath);
+                RestoreDiskConflictAfterReload();
                 SubscribeAssetEvents();
                 if (_store.GetInt(CheckRunningStoreName, 0) == 1)
                 {
@@ -590,6 +620,8 @@ namespace DreamTech.LiveOps.Editor
 
         private void WriteToAsset(LiveEventCalendarDocument document, string undoName)
         {
+            // Có lệnh sửa MỚI sau lần nhận bản đĩa gần nhất: từ giờ một bước Undo là bước của chính người dùng trong phiên này.
+            _undoWouldCrossDiskBaseline = false;
             Undo.RecordObject(_asset, undoName);
             _asset.ApplyDocument(document);
             EditorUtility.SetDirty(_asset);
@@ -687,12 +719,26 @@ namespace DreamTech.LiveOps.Editor
             if (_asset == null || IsContinuousEditOpen) return;
             LiveEventCalendarDocument restored = _asset.ToDocument();
             if (DocumentsEqual(restored, _document)) return;
+            if (_undoWouldCrossDiskBaseline)
+            {
+                // (R-5) Phiên vừa nhận bản đĩa và CHƯA có lệnh sửa nào sau đó, nên bước Undo này chỉ có thể là bước của trước lần nhận:
+                // để nó chạy là dựng lại nháp cũ, đánh dấu "chưa lưu", rồi lần ⌘S kế tiếp ghi đè bản của đồng đội một cách im lặng.
+                _asset.ApplyDocument(_document);
+                EditorUtility.ClearDirty(_asset);
+                return;
+            }
             AcceptAssetDocument(true);
         }
 
         private void OnAssetsChanged(string[] importedAssets, string[] deletedAssets, string[] movedAssets, string[] movedFromAssetPaths)
         {
             HandleAssetsChanged(importedAssets, deletedAssets, movedAssets, movedFromAssetPaths);
+        }
+
+        /// <summary>Unity sắp nạp lại script: <see cref="Dispose"/> chạy ngay sau đó (OnDisable của cửa sổ) và phải GIỮ cờ "đang kiểm" (R-25).</summary>
+        private void OnBeforeAssemblyReload()
+        {
+            _isDomainReloading = true;
         }
 
         private void SubscribeAssetEvents()
@@ -702,6 +748,7 @@ namespace DreamTech.LiveOps.Editor
             // đăng ký sự kiện tĩnh ở đó sẽ giữ phiên sống mãi.
             Undo.undoRedoPerformed += OnUndoRedoPerformed;
             LiveOpsCalendarAssetPostprocessor.AssetsChanged += OnAssetsChanged;
+            AssemblyReloadEvents.beforeAssemblyReload += OnBeforeAssemblyReload;
             _isUndoSubscribed = true;
         }
 
@@ -710,6 +757,7 @@ namespace DreamTech.LiveOps.Editor
             if (!_isUndoSubscribed) return;
             Undo.undoRedoPerformed -= OnUndoRedoPerformed;
             LiveOpsCalendarAssetPostprocessor.AssetsChanged -= OnAssetsChanged;
+            AssemblyReloadEvents.beforeAssemblyReload -= OnBeforeAssemblyReload;
             _isUndoSubscribed = false;
         }
 
@@ -737,8 +785,50 @@ namespace DreamTech.LiveOps.Editor
         {
             if (_asset == null || _assetGuid.Length == 0) return;
             _store.SetString(SavedSnapshotStoreName, LiveOpsHubDocumentSnapshot.Write(_savedDocument));
-            _store.SetString(DraftSnapshotStoreName, LiveOpsHubDocumentSnapshot.Write(DiskConflict != null ? DiskConflict.EditorDocument : _document));
+            // Luôn chụp tài liệu ĐANG là nháp của phiên: khi còn băng xung đột mà người dùng sửa tiếp, bản chụp lúc phát hiện đã cũ.
+            _store.SetString(DraftSnapshotStoreName, LiveOpsHubDocumentSnapshot.Write(_document));
             _store.SetString(SavedFileHashStoreName, _savedFileHash);
+            if (DiskConflict != null) _store.SetInt(DiskConflictStoreName, 1);
+            else _store.Erase(DiskConflictStoreName);
+        }
+
+        /// <summary>
+        /// Sau domain reload giữa lúc còn băng xung đột: Unity đã đè instance bằng bản đĩa nên <c>asset.ToDocument()</c> KHÔNG còn là nháp.
+        /// Bản chụp nháp trong <see cref="DraftSnapshotStoreName"/> là thứ duy nhất còn giữ việc của designer — dựng lại nháp và băng để
+        /// người dùng vẫn được hỏi (R-5). Giờ phát hiện lấy lại theo đồng hồ hiện tại: mốc cũ không sống qua reload và không ai đọc nó.
+        /// </summary>
+        private void RestoreDiskConflictAfterReload()
+        {
+            if (_store.GetInt(DiskConflictStoreName, 0) != 1) return;
+            _store.Erase(DiskConflictStoreName);
+            string draftText = _store.GetString(DraftSnapshotStoreName, string.Empty);
+            if (draftText.Length == 0 || !LiveOpsHubDocumentSnapshot.TryRead(draftText, out LiveEventCalendarDocument draft)) return;
+            LiveEventCalendarDocument disk = ReadDiskDocument() ?? _asset.ToDocument();
+            if (DocumentsEqual(disk, draft)) return;
+            _document = draft;
+            DiskConflict = new LiveOpsHubDiskConflict(_clock.UtcNow, disk, draft, _savedDocument);
+            _store.SetInt(DiskConflictStoreName, 1);
+        }
+
+        /// <summary>(Q-11) Kiểm tự chạy một lần khi mở hub VÀ mỗi lần đổi/tạo asset — không thì rail đứng ở "Chưa kiểm lần nào" tới khi bấm F5.</summary>
+        private void StartAutoCheck()
+        {
+            if (!_autoCheckOnOpen || _asset == null || Check.LastReport != null || Check.IsRunning) return;
+            StartCheck();
+        }
+
+        /// <summary>
+        /// Vừa nhận bản đĩa vào asset: ngăn xếp Undo vẫn ôm bản ghi của nháp cũ trên CHÍNH object này. Một lần ⌘Z sau đó dựng lại tài
+        /// liệu cũ, đánh dấu "chưa lưu", rồi lần ⌘S kế tiếp ghi đè bản của đồng đội — nên bỏ lịch sử Undo của asset (R-5).
+        /// </summary>
+        private void DropUndoHistoryForAsset()
+        {
+            if (_asset == null) return;
+            Undo.ClearUndo(_asset);
+            // Trên 2022.3 `Undo.ClearUndo` KHÔNG gỡ được bản ghi `RecordObject` của một ScriptableObject asset (đo bằng probe: ⌘Z sau
+            // ClearUndo vẫn dựng lại bản trước đó, cả khi ClearUndo gọi ngay sau Apply và sau FlushUndoRecordObjects). Vì package chạy cả
+            // 2022.3 nên phải có mốc chặn của chính phiên, không dựa vào ngăn xếp Undo của Unity.
+            _undoWouldCrossDiskBaseline = true;
         }
 
         private LiveEventCalendarDocument ReadDiskDocument()

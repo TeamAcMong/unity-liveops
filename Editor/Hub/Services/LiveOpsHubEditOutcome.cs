@@ -38,5 +38,15 @@ namespace DreamTech.LiveOps.Editor
         {
             return new LiveOpsHubEditOutcome(false, NoUndoGroup, string.Empty, failureText);
         }
+
+        /// <summary>
+        /// Lệnh sửa ĐÃ vào tài liệu nhưng bước sau hỏng (vd ghi dấu đã đăng xong mà lưu file không được): người dùng đọc câu vì sao,
+        /// nhưng toast vẫn phải mời được Hoàn tác vì lịch đang mang thay đổi vừa áp. <see cref="Applied"/> = false, <see cref="UndoGroup"/>
+        /// = group của bước vừa áp.
+        /// </summary>
+        internal static LiveOpsHubEditOutcome FailureAfterApply(int undoGroup, string undoName, string failureText)
+        {
+            return new LiveOpsHubEditOutcome(false, undoGroup, undoName, failureText);
+        }
     }
 }
