@@ -286,7 +286,9 @@ namespace DreamTech.LiveOps.Editor
             // Tên bước Undo chỉ biết được lúc nhả chuột (giờ cuối), nên đổi tên ngay sau khi gộp: Undo History và toast phải nói
             // cùng một câu để người dùng tìm lại được bước đó khi toast đã tắt (8.5).
             Undo.SetCurrentGroupName(message);
-            ToastRequested?.Invoke(LiveOpsToastModel.ForEdit(message, outcome.UndoGroup));
+            // Tên bước ngắn để toast sau ⌘Z đọc "Đã hoàn tác: Dời hunt-0916-bonus" [SD1 §3.8 khung 14] thay vì hai lần "Đã".
+            string undoneStepName = string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.CalendarMoveUndoStepFormat, after.EventId);
+            ToastRequested?.Invoke(LiveOpsToastModel.ForEdit(message, outcome.UndoGroup, string.Empty, undoneStepName));
             DocumentEdited?.Invoke();
 
             LiveOpsConfirmDecision decision = LiveOpsConfirmationPolicy.Decide(LiveOpsEditOperation.ChangeFixedEventTimes, before,

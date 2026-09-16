@@ -134,6 +134,9 @@ namespace DreamTech.LiveOps.Editor
         // Toast của kéo/sửa — tên bước Undo trùng câu toast nên câu phải đủ để tìm lại trong Undo History.
         internal static string CalendarMoveToastFormat => LiveOpsHubStringCatalog.Text(nameof(CalendarMoveToastFormat));
         internal static string CalendarMoveEndToastFormat => LiveOpsHubStringCatalog.Text(nameof(CalendarMoveEndToastFormat));
+
+        /// <summary>Tên bước Undo của lệnh dời — câu ngắn hiện sau "Đã hoàn tác: " [SD1 §3.8 khung 14].</summary>
+        internal static string CalendarMoveUndoStepFormat => LiveOpsHubStringCatalog.Text(nameof(CalendarMoveUndoStepFormat));
         internal static string CalendarMoveStartToastFormat => LiveOpsHubStringCatalog.Text(nameof(CalendarMoveStartToastFormat));
         internal static string CalendarRenameToastFormat => LiveOpsHubStringCatalog.Text(nameof(CalendarRenameToastFormat));
         internal static string CalendarRetypeToastFormat => LiveOpsHubStringCatalog.Text(nameof(CalendarRetypeToastFormat));

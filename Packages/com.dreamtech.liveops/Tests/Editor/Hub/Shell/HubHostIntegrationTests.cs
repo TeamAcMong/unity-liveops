@@ -62,6 +62,27 @@ namespace DreamTech.LiveOps.Editor.Tests
         }
 
         /// <summary>
+        /// PD-21 (phiếu D-6 của cổng W4): màn Lịch xin nâng toast lên trên minimap + chú giải bằng <c>Bus.SetContentClass</c>.
+        /// Không ai nghe <c>ContentClassRequested</c> thì lệnh đó rơi vào hư không và toast nằm dưới minimap.
+        /// </summary>
+        [UnityTest]
+        public IEnumerator BusContentClass_TogglesClassOnContentColumn()
+        {
+            LiveOpsHubServices services = LiveOpsHubTestServices.ForScenario(LiveOpsHubTestServices.DesignSampleScenario);
+            yield return OpenWindow(services);
+            VisualElement content = _window.HubRoot.Q(LiveOpsHubPaths.ShellElementNames.Content);
+            Assert.IsFalse(content.ClassListContains(LiveOpsHubClassNames.ContentRaisedToast));
+
+            services.Bus.SetContentClass(LiveOpsHubClassNames.ContentRaisedToast, true);
+            yield return null;
+            Assert.IsTrue(content.ClassListContains(LiveOpsHubClassNames.ContentRaisedToast), "cửa sổ phải nghe ContentClassRequested");
+
+            services.Bus.SetContentClass(LiveOpsHubClassNames.ContentRaisedToast, false);
+            yield return null;
+            Assert.IsFalse(content.ClassListContains(LiveOpsHubClassNames.ContentRaisedToast), "rời màn Lịch thì trả lại như cũ");
+        }
+
+        /// <summary>
         /// H-1: câu " · Vừa làm: … (⌘Z)" của status bar (8.3, [FD §3.4]). Toast là đường duy nhất câu đó tới được status bar —
         /// phiên mở group Undo thẳng qua <c>Undo.IncrementCurrentGroup</c>, không qua <c>LiveOpsHubUndoTracker.BeginGroup</c>,
         /// nên đọc <c>LastActionText</c> của tracker thì câu không bao giờ hiện.
