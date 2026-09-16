@@ -14,6 +14,13 @@ namespace DreamTech.LiveOps.Editor
         /// <summary>Dấu nối giữa các mảnh đếm ("2 bị bỏ · 1 mất tiến độ") — ký hiệu trung tính, một bản cho mọi ngôn ngữ.</summary>
         internal static string OverviewPartSeparator => LiveOpsHubStringCatalog.Text(nameof(OverviewPartSeparator));
 
+        /// <summary>
+        /// Dấu nối riêng cho DANH SÁCH id ("weekly-pass-35, sky-race-251" — [SD1 §1.1]). Tách khỏi
+        /// <see cref="OverviewPartSeparator"/> vì " · " ngăn các mảnh KHÁC loại của một dòng phụ; dùng lẫn thì một danh sách id
+        /// đọc thành hai cột.
+        /// </summary>
+        internal static string OverviewIdListSeparator => LiveOpsHubStringCatalog.Text(nameof(OverviewIdListSeparator));
+
         internal static string OverviewDroppedCountFormat => LiveOpsHubStringCatalog.Text(nameof(OverviewDroppedCountFormat));
         internal static string OverviewProgressLostCountFormat => LiveOpsHubStringCatalog.Text(nameof(OverviewProgressLostCountFormat));
         internal static string OverviewShouldReviewCountFormat => LiveOpsHubStringCatalog.Text(nameof(OverviewShouldReviewCountFormat));
@@ -21,6 +28,12 @@ namespace DreamTech.LiveOps.Editor
         // Metric — caption viết HOA sẵn vì USS không có text-transform ([FD §2.9]).
         internal static string OverviewMetricRunningCaption => LiveOpsHubStringCatalog.Text(nameof(OverviewMetricRunningCaption));
         internal static string OverviewMetricRunningUnit => LiveOpsHubStringCatalog.Text(nameof(OverviewMetricRunningUnit));
+
+        /// <summary>
+        /// Dạng số ít của <see cref="OverviewMetricRunningUnit"/>. Tiếng Việt không đổi ("đợt"), nhưng bản tiếng Anh in ngay
+        /// trên ảnh mẫu người dùng đọc — "1 events" là lỗi chính tả mà catalog phải chịu trách nhiệm, không phải nơi gọi.
+        /// </summary>
+        internal static string OverviewMetricRunningUnitSingle => LiveOpsHubStringCatalog.Text(nameof(OverviewMetricRunningUnitSingle));
         internal static string OverviewMetricRunningEmptyFoot => LiveOpsHubStringCatalog.Text(nameof(OverviewMetricRunningEmptyFoot));
 
         internal static string OverviewMetricNeedsActionCaption => LiveOpsHubStringCatalog.Text(nameof(OverviewMetricNeedsActionCaption));
@@ -39,7 +52,13 @@ namespace DreamTech.LiveOps.Editor
         /// <summary>(PD-1) P1 không có màn tầng CHẠY nên "chưa kiểm" chỉ còn đếm luật, không có mảnh "2 màn".</summary>
         internal static string OverviewMetricNotCheckedRulesFormat => LiveOpsHubStringCatalog.Text(nameof(OverviewMetricNotCheckedRulesFormat));
 
+        /// <summary>Dạng số ít của <see cref="OverviewMetricNotCheckedRulesFormat"/> ("1 rule", không "1 rules").</summary>
+        internal static string OverviewMetricNotCheckedSingleRuleFormat => LiveOpsHubStringCatalog.Text(nameof(OverviewMetricNotCheckedSingleRuleFormat));
+
         internal static string OverviewMetricNotCheckedRemoteRulesFormat => LiveOpsHubStringCatalog.Text(nameof(OverviewMetricNotCheckedRemoteRulesFormat));
+
+        /// <summary>Dạng số ít của <see cref="OverviewMetricNotCheckedRemoteRulesFormat"/> — ngữ cảnh thường gặp nhất (đúng một luật bản remote).</summary>
+        internal static string OverviewMetricNotCheckedSingleRemoteRuleFormat => LiveOpsHubStringCatalog.Text(nameof(OverviewMetricNotCheckedSingleRemoteRuleFormat));
         internal static string OverviewMetricNotCheckedNoneFoot => LiveOpsHubStringCatalog.Text(nameof(OverviewMetricNotCheckedNoneFoot));
 
         internal static string OverviewMetricPublishedCaption => LiveOpsHubStringCatalog.Text(nameof(OverviewMetricPublishedCaption));
@@ -56,6 +75,9 @@ namespace DreamTech.LiveOps.Editor
         internal static string OverviewBlocksCopyLabel => LiveOpsHubStringCatalog.Text(nameof(OverviewBlocksCopyLabel));
 
         internal static string OverviewNoBlockersEmptyFormat => LiveOpsHubStringCatalog.Text(nameof(OverviewNoBlockersEmptyFormat));
+
+        /// <summary>Dạng số ít của <see cref="OverviewNoBlockersEmptyFormat"/> ("1 rule not measured").</summary>
+        internal static string OverviewNoBlockersEmptySingleRuleFormat => LiveOpsHubStringCatalog.Text(nameof(OverviewNoBlockersEmptySingleRuleFormat));
         internal static string OverviewNoBlockersEmptyNoRules => LiveOpsHubStringCatalog.Text(nameof(OverviewNoBlockersEmptyNoRules));
 
         /// <summary>Caption dưới danh sách (c): chưa kiểm vẫn liệt kê, vì "chưa kiểm không có nghĩa là ổn" [SD1 §1.4].</summary>

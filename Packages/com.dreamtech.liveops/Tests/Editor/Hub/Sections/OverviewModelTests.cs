@@ -30,7 +30,7 @@ namespace DreamTech.LiveOps.Editor.Tests
         [Test]
         public void NeedsAction_WorstFirst_NeedsAction5()
         {
-            OverviewModel model = BuildDesignSampleModel(out LiveOpsHubServices services);
+            OverviewModel model = BuildDesignSampleModel();
 
             OverviewMetric needsAction = model.Metrics[1];
             Assert.AreEqual(LiveOpsHubStrings.OverviewMetricNeedsActionCaption, needsAction.Caption);
@@ -58,7 +58,36 @@ namespace DreamTech.LiveOps.Editor.Tests
             Assert.AreEqual(LiveOpsHubSections.Ids.Validation, worst.Navigation.SectionId);
             Assert.AreEqual(LiveOpsHubNavigation.FilterDropped, worst.Navigation.FilterConsequence);
             Assert.IsTrue(worst.BlocksCopy, "còn đợt bị bỏ thì cổng chặn Copy JSON — trạng thái lấy từ ExportGateModel (V-9)");
-            Assert.AreSame(services.Session.Document.LatestStamp, services.Session.Document.LatestStamp);
+            Assert.AreEqual(LiveOpsHubStrings.OverviewRowDroppedDetail, worst.Detail,
+                "dòng 'ở đâu' của hàng bị bỏ nói đúng màn đích và điều kiện mở Copy JSON");
+        }
+
+        /// <summary>
+        /// Câu của hàng Mất tiến độ là câu của <see cref="LiveOpsFindingText"/> với DẤU ĐÃ ĐĂNG (V-22 CC-FT-1), không phải câu
+        /// màn tự ghép — headline đổi theo bản đã đăng nên gọi thiếu ngữ cảnh sẽ im lặng ra câu khác.
+        /// </summary>
+        [Test]
+        public void ProgressLostRow_TitleComesFromFindingTextWithLatestStamp()
+        {
+            OverviewModel model = BuildDesignSampleModel(out LiveOpsHubServices services);
+
+            LiveEventCalendarFinding progressLost = null;
+            foreach (LiveEventCalendarFinding finding in services.Session.Check.LastReport.Findings)
+            {
+                if (finding.IsIgnored || finding.IsAboutRemoteSnapshot) continue;
+                if (finding.Consequence == LiveEventCalendarConsequence.ProgressLost) progressLost = finding;
+            }
+            Assert.IsNotNull(progressLost, "lịch mẫu có đúng một phát hiện Mất tiến độ (DesignSampleCheckTests)");
+
+            string expected = LiveOpsFindingText.Headline(progressLost, services.Format, services.Session.Document.LatestStamp);
+            OverviewNeedsActionRow row = null;
+            foreach (OverviewNeedsActionRow candidate in model.NeedsActionRows)
+            {
+                if (candidate.State == HealthState.Warning && string.Equals(candidate.Title, expected, StringComparison.Ordinal)) row = candidate;
+            }
+            Assert.IsNotNull(row, "hàng Mất tiến độ phải mang đúng headline của nguồn câu duy nhất: " + expected);
+            Assert.AreEqual(LiveOpsFindingText.PlainText(LiveOpsFindingText.Meta(progressLost, services.Format, services.Session.Clock.UtcNow)),
+                row.DetailTooltip, "câu meta đầy đủ (có đồng hồ) đi vào tooltip của dòng 'ở đâu'");
         }
 
         /// <summary>
@@ -114,14 +143,13 @@ namespace DreamTech.LiveOps.Editor.Tests
         [Test]
         public void NotCheckedMetric_CountsRulesOnly_RemoteSnapshotRule()
         {
-            OverviewModel model = BuildDesignSampleModel(out LiveOpsHubServices services);
+            OverviewModel model = BuildDesignSampleModel();
 
             OverviewMetric notChecked = model.Metrics[2];
             Assert.AreEqual("1", notChecked.Value);
             Assert.AreEqual(string.Format(CultureInfo.InvariantCulture,
                 LiveOpsHubStrings.OverviewMetricNotCheckedRemoteRulesFormat, 1), notChecked.Foot);
             Assert.AreEqual(1, model.NotMeasuredRuleCount);
-            Assert.IsNotNull(services);
         }
 
         /// <summary>Hàng bản remote: nút "Dán JSON đang chạy…" khoá khi action chưa có (INTERIM(G-PASTE)) — lý do đến từ chính port.</summary>
@@ -142,7 +170,7 @@ namespace DreamTech.LiveOps.Editor.Tests
         [Test]
         public void FlowNodes_FourStages_ConnectorDiesFromFirstBlockingGate()
         {
-            OverviewModel model = BuildDesignSampleModel(out LiveOpsHubServices services);
+            OverviewModel model = BuildDesignSampleModel();
 
             Assert.AreEqual(4, model.FlowNodes.Count);
             Assert.AreEqual(PipelineStage.Configure, model.FlowNodes[0].Stage);
@@ -157,14 +185,13 @@ namespace DreamTech.LiveOps.Editor.Tests
             Assert.IsFalse(model.FlowNodes[1].IsConnectorDead);
             Assert.IsTrue(model.FlowNodes[2].IsConnectorDead);
             Assert.AreEqual(LiveOpsHubStrings.OverviewFlowNoteBlocked, model.FlowNodes[3].Note);
-            Assert.IsNotNull(services);
         }
 
         /// <summary>sky-race chạy mỗi ngày: bảy dòng gần giống nhau gom MỘT dòng, còn đợt đang chạy vẫn có dòng khép riêng.</summary>
         [Test]
         public void Upcoming_DenseRecurringType_CollapsesIntoOneRow()
         {
-            OverviewModel model = BuildDesignSampleModel(out LiveOpsHubServices services);
+            OverviewModel model = BuildDesignSampleModel();
 
             IReadOnlyList<OverviewUpcomingRow> rows = model.UpcomingRows(false);
             int groupedSkyRace = 0;
@@ -177,14 +204,13 @@ namespace DreamTech.LiveOps.Editor.Tests
             }
             Assert.AreEqual(1, groupedSkyRace, "loại lặp dày gom đúng một dòng");
             Assert.AreEqual(0, skyRaceOpenRows, "dòng gom đã nói hết phần mở — không liệt kê lại từng đợt");
-            Assert.IsNotNull(services);
         }
 
         /// <summary>Đợt bị game bỏ có dòng riêng trong bảng 7 ngày, mang dấu Blocked và câu lý do từ nguồn câu duy nhất (V-8).</summary>
         [Test]
         public void Upcoming_DroppedEntry_HasBlockedRowWithReason()
         {
-            OverviewModel model = BuildDesignSampleModel(out LiveOpsHubServices services);
+            OverviewModel model = BuildDesignSampleModel();
 
             OverviewUpcomingRow dropped = null;
             foreach (OverviewUpcomingRow row in model.UpcomingRows(false))
@@ -195,7 +221,6 @@ namespace DreamTech.LiveOps.Editor.Tests
             Assert.AreEqual("hunt-0916-bonus", dropped.EventIdText);
             Assert.AreEqual(HealthState.Blocked, dropped.NoteState);
             Assert.IsNotEmpty(dropped.NoteText);
-            Assert.IsNotNull(services);
         }
 
         /// <summary>Chưa có dấu đã đăng: không có bảng "bản đã đăng" để đọc, và Tổng quan phải nói ra thay vì để bảng trống.</summary>
@@ -229,6 +254,120 @@ namespace DreamTech.LiveOps.Editor.Tests
             Assert.Greater(model.NeedsActionRows.Count, 0, "(c) vẫn liệt kê hàng chưa kiểm [SD1 §1.4]");
         }
 
+        /// <summary>
+        /// (V-9) Cột "chặn Copy JSON" hỏi đúng <see cref="ExportGateState.CopyBlockColumnTextFor"/> của cổng xuất: hàng chỉ mang
+        /// chữ khi nó LÀ lý do cổng đang chặn. Kết quả kiểm đã cũ chỉ làm cổng "chưa đo được" — Hình 4 để "-" ở hàng đó, và
+        /// hàng "2 đợt bị bỏ" dựng từ báo cáo cũ cũng không được tự nhận là đang chặn.
+        /// </summary>
+        [Test]
+        public void StaleCheck_NoRowClaimsToBlockCopy()
+        {
+            LiveOpsHubServices services = LiveOpsHubTestServices.ForScenario(LiveOpsHubTestServices.StaleCheckScenario);
+            OverviewModel model = Build(services);
+            ExportGateState gate = services.Session.EvaluateExportGate(services.JsonReadBack, services.Format);
+
+            OverviewNeedsActionRow staleRow = FindRow(model, LiveOpsHubStrings.OverviewRecheckButton);
+            Assert.IsNotNull(staleRow, "kiểm đã cũ phải có hàng Kiểm lại (F5)");
+            Assert.IsFalse(staleRow.BlocksCopy,
+                "hàng 'Kết quả kiểm đã cũ' chỉ làm cổng CHƯA ĐO ĐƯỢC — Hình 4 để '-' ở cột chặn Copy JSON");
+
+            Assert.AreEqual(string.Empty, gate.CopyBlockColumnTextFor(LiveEventCalendarConsequence.Dropped, false),
+                "cổng xuất: kiểm đã cũ thì dòng 'không còn đợt bị bỏ' là CHƯA ĐO ĐƯỢC, không phải đang chặn");
+            OverviewNeedsActionRow droppedRow = FindRow(model, LiveOpsHubStrings.OverviewOpenValidationButton);
+            Assert.IsNotNull(droppedRow, "báo cáo cũ vẫn còn đợt bị bỏ nên hàng đó vẫn được liệt kê");
+            Assert.IsFalse(droppedRow.BlocksCopy,
+                "hàng dựng từ báo cáo CŨ không được tự nhận là lý do cổng đang chặn — màn Xuất đang để trống ô đó");
+        }
+
+        /// <summary>Dòng phụ metric ĐANG CHẠY là một DANH SÁCH id nên nối bằng dấu phẩy ("weekly-pass-35, sky-race-251" — [SD1 §1.1]).</summary>
+        [Test]
+        public void RunningMetric_FootJoinsEventIdsWithComma()
+        {
+            OverviewModel model = BuildDesignSampleModel();
+
+            OverviewMetric running = model.Metrics[0];
+            Assert.AreEqual("2", running.Value, "lịch mẫu có 2 đợt đang chạy");
+            StringAssert.Contains(LiveOpsHubStrings.OverviewIdListSeparator, running.Foot);
+            Assert.IsFalse(running.Foot.Contains(LiveOpsHubStrings.OverviewPartSeparator),
+                "' · ' ngăn các MẢNH khác loại, không dùng cho danh sách id: " + running.Foot);
+        }
+
+        /// <summary>
+        /// Dòng gom của bảng 7 ngày: cột Lúc chỉ in khoảng ("14/9 00:00 → 20/9 00:00"). Số đợt đã nằm ở cột Sự kiện — nói hai
+        /// lần trong cột rộng 170px có cắt chữ là cách chắc chắn mất luôn mốc cuối. Ghi chú dùng dạng đầy đủ "20 giờ mỗi ngày",
+        /// không dạng gọn "20g mỗi ngày".
+        /// </summary>
+        [Test]
+        public void Upcoming_GroupedRow_TimeShowsRangeOnly_AndNoteSpellsDuration()
+        {
+            OverviewModel model = BuildDesignSampleModel(out LiveOpsHubServices services);
+
+            OverviewUpcomingRow grouped = null;
+            foreach (OverviewUpcomingRow row in model.UpcomingRows(false))
+            {
+                if (row.Kind == OverviewUpcomingKind.Grouped) grouped = row;
+            }
+            Assert.IsNotNull(grouped, "sky-race lặp dày phải có dòng gom");
+            Assert.IsFalse(grouped.TimeText.Contains(grouped.KindText),
+                "cột Lúc không lặp lại số đợt của cột Sự kiện: " + grouped.TimeText);
+
+            Assert.IsTrue(services.Session.Document.TryGetRecurringRule(grouped.EventType, out RecurringLiveEventRule rule));
+            Assert.AreEqual(string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.OverviewUpcomingGroupedNoteFormat,
+                    services.Format.Duration(TimeSpan.FromHours(rule.ActiveHours), false)), grouped.NoteText,
+                "ghi chú dòng gom dùng dạng đầy đủ ('20 giờ'), không dạng gọn ('20g')");
+        }
+
+        /// <summary>
+        /// (V-8) Ghi chú dòng "bị bỏ" dùng dạng CHI TIẾT của nguồn câu duy nhất: "chồng 12 giờ với hunt-0914". Nhãn ngắn
+        /// "chồng giờ" là để xếp cạnh nhãn khác trong một danh sách, đứng một mình nó giấu mất khoảng chồng và id đối thủ.
+        /// </summary>
+        [Test]
+        public void Upcoming_DroppedOverlapRow_NoteNamesOverlapLengthAndRival()
+        {
+            OverviewModel model = BuildDesignSampleModel(out LiveOpsHubServices services);
+
+            OverviewUpcomingRow dropped = null;
+            foreach (OverviewUpcomingRow row in model.UpcomingRows(false))
+            {
+                if (row.Kind == OverviewUpcomingKind.Dropped) dropped = row;
+            }
+            Assert.IsNotNull(dropped);
+
+            LiveEventCalendarEntryOutcome outcome = null;
+            foreach (LiveEventCalendarEntryOutcome candidate in services.Session.Compilation.Entries)
+            {
+                if (!candidate.IsKept && candidate.DropReason == LiveEventCalendarDropReason.OverlapsSameType) outcome = candidate;
+            }
+            Assert.IsNotNull(outcome, "lịch mẫu có một mục bị bỏ vì chồng giờ");
+            Assert.IsTrue(outcome.OverlapStartUtc.HasValue && outcome.OverlapEndUtc.HasValue);
+
+            Assert.AreEqual(LiveOpsFindingText.Format(LiveOpsHubStrings.FindingOverlapDetailFormat,
+                    services.Format.Duration(outcome.OverlapEndUtc.Value - outcome.OverlapStartUtc.Value, false),
+                    LiveOpsFindingText.IdText(outcome.RelatedEventId)), dropped.NoteText);
+            Assert.AreNotEqual(LiveOpsHubStrings.FindingOverlapShortLabel, dropped.NoteText,
+                "nhãn ngắn 'chồng giờ' bỏ mất khoảng chồng và id đối thủ mà Hình 4 yêu cầu");
+        }
+
+        /// <summary>
+        /// Ghim thứ tự: mảng tầng của model song song VỊ TRÍ với registry. Thêm hay đổi chỗ một màn mà quên mảng này thì health
+        /// gắn nhầm tầng và không có gì kêu (<c>Math.Min</c> nuốt sai lệch) — đó là lý do thứ tự phải có test chứ không chỉ comment.
+        /// </summary>
+        [Test]
+        public void SectionStages_MatchRegistryOrderAndCount()
+        {
+            LiveOpsHubServices services = LiveOpsHubTestServices.ForScenario(LiveOpsHubTestServices.EmptyAssetScenario);
+            List<IHubSection> sections = LiveOpsHubSections.Create(services);
+
+            Assert.AreEqual(sections.Count, OverviewModel.SectionStagesByRegistryOrder.Count,
+                "registry và mảng tầng phải cùng số màn");
+            for (int index = 0; index < sections.Count; index++)
+            {
+                Assert.AreEqual(sections[index].Stage, OverviewModel.SectionStagesByRegistryOrder[index],
+                    "màn '" + sections[index].Id + "' ở vị trí " + index.ToString(CultureInfo.InvariantCulture)
+                    + " không khớp tầng đã ghim");
+            }
+        }
+
         // ============================================================================================================ hạ tầng
 
         private static int SortRankOf(HealthState state)
@@ -248,6 +387,11 @@ namespace DreamTech.LiveOps.Editor.Tests
                 if (string.Equals(row.ButtonText, buttonText, StringComparison.Ordinal)) return row;
             }
             return null;
+        }
+
+        private static OverviewModel BuildDesignSampleModel()
+        {
+            return BuildDesignSampleModel(out LiveOpsHubServices _);
         }
 
         private static OverviewModel BuildDesignSampleModel(out LiveOpsHubServices services)

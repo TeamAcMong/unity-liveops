@@ -304,8 +304,13 @@ namespace DreamTech.LiveOps.Editor
             List<OverviewMetric> metrics = new List<OverviewMetric>();
             List<LiveEventInstance> running = CollectRunningInstances(session, nowUtc);
             string runningFoot = running.Count > 0 ? JoinEventIds(running) : LiveOpsHubStrings.OverviewMetricRunningEmptyFoot;
+            // Dạng số ít/số nhiều chọn ở đây, không ở chỗ dựng view: tiếng Việt hai bản giống nhau nhưng tiếng Anh thì không
+            // ("1 event" chứ không "1 events"), và ảnh mẫu tiếng Anh là thứ user đọc để duyệt bản dịch.
+            string runningUnit = running.Count == 1
+                ? LiveOpsHubStrings.OverviewMetricRunningUnitSingle
+                : LiveOpsHubStrings.OverviewMetricRunningUnit;
             metrics.Add(new OverviewMetric(LiveOpsHubStrings.OverviewMetricRunningCaption, format.Integer(running.Count),
-                LiveOpsHubStrings.OverviewMetricRunningUnit, runningFoot, runningFoot, null, false));
+                runningUnit, runningFoot, runningFoot, null, false));
 
             metrics.Add(BuildNeedsActionMetric(session, format, report));
 
@@ -316,12 +321,16 @@ namespace DreamTech.LiveOps.Editor
             else if (remoteNotMeasuredRuleCount == notMeasuredRuleCount)
             {
                 notCheckedFoot = string.Format(CultureInfo.InvariantCulture,
-                    LiveOpsHubStrings.OverviewMetricNotCheckedRemoteRulesFormat, notMeasuredRuleCount);
+                    notMeasuredRuleCount == 1
+                        ? LiveOpsHubStrings.OverviewMetricNotCheckedSingleRemoteRuleFormat
+                        : LiveOpsHubStrings.OverviewMetricNotCheckedRemoteRulesFormat, notMeasuredRuleCount);
             }
             else
             {
-                notCheckedFoot = string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.OverviewMetricNotCheckedRulesFormat,
-                    notMeasuredRuleCount);
+                notCheckedFoot = string.Format(CultureInfo.InvariantCulture,
+                    notMeasuredRuleCount == 1
+                        ? LiveOpsHubStrings.OverviewMetricNotCheckedSingleRuleFormat
+                        : LiveOpsHubStrings.OverviewMetricNotCheckedRulesFormat, notMeasuredRuleCount);
             }
             metrics.Add(new OverviewMetric(LiveOpsHubStrings.OverviewMetricNotCheckedCaption, notCheckedValue, string.Empty,
                 notCheckedFoot, notCheckedFoot, report == null ? (HealthState?)null : HealthState.NotMeasured, false));
@@ -412,7 +421,9 @@ namespace DreamTech.LiveOps.Editor
         {
             List<string> ids = new List<string>();
             foreach (LiveEventInstance instance in instances) ids.Add(instance.EventId);
-            return string.Join(LiveOpsHubStrings.OverviewPartSeparator, ids.ToArray());
+            // Danh sách id nối bằng dấu phẩy ("weekly-pass-35, sky-race-251" — [SD1 §1.1]); " · " là dấu ngăn các MẢNH khác
+            // loại của một dòng phụ, dùng lẫn thì mắt đọc thành hai cột.
+            return string.Join(LiveOpsHubStrings.OverviewIdListSeparator, ids.ToArray());
         }
 
         private static int CountNotMeasuredRules(LiveEventCalendarCheckReport report, out int remoteRuleCount)
@@ -460,7 +471,7 @@ namespace DreamTech.LiveOps.Editor
             if (dropped == 0) return;
             string title = string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.OverviewRowDroppedTitleFormat, dropped);
             rows.Add(new OverviewNeedsActionRow(HealthState.Blocked, title, LiveOpsHubStrings.OverviewRowDroppedDetail, string.Empty,
-                BlocksCopy(exportGate, ExportGateRowKind.NoDroppedEntries), LiveOpsHubStrings.OverviewOpenValidationButton,
+                BlocksCopy(exportGate, LiveEventCalendarConsequence.Dropped, false), LiveOpsHubStrings.OverviewOpenValidationButton,
                 OverviewRowAction.Navigate,
                 LiveOpsHubNavigation.To(LiveOpsHubSections.Ids.Validation).WithFilter(LiveOpsHubNavigation.FilterDropped), true,
                 string.Empty));
@@ -469,7 +480,7 @@ namespace DreamTech.LiveOps.Editor
         private static void AddProgressLostRows(List<OverviewNeedsActionRow> rows, LiveEventCalendarCheckReport report,
             ExportGateState exportGate, LiveOpsHubFormat format, DateTime nowUtc, PublishedCalendarStamp latestStamp)
         {
-            bool blocksCopy = BlocksCopy(exportGate, ExportGateRowKind.RequiredChangesReviewed);
+            bool blocksCopy = BlocksCopy(exportGate, LiveEventCalendarConsequence.ProgressLost, false);
             foreach (LiveEventCalendarFinding finding in report.Findings)
             {
                 if (finding.IsIgnored || finding.IsAboutRemoteSnapshot) continue;
@@ -539,8 +550,10 @@ namespace DreamTech.LiveOps.Editor
             {
                 title = LiveOpsHubStrings.OverviewRowStaleCheckTitle;
             }
+            // Hàng chưa đo được để trống cột "chặn Copy JSON" (Hình 4 ghi "-"): cột đó nói hàng này LÀ lý do cổng đang chặn,
+            // mà kết quả kiểm cũ chỉ làm cổng "chưa đo được". Chữ của cột do ExportGateState quyết (V-9), không suy ở đây.
             rows.Add(new OverviewNeedsActionRow(HealthState.NotMeasured, title, LiveOpsHubStrings.OverviewLocationValidation,
-                string.Empty, BlocksCopy(exportGate, ExportGateRowKind.CheckFreshness), LiveOpsHubStrings.OverviewRecheckButton,
+                string.Empty, false, LiveOpsHubStrings.OverviewRecheckButton,
                 OverviewRowAction.StartCheck, null, true, string.Empty));
         }
 
@@ -552,15 +565,16 @@ namespace DreamTech.LiveOps.Editor
                 OverviewRowAction.Navigate, LiveOpsHubNavigation.To(LiveOpsHubSections.Ids.Export), true, string.Empty));
         }
 
-        /// <summary>Dòng cổng tương ứng có đang chặn Copy JSON không (V-9) — Tổng quan không tự kết luận trạng thái cổng.</summary>
-        private static bool BlocksCopy(ExportGateState exportGate, ExportGateRowKind kind)
+        /// <summary>
+        /// Hàng này có phải lý do cổng đang chặn Copy JSON không (V-9). Hỏi đúng
+        /// <see cref="ExportGateState.CopyBlockColumnTextFor"/> — helper mà G-EXPORTGATE viết RIÊNG cho cột 96px này — thay vì
+        /// đọc <c>ExportGateRow.BlocksCopy</c>: <c>BlocksCopy</c> còn bật cả khi dòng cổng "chưa đo được", nên hai màn sẽ nói
+        /// khác nhau ở mọi lần kiểm đã cũ.
+        /// </summary>
+        private static bool BlocksCopy(ExportGateState exportGate, LiveEventCalendarConsequence consequence, bool isAboutRemoteSnapshot)
         {
             if (exportGate == null) return false;
-            foreach (ExportGateRow row in exportGate.Rows)
-            {
-                if (row.Kind == kind) return row.BlocksCopy;
-            }
-            return false;
+            return exportGate.CopyBlockColumnTextFor(consequence, isAboutRemoteSnapshot).Length > 0;
         }
 
         private static string LocationOf(LiveEventCalendarFinding finding)
@@ -613,6 +627,13 @@ namespace DreamTech.LiveOps.Editor
             PipelineStage.Configure, PipelineStage.Configure, PipelineStage.Schedule, PipelineStage.Schedule,
             PipelineStage.Check, PipelineStage.Export,
         };
+
+        /// <summary>
+        /// Chỉ đọc, dành cho test ghim: mảng này song song VỊ TRÍ với thứ tự màn của
+        /// <see cref="LiveOpsHubSections.Create(LiveOpsHubServices)"/>. Thêm hay đổi chỗ một màn mà quên mảng này thì health
+        /// sẽ gắn nhầm tầng và im lặng (<c>Math.Min</c> nuốt sai lệch), nên thứ tự phải có test ghim chứ không chỉ có comment.
+        /// </summary>
+        internal static IReadOnlyList<PipelineStage> SectionStagesByRegistryOrder { get; } = Array.AsReadOnly(SectionStages);
 
         /// <summary>Bốn tầng P1 (PD-1: tầng CHẠY chưa có màn nào nên không vẽ).</summary>
         private static readonly PipelineStage[] FlowStages =
@@ -748,14 +769,17 @@ namespace DreamTech.LiveOps.Editor
                 // Loại lặp dày (sky-race 7 đợt/tuần) gom MỘT dòng: bảy dòng gần giống nhau đẩy mọi thứ khác ra khỏi tầm mắt.
                 LiveEventInstance first = starts[0];
                 LiveEventInstance last = starts[starts.Count - 1];
+                // Cột Lúc rộng 170px và cắt phần thừa: mảnh "· 7 đợt" từng làm mất luôn mốc cuối trên ảnh, mà cột "Sự kiện"
+                // của chính dòng này đã ghi "7 đợt" rồi — nói hai lần để rồi bị cắt là tệ nhất.
                 string timeText = string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.OverviewUpcomingGroupedTimeFormat,
-                    format.ShortDateTime(first.StartUtc), format.ShortDateTime(last.StartUtc), starts.Count);
+                    format.ShortDateTime(first.StartUtc), format.ShortDateTime(last.StartUtc));
                 string idText = string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.OverviewUpcomingGroupedIdsFormat,
                     first.EventId, last.EventId);
                 string kindText = string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.OverviewUpcomingKindGroupedFormat,
                     starts.Count);
+                // Dạng đầy đủ ("20 giờ"), không dạng gọn ("20g"): cùng bảng, dòng phụ cột Lúc đã in "sau 15 giờ 13 phút".
                 string noteText = string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.OverviewUpcomingGroupedNoteFormat,
-                    format.Duration(TimeSpan.FromHours(rule.ActiveHours), true));
+                    format.Duration(TimeSpan.FromHours(rule.ActiveHours), false));
                 rows.Add(new OverviewUpcomingRow(first.StartUtc, timeText, format.Relative(nowUtc, first.StartUtc), idText,
                     type.TypeId, type.ColorSlot, OverviewUpcomingKind.Grouped, kindText, noteText, false, null));
             }
@@ -829,12 +853,29 @@ namespace DreamTech.LiveOps.Editor
                 if (startUtc < nowUtc || startUtc >= rangeEndUtc) continue;
                 int colorSlot = document.TryGetEventType(entry.EventType, out LiveEventTypeDefinition type) ? type.ColorSlot : 0;
                 bool isDraftOnly = baseline != null && !ContainsEventId(baseline, entry.EventType, entry.EventId, nowUtc);
-                // Lý do bỏ lấy từ nguồn câu duy nhất (V-8) — bảng không tự viết "chồng 12 giờ".
-                string noteText = LiveOpsFindingText.DropReasonPhrase(outcome.DropReason, outcome);
+                // Lý do bỏ lấy từ nguồn câu duy nhất (V-8) — bảng không tự viết "chồng 12 giờ với hunt-0914".
+                string noteText = DropReasonText(outcome, format);
                 rows.Add(new OverviewUpcomingRow(startUtc, format.ShortDateTime(startUtc), format.Relative(nowUtc, startUtc),
                     entry.EventId, entry.EventType, colorSlot, OverviewUpcomingKind.Dropped,
                     LiveOpsHubStrings.OverviewUpcomingKindDropped, noteText, isDraftOnly, HealthState.Blocked));
             }
+        }
+
+        /// <summary>
+        /// Câu lý do đầy đủ cho cột Ghi chú của dòng "bị bỏ": có khoảng chồng và id đối thủ thì dùng dạng chi tiết
+        /// ("chồng 12 giờ với hunt-0914" — Hình 4), không dùng nhãn ngắn "chồng giờ" vốn để xếp cạnh nhãn khác trong một danh
+        /// sách. Cả hai câu đều của <see cref="LiveOpsFindingText"/> (V-8) — bảng không tự viết chữ nào.
+        /// </summary>
+        private static string DropReasonText(LiveEventCalendarEntryOutcome outcome, LiveOpsHubFormat format)
+        {
+            if (outcome.DropReason == LiveEventCalendarDropReason.OverlapsSameType && outcome.OverlapStartUtc.HasValue
+                && outcome.OverlapEndUtc.HasValue)
+            {
+                return LiveOpsFindingText.Format(LiveOpsHubStrings.FindingOverlapDetailFormat,
+                    format.Duration(outcome.OverlapEndUtc.Value - outcome.OverlapStartUtc.Value, false),
+                    LiveOpsFindingText.IdText(outcome.RelatedEventId));
+            }
+            return LiveOpsFindingText.DropReasonPhrase(outcome.DropReason, outcome);
         }
 
         private static LiveEventInstance FindInstanceStartingAt(LiveEventCalendarCompilation compilation, string eventType,

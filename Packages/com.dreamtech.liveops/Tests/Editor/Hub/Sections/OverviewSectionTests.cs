@@ -57,8 +57,9 @@ namespace DreamTech.LiveOps.Editor.Tests
         }
 
         /// <summary>
-        /// Số đo Hình 4 chốt bằng resolvedStyle: cột "chặn Copy JSON" 96px, nút việc cần làm 150px, thân "Đường đi của lịch"
-        /// 48px, cột bảng 7 ngày 170/250/140/130. Ô không viền nên dò cạnh trên ảnh chỉ thấy mép chữ — đây mới là chỗ chốt số.
+        /// Số đo Hình 4 chốt bằng resolvedStyle: cột "chặn Copy JSON" 96px, NÚT việc cần làm 150px (đo chính nút, không đo slot
+        /// bọc — slot còn chứa chữ lý do khoá), thân "Đường đi của lịch" 48px, cột bảng 7 ngày 170/250/140/130. Ô không viền nên
+        /// dò cạnh trên ảnh chỉ thấy mép chữ — đây mới là chỗ chốt số.
         /// </summary>
         [UnityTest]
         public IEnumerator NeedsActionRow_ColumnWidthsMatchDesign()
@@ -71,8 +72,13 @@ namespace DreamTech.LiveOps.Editor.Tests
             Assert.IsNotNull(blocks);
             Assert.AreEqual(96f, blocks.resolvedStyle.width, 0.5f, "cột trạng thái cổng rộng 96px [SD1 §1.1]");
 
-            VisualElement slot = view.Q(className: LiveOpsHubClassNames.OverviewNeedButton);
-            Assert.AreEqual(150f, slot.resolvedStyle.width, 0.5f, "nút việc cần làm rộng 150px");
+            List<Button> rowButtons = RowButtons(view);
+            Assert.Greater(rowButtons.Count, 0, "lịch mẫu phải có hàng việc cần làm");
+            foreach (Button rowButton in rowButtons)
+            {
+                Assert.AreEqual(150f, rowButton.resolvedStyle.width, 0.5f,
+                    "nút việc cần làm rộng 150px, chữ dài ngắn khác nhau không làm cột răng cưa: " + rowButton.name);
+            }
 
             Assert.AreEqual(48f, view.Q(OverviewSection.FlowElementName).resolvedStyle.height, 0.5f, "thân Đường đi của lịch cao 48px");
 
@@ -80,6 +86,34 @@ namespace DreamTech.LiveOps.Editor.Tests
             Assert.AreEqual(250f, view.Q(className: LiveOpsHubClassNames.OverviewUpcomingCellEvent).resolvedStyle.width, 0.5f);
             Assert.AreEqual(140f, view.Q(className: LiveOpsHubClassNames.OverviewUpcomingCellType).resolvedStyle.width, 0.5f);
             Assert.AreEqual(130f, view.Q(className: LiveOpsHubClassNames.OverviewUpcomingCellKind).resolvedStyle.width, 0.5f);
+            LogAssert.NoUnexpectedReceived();
+        }
+
+        /// <summary>
+        /// Không hàng nào vẽ ra ngoài card: slot của nút = [lý do khoá][nút 150px], hàng có lý do dài từng đẩy nút vượt mép phải
+        /// cửa sổ và chữ nút bị cắt cụt trên mọi ảnh ghim. Mép phải đo bằng worldBound vì đó chính là thứ máy chụp ghi lại.
+        /// </summary>
+        [UnityTest]
+        public IEnumerator NeedsActionRow_ButtonSlotStaysInsideCard()
+        {
+            LiveOpsHubServices services = LiveOpsHubTestServices.ForScenario(LiveOpsHubTestServices.DesignSampleScenario);
+            yield return OpenOverview(services);
+            VisualElement view = View();
+
+            VisualElement card = view.Q(OverviewSection.NeedsActionBodyElementName);
+            float cardRightEdge = card.worldBound.xMax;
+            List<VisualElement> slots = view.Query(className: LiveOpsHubClassNames.OverviewNeedButton).ToList();
+            Assert.Greater(slots.Count, 0);
+            foreach (VisualElement slot in slots)
+            {
+                Assert.LessOrEqual(slot.worldBound.xMax, cardRightEdge + 0.5f,
+                    "slot nút vẽ ra ngoài card: " + slot.name);
+            }
+            foreach (Button rowButton in RowButtons(view))
+            {
+                Assert.LessOrEqual(rowButton.worldBound.xMax, cardRightEdge + 0.5f,
+                    "nút vẽ ra ngoài card (chữ nút sẽ bị cắt): " + rowButton.name);
+            }
             LogAssert.NoUnexpectedReceived();
         }
 
@@ -133,9 +167,14 @@ namespace DreamTech.LiveOps.Editor.Tests
             LogAssert.NoUnexpectedReceived();
         }
 
-        /// <summary>Chưa có dấu đã đăng: tab "Bản đã đăng" khoá kèm lý do — không có bản nào để so thì không giả vờ có.</summary>
+        /// <summary>
+        /// Chưa có dấu đã đăng: tab "Bản đã đăng" khoá, và lý do phải đọc được THÀNH CHỮ trên màn (7.0 / SPIKE-B SP-3: tooltip
+        /// không bao giờ là đường duy nhất, và không test nào assert tooltip). <see cref="LiveOpsTabStrip"/> chưa có nhãn lý do
+        /// cạnh tab (bề mặt của G-CONTROLS), nên chỗ in lý do là chân metric ĐÃ ĐĂNG + hàng việc cần làm — cả hai cùng nói
+        /// "Chưa có dấu đã đăng".
+        /// </summary>
         [UnityTest]
-        public IEnumerator WithoutPublishedStamp_PublishedTabIsDisabledWithReason()
+        public IEnumerator WithoutPublishedStamp_PublishedTabIsDisabledAndReasonIsOnScreen()
         {
             LiveOpsHubServices services = LiveOpsHubTestServices.Build(
                 LiveOpsHubTestServices.CreateBuilder(LiveOpsHubTestServices.CreateClock())
@@ -143,12 +182,17 @@ namespace DreamTech.LiveOps.Editor.Tests
             services.Session.RunCheckToCompletion();
             yield return OpenOverview(services);
 
-            LiveOpsTabStrip tabs = View().Q<LiveOpsTabStrip>(OverviewSection.UpcomingTabsElementName);
+            VisualElement view = View();
+            LiveOpsTabStrip tabs = view.Q<LiveOpsTabStrip>(OverviewSection.UpcomingTabsElementName);
             Assert.IsNotNull(tabs);
             Assert.AreEqual(OverviewSection.DraftTabIndex, tabs.SelectedIndex);
             Assert.IsFalse(tabs.TabAt(OverviewSection.PublishedTabIndex).enabledSelf);
-            Assert.AreEqual(LiveOpsHubStrings.OverviewUpcomingTabPublishedDisabledReason,
-                tabs.SlotAt(OverviewSection.PublishedTabIndex).tooltip);
+
+            // Hai chỗ in lý do thành chữ, cả hai đều lấy câu từ catalog nên khẳng định không phụ thuộc ngôn ngữ đang bật.
+            Assert.IsTrue(AnyVisibleLabelWithText(view, LiveOpsHubStrings.OverviewRowNoStampTitle),
+                "vì sao tab bị khoá phải in thành chữ ở hàng việc cần làm, không chỉ nằm trong tooltip");
+            Assert.IsTrue(AnyVisibleLabelWithText(view, LiveOpsHubStrings.OverviewMetricPublishedNoStampFoot),
+                "chân metric ĐÃ ĐĂNG cũng phải nói vì sao chưa có bản để so");
             LogAssert.NoUnexpectedReceived();
         }
 
@@ -165,7 +209,10 @@ namespace DreamTech.LiveOps.Editor.Tests
             VisualElement actions = _window.rootVisualElement.Q(LiveOpsHubPaths.ShellElementNames.SectionActions);
             Button recheck = actions.Q<Button>(OverviewSection.RecheckAllButtonElementName);
             Assert.IsNotNull(recheck, "header màn phải có nút Kiểm lại tất cả");
-            Assert.AreEqual(LiveOpsHubStrings.OverviewRecheckAllButton, recheck.text);
+            // Chữ của nút nằm ở Label con (nút có icon [Refresh] theo 7.1) — Button.text rỗng là ĐÚNG, không phải mất chữ.
+            Assert.AreEqual(LiveOpsHubStrings.OverviewRecheckAllButton,
+                recheck.Q<Label>(OverviewSection.RecheckAllLabelElementName).text);
+            Assert.IsNotNull(recheck.Q<Image>(), "7.1 ghi '[Refresh] Kiểm lại tất cả' — nút phải có icon");
 
             services.Session.Check.Reset();
             Assert.IsNull(services.Session.Check.LastReport);
@@ -202,7 +249,115 @@ namespace DreamTech.LiveOps.Editor.Tests
             LogAssert.NoUnexpectedReceived();
         }
 
+        /// <summary>
+        /// Đường đi của lịch vẽ ĐÚNG health của registry: ép tầng Kiểm thành Blocked bằng registry giả rồi soi chính view —
+        /// test model không chứng minh được điều này vì nó tự dựng health, còn ở cửa sổ thật 5 màn W4 còn lại có thể là màn giữ
+        /// chỗ (health NotMeasured) nên không hàng nào "dừng ở đây".
+        /// </summary>
+        [UnityTest]
+        public IEnumerator FlowCard_BlockedCheckStage_MarksStopsHereAndDeadConnector()
+        {
+            LiveOpsHubServices services = LiveOpsHubTestServices.ForScenario(LiveOpsHubTestServices.DesignSampleScenario);
+            yield return OpenOverview(services, BuildRegistryWithBlockedCheckStage(services));
+
+            VisualElement view = View();
+            VisualElement checkNode = view.Q(OverviewPipelineFlow.NodeElementNamePrefix
+                + PipelineStage.Check.ToString().ToLowerInvariant());
+            Assert.IsNotNull(checkNode, "thân Đường đi của lịch phải có nút tầng Kiểm");
+            Assert.IsTrue(AnyVisibleLabelWithText(checkNode, LiveOpsHubStrings.OverviewFlowNoteStopsHere),
+                "tầng cổng chặn đầu tiên phải in 'dừng ở đây'");
+
+            VisualElement checkConnector = view.Q(OverviewPipelineFlow.ConnectorElementNamePrefix
+                + PipelineStage.Check.ToString().ToLowerInvariant());
+            Assert.IsNotNull(checkConnector);
+            Assert.IsTrue(checkConnector.ClassListContains(LiveOpsHubClassNames.OverviewFlowConnectorDead),
+                "đường nối sau tầng chặn đầu tiên phải chết — mắt thấy lịch dừng ở đâu mà không phải đọc chữ");
+
+            VisualElement scheduleConnector = view.Q(OverviewPipelineFlow.ConnectorElementNamePrefix
+                + PipelineStage.Schedule.ToString().ToLowerInvariant());
+            Assert.IsNotNull(scheduleConnector);
+            Assert.IsFalse(scheduleConnector.ClassListContains(LiveOpsHubClassNames.OverviewFlowConnectorDead),
+                "đường nối TRƯỚC tầng chặn vẫn sống");
+            LogAssert.NoUnexpectedReceived();
+        }
+
         // ============================================================================================================ hạ tầng
+
+        /// <summary>
+        /// Registry giả ĐÚNG thứ tự + tầng của <see cref="LiveOpsHubSections.Create(LiveOpsHubServices)"/>, chỉ khác là tầng Kiểm
+        /// bị ép Blocked. Màn Tổng quan là màn thật (nó là thứ đang đo), 5 màn còn lại chỉ cần trả health.
+        /// </summary>
+        private static List<IHubSection> BuildRegistryWithBlockedCheckStage(LiveOpsHubServices services)
+        {
+            return new List<IHubSection>
+            {
+                new OverviewSection(services),
+                new StubHubSection(LiveOpsHubSections.Ids.EventTypes, PipelineStage.Configure, SectionHealth.Ok()),
+                new StubHubSection(LiveOpsHubSections.Ids.Calendar, PipelineStage.Schedule, SectionHealth.Ok()),
+                new StubHubSection(LiveOpsHubSections.Ids.RecurringRules, PipelineStage.Schedule, SectionHealth.Ok()),
+                new StubHubSection(LiveOpsHubSections.Ids.Validation, PipelineStage.Check,
+                    SectionHealth.Blocked(BlockedStageBadge, BlockedStageReason)),
+                new StubHubSection(LiveOpsHubSections.Ids.Export, PipelineStage.Export, SectionHealth.Ok()),
+            };
+        }
+
+        private const string BlockedStageBadge = "2 bị bỏ";
+        private const string BlockedStageReason = "2 đợt sẽ bị game bỏ";
+
+        /// <summary>Màn giả chỉ để cấp health cho test khung — không dựng gì, không đọc phiên.</summary>
+        private sealed class StubHubSection : IHubSection
+        {
+            private readonly SectionHealth _health;
+
+            internal StubHubSection(string id, PipelineStage stage, SectionHealth health)
+            {
+                Id = id;
+                Stage = stage;
+                _health = health;
+            }
+
+            public string Id { get; }
+            public string Title => Id;
+            public string Subtitle => Id;
+            public PipelineStage Stage { get; }
+            public IReadOnlyList<string> RequiredElementNames => Array.Empty<string>();
+
+            public SectionHealth GetHealth()
+            {
+                return _health;
+            }
+
+            public VisualElement CreateView()
+            {
+                return new VisualElement();
+            }
+
+            public void OnShown()
+            {
+            }
+        }
+
+        /// <summary>Có Label nào đang hiện mang ĐÚNG câu này không — "in thành chữ" nghĩa là người dùng đọc được, không phải tooltip.</summary>
+        private static bool AnyVisibleLabelWithText(VisualElement root, string text)
+        {
+            foreach (Label label in root.Query<Label>().ToList())
+            {
+                if (label.resolvedStyle.display == DisplayStyle.None) continue;
+                if (string.Equals(label.text, text, StringComparison.Ordinal)) return true;
+            }
+            return false;
+        }
+
+        private static List<Button> RowButtons(VisualElement view)
+        {
+            List<Button> buttons = new List<Button>();
+            foreach (VisualElement slot in view.Query(className: LiveOpsHubClassNames.OverviewNeedButton).ToList())
+            {
+                LiveOpsButtonSlot buttonSlot = slot as LiveOpsButtonSlot;
+                if (buttonSlot != null) buttons.Add(buttonSlot.Button);
+            }
+            return buttons;
+        }
 
         private VisualElement View()
         {
@@ -237,12 +392,17 @@ namespace DreamTech.LiveOps.Editor.Tests
 
         private IEnumerator OpenOverview(LiveOpsHubServices services)
         {
+            return OpenOverview(services, LiveOpsHubSections.Create(services));
+        }
+
+        private IEnumerator OpenOverview(LiveOpsHubServices services, IReadOnlyList<IHubSection> sections)
+        {
             if (_window != null)
             {
                 _window.Close();
                 _window = null;
             }
-            _window = LiveOpsHubWindow.OpenWithServices(services, LiveOpsHubSections.Create(services), LiveOpsHubSections.Ids.Overview);
+            _window = LiveOpsHubWindow.OpenWithServices(services, sections, LiveOpsHubSections.Ids.Overview);
             // SP-16: đặt kích thước SAU Show.
             _window.position = new Rect(0, 0, LiveOpsHubWindowTestScope.StandardWidth, LiveOpsHubWindowTestScope.StandardHeight);
             int frames = 0;

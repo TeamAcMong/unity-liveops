@@ -65,5 +65,10 @@ namespace DreamTech.LiveOps.Editor
         internal const string OverviewStepMarker = "liveops-hub-overview-step-marker";
         internal const string OverviewStepLabel = "liveops-hub-overview-step-label";
         internal const string OverviewEmptyActions = "liveops-hub-overview-empty-actions";
+
+        // Nút header "[Refresh] Kiểm lại tất cả" (7.1): Button có con thì KHÔNG tự đo theo `text` nữa, nên chữ phải là một
+        // Label con và nút phải xếp hàng ngang — nếu không nút co về min-width 54px và icon đè lên chữ.
+        internal const string OverviewRecheckAllButton = "liveops-hub-overview-recheck-all";
+        internal const string OverviewRecheckAllLabel = "liveops-hub-overview-recheck-all-label";
     }
 }

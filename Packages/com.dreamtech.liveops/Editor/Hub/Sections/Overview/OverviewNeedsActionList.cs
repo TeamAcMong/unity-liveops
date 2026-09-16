@@ -63,9 +63,13 @@ namespace DreamTech.LiveOps.Editor
             VisualElement empty = new VisualElement { name = EmptyElementName };
             empty.AddToClassList(LiveOpsHubClassNames.Empty);
 
+            // Số ít / số nhiều: tiếng Việt một bản, tiếng Anh hai bản ("1 rule" chứ không "1 rules") — câu này in ngay trên
+            // ảnh mẫu tiếng Anh mà user đọc để duyệt bản dịch.
             string title = notMeasuredRuleCount > 0
                 ? string.Format(System.Globalization.CultureInfo.InvariantCulture,
-                    LiveOpsHubStrings.OverviewNoBlockersEmptyFormat, notMeasuredRuleCount)
+                    notMeasuredRuleCount == 1
+                        ? LiveOpsHubStrings.OverviewNoBlockersEmptySingleRuleFormat
+                        : LiveOpsHubStrings.OverviewNoBlockersEmptyFormat, notMeasuredRuleCount)
                 : LiveOpsHubStrings.OverviewNoBlockersEmptyNoRules;
             Label titleLabel = new Label(title);
             titleLabel.AddToClassList(LiveOpsHubClassNames.EmptyTitle);
