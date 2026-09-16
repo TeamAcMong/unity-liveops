@@ -1,0 +1,178 @@
+/* Màn Lịch [SD1 §3.1, §3.9, §3.11]. Số đo bám mockup: inspector 280px, toolbar 21px, ô tìm 160px, popover 320px.
+   Class dùng chung (liveops-hub-inspector, -card, -tag, -mono…) đã có ở liveops-hub-components.uss; file này chỉ thêm phần
+   riêng của màn. Không màu trần: mọi màu đi qua token của liveops-hub-theme.uss. */
+
+.liveops-hub-calendar--hidden {
+    display: none;
+}
+
+.liveops-hub-calendar-toolbar {
+    height: 21px;
+    flex-shrink: 0;
+}
+
+.liveops-hub-calendar-toolbar-group {
+    flex-direction: row;
+    align-items: center;
+    margin-left: var(--liveops-hub-space-4);
+}
+
+.liveops-hub-calendar-toolbar-spacer {
+    flex-grow: 1;
+}
+
+.liveops-hub-calendar-search {
+    width: 160px;
+    flex-shrink: 0;
+}
+
+.liveops-hub-calendar-hidden-lanes-chip {
+    flex-shrink: 0;
+    font-size: 10px;
+    color: var(--liveops-hub-color-quiet);
+    margin-left: var(--liveops-hub-space-4);
+}
+
+.liveops-hub-calendar-main {
+    flex-direction: row;
+    flex-grow: 1;
+}
+
+.liveops-hub-calendar-split {
+    flex-grow: 1;
+}
+
+.liveops-hub-calendar-list-pane {
+    flex-grow: 1;
+}
+
+.liveops-hub-calendar-timeline-column {
+    flex-grow: 1;
+    overflow: hidden;
+}
+
+/* Inspector là sibling ngoài split nên bề rộng cố định giữ được; --medium (W5) đổi nó thành drawer phủ bên phải.
+   Luật bề rộng 280px khai Ở ĐÂY chứ không ở liveops-hub-components.uss: class dùng chung nhưng chưa gói nào viết luật cho nó,
+   và không có luật thì inspector co giãn theo nội dung — timeline bị bóp còn vài chục pixel [SD1 §3.9]. */
+.liveops-hub-inspector {
+    width: 280px;
+    flex-shrink: 0;
+}
+
+.liveops-hub-calendar-inspector-title {
+    flex-direction: row;
+    align-items: center;
+    height: 20px;
+    flex-shrink: 0;
+    border-bottom-width: 1px;
+    border-bottom-color: var(--unity-colors-window-border);
+}
+
+.liveops-hub-calendar-inspector-title-id {
+    font-size: 11px;
+    -unity-font-style: bold;
+    margin-left: var(--liveops-hub-space-4);
+}
+
+.liveops-hub-calendar-inspector-body {
+    flex-grow: 1;
+    padding-left: var(--liveops-hub-space-4);
+    padding-right: var(--liveops-hub-space-4);
+}
+
+.liveops-hub-calendar-inspector-separator {
+    height: 1px;
+    margin-top: 6px;
+    margin-bottom: 6px;
+    background-color: var(--unity-colors-window-border);
+}
+
+.liveops-hub-calendar-inspector-issues {
+    margin-top: var(--liveops-hub-space-4);
+}
+
+.liveops-hub-calendar-field-row {
+    flex-direction: row;
+    align-items: center;
+}
+
+.liveops-hub-calendar-field-subline {
+    font-size: 10px;
+    color: var(--liveops-hub-color-quiet);
+    margin-left: 63px;
+}
+
+.liveops-hub-calendar-field-error {
+    font-size: 10px;
+    color: var(--liveops-hub-color-blocked-text);
+    white-space: normal;
+}
+
+/* Popover Thêm đợt: header 24px có ba step-dot, danh sách loại hàng 22px, hàng nút dính đáy. */
+.liveops-hub-calendar-flow-header {
+    flex-direction: row;
+    align-items: center;
+    height: 24px;
+    flex-shrink: 0;
+}
+
+.liveops-hub-calendar-flow-step {
+    flex-grow: 1;
+}
+
+.liveops-hub-calendar-step-dot {
+    width: 14px;
+    height: 14px;
+    border-radius: 7px;
+    border-width: 1px;
+    border-color: var(--liveops-hub-color-quiet);
+    margin-left: 3px;
+    align-items: center;
+    justify-content: center;
+    font-size: 9px;
+    -unity-font-style: bold;
+    -unity-text-align: middle-center;
+    color: var(--liveops-hub-color-quiet);
+}
+
+.liveops-hub-calendar-step-dot--active {
+    background-color: var(--unity-colors-default-text);
+    border-color: var(--unity-colors-default-text);
+    color: var(--liveops-hub-color-on-selection);
+}
+
+.liveops-hub-calendar-type-row {
+    flex-direction: row;
+    align-items: center;
+    height: 22px;
+    padding-left: 7px;
+    padding-right: 7px;
+    border-radius: 3px;
+}
+
+.liveops-hub-calendar-type-row--active {
+    background-color: var(--unity-colors-highlight-background-hover);
+}
+
+.liveops-hub-calendar-type-row--disabled {
+    opacity: 0.5;
+}
+
+.liveops-hub-calendar-type-row-tag {
+    font-size: 10px;
+    color: var(--liveops-hub-color-quiet);
+    margin-left: auto;
+}
+
+.liveops-hub-calendar-flow-buttons {
+    flex-direction: row;
+    align-items: center;
+    margin-top: auto;
+    flex-shrink: 0;
+}
+
+.liveops-hub-calendar-flow-key-hint {
+    font-size: 10px;
+    opacity: 0.82;
+    flex-grow: 1;
+}
