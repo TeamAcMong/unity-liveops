@@ -36,7 +36,28 @@ namespace DreamTech.LiveOps.Editor
         /// <summary>Bấm "Mở luật" ở trạng thái (b) hoặc link "Sửa ở Loại event".</summary>
         public event Action<LiveOpsHubNavigation> NavigationRequested;
 
+        /// <summary>
+        /// (mục 12 I-4) Nút đề xuất trong "Vấn đề (n)" mở popover Đề xuất của màn Kiểm lịch với lựa chọn vừa bấm CHỌN SẴN. Section
+        /// đặt móc này vì popover cần <c>LayoutLoader</c>, kiểm nhanh trên nháp và chỗ neo — ba thứ của màn, không của inspector.
+        /// </summary>
+        internal Action<LiveEventCalendarFinding, int> ProposalRequested { get; set; }
+
         public CalendarInspectorModel Model => _model;
+
+        /// <summary>
+        /// Đưa focus về field đầu tiên của inspector — dùng cho mục menu "Sửa trong inspector" và cho nhánh "Sửa nhanh…" của một
+        /// phát hiện KHÔNG có cách sửa tự động. Không có field nào (trạng thái (a)) thì không làm gì, không ném.
+        /// </summary>
+        public void FocusFirstField()
+        {
+            TextField field = _bodyHost.Q<TextField>();
+            if (field != null)
+            {
+                field.Focus();
+                return;
+            }
+            _bodyHost.Q<IntegerField>()?.Focus();
+        }
 
         public void Refresh(string selectedBarKey)
         {
@@ -385,22 +406,20 @@ namespace DreamTech.LiveOps.Editor
             card.Add(meta);
 
             IReadOnlyList<LiveEventCalendarRepair> repairs = finding.Repairs;
-            for (int index = 0; index < repairs.Count; index++) card.Add(BuildRepairButton(finding, repairs[index]));
+            for (int index = 0; index < repairs.Count; index++) card.Add(BuildRepairButton(finding, repairs[index], index));
             return card;
         }
 
-        // INTERIM(G-CALENDAR-DEPTH): nút đề xuất ở đây sửa THẲNG field thay vì mở ProposalPopover của Kiểm lịch (mục 12 I-4).
-        // Vẫn đủ an toàn: một Undo group + toast, và không áp gì khi người dùng chưa bấm. W5 đổi sang mở popover chọn sẵn lựa chọn này.
-        private VisualElement BuildRepairButton(LiveEventCalendarFinding finding, LiveEventCalendarRepair repair)
+        /// <summary>
+        /// (mục 12 I-4) Nút đề xuất KHÔNG áp gì: nó mở <c>ProposalPopover</c> của màn Kiểm lịch với lựa chọn vừa bấm chọn sẵn.
+        /// Áp thẳng từ inspector bỏ qua kiểm nhanh và câu hậu quả của popover — hai thứ duy nhất nói trước điều sắp xảy ra.
+        /// </summary>
+        private VisualElement BuildRepairButton(LiveEventCalendarFinding finding, LiveEventCalendarRepair repair, int repairIndex)
         {
-            Button button = new Button(() =>
-            {
-                string message = string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.CalendarRepairToastFormat,
-                    finding.TargetId);
-                _presenter.ApplyEdit(repair.Edit, LiveOpsEditOperation.ApplyProposal, finding.TargetEntryKey, message, string.Empty);
-            })
+            Button button = new Button(() => ProposalRequested?.Invoke(finding, repairIndex))
             {
                 text = LiveOpsFindingText.RepairOptionText(finding, repair, _services.Format),
+                tooltip = LiveOpsFindingText.ManualFixSentence(finding, _services.Format),
             };
             button.AddToClassList(LiveOpsHubClassNames.Button);
             return button;

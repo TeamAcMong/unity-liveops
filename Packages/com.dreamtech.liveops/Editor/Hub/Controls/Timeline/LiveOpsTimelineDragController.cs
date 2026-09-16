@@ -34,12 +34,25 @@ namespace DreamTech.LiveOps.Editor
 
         private LiveOpsTimelineLaneModel _lane;
         private LiveOpsTimelineGeometry _geometry;
+        private TimeSpan? _snapStep;
         private float _pointerStartTrackPosition;
         private DateTime _createAnchorUtc;
         private bool _hasRaisedPreview;
 
         public DragGesture Gesture { get; private set; }
         public bool IsActive => Gesture != DragGesture.None;
+
+        /// <summary>
+        /// (nợ D-3(c)) Bước bắt lưới THẬT của khung nhìn, do element bơm xuống từ menu "Bắt lưới" của toolbar màn Lịch:
+        /// <c>null</c> = Tự động (bước theo zoom, <see cref="LiveOpsTimelineGeometry.AutoSnapStep"/>),
+        /// <see cref="TimeSpan.Zero"/> = Tắt. Trước W5 menu chỉ NHỚ lựa chọn còn cử chỉ kéo luôn tự tính bước theo zoom, nên
+        /// chọn "1 ngày" xong kéo vẫn nhích 15 phút — menu nói một đằng, tay làm một nẻo.
+        /// </summary>
+        public TimeSpan? SnapStep
+        {
+            get { return _snapStep; }
+            set { _snapStep = value; }
+        }
 
         /// <summary>Đã vượt ngưỡng 4px — từ đây mới có Preview; thả trước ngưỡng là một cú bấm.</summary>
         public bool IsDragging { get; private set; }
@@ -114,7 +127,7 @@ namespace DreamTech.LiveOps.Editor
             Gesture = DragGesture.Create;
             LaneTypeId = lane.TypeId;
             _pointerStartTrackPosition = trackPosition;
-            _createAnchorUtc = LiveOpsTimelineGeometry.Snap(geometry.TimeAt(trackPosition), LiveOpsTimelineGeometry.AutoSnapStep(geometry.PixelsPerHour));
+            _createAnchorUtc = SnapUnless(geometry.TimeAt(trackPosition), EffectiveStep(geometry), false);
             OriginalStartUtc = _createAnchorUtc;
             OriginalEndUtc = _createAnchorUtc;
             PreviewStartUtc = _createAnchorUtc;
@@ -132,27 +145,29 @@ namespace DreamTech.LiveOps.Editor
                 IsDragging = true;
             }
 
-            TimeSpan step = LiveOpsTimelineGeometry.AutoSnapStep(_geometry.PixelsPerHour);
-            TimeSpan minimumLength = disableSnap ? UnsnappedMinimumLength : step;
+            TimeSpan step = EffectiveStep(_geometry);
+            // Bắt lưới Tắt (bước 0) hành xử đúng như giữ Alt: không bắt lưới, độ dài tối thiểu về 1 phút.
+            bool withoutSnap = disableSnap || step <= TimeSpan.Zero;
+            TimeSpan minimumLength = withoutSnap ? UnsnappedMinimumLength : step;
             long deltaTicks = (long)Math.Round((trackPosition - _pointerStartTrackPosition) / _geometry.PixelsPerHour * TimeSpan.TicksPerHour);
             DateTime start = OriginalStartUtc;
             DateTime end = OriginalEndUtc;
             switch (Gesture)
             {
                 case DragGesture.MoveBody:
-                    start = SnapUnless(LiveOpsTimelineGeometry.AddTicksClamped(OriginalStartUtc, deltaTicks), step, disableSnap);
+                    start = SnapUnless(LiveOpsTimelineGeometry.AddTicksClamped(OriginalStartUtc, deltaTicks), step, withoutSnap);
                     end = LiveOpsTimelineGeometry.AddTicksClamped(start, (OriginalEndUtc - OriginalStartUtc).Ticks);
                     break;
                 case DragGesture.ResizeStart:
-                    start = SnapUnless(LiveOpsTimelineGeometry.AddTicksClamped(OriginalStartUtc, deltaTicks), step, disableSnap);
+                    start = SnapUnless(LiveOpsTimelineGeometry.AddTicksClamped(OriginalStartUtc, deltaTicks), step, withoutSnap);
                     if (start > end - minimumLength) start = LiveOpsTimelineGeometry.AddTicksClamped(end, -minimumLength.Ticks);
                     break;
                 case DragGesture.ResizeEnd:
-                    end = SnapUnless(LiveOpsTimelineGeometry.AddTicksClamped(OriginalEndUtc, deltaTicks), step, disableSnap);
+                    end = SnapUnless(LiveOpsTimelineGeometry.AddTicksClamped(OriginalEndUtc, deltaTicks), step, withoutSnap);
                     if (end < start + minimumLength) end = LiveOpsTimelineGeometry.AddTicksClamped(start, minimumLength.Ticks);
                     break;
                 case DragGesture.Create:
-                    DateTime current = SnapUnless(_geometry.TimeAt(trackPosition), step, disableSnap);
+                    DateTime current = SnapUnless(_geometry.TimeAt(trackPosition), step, withoutSnap);
                     start = current < _createAnchorUtc ? current : _createAnchorUtc;
                     end = current < _createAnchorUtc ? _createAnchorUtc : current;
                     if (end < start + minimumLength) end = LiveOpsTimelineGeometry.AddTicksClamped(start, minimumLength.Ticks);
@@ -354,7 +369,13 @@ namespace DreamTech.LiveOps.Editor
 
         private static DateTime SnapUnless(DateTime utc, TimeSpan step, bool disableSnap)
         {
-            return disableSnap ? utc : LiveOpsTimelineGeometry.Snap(utc, step);
+            return disableSnap || step <= TimeSpan.Zero ? utc : LiveOpsTimelineGeometry.Snap(utc, step);
+        }
+
+        /// <summary>Bước bắt lưới đang hiệu lực: bước bơm từ khung nhìn nếu có, không thì bước tự động theo zoom.</summary>
+        private TimeSpan EffectiveStep(LiveOpsTimelineGeometry geometry)
+        {
+            return _snapStep ?? LiveOpsTimelineGeometry.AutoSnapStep(geometry.PixelsPerHour);
         }
 
         private void Reset()

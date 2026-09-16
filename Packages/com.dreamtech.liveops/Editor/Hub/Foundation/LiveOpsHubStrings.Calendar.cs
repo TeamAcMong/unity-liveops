@@ -23,10 +23,8 @@ namespace DreamTech.LiveOps.Editor
 
         internal static string CalendarZoomChoices => LiveOpsHubStringCatalog.Text(nameof(CalendarZoomChoices));
 
-        // INTERIM(G-CALENDAR-DEPTH): bước lưới của cử chỉ kéo nằm trong LiveOpsTimelineDragController (gói G-TIMELINE-VIEW) và
-        // chưa có đường tiêm, nên chọn mục trong menu mới chỉ lưu vào trạng thái view. Nhãn menu NÓI THẲNG chuyện đó — một menu
-        // im lặng không đổi gì còn khó hiểu hơn (7.0: lý do luôn in thành chữ).
-        internal static string CalendarSnapMenuInterimFormat => LiveOpsHubStringCatalog.Text(nameof(CalendarSnapMenuInterimFormat));
+        // Nhãn menu "Bắt lưới": lựa chọn đi thẳng xuống bước bắt lưới của cử chỉ kéo (nợ D-3(c) làm ở W5).
+        internal static string CalendarSnapMenuFormat => LiveOpsHubStringCatalog.Text(nameof(CalendarSnapMenuFormat));
         internal static string CalendarSnapAuto => LiveOpsHubStringCatalog.Text(nameof(CalendarSnapAuto));
         internal static string CalendarSnapFifteenMinutes => LiveOpsHubStringCatalog.Text(nameof(CalendarSnapFifteenMinutes));
         internal static string CalendarSnapHour => LiveOpsHubStringCatalog.Text(nameof(CalendarSnapHour));

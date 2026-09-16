@@ -182,6 +182,11 @@ namespace DreamTech.LiveOps.Editor
             table.Add(nameof(LiveOpsHubStrings.TimelineHintDragging),
                 vietnamese: "Alt: bỏ bắt lưới · Esc: huỷ",
                 english: "Alt: ignore grid snap · Esc: cancel");
+
+            table.Add(nameof(LiveOpsHubStrings.TimelineHintEmptyLaneFormat),
+                vietnamese: "{0} · nhấp đúp chỗ trống để thêm đợt",
+                english: "{0} · double-click an empty spot to add an event");
+            table.AddShared(nameof(LiveOpsHubStrings.TimelineHintRangeFormat), "{0} → {1}");
             table.AddShared(nameof(LiveOpsHubStrings.TimelineActionKeyMac), "⌘");
             table.Add(nameof(LiveOpsHubStrings.TimelineActionKeyOther),
                 vietnamese: "Ctrl",

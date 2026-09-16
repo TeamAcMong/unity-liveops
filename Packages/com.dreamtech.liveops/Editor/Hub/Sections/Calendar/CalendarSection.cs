@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using UnityEditor;
 using UnityEditor.UIElements;
 using UnityEngine;
 using UnityEngine.UIElements;
@@ -15,6 +16,7 @@ namespace DreamTech.LiveOps.Editor
     {
         private readonly LiveOpsHubServices _services;
         private readonly CalendarTimelinePresenter _presenter;
+        private readonly CalendarCommandHandler _commandHandler;
 
         private IHubHost _host;
         private VisualElement _root;
@@ -24,7 +26,14 @@ namespace DreamTech.LiveOps.Editor
         private LiveOpsTimelineElement _timeline;
         private CalendarToolbar _toolbar;
         private CalendarEventInspector _inspector;
+        private CalendarListPane _listPane;
+        private CalendarComparePane _comparePane;
+        private LiveOpsHoverCardHost _hoverCardHost;
         private TwoPaneSplitView _split;
+        private VisualElement _inspectorRoot;
+        private bool _isListPaneOpen;
+        private bool _isComparePaneOpen;
+        private int _pinnedFindingIndex = -1;
         private LiveOpsTimelineZoom _zoom = LiveOpsTimelineZoom.ThreeWeeks;
         private DateTime _rangeStartUtc;
         private bool _hasRangeStart;
@@ -40,6 +49,14 @@ namespace DreamTech.LiveOps.Editor
             _presenter.AddEventRequested += OnAddEventRequestedAt;
             _presenter.ZoomRequested += OnZoomRequested;
             _presenter.DocumentEdited += OnDocumentEdited;
+
+            _commandHandler = new CalendarCommandHandler(services, _presenter);
+            _commandHandler.AddEventRequested += OnAddEventRequestedAt;
+            _commandHandler.DuplicateRequested += OnDuplicateRequested;
+            _commandHandler.LanesChanged += OnDocumentEdited;
+            _commandHandler.FrameRequested += FrameBar;
+            _commandHandler.FindingStepRequested += StepFinding;
+            _presenter.CommandHandler = _commandHandler;
         }
 
         public string Id => LiveOpsHubSections.Ids.Calendar;
@@ -55,6 +72,15 @@ namespace DreamTech.LiveOps.Editor
         internal CalendarToolbar Toolbar => _toolbar;
         internal CalendarEventInspector Inspector => _inspector;
         internal LiveOpsTimelineElement Timeline => _timeline;
+        internal CalendarListPane ListPane => _listPane;
+        internal CalendarComparePane ComparePane => _comparePane;
+        internal CalendarCommandHandler CommandHandler => _commandHandler;
+        internal LiveOpsHoverCardHost HoverCardHost => _hoverCardHost;
+
+        /// <summary>Pane "So với đã đăng" đang mở — loại trừ với inspector đợt [SD1 §3.4].</summary>
+        internal bool IsComparePaneOpen => _isComparePaneOpen;
+
+        internal bool IsListPaneOpen => _isListPaneOpen;
 
         public SectionHealth GetHealth()
         {
@@ -89,10 +115,13 @@ namespace DreamTech.LiveOps.Editor
             BuildToolbar();
             BuildTimeline();
             BuildInspector();
+            BuildListPane();
+            BuildComparePane();
 
-            // INTERIM(G-CALENDAR-DEPTH): pane Danh sách và pane So với đã đăng chưa dựng ở W4 (mục 12 I-5) nên split luôn thu
-            // pane trái — split vẫn còn trong cây (W5 chỉ cần mở lại) và người dùng không thấy một pane trống không giải thích được.
-            _split?.CollapseChild(0);
+            // Hover card của thanh là con CUỐI của gốc màn: nó phải nổi trên trục, trên minimap và trên chú giải, mà USS không
+            // có z-index — thứ tự con là thứ tự vẽ ([FD §2.14]).
+            _hoverCardHost = new LiveOpsHoverCardHost(_root);
+            ApplyPaneVisibility();
 
             // PD-21: toast của màn Lịch phải nằm TRÊN minimap/chú giải/gợi ý, nên cột nội dung bật class nâng toast.
             _services.Bus.SetContentClass(LiveOpsHubClassNames.ContentRaisedToast, true);
@@ -122,6 +151,14 @@ namespace DreamTech.LiveOps.Editor
         public void ApplyNavigation(LiveOpsHubNavigation navigation)
         {
             if (navigation == null) return;
+            // (V-13) "Xem khác biệt" của băng asset đổi trên đĩa: mở pane So với ở nguồn Disk, không phải bản đã đăng.
+            if (navigation.CompareSource != LiveOpsHubCompareSource.None)
+            {
+                _services.Session.Publish?.SelectCompareSource(navigation.CompareSource);
+                _isComparePaneOpen = true;
+                ApplyPaneVisibility();
+                Refresh();
+            }
             if (navigation.EntryKey.Length > 0)
             {
                 _presenter.SetSelectedBarKey(navigation.EntryKey);
@@ -143,6 +180,8 @@ namespace DreamTech.LiveOps.Editor
                 selectedBarKey = _presenter.SelectedBarKey,
                 hiddenLanes = HiddenLaneArray(),
                 snapMode = _toolbar == null ? 0 : (int)_toolbar.SnapMode,
+                listPaneOpen = _isListPaneOpen,
+                comparePaneOpen = _isComparePaneOpen,
             };
             return JsonUtility.ToJson(state);
         }
@@ -168,6 +207,11 @@ namespace DreamTech.LiveOps.Editor
             _presenter.SetHiddenLanes(state.hiddenLanes);
             _presenter.SetSelectedBarKey(state.selectedBarKey ?? string.Empty);
             _toolbar?.SetSnapMode(SnapOf(state.snapMode));
+            ApplySnapStep();
+            _isListPaneOpen = state.listPaneOpen;
+            _isComparePaneOpen = state.comparePaneOpen;
+            _toolbar?.SetListPaneOpenWithoutNotify(_isListPaneOpen);
+            ApplyPaneVisibility();
             // RestoreViewState chạy SAU CreateView, nên tab zoom đã dựng với giá trị mặc định — không đồng bộ lại thì tab sáng
             // "3 tuần" trong khi trục vẽ theo zoom vừa khôi phục.
             _toolbar?.SetZoomWithoutNotify(_zoom);
@@ -210,10 +254,27 @@ namespace DreamTech.LiveOps.Editor
                 _zoom = zoom;
                 Refresh();
             };
-            _toolbar.SnapModeChanged += _ => Refresh();
+            // (nợ D-3(c)) Lựa chọn bắt lưới đi THẲNG xuống cử chỉ kéo, không còn chỉ nằm trong trạng thái view.
+            _toolbar.SnapModeChanged += _ =>
+            {
+                ApplySnapStep();
+                Refresh();
+            };
+            _toolbar.ListPaneToggled += isOpen =>
+            {
+                _isListPaneOpen = isOpen;
+                ApplyPaneVisibility();
+            };
+            _toolbar.ComparePaneToggled += isOpen =>
+            {
+                _isComparePaneOpen = isOpen;
+                ApplyPaneVisibility();
+                Refresh();
+            };
             _toolbar.SearchChanged += OnSearchChanged;
             _toolbar.SearchSubmitted += OnSearchSubmitted;
             _toolbar.SetZoomWithoutNotify(_zoom);
+            _toolbar.SetListPaneOpenWithoutNotify(_isListPaneOpen);
         }
 
         private void BuildTimeline()
@@ -222,8 +283,40 @@ namespace DreamTech.LiveOps.Editor
             _timeline = new LiveOpsTimelineElement { name = LiveOpsHubPaths.CalendarElementNames.Timeline };
             _timeline.IntentRaised += _presenter.HandleIntent;
             _timeline.RangeChanged += OnTimelineRangeChanged;
+            _timeline.HoverChanged += OnTimelineHoverChanged;
+            _timeline.ContextRequested += OnTimelineContextRequested;
+            _timeline.UnplaceableRequested += OnUnplaceableRequested;
             _timeline.SetDeviceOffset(_services.TimeZone.DeviceOffsetAt(_services.Clock.UtcNow));
+            // (nợ D-3(a)) Tag kiểm nhanh của presenter đi thẳng vào vế thứ ba của readout.
+            _presenter.QuickCheckTagChanged += (tagText, health) => _timeline.SetDragQuickCheckTag(tagText, health);
             _timelineColumn.Add(_timeline);
+            ApplySnapStep();
+        }
+
+        private void BuildListPane()
+        {
+            VisualElement host = _root.Q(LiveOpsHubPaths.CalendarElementNames.ListPane);
+            if (host == null) return;
+            _listPane = new CalendarListPane(host, _services.Format);
+            _listPane.SelectionChanged += entryKey =>
+            {
+                _presenter.SetSelectedBarKey(entryKey);
+                FrameSelected();
+            };
+        }
+
+        /// <summary>
+        /// Pane So với là SIBLING của inspector, ngoài split: split tự ghi style inline lên hai pane con nên bề rộng 280 cố định
+        /// sẽ mất nếu pane nằm trong đó [SD1 §3.9].
+        /// </summary>
+        private void BuildComparePane()
+        {
+            _inspectorRoot = _root.Q(LiveOpsHubPaths.CalendarElementNames.Inspector);
+            if (_main == null) return;
+            _comparePane = new CalendarComparePane(_services);
+            _comparePane.RowActivated += OnCompareRowActivated;
+            _comparePane.RowContextRequested += OnCompareRowContextRequested;
+            _main.Add(_comparePane.Root);
         }
 
         private void BuildInspector()
@@ -234,6 +327,7 @@ namespace DreamTech.LiveOps.Editor
             _inspector = new CalendarEventInspector(_services, _presenter, title, body);
             _inspector.AddEventRequested += OpenAddEventPopover;
             _inspector.NavigationRequested += RaiseNavigation;
+            _inspector.ProposalRequested = OpenProposalPopover;
         }
 
         // ============================================================================================================ vẽ lại
@@ -260,6 +354,60 @@ namespace DreamTech.LiveOps.Editor
             _toolbar?.SetRange(rangeStartUtc, rangeEndUtc, _services.Clock.UtcNow);
             _toolbar?.SetHiddenLaneCount(_presenter.HiddenLanes.Count);
             _inspector?.Refresh(_presenter.SelectedBarKey);
+            _listPane?.SetDocument(_services.Session.Document, _services.Clock.UtcNow, _presenter.SelectedBarKey);
+            RefreshComparePane();
+            AttachHoverCards();
+        }
+
+        /// <summary>
+        /// Pane So với vẽ lại kể cả khi đang đóng: nút toolbar in SỐ thay đổi, và số đó phải là số của chính pane — đếm bằng một
+        /// đường khác là cách chắc chắn nhất để nút nói "5" còn pane liệt kê 4 dòng.
+        /// </summary>
+        private void RefreshComparePane()
+        {
+            if (_comparePane == null) return;
+            _comparePane.Refresh();
+            _comparePane.SetSelectedEntryKey(_presenter.SelectedBarKey);
+            LiveOpsHubPublishState publish = _services.Session.Publish;
+            bool hasBaseline = publish != null && publish.CompareDocument != null;
+            _toolbar?.SetCompareState(_isComparePaneOpen, hasBaseline, _comparePane.ChangeCount);
+            // Bản so biến mất (gỡ dấu đã đăng, giải xung đột đĩa) thì pane phải tự đóng, không đứng lại với dữ liệu cũ.
+            if (_isComparePaneOpen && !hasBaseline)
+            {
+                _isComparePaneOpen = false;
+                ApplyPaneVisibility();
+            }
+        }
+
+        /// <summary>Inspector và pane So với LOẠI TRỪ nhau (cùng chỗ, cùng 280px); pane Danh sách bật/tắt bằng split.</summary>
+        private void ApplyPaneVisibility()
+        {
+            if (_split != null)
+            {
+                if (_isListPaneOpen) _split.UnCollapse();
+                else _split.CollapseChild(0);
+            }
+            _inspectorRoot?.EnableInClassList(LiveOpsHubClassNames.CalendarHidden, _isComparePaneOpen);
+            _comparePane?.Root.EnableInClassList(LiveOpsHubClassNames.CalendarHidden, !_isComparePaneOpen);
+        }
+
+        /// <summary>(nợ D-3(c)) Bước bắt lưới của khung nhìn: Tự động = null (theo zoom), Tắt = 0, còn lại là bước cố định.</summary>
+        private void ApplySnapStep()
+        {
+            if (_timeline == null) return;
+            _timeline.DragController.SnapStep = SnapStepOf(_toolbar == null ? CalendarSnapMode.Automatic : _toolbar.SnapMode);
+        }
+
+        private static TimeSpan? SnapStepOf(CalendarSnapMode mode)
+        {
+            switch (mode)
+            {
+                case CalendarSnapMode.FifteenMinutes: return TimeSpan.FromMinutes(15);
+                case CalendarSnapMode.Hour: return TimeSpan.FromHours(1);
+                case CalendarSnapMode.Day: return TimeSpan.FromDays(1);
+                case CalendarSnapMode.Off: return TimeSpan.Zero;
+                default: return null;
+            }
         }
 
         private float TrackWidth()
@@ -438,6 +586,362 @@ namespace DreamTech.LiveOps.Editor
             _presenter.SetSelectedBarKey(edit.Entry.EntryKey);
         }
 
+        // ============================================================================================================ chiều sâu W5
+
+        /// <summary>Gắn hover card cho từng thanh sau mỗi lần dựng lại làn — thanh là element mới nên phải gắn lại.</summary>
+        private void AttachHoverCards()
+        {
+            if (_hoverCardHost == null || _timeline == null || _presenter.Model == null) return;
+            for (int laneIndex = 0; laneIndex < _timeline.LaneCount; laneIndex++)
+            {
+                LiveOpsTimelineLane lane = _timeline.LaneAt(laneIndex);
+                for (int barIndex = 0; barIndex < lane.BarCount; barIndex++)
+                {
+                    LiveOpsTimelineBar bar = lane.BarAt(barIndex);
+                    if (bar.Model.IsStrip) continue;
+                    LiveOpsTimelineBar captured = bar;
+                    _hoverCardHost.Attach(bar, () => BuildHoverCard(captured.Model, false, -1));
+                }
+            }
+        }
+
+        /// <summary>Rời thanh thì bỏ ghim: thẻ ghim bằng F8 không được sống mãi khi người dùng đã đi chỗ khác.</summary>
+        private void OnTimelineHoverChanged(LiveOpsTimelineHover hover)
+        {
+            if (hover == null || !hover.IsLeave || _hoverCardHost == null || !_hoverCardHost.IsPinned) return;
+            _hoverCardHost.Hide();
+            _pinnedFindingIndex = -1;
+        }
+
+        private VisualElement BuildHoverCard(LiveOpsTimelineBarModel bar, bool isPinned, int findingIndex)
+        {
+            IReadOnlyList<LiveEventCalendarFinding> findings = CalendarHoverCardContent.FindingsInOrder(_services.Session);
+            LiveEventCalendarFinding finding = findingIndex >= 0 && findingIndex < findings.Count
+                ? findings[findingIndex]
+                : FindingForBar(findings, bar);
+            LiveEventCalendarDocument document = _services.Session.Document ?? LiveEventCalendarDocument.Empty;
+            if (!isPinned) return CalendarHoverCardContent.Build(bar, finding, _services, document.LatestStamp);
+            return CalendarHoverCardContent.Build(bar, finding, _services, document.LatestStamp, true, findingIndex + 1,
+                findings.Count, () => QuickFix(finding));
+        }
+
+        private static LiveEventCalendarFinding FindingForBar(IReadOnlyList<LiveEventCalendarFinding> findings,
+            LiveOpsTimelineBarModel bar)
+        {
+            for (int index = 0; index < findings.Count; index++)
+            {
+                if (string.Equals(findings[index].TargetEntryKey, bar.BarKey, StringComparison.Ordinal)) return findings[index];
+            }
+            return null;
+        }
+
+        /// <summary>
+        /// F8 / Shift+F8: đi tới phát hiện kế tiếp của CẢ LỊCH, chọn đợt của nó, căn khung và GHIM hover card kèm bộ đếm "1/5"
+        /// [SD1 §3.8]. Không có phát hiện nào thì không ghim một thẻ rỗng.
+        /// </summary>
+        private void StepFinding(int direction)
+        {
+            IReadOnlyList<LiveEventCalendarFinding> findings = CalendarHoverCardContent.FindingsInOrder(_services.Session);
+            if (findings.Count == 0 || _timeline == null || _hoverCardHost == null) return;
+            int next = _pinnedFindingIndex < 0
+                ? (direction < 0 ? findings.Count - 1 : 0)
+                : ((_pinnedFindingIndex + direction) % findings.Count + findings.Count) % findings.Count;
+            _pinnedFindingIndex = next;
+            string entryKey = findings[next].TargetEntryKey ?? string.Empty;
+            if (entryKey.Length > 0)
+            {
+                _presenter.SetSelectedBarKey(entryKey);
+                FrameSelected();
+            }
+            LiveOpsTimelineBarModel bar = _presenter.FindBar(_presenter.SelectedBarKey);
+            LiveOpsTimelineBar barElement = _timeline.FindBar(_presenter.SelectedBarKey);
+            if (bar == null || barElement == null) return;
+            _hoverCardHost.ShowPinned(barElement, BuildHoverCard(bar, true, next));
+        }
+
+        /// <summary>"Sửa nhanh…" của thẻ ghim: có cách sửa thì mở popover Đề xuất, không thì đưa người dùng về inspector.</summary>
+        private void QuickFix(LiveEventCalendarFinding finding)
+        {
+            _hoverCardHost?.Hide();
+            _pinnedFindingIndex = -1;
+            if (finding == null) return;
+            if (finding.Repairs.Count == 0)
+            {
+                _inspector?.FocusFirstField();
+                return;
+            }
+            OpenProposalPopover(finding, 0);
+        }
+
+        /// <summary>
+        /// (mục 12 I-4) Nút đề xuất mở ĐÚNG popover Đề xuất của màn Kiểm lịch, chọn sẵn lựa chọn vừa bấm — không còn sửa thẳng
+        /// field. Một popover cho cả hai màn nên câu, kiểm nhanh và luật "Enter = Quay lại" chỉ có một bản.
+        /// </summary>
+        internal void OpenProposalPopover(LiveEventCalendarFinding finding, int repairIndex)
+        {
+            if (finding == null || finding.Repairs.Count == 0) return;
+            ProposalPopover popover = new ProposalPopover(finding, _services.Format, _services.LayoutLoader,
+                repair => RemainingAfterRepair(finding, repair), repair => ApplyRepair(finding, repair), repairIndex);
+            LiveOpsPopoverContent.ShowSingle(ActivatorRect(), popover);
+        }
+
+        /// <summary>Số vấn đề CÒN LẠI trên làn sau khi áp một cách sửa; âm = không kiểm được (popover đổi dấu theo số này).</summary>
+        private int RemainingAfterRepair(LiveEventCalendarFinding finding, LiveEventCalendarRepair repair)
+        {
+            if (repair == null || repair.Edit == null) return -1;
+            LiveEventCalendarDocument document = _services.Session.Document ?? LiveEventCalendarDocument.Empty;
+            if (!LiveEventCalendarEdits.TryApply(document, repair.Edit, out LiveEventCalendarDocument preview)) return -1;
+            string eventType = EventTypeOf(finding, document);
+            if (eventType.Length == 0) return -1;
+            LiveEventCalendarCheckReport report = _services.Session.CheckLane(eventType, preview);
+            return report == null ? -1 : report.Findings.Count;
+        }
+
+        private static string EventTypeOf(LiveEventCalendarFinding finding, LiveEventCalendarDocument document)
+        {
+            string entryKey = finding.TargetEntryKey ?? string.Empty;
+            return entryKey.Length > 0 && document.TryGetFixedEvent(entryKey, out FixedLiveEventEntry entry)
+                ? entry.EventType
+                : string.Empty;
+        }
+
+        private void ApplyRepair(LiveEventCalendarFinding finding, LiveEventCalendarRepair repair)
+        {
+            if (repair == null || repair.Edit == null) return;
+            string message = string.Format(System.Globalization.CultureInfo.InvariantCulture,
+                LiveOpsHubStrings.CalendarRepairToastFormat, LiveOpsFindingText.RepairOptionText(finding, repair, _services.Format));
+            _presenter.ApplyEdit(repair.Edit, LiveOpsEditOperation.ApplyProposal, finding.TargetEntryKey, message, string.Empty);
+        }
+
+        // ---------------------------------------------------------------------------------------------------- menu chuột phải
+
+        /// <summary>Chuột phải trên trục: chọn đúng menu theo thứ trúng, dựng từ dữ liệu của <see cref="CalendarContextMenus"/>.</summary>
+        private void OnTimelineContextRequested(LiveOpsTimelineContextRequest request)
+        {
+            if (request == null || _timeline == null) return;
+            LiveOpsTimelineHit hit = request.Hit;
+            CalendarMenuContext context = BuildMenuContext(hit);
+            IReadOnlyList<CalendarMenuItem> items = ItemsFor(hit, context);
+            if (items == null || items.Count == 0) return;
+            ShowContextMenu(items, request.WorldPosition, id => ActivateMenuItem(id, context));
+        }
+
+        private IReadOnlyList<CalendarMenuItem> ItemsFor(LiveOpsTimelineHit hit, CalendarMenuContext context)
+        {
+            switch (hit.Kind)
+            {
+                case LiveOpsTimelineHitKind.Bar:
+                {
+                    LiveOpsTimelineBarModel bar = _presenter.FindBar(hit.BarKey);
+                    if (bar == null || bar.IsStrip) return null;
+                    return bar.Source == LiveOpsTimelineBarSource.Fixed
+                        ? CalendarContextMenus.ForFixedBar(context)
+                        : CalendarContextMenus.ForRecurringBar(context);
+                }
+                case LiveOpsTimelineHitKind.LaneHeader:
+                    return CalendarContextMenus.ForLaneHeader(context);
+                case LiveOpsTimelineHitKind.EmptyLane:
+                    return IsRecurringLane(context.LaneTypeId) ? null : CalendarContextMenus.ForEmptyLane(context);
+                default:
+                    return null;
+            }
+        }
+
+        private CalendarMenuContext BuildMenuContext(LiveOpsTimelineHit hit)
+        {
+            CalendarMenuContext context = new CalendarMenuContext
+            {
+                BarKey = hit.BarKey,
+                LaneTypeId = hit.LaneTypeId,
+                CursorTimeText = hit.TimeUtc.HasValue ? _services.Format.ShortDateTime(hit.TimeUtc.Value) : string.Empty,
+                HasCopiedEvent = _commandHandler.HasCopiedEvent,
+                CanMoveLaneUp = _commandHandler.CanMoveLane(hit.LaneTypeId, MoveLaneIntent.Up),
+                CanMoveLaneDown = _commandHandler.CanMoveLane(hit.LaneTypeId, MoveLaneIntent.Down),
+                CanRevertToCompare = _commandHandler.CanRevertToCompare(hit.BarKey),
+                CompareSource = _services.Session.Publish == null
+                    ? LiveOpsHubCompareSource.Published
+                    : _services.Session.Publish.ActiveCompareSource,
+            };
+            if (_commandHandler.TryGetDuplicateTarget(hit.BarKey, out FixedLiveEventEntry _, out DateTime targetStartUtc,
+                out TimeSpan offset))
+            {
+                context.CanDuplicate = true;
+                context.DuplicateTargetText = _services.Format.ShortDateTime(targetStartUtc);
+                context.DuplicateOffsetText = _services.Format.Duration(offset, true);
+            }
+            return context;
+        }
+
+        /// <summary>
+        /// Menu chuột phải trên trục dùng <see cref="GenericMenu"/> (menu gốc của Editor) vì chỗ bấm không phải một element có
+        /// <c>ContextualMenuManipulator</c> — timeline tự bắt chuột phải để biết trúng thanh, header làn hay chỗ trống. Nội dung
+        /// vẫn là danh sách của <see cref="CalendarContextMenus"/>, nên test Logic đọc đúng thứ menu này hiện.
+        /// </summary>
+        private static void ShowContextMenu(IReadOnlyList<CalendarMenuItem> items, Vector2 worldPosition,
+            Action<CalendarMenuItemId> activate)
+        {
+            GenericMenu menu = new GenericMenu();
+            for (int index = 0; index < items.Count; index++)
+            {
+                CalendarMenuItem item = items[index];
+                if (item.IsSeparator)
+                {
+                    menu.AddSeparator(string.Empty);
+                    continue;
+                }
+                GUIContent content = new GUIContent(item.Text);
+                if (!item.IsEnabled)
+                {
+                    menu.AddDisabledItem(content);
+                    continue;
+                }
+                CalendarMenuItemId id = item.Id;
+                menu.AddItem(content, false, () => activate?.Invoke(id));
+            }
+            menu.DropDown(new Rect(worldPosition, Vector2.zero));
+        }
+
+        private bool IsRecurringLane(string typeId)
+        {
+            LiveEventCalendarDocument document = _services.Session.Document ?? LiveEventCalendarDocument.Empty;
+            return typeId.Length > 0 && document.TryGetRecurringRule(typeId, out RecurringLiveEventRule _);
+        }
+
+        /// <summary>Một mục menu đã bấm; mọi việc thật nằm ở <see cref="CalendarCommandHandler"/> hoặc presenter.</summary>
+        private void ActivateMenuItem(CalendarMenuItemId id, CalendarMenuContext context)
+        {
+            switch (id)
+            {
+                case CalendarMenuItemId.EditInInspector:
+                    _presenter.SetSelectedBarKey(context.BarKey);
+                    _isComparePaneOpen = false;
+                    ApplyPaneVisibility();
+                    _inspector?.FocusFirstField();
+                    break;
+                case CalendarMenuItemId.Duplicate:
+                    _commandHandler.RequestDuplicate(context.BarKey);
+                    break;
+                case CalendarMenuItemId.Frame:
+                    _presenter.SetSelectedBarKey(context.BarKey);
+                    FrameSelected();
+                    break;
+                case CalendarMenuItemId.MoveStart:
+                case CalendarMenuItemId.SetDuration:
+                    _presenter.SetSelectedBarKey(context.BarKey);
+                    _inspector?.FocusFirstField();
+                    break;
+                case CalendarMenuItemId.RevertToCompare:
+                    _commandHandler.RevertToCompare(context.BarKey);
+                    break;
+                case CalendarMenuItemId.CopyId:
+                    _commandHandler.CopyEventId(context.BarKey);
+                    break;
+                case CalendarMenuItemId.CopyEventJson:
+                    if (_commandHandler.CopyEventJson(context.BarKey) && _timeline != null) _timeline.HasCopiedEvent = true;
+                    break;
+                case CalendarMenuItemId.Delete:
+                    _presenter.RequestDelete(context.BarKey);
+                    break;
+                case CalendarMenuItemId.OpenRule:
+                    RaiseNavigation(LiveOpsHubNavigation.To(LiveOpsHubSections.Ids.RecurringRules)
+                        .WithEventType(context.LaneTypeId, true));
+                    break;
+                case CalendarMenuItemId.HideLane:
+                    _commandHandler.HideLane(context.LaneTypeId);
+                    break;
+                case CalendarMenuItemId.MoveLaneUp:
+                    _commandHandler.MoveLane(context.LaneTypeId, MoveLaneIntent.Up);
+                    break;
+                case CalendarMenuItemId.MoveLaneDown:
+                    _commandHandler.MoveLane(context.LaneTypeId, MoveLaneIntent.Down);
+                    break;
+                case CalendarMenuItemId.ShowAllLanes:
+                    _commandHandler.ShowAllLanes();
+                    break;
+                case CalendarMenuItemId.AddForLane:
+                    OnAddEventRequestedAt(context.LaneTypeId, RangeStartUtc(), null);
+                    break;
+                case CalendarMenuItemId.OpenEventTypes:
+                    RaiseNavigation(LiveOpsHubNavigation.To(LiveOpsHubSections.Ids.EventTypes)
+                        .WithEventType(context.LaneTypeId, true));
+                    break;
+                case CalendarMenuItemId.AddAtCursor:
+                    if (_timeline != null && _timeline.CursorUtc.HasValue)
+                    {
+                        OnAddEventRequestedAt(context.LaneTypeId, _timeline.CursorUtc.Value, null);
+                    }
+                    break;
+                case CalendarMenuItemId.PasteAtCursor:
+                    if (_timeline != null && _timeline.CursorUtc.HasValue)
+                    {
+                        _commandHandler.PasteAt(context.LaneTypeId, _timeline.CursorUtc.Value);
+                    }
+                    break;
+            }
+        }
+
+        // ---------------------------------------------------------------------------------------------------- pane So với
+
+        private void OnCompareRowActivated(string entryKey)
+        {
+            if (entryKey.Length == 0) return;
+            _presenter.SetSelectedBarKey(entryKey);
+            FrameSelected();
+            _comparePane?.SetSelectedEntryKey(entryKey);
+        }
+
+        private void OnCompareRowContextRequested(string entryKey, ContextualMenuPopulateEvent menuEvent)
+        {
+            if (entryKey.Length == 0) return;
+            CalendarMenuContext context = new CalendarMenuContext
+            {
+                BarKey = entryKey,
+                CanRevertToCompare = _commandHandler.CanRevertToCompare(entryKey),
+                CompareSource = _services.Session.Publish == null
+                    ? LiveOpsHubCompareSource.Published
+                    : _services.Session.Publish.ActiveCompareSource,
+            };
+            CalendarContextMenus.Populate(menuEvent.menu, CalendarContextMenus.ForCompareRow(context),
+                id => ActivateMenuItem(id, context));
+        }
+
+        /// <summary>Chip "Không đặt được (n)" ở header làn: mở pane Danh sách và chọn đúng dòng [SD1 §3.1].</summary>
+        private void OnUnplaceableRequested(string laneTypeId)
+        {
+            _isListPaneOpen = true;
+            _toolbar?.SetListPaneOpenWithoutNotify(true);
+            ApplyPaneVisibility();
+            LiveEventCalendarDocument document = _services.Session.Document ?? LiveEventCalendarDocument.Empty;
+            IReadOnlyList<FixedLiveEventEntry> entries = document.FixedEvents;
+            for (int index = 0; index < entries.Count; index++)
+            {
+                FixedLiveEventEntry entry = entries[index];
+                if (!string.Equals(entry.EventType, laneTypeId, StringComparison.Ordinal)) continue;
+                if (entry.TryGetStartUtc(out DateTime _) && entry.TryGetEndUtc(out DateTime _)) continue;
+                _presenter.SetSelectedBarKey(entry.EntryKey);
+                _listPane?.Select(entry.EntryKey);
+                return;
+            }
+        }
+
+        /// <summary>Nhân bản: popover Thêm đợt mở thẳng ở BƯỚC XEM LẠI với id đề xuất — người dùng sửa trước khi thêm [FD §3.9].</summary>
+        private void OnDuplicateRequested(FixedLiveEventEntry entry, DateTime targetStartUtc)
+        {
+            if (entry == null) return;
+            entry.TryGetStartUtc(out DateTime startUtc);
+            entry.TryGetEndUtc(out DateTime endUtc);
+            int durationHours = endUtc > startUtc ? (int)(endUtc - startUtc).TotalHours : AddEventFlowModel.DefaultDurationHours;
+            AddEventFlowModel flow = AddEventFlowModel.CreateAt(_services.Session, _services.Clock.UtcNow, entry.EventType,
+                targetStartUtc, durationHours).Next();
+            ShowAddEventPopover(flow);
+        }
+
+        private void FrameBar(LiveOpsTimelineBarModel bar)
+        {
+            if (bar == null || _timeline == null) return;
+            _timeline.FrameInstance(bar.EventType, bar.StartUtc, bar.EndUtc);
+        }
+
         private void RaiseNavigation(LiveOpsHubNavigation navigation)
         {
             if (navigation == null) return;
@@ -564,6 +1068,8 @@ namespace DreamTech.LiveOps.Editor
             public string selectedBarKey;
             public string[] hiddenLanes;
             public int snapMode;
+            public bool listPaneOpen;
+            public bool comparePaneOpen;
         }
     }
 }

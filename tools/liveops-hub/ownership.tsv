@@ -146,7 +146,7 @@ file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/Language/LiveOpsHubStr
 file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/Language/LiveOpsHubStringCatalog.Preview.cs	G-I18N,G-PREVIEW	G-I18N tạo; sau đó chủ vùng Preview
 file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/Language/LiveOpsHubStringCatalog.Services.cs	G-I18N,G-SESSION	G-I18N tạo; sau đó chủ vùng Services
 file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/Language/LiveOpsHubStringCatalog.Shell.cs	G-I18N,G-HOSTUI,G-SHELLPOLISH	G-I18N tạo; sau đó chủ vùng Shell
-file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/Language/LiveOpsHubStringCatalog.Timeline.cs	G-I18N,G-TIMELINE-VIEW,G-OPT-TIMELINE	G-I18N tạo; sau đó chủ vùng Timeline
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/Language/LiveOpsHubStringCatalog.Timeline.cs	G-I18N,G-TIMELINE-VIEW,G-OPT-TIMELINE,G-CALENDAR-DEPTH	G-I18N tạo; sau đó chủ vùng Timeline; G-CALENDAR-DEPTH thêm câu vi+en của nợ D-3 (đi kèm trường strings vùng Timeline, V-34)
 file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/Language/LiveOpsHubStringCatalog.TimelineModel.cs	G-I18N,G-TIMELINE-MODEL	G-I18N tạo; sau đó chủ vùng TimelineModel
 file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/Language/LiveOpsHubStringCatalog.cs	G-I18N	G-I18N tạo — catalog + khai báo Register<Vùng> cho MỌI vùng (24 vùng, kể cả W4/W5/W6 chưa làm: gói màn chỉ thêm file vùng của mình, KHÔNG sửa file này — V-29)
 file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/Language/LiveOpsHubStringTable.cs	G-I18N	G-I18N tạo — bảng chữ một vùng, hai ngôn ngữ
@@ -164,7 +164,7 @@ file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubClassNames.R
 file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubClassNames.RecurringJson.cs	G-RECURRING-JSON	G-RECURRING-JSON vùng RecurringJson
 file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubClassNames.Shell.cs	G-SHELL,G-I18N,G-HOSTUI,G-SHELLPOLISH	G-SHELL vùng Shell; G-HOSTUI vùng Shell; G-SHELLPOLISH vùng Shell; G-I18N sửa (ngôn ngữ, W3.5)
 file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubClassNames.ShortcutHelp.cs	G-OPT-SHORTCUTHELP	G-OPT-SHORTCUTHELP vùng ShortcutHelp
-file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubClassNames.Timeline.cs	G-TIMELINE-VIEW,G-OPT-TIMELINE	G-TIMELINE-VIEW vùng Timeline; G-OPT-TIMELINE vùng Timeline
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubClassNames.Timeline.cs	G-TIMELINE-VIEW,G-OPT-TIMELINE,G-CALENDAR-DEPTH	G-TIMELINE-VIEW vùng Timeline; G-OPT-TIMELINE vùng Timeline; G-CALENDAR-DEPTH thêm class nợ D-3 — vùng Timeline trường classnames đã mở ở V-34
 file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubClassNames.Validation.cs	G-VALIDATION	G-VALIDATION vùng Validation
 file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubClassNames.ValidationDepth.cs	G-VALIDATION-DEPTH	G-VALIDATION-DEPTH vùng ValidationDepth
 file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubClassNames.cs	G-SKELETON	G-SKELETON tạo
@@ -194,7 +194,7 @@ file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubPaths.Timeli
 file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubPaths.Validation.cs	G-VALIDATION,G-VALIDATION-DEPTH	G-VALIDATION vùng Validation; G-VALIDATION-DEPTH thêm validation-bulk-preview-host vào RequiredValidationElementNames (soát W5 F-12 — chỗ cắm luôn có trong cây nên probe 9.3 phải canh; tự duyệt theo uỷ quyền user 15/9)
 file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubPaths.ValidationDepth.cs	G-VALIDATION-DEPTH	G-VALIDATION-DEPTH vùng ValidationDepth
 file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubPaths.cs	G-SKELETON	G-SKELETON tạo
-file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubStrings.Calendar.cs	G-CALENDAR,G-FIX-W4-2	G-CALENDAR vùng Calendar; G-FIX-W4-2 thêm CalendarMoveUndoStepFormat (phiếu D-5)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubStrings.Calendar.cs	G-CALENDAR,G-FIX-W4-2,G-CALENDAR-DEPTH	G-CALENDAR vùng Calendar; G-FIX-W4-2 thêm CalendarMoveUndoStepFormat (phiếu D-5); G-CALENDAR-DEPTH gỡ CalendarSnapMenuInterimFormat (nợ D-3(c) làm bước bắt lưới chạy thật) và thêm chữ nút toolbar W5
 file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubStrings.CalendarDepth.cs	G-CALENDAR-DEPTH	G-CALENDAR-DEPTH vùng CalendarDepth
 file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubStrings.Controls.cs	G-CONTROLS,G-I18N	G-CONTROLS vùng Controls; G-I18N sửa (ngôn ngữ, W3.5)
 file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubStrings.EventTypes.cs	G-EVENTTYPES	G-EVENTTYPES vùng EventTypes
@@ -211,7 +211,7 @@ file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubStrings.Recu
 file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubStrings.Services.cs	G-SESSION,G-I18N,G-SHELLPOLISH	G-SESSION vùng Services; G-I18N sửa (ngôn ngữ, W3.5); G-SHELLPOLISH bỏ hằng InterimDiskConflictLog (đổi tên thành ShellDiskConflictLogFormat) (sổ INTERIM mục 12 I-8 giao gói gỡ định danh này, mà nó nằm ở vùng Services — không gói nào khác của W5 đụng file)
 file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubStrings.Shell.cs	G-SHELL,G-I18N,G-HOSTUI,G-SHELLPOLISH	G-SHELL vùng Shell; G-HOSTUI vùng Shell; G-SHELLPOLISH vùng Shell; G-I18N sửa (ngôn ngữ, W3.5)
 file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubStrings.ShortcutHelp.cs	G-OPT-SHORTCUTHELP	G-OPT-SHORTCUTHELP vùng ShortcutHelp
-file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubStrings.Timeline.cs	G-TIMELINE-VIEW,G-I18N,G-OPT-TIMELINE	G-TIMELINE-VIEW vùng Timeline; G-OPT-TIMELINE vùng Timeline; G-I18N sửa (ngôn ngữ, W3.5)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubStrings.Timeline.cs	G-TIMELINE-VIEW,G-I18N,G-OPT-TIMELINE,G-CALENDAR-DEPTH	G-TIMELINE-VIEW vùng Timeline; G-OPT-TIMELINE vùng Timeline; G-I18N sửa (ngôn ngữ, W3.5); G-CALENDAR-DEPTH thêm chữ nợ D-3 (tag kiểm nhanh trong readout, gợi ý làn trống) — vùng Timeline trường strings đã mở ở V-34
 file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubStrings.TimelineModel.cs	G-TIMELINE-MODEL,G-I18N	G-TIMELINE-MODEL vùng TimelineModel; G-I18N sửa (ngôn ngữ, W3.5)
 file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubStrings.Validation.cs	G-VALIDATION,G-VALIDATION-DEPTH	G-VALIDATION vùng Validation; G-VALIDATION-DEPTH thêm hằng động từ nút Áp (V-34 nợ Findings)
 file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubStrings.ValidationDepth.cs	G-VALIDATION-DEPTH	G-VALIDATION-DEPTH vùng ValidationDepth
