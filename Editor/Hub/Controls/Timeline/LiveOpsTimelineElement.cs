@@ -809,10 +809,13 @@ namespace DreamTech.LiveOps.Editor
 
         // ================================================================================================ phím
 
+        /// <summary>
+        /// SP-7b chỉ có MỘT câu trả lời: uỷ quyền sang <see cref="LiveOpsHubShortcuts.IsSingleKeyCommandAllowed"/> (CC-HOSTUI-4).
+        /// Bản cũ ở đây không xét <c>ITextEdition.isReadOnly</c> nên ô chữ con của TextField ở 6000.6 lọt lưới.
+        /// </summary>
         private static bool IsInsideTextField(IEventHandler target)
         {
-            VisualElement element = target as VisualElement;
-            return element != null && (element is TextField || element.GetFirstAncestorOfType<TextField>() != null);
+            return !LiveOpsHubShortcuts.IsSingleKeyCommandAllowed(target as VisualElement);
         }
 
         private void OnKeyDown(KeyDownEvent keyEvent)

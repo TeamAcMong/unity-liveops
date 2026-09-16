@@ -61,6 +61,19 @@ namespace DreamTech.LiveOps.Editor.Tests
         }
 
         [Test]
+        public void DisplayMessage_AfterUndo_UsesStepName()
+        {
+            LiveOpsToastModel toast = LiveOpsToastModel.ForEdit("Đã dời hunt-0916-bonus 17/9 00:00 → 18/9 12:00 UTC", 9,
+                undoneStepName: "Dời hunt-0916-bonus");
+
+            Assert.AreEqual("Đã dời hunt-0916-bonus 17/9 00:00 → 18/9 12:00 UTC", toast.DisplayMessage, "chưa hoàn tác thì vẫn là câu toast");
+            Assert.AreEqual("Đã hoàn tác: Dời hunt-0916-bonus", toast.AsUndone().DisplayMessage,
+                "[SD1 §3.8 khung 14] — không đọc hai lần \"Đã\" (phiếu D-5 của cổng W4)");
+            Assert.AreEqual(toast.Message, toast.UndoGroupName, "tên bước Undo vẫn là câu toast (8.5)");
+            Assert.AreEqual("Đã dời hunt-0916-bonus 17/9 00:00 → 18/9 12:00 UTC", toast.AsUndone().AsRedone().DisplayMessage);
+        }
+
+        [Test]
         public void Info_HasNoUndoGroup()
         {
             LiveOpsToastModel toast = LiveOpsToastModel.Info("Không còn bản trên đĩa để so — đang so với bản đã đăng");

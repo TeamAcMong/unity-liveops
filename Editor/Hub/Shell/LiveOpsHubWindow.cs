@@ -416,6 +416,18 @@ namespace DreamTech.LiveOps.Editor
             content.Add(_toast);
         }
 
+        /// <summary>
+        /// Màn xin bật/tắt một class trên element nội dung (PD-21: nâng toast lên trên minimap và chú giải của màn Lịch).
+        /// Không nối dây thì <c>SetContentClass</c> là lệnh rỗng — toast vẫn nằm dưới minimap (phiếu D-6 của cổng W4).
+        /// </summary>
+        private void OnContentClassRequested(string className, bool enabled)
+        {
+            if (_hubRoot == null || string.IsNullOrEmpty(className)) return;
+            VisualElement content = _hubRoot.Q(LiveOpsHubPaths.ShellElementNames.Content);
+            if (content == null) return;
+            content.EnableInClassList(className, enabled);
+        }
+
         /// <summary>Mục của palette: 6 màn + id luật của lần kiểm gần nhất ([FD §3.8]). Không bao giờ có lệnh.</summary>
         private IReadOnlyList<LiveOpsPaletteMatcher.Entry> BuildPaletteEntries()
         {
@@ -1101,6 +1113,7 @@ namespace DreamTech.LiveOps.Editor
             bus.HealthInvalidated += OnHealthInvalidated;
             bus.OutcomeRequested += OnOutcomeRequested;
             bus.OutcomeCleared += OnOutcomeCleared;
+            bus.ContentClassRequested += OnContentClassRequested;
             _isServicesSubscribed = true;
         }
 
@@ -1117,6 +1130,7 @@ namespace DreamTech.LiveOps.Editor
             bus.HealthInvalidated -= OnHealthInvalidated;
             bus.OutcomeRequested -= OnOutcomeRequested;
             bus.OutcomeCleared -= OnOutcomeCleared;
+            bus.ContentClassRequested -= OnContentClassRequested;
             _isServicesSubscribed = false;
         }
 

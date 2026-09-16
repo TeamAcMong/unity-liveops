@@ -244,6 +244,9 @@ namespace DreamTech.LiveOps.Editor
             table.Add(nameof(LiveOpsHubStrings.CalendarMoveToastFormat),
                 vietnamese: "Đã dời {0} {1} → {2} UTC",
                 english: "Moved {0} {1} → {2} UTC");
+            table.Add(nameof(LiveOpsHubStrings.CalendarMoveUndoStepFormat),
+                vietnamese: "Dời {0}",
+                english: "Move {0}");
             table.Add(nameof(LiveOpsHubStrings.CalendarMoveEndToastFormat),
                 vietnamese: "Đã dời kết thúc {0} {1} → {2} UTC",
                 english: "Moved the end of {0} {1} → {2} UTC");
