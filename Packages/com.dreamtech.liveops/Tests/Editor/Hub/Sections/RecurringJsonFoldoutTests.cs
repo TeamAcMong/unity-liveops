@@ -174,6 +174,26 @@ namespace DreamTech.LiveOps.Editor.Tests
         }
 
         /// <summary>
+        /// Dán CẢ MẢNG <c>recurring</c> (có ngoặc vuông) vào ô một-luật: câu hiện ra phải là câu thân thiện đã hứa sẵn
+        /// "không phải mảng", không phải câu trần của <c>JsonUtility</c> — mảng bọc thêm một lớp nữa sẽ rơi vào nhánh
+        /// "parser không đọc được" và người dùng nhận một câu chẳng chỉ ra chỗ nào sai.
+        /// </summary>
+        [UnityTest]
+        public IEnumerator JsonWithArray_BlocksApplyWithReason()
+        {
+            yield return OpenDesignSample(new ScriptedLiveOpsHubConfirmationPresenter());
+            yield return OpenJsonFoldout();
+
+            Foldout.Editor.value = "[" + Foldout.Editor.value + "]";
+            yield return null;
+
+            Assert.IsTrue(Foldout.ApplySlot.IsBlocked);
+            Assert.AreEqual(LiveOpsHubStrings.RecurringJsonNotOneRuleReason, Foldout.ErrorText);
+            Assert.IsNull(Foldout.Candidate);
+            LogAssert.NoUnexpectedReceived();
+        }
+
+        /// <summary>
         /// JSON đọc được và KHÔNG đụng gì của người chơi (chỉ đổi <c>configKey</c>: id giữ nguyên, giờ khép giữ nguyên) thì
         /// ghi thẳng kèm toast có Hoàn tác (bảng 7.0). Đây cũng là chỗ chứng minh nút Áp thật sự nối vào lệnh sửa của phiên.
         /// </summary>

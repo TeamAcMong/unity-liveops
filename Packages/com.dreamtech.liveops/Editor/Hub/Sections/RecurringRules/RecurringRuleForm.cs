@@ -319,6 +319,11 @@ namespace DreamTech.LiveOps.Editor
                 pair.Value.LockReason.tooltip = pair.Value.LockReason.text;
                 pair.Value.LockReason.EnableInClassList(LiveOpsHubClassNames.RecurringHidden, !isLocked);
             }
+            // Foldout JSON sửa được cùng một luật bằng một đường khác, nên nó cũng phải khoá: "Áp" trong lúc còn nháp sẽ
+            // dựng nháp mới đè nháp cũ. Ô nhập vẫn mở (đọc/sao chép được), chỉ nút ghi khoá kèm ĐÚNG câu lý do của Q-W4-4.
+            _jsonFoldout.SetLockedByDraft(hasDraft
+                ? string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.RecurringFieldLockedByDraftFormat, draftingLabelText)
+                : string.Empty);
         }
 
         private string PresetNameOf(int presetIndex)
@@ -370,7 +375,9 @@ namespace DreamTech.LiveOps.Editor
             // Lý do khoá đứng TRƯỚC dòng lỗi: khi ô vừa khoá vừa lỗi, câu "vì sao không gõ được" phải đọc trước câu lỗi cũ.
             Label lockReason = new Label();
             lockReason.AddToClassList(LiveOpsHubClassNames.RecurringFieldLockReason);
-            lockReason.AddToClassList(LiveOpsHubClassNames.TextBlocked);
+            // Chữ PHỤ, không phải chữ lỗi: ô bị khoá là trạng thái tạm và lành (chờ ghi/huỷ nháp), tô đỏ cả ba dòng thì màn
+            // đọc như ba lỗi cùng lúc. TextBlocked ở dưới vẫn dành cho dòng lỗi thật của chính field.
+            lockReason.AddToClassList(LiveOpsHubClassNames.TextQuiet);
             lockReason.AddToClassList(LiveOpsHubClassNames.RecurringHidden);
             noticeHost.Add(lockReason);
             Label error = new Label();

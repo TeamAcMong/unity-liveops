@@ -325,10 +325,16 @@ namespace DreamTech.LiveOps.Editor
                 Services.Format.ShortDateTimeUtc(Services.Session.Clock.UtcNow));
         }
 
+        /// <summary>
+        /// JSON đổ vào ô là của luật ĐANG GHI, không phải của nháp: ô tự so chữ trong nó với chuỗi này để biết "chưa đổi gì",
+        /// và <see cref="OnApplyJsonRequested"/> cũng so ứng viên với luật đang ghi (<c>TryGetWrittenRule</c>). Lấy
+        /// <c>model.Rule</c> thì trong lúc còn nháp hai chỗ hiểu "đang ghi" theo hai nghĩa khác nhau, và câu "JSON chưa đổi so
+        /// với luật đang ghi" nói sai — nó thực ra đang so với JSON của NHÁP.
+        /// </summary>
         private static string JsonOf(LiveEventCalendarDocument document, RecurringRuleModel model)
         {
-            if (document == null || !model.HasRule) return string.Empty;
-            return LiveEventCalendarJsonWriter.WriteRecurringRuleObject(document, model.Rule);
+            if (document == null || model.WrittenRule == null) return string.Empty;
+            return LiveEventCalendarJsonWriter.WriteRecurringRuleObject(document, model.WrittenRule);
         }
 
         private void SelectRule(string eventType)
