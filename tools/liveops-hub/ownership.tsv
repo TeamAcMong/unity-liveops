@@ -450,7 +450,7 @@ file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Capture/LiveOpsHubCaptureSc
 file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Capture/LiveOpsHubCaptureScenarios.Controls.cs	G-CONTROLS	G-CONTROLS vùng Controls
 file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Capture/LiveOpsHubCaptureScenarios.EventTypes.cs	G-EVENTTYPES	G-EVENTTYPES vùng EventTypes
 file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Capture/LiveOpsHubCaptureScenarios.Export.cs	G-EXPORT	G-EXPORT vùng Export
-file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Capture/LiveOpsHubCaptureScenarios.Feedback.cs	G-FEEDBACK	G-FEEDBACK vùng Feedback
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Capture/LiveOpsHubCaptureScenarios.Feedback.cs	G-FEEDBACK,G-FIX-W4-3	G-FEEDBACK vùng Feedback; G-FIX-W4-3 gỡ toast thật của cửa sổ khỏi khung hf-toast-bare (W4 cửa sổ tự dựng toast nên khung có hai hub-toast)
 file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Capture/LiveOpsHubCaptureScenarios.OptTimeline.cs	G-OPT-TIMELINE	G-OPT-TIMELINE vùng OptTimeline
 file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Capture/LiveOpsHubCaptureScenarios.Overview.cs	G-OVERVIEW,G-SHELLPOLISH	G-OVERVIEW vùng Overview; G-SHELLPOLISH vùng Overview
 file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Capture/LiveOpsHubCaptureScenarios.Paste.cs	G-PASTE	G-PASTE vùng Paste
