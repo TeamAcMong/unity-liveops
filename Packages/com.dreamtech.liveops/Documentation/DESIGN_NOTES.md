@@ -105,7 +105,9 @@ review được bằng git** và không ai thấy lịch sắp đăng trông ra 
 0.2.0 thêm `LiveEventCalendarAsset` — MỘT ScriptableObject giữ định nghĩa loại, luật lặp, đợt cố định, lịch sử đăng và
 cảnh báo đã bỏ qua. Hệ quả chọn có chủ đích:
 
-- **Một asset, không nhiều file.** `publishedStamps` / `ignoredWarnings` đi theo build (vài KB) dù runtime không đọc.
+- **Một asset, không nhiều file.** `publishedStamps` / `ignoredWarnings` đi theo build; `ToDocument()` nạp cả hai vào
+  tài liệu nhưng không đường chạy nào của game dùng tới (chỉ hub đọc). Mỗi dấu đã đăng giữ nguyên chuỗi JSON của bản đó
+  nên kích thước lớn theo số lần đăng, không phải hằng số.
   Đổi lại toàn bộ lịch là một file để review, một lần merge, một lịch sử git.
 - **Asset chỉ là nơi lưu.** Mọi phán "mục này có hợp lệ không" nằm ở bộ biên dịch trong core, nên "game đọc asset",
   "game đọc JSON đã xuất" và "hub kiểm lịch" không bao giờ tự đoán luật riêng. YAML sửa tay hỏng hay xung đột merge

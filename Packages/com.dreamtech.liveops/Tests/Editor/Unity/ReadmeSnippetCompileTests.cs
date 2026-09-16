@@ -22,9 +22,11 @@ namespace DreamTech.LiveOps.Unity.Tests
     [TestFixture]
     public sealed class ReadmeSnippetCompileTests
     {
-        private const string PackagePath = "Packages/com.dreamtech.liveops";
-        private const string ReadmeRelativePath = PackagePath + "/README.md";
-        private const string SelfSourceRelativePath = PackagePath + "/Tests/Editor/Unity/ReadmeSnippetCompileTests.cs";
+        // Đường dẫn TỪ GỐC PACKAGE, không từ thư mục hiện hành: lượt 2022.3 chạy trên project tạm nằm ngoài repo và
+        // unity-slot.sh không đổi thư mục, nên "Packages/com.dreamtech.liveops/..." tính theo cwd sẽ trỏ đi đâu là tuỳ chỗ
+        // phát lệnh. Gốc thật hỏi Package Manager ở PackageDirectory().
+        private const string ReadmeRelativePath = "README.md";
+        private const string SelfSourceRelativePath = "Tests/Editor/Unity/ReadmeSnippetCompileTests.cs";
         private const string ChangelogFileName = "CHANGELOG.md";
 
         // Dấu mở/đóng vùng chép nguyên văn. So sánh theo dòng đã Trim nên dòng khai báo hằng này không tự khớp chính nó.
@@ -243,14 +245,24 @@ namespace DreamTech.LiveOps.Unity.Tests
             if (task.IsFaulted) throw task.Exception;
         }
 
+        /// <summary>
+        /// Gốc package ĐANG ĐƯỢC THỬ, hỏi Package Manager qua assembly của chính file này. Không suy từ thư mục hiện hành:
+        /// Unity chạy batchmode với cwd của chỗ phát lệnh, nên ở lượt 2022.3 (project tạm trỏ <c>file:</c> vào worktree)
+        /// một đường dẫn tính theo cwd có thể đọc nhầm bản khác — câu "xanh ở cả hai bản" chỉ thật khi hai lượt đọc đúng
+        /// bộ file mà chúng vừa biên dịch.
+        /// </summary>
         private static string PackageDirectory()
         {
-            return Path.GetFullPath(PackagePath);
+            UnityEditor.PackageManager.PackageInfo package =
+                UnityEditor.PackageManager.PackageInfo.FindForAssembly(typeof(ReadmeSnippetCompileTests).Assembly);
+            Assert.IsNotNull(package,
+                "không hỏi được gốc package từ assembly test — bộ test này phải chạy như một phần của com.dreamtech.liveops");
+            return Path.GetFullPath(package.resolvedPath);
         }
 
         private static string ReadAllTextAtPackagePath(string relativePath)
         {
-            string fullPath = Path.GetFullPath(relativePath);
+            string fullPath = Path.Combine(PackageDirectory(), relativePath);
             Assert.IsTrue(File.Exists(fullPath), "không đọc được " + relativePath + " (đường dẫn thật: " + fullPath + ")");
             return NormalizeNewLines(File.ReadAllText(fullPath));
         }

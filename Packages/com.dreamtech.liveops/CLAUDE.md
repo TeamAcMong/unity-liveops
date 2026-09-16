@@ -63,7 +63,10 @@ field null coi như rỗng, mục sai quy tắc bị bỏ, chuỗi giờ hỏng 
 - **Bộ ghi JSON tất định đến từng byte** (UTF-8 không BOM, LF, không LF cuối, thụt 2, thứ tự field cố định,
   `InvariantCulture`): dấu "đã đăng" là SHA-256 của đúng chuỗi đó. Giờ đọc được thì chuẩn hoá, **không bao giờ cắt** phần lẻ
   giây; giờ không đọc được ghi nguyên văn.
-- **Đường chạy của game không gọi SHA-256** (chỉ hub gọi) — `code-lint.py` chặn `Runtime/` gọi `LiveEventCalendarSha256`.
+- **Đường chạy của game không gọi SHA-256** (chỉ hub gọi) — `code-lint.py` chặn `Runtime/Unity/` gọi
+  `LiveEventCalendarSha256`. Hàng rào CHỈ phủ `Runtime/Unity/`: `Runtime/Core/Calendar/Json/LiveEventCalendarJsonText.cs`
+  và `Runtime/Core/Calendar/Validation/Rules/RunningEventIdChangedRule.cs` vẫn gọi thật mà lint không bắt — thêm lối
+  gọi ở `Runtime/Core/` thì phải tự kiểm, đừng tin là có hàng rào (R-28).
 - **`Parse(string)` và mọi property 0.1.0 giữ nguyên chữ ký và nguyên chuỗi `Problems`** (golden test khoá). Tính năng mới đi
   bằng thành viên mới: `ParseDocument`, `ParseOrDefault`, `CombinedCalendar`, `FormatVersion`.
 - **Id của 12 luật (`LiveEventCalendarRuleIds`) là dữ liệu của người dùng** — ghi chú "Bỏ qua" lưu theo id trong asset. Đổi

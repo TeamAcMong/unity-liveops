@@ -25,9 +25,9 @@ Hoặc trong `Packages/manifest.json`:
 > **Yêu cầu:** Unity 2022.3+. Không cần package ngoài — chỉ dùng module có sẵn của Unity (IMGUI, JSONSerialize,
 > UIElements, UnityWebRequest).
 
-> **0.2.0 chưa được tag.** README này tả cả phần đang nằm ở mục `[Unreleased]` của [`CHANGELOG.md`](CHANGELOG.md):
-> asset lịch `LiveEventCalendarAsset`, JSON định dạng 2 và cửa sổ **LiveOps Hub**. Tới khi có tag `0.2.0`, muốn dùng
-> các phần đó thì trỏ git URL vào nhánh `main` — và chấp nhận là nhánh đổi được, không bất biến như tag.
+> **0.2.0 chưa có tag.** README này tả cả phần đang nằm ở mục `[Unreleased]` của [`CHANGELOG.md`](CHANGELOG.md):
+> asset lịch `LiveEventCalendarAsset`, JSON định dạng 2 và cửa sổ **LiveOps Hub**. Git URL ở trên trỏ tag `0.1.0`, nên
+> bản cài theo tag đó **chưa có** những phần này.
 
 ### Phiên bản đã kiểm
 
@@ -75,8 +75,10 @@ ScriptableObject review được bằng git, giữ: định nghĩa loại event,
 qua. Game dùng nó làm **lịch mặc định khi remote config trống** và để đăng ký loại event; designer sửa nó bằng
 **LiveOps Hub** (mục 5).
 
-> `publishedStamps` / `ignoredWarnings` đi theo build (vài KB) nhưng runtime không bao giờ đọc — đổi lại chỉ có **một**
-> asset duy nhất để review bằng git.
+> `publishedStamps` / `ignoredWarnings` đi theo build và `ToDocument()` có nạp chúng vào tài liệu, nhưng **không đường
+> chạy nào của game dùng tới**: chỉ hub đọc để so bản đã đăng và để nhớ cảnh báo đã bỏ qua. Kích thước theo số lần đăng
+> vì mỗi dấu giữ nguyên chuỗi JSON của bản đó — xoá bớt dấu cũ trong hub nếu asset phình. Đổi lại chỉ có **một** asset
+> duy nhất để review bằng git.
 
 Asset nằm trong build như mọi ScriptableObject được tham chiếu: giữ tham chiếu trong scene hoặc trong config của game,
 package không `Resources.Load` đường dẫn cố định.
@@ -263,7 +265,7 @@ Copy, lưu file và ghi dấu "đã đăng".
 | Lịch | timeline kéo–thả đợt cố định, so với bản đã đăng / bản trên đĩa, dán JSON đang chạy, menu chuột phải, hover card |
 | Luật lặp | neo, chu kỳ, thời gian chạy, tiền tố id; foldout "JSON của luật này" sửa thẳng bằng JSON |
 | Kiểm lịch | 12 luật ở mục 5.1 — sửa an toàn, sửa hàng loạt, bỏ qua kèm ghi chú, hẹn xem lại |
-| Xuất JSON | chọn định dạng 1 hay 2, Copy, Lưu file `<key>-<sha6>.json`, đánh dấu đã đăng |
+| Xuất JSON | chọn định dạng 1 hay 2, Copy, Lưu file `liveops_calendar-<sha6>.json`, đánh dấu đã đăng |
 
 Hub và game dùng **cùng một** bộ biên dịch lịch và **cùng một** thứ tự xuất, nên "hub kiểm", "game đọc asset" và "game
 đọc JSON đã xuất" luôn giữ đúng cùng tập đợt — kể cả khi có id trùng.
