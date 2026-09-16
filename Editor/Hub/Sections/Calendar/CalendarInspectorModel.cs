@@ -264,12 +264,16 @@ namespace DreamTech.LiveOps.Editor
                 + repaired.ToString(FixButtonTimeFormat, CultureInfo.InvariantCulture);
         }
 
+        /// <summary>
+        /// Các dạng ngày mà người dùng gõ thiếu số 0 ("2026-10-3", "2026-1-3") — đoán được chắc chắn nên nút "Sửa thành …" mới
+        /// đáng có. Không dùng <c>DateTime.TryParse</c> tự do: nó nhận cả những chuỗi mà người gõ đang nghĩ tới ngày khác.
+        /// </summary>
+        private static readonly string[] RepairableDateFormats = { "yyyy-MM-dd", "yyyy-M-d", "yyyy-MM-d", "yyyy-M-dd" };
+
         private static bool TryRepairDate(string dateText, out DateTime repairedDate)
         {
-            return DateTime.TryParseExact(dateText, LiveOpsUtcDateTimeField.DateFormat, CultureInfo.InvariantCulture,
-                       DateTimeStyles.AdjustToUniversal | DateTimeStyles.AssumeUniversal, out repairedDate)
-                   || DateTime.TryParse(dateText, CultureInfo.InvariantCulture,
-                       DateTimeStyles.AdjustToUniversal | DateTimeStyles.AssumeUniversal, out repairedDate);
+            return DateTime.TryParseExact(dateText == null ? string.Empty : dateText.Trim(), RepairableDateFormats,
+                CultureInfo.InvariantCulture, DateTimeStyles.AdjustToUniversal | DateTimeStyles.AssumeUniversal, out repairedDate);
         }
 
         private static string DatePartOf(string rawText)

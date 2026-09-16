@@ -49,6 +49,9 @@ namespace DreamTech.LiveOps.Editor
         public PipelineStage Stage => PipelineStage.Schedule;
         public IReadOnlyList<string> RequiredElementNames => LiveOpsHubPaths.RequiredCalendarElementNames;
 
+        /// <summary>Services của cửa sổ (G-SESSION) — giữ nguyên tên property mà registry và test của G-SESSION đang đọc.</summary>
+        internal LiveOpsHubServices Services => _services;
+
         internal CalendarTimelinePresenter Presenter => _presenter;
         internal CalendarToolbar Toolbar => _toolbar;
         internal CalendarEventInspector Inspector => _inspector;
@@ -82,8 +85,8 @@ namespace DreamTech.LiveOps.Editor
             BuildTimeline();
             BuildInspector();
 
-            // Pane Danh sách chưa dựng ở W4 nên split luôn thu pane trái: split vẫn còn trong cây (W5 chỉ cần mở lại),
-            // và người dùng không thấy một pane trống không giải thích được.
+            // INTERIM(G-CALENDAR-DEPTH): pane Danh sách và pane So với đã đăng chưa dựng ở W4 (mục 12 I-5) nên split luôn thu
+            // pane trái — split vẫn còn trong cây (W5 chỉ cần mở lại) và người dùng không thấy một pane trống không giải thích được.
             _split?.CollapseChild(0);
 
             // PD-21: toast của màn Lịch phải nằm TRÊN minimap/chú giải/gợi ý, nên cột nội dung bật class nâng toast.
