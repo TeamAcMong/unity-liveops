@@ -22,6 +22,7 @@ namespace DreamTech.LiveOps.Editor
         internal const string ServicesEditFailedNoChange = "Không có thay đổi để ghi.";
         internal const string ServicesSaveFailedFormat = "Không lưu được {0} — asset vẫn còn thay đổi chưa lưu.";
         internal const string ServicesSaveFailedNoPath = "Asset lịch này chỉ nằm trong bộ nhớ (không có file) nên không lưu được.";
+        internal const string ServicesSaveFailedDiskConflictFormat = "Chưa lưu được {0} — file đã đổi trên đĩa trong lúc bạn đang sửa. Chọn Tải lại hoặc Giữ bản trong Editor trước đã.";
         internal const string ServicesStampNoPublisher = "không rõ";
 
         // Asset bị xoá khỏi project khi hub đang mở (4.3).
@@ -52,7 +53,10 @@ namespace DreamTech.LiveOps.Editor
 
         // Đóng cửa sổ khi còn thay đổi chưa lưu (8.3): tên asset + số thay đổi + danh sách id ngắn.
         internal const string ServicesSaveChangesMessageFormat = "{0} có {1} thay đổi chưa lưu: {2}. Lưu trước khi đóng LiveOps Hub?";
+        // Diff hậu quả rỗng mà file vẫn khác bản đã lưu (PD-22: dấu đã đăng, cảnh báo đã bỏ qua, thứ tự mục) — không bịa ra con số.
+        internal const string ServicesSaveChangesMessageNoCountFormat = "{0} còn thay đổi chưa lưu (dấu đã đăng, cảnh báo đã bỏ qua hoặc thứ tự mục). Lưu trước khi đóng LiveOps Hub?";
         internal const string ServicesSaveChangesMoreFormat = "{0} và {1} mục khác";
         internal const string ServicesSaveChangesDocumentFields = "lịch";
+        internal const string ServicesSaveChangesFailedDetail = "Thay đổi vẫn còn trong Editor — mở lại LiveOps Hub để lưu hoặc xử lý.";
     }
 }

@@ -26,7 +26,15 @@ namespace DreamTech.LiveOps.Editor.Tests
 
         /// <summary>Thư mục công cụ dev. Ghép từ hai mảnh vì <c>check-class-names.py</c> coi chuỗi nguyên khối là tên class USS chưa khai hằng.</summary>
         private const string ToolsFolderName = "liveops" + "-hub";
+
+        private const string ContractFreezeFileName = "contract-freeze-W3.md";
+
+        /// <summary>Đặt = "1" để CHO PHÉP sinh lại chữ ký đóng băng (chỉ khi user đã duyệt việc đổi hợp đồng).</summary>
+        private const string ContractFreezeUpdateVariable = "LIVEOPS_HUB_UPDATE_CONTRACT_FREEZE";
         private const string MovedEndUtc = "2026-09-20T12:00:00Z";
+
+        /// <summary>Loại của đợt lava-quest trong mẫu thiết kế — làn dùng cho <c>CheckLane</c>.</summary>
+        private const string LavaQuestEventType = "lava-quest";
 
         [SetUp]
         public void SetUp()
@@ -232,6 +240,83 @@ namespace DreamTech.LiveOps.Editor.Tests
         }
 
         [Test]
+        public void Session_ReloadFromDisk_DropsUnsavedDraft()
+        {
+            LiveEventCalendarAsset asset = LiveOpsHubTestServices.CreateAssetFile(AssetFileName, LiveOpsDesignSample.Document);
+            LiveOpsHubCalendarSession session = OpenSession(asset);
+            string savedEndUtc = FindLavaQuestMid(session.Document).EndUtcText;
+            session.Apply(MoveLavaQuestEnd(session.Document, MovedEndUtc), "Dời kết thúc lava-quest");
+            Assert.IsTrue(session.HasUnsavedChanges, "phải đang có nháp chưa lưu, nếu không test này vô nghĩa");
+
+            session.ReloadFromDisk();
+
+            Assert.AreEqual(savedEndUtc, FindLavaQuestMid(session.Document).EndUtcText, "Tải lại = lấy đúng bản trên đĩa, bỏ nháp");
+            Assert.IsFalse(session.HasUnsavedChanges, "tải lại xong thì hết * trên tab");
+            Assert.IsFalse(EditorUtility.IsDirty(asset), "asset không còn bẩn sau khi tải lại");
+            Assert.IsNull(session.DiskConflict);
+
+            // R-5: ngăn xếp Undo không được giữ bản ghi dựng lại nháp vừa bị bỏ.
+            Undo.PerformUndo();
+            Assert.AreEqual(savedEndUtc, FindLavaQuestMid(session.Document).EndUtcText, "⌘Z sau khi Tải lại không được dựng lại nháp cũ");
+        }
+
+        [Test]
+        public void Session_CheckLane_DoesNotTouchSessionCheck()
+        {
+            LiveOpsHubCalendarSession session = LiveOpsHubTestServices.ForScenario(LiveOpsHubTestServices.DesignSampleScenario).Session;
+            LiveEventCalendarCheckReport sessionReport = session.Check.LastReport;
+            Assert.IsNotNull(sessionReport, "ngữ cảnh mẫu phải đã kiểm xong");
+            LiveOpsHubCheckStaleReason staleReason = session.Check.StaleReason;
+            bool isStale = session.Check.IsStale;
+            LiveEventCalendarDocument preview = WithLavaQuestEndDocument(session.Document, MovedEndUtc);
+
+            LiveEventCalendarCheckReport laneReport = session.CheckLane(LavaQuestEventType, preview);
+
+            Assert.IsNotNull(laneReport, "kiểm nhanh một làn phải trả báo cáo của riêng nó");
+            Assert.AreSame(sessionReport, session.Check.LastReport, "kiểm nhanh KHÔNG đổi kết quả Kiểm lịch của phiên");
+            Assert.AreEqual(isStale, session.Check.IsStale);
+            Assert.AreEqual(staleReason, session.Check.StaleReason);
+            Assert.IsFalse(session.Check.IsRunning, "kiểm nhanh chạy đồng bộ, không mở lần kiểm nền nào");
+            Assert.IsFalse(session.HasUnsavedChanges, "xem trước không đụng tài liệu");
+        }
+
+        [Test]
+        public void Session_SelectAsset_RunsAutoCheck()
+        {
+            // (Q-11) Kiểm tự chạy một lần khi mở hub VÀ khi đổi asset — không thì đổi asset xong rail đứng ở "Chưa kiểm lần nào".
+            LiveEventCalendarAsset first = LiveOpsHubTestServices.CreateMemoryAsset(LiveEventCalendarDocument.Empty);
+            LiveOpsHubServices services = LiveOpsHubTestServices.Build(
+                LiveOpsHubTestServices.CreateBuilder(null).WithCalendarAsset(first).WithAutoCheckOnOpen(true));
+            LiveOpsHubCalendarSession session = services.Session;
+            session.RunCheckToCompletion();
+            Assert.IsNotNull(session.Check.LastReport, "mở hub với asset phải tự kiểm một lần");
+
+            Assert.IsTrue(session.TrySelectAsset(LiveOpsHubTestServices.CreateMemoryAsset(LiveOpsDesignSample.Document)));
+            Assert.IsTrue(session.Check.IsRunning, "đổi asset xong phải có một lần kiểm đang chạy (Q-11)");
+            session.RunCheckToCompletion();
+
+            Assert.IsNotNull(session.Check.LastReport, "đổi asset cũng phải tự kiểm — Q-11 nói rõ 'và khi đổi asset'");
+            Assert.AreEqual(2, session.Check.LastReport.Summary.DroppedCount, "kết quả phải là của asset MỚI (mẫu thiết kế: 2 đợt bị bỏ)");
+        }
+
+        [Test]
+        public void Session_DisposeOnWindowClose_DoesNotClaimInterruptedByReload()
+        {
+            LiveEventCalendarAsset asset = LiveOpsHubTestServices.CreateAssetFile(AssetFileName, LiveOpsDesignSample.Document);
+            LiveOpsHubCalendarSession session = OpenSession(asset);
+            session.StartCheck();
+            Assert.IsTrue(session.Check.IsRunning, "phải đang kiểm dở, nếu không test này vô nghĩa");
+
+            // Đóng cửa sổ bình thường (OnDisable → ReleaseServices → Dispose), KHÔNG có domain reload nào.
+            session.Dispose();
+            LiveOpsHubCalendarSession reopened = OpenSession(asset);
+
+            Assert.AreNotEqual(LiveOpsHubCheckStaleReason.InterruptedByReload, reopened.Check.StaleReason,
+                "đóng rồi mở lại cửa sổ trong cùng phiên Unity không phải 'bị cắt ngang khi Unity nạp lại script' (R-25)");
+            Assert.AreEqual(LiveOpsHubCheckStaleReason.NeverChecked, reopened.Check.StaleReason);
+        }
+
+        [Test]
         public void Session_TryCreateAsset_CreatesFileWithOneUndoGroup()
         {
             LiveOpsHubCalendarSession session = LiveOpsHubTestServices.ForScenario(LiveOpsHubTestServices.NoAssetScenario).Session;
@@ -349,7 +434,20 @@ namespace DreamTech.LiveOps.Editor.Tests
             {
                 Assert.Pass("project này không phải dev repo (không có tools/liveops-hub) — chỉ kiểm chữ ký, không ghi file");
             }
-            File.WriteAllText(Path.Combine(toolsDirectory, "contract-freeze-W3.md"), signatures, new UTF8Encoding(false));
+
+            // PD-35 là bộ GÁC, không phải bộ sinh: file đã commit là chữ ký đóng băng. Gỡ/đổi một thành viên đang đóng băng phải làm test
+            // này ĐỎ (rồi gói W4/W5 ghi tools/liveops-hub/contract-changes.md và dừng), chứ không được lặng lẽ đổi nội dung file.
+            string freezePath = Path.Combine(toolsDirectory, ContractFreezeFileName);
+            bool regenerate = string.Equals(Environment.GetEnvironmentVariable(ContractFreezeUpdateVariable), "1", StringComparison.Ordinal);
+            if (File.Exists(freezePath) && !regenerate)
+            {
+                Assert.AreEqual(NormalizeNewLines(File.ReadAllText(freezePath)), NormalizeNewLines(signatures),
+                    "chữ ký của 5 kiểu đóng băng đã khác bản commit trong " + ContractFreezeFileName
+                    + " — đổi hợp đồng thì ghi contract-changes.md và dừng (10.1); chỉ khi user duyệt mới chạy lại với "
+                    + ContractFreezeUpdateVariable + "=1 để sinh lại file");
+                return;
+            }
+            File.WriteAllText(freezePath, signatures, new UTF8Encoding(false));
         }
 
         // ------------------------------------------------------------------------------------------------------------ hỗ trợ
@@ -368,6 +466,14 @@ namespace DreamTech.LiveOps.Editor.Tests
         {
             Assert.IsTrue(document.TryGetFixedEvent(entryKey, out FixedLiveEventEntry entry), "tài liệu thiếu đợt " + entryKey);
             return entry;
+        }
+
+        /// <summary>Tài liệu xem trước (không đi qua phiên): dời kết thúc lava-quest.</summary>
+        internal static LiveEventCalendarDocument WithLavaQuestEndDocument(LiveEventCalendarDocument document, string endUtc)
+        {
+            Assert.IsTrue(LiveEventCalendarEdits.TryApply(document, MoveLavaQuestEnd(document, endUtc), out LiveEventCalendarDocument result),
+                "lệnh dời kết thúc phải áp được");
+            return result;
         }
 
         internal static LiveEventCalendarEdit MoveLavaQuestEnd(LiveEventCalendarDocument document, string endUtc)
@@ -442,6 +548,12 @@ namespace DreamTech.LiveOps.Editor.Tests
                 builder.Append(TypeName(parameter.ParameterType)).Append(' ').Append(parameter.Name);
             }
             return builder.ToString();
+        }
+
+        /// <summary>So chữ ký theo nội dung, không theo kiểu xuống dòng của máy đã commit file.</summary>
+        private static string NormalizeNewLines(string text)
+        {
+            return text.Replace("\r\n", "\n").Replace("\r", "\n");
         }
 
         private static string TypeName(Type type)

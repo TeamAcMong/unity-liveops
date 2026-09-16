@@ -195,6 +195,19 @@ namespace DreamTech.LiveOps.Editor.Tests
 
             Assert.AreEqual(nonRemoteFindings, validation.Dropped + validation.ProgressLost + validation.ShouldReview,
                 "(V-17) phát hiện chỉ có trong JSON đang chạy không được vào đếm rail của Kiểm lịch");
+
+            // Nửa còn lại của V-17: loại "mystery-mode" CHỈ có trong bản remote vẫn phải chặn màn Loại event.
+            bool hasRemoteOnlyUnknownType = false;
+            foreach (LiveEventCalendarFinding finding in report.Findings)
+            {
+                if (finding.IsIgnored || !finding.IsAboutRemoteSnapshot) continue;
+                if (string.Equals(finding.RuleId, LiveEventCalendarRuleIds.UnknownEventType, StringComparison.Ordinal)) hasRemoteOnlyUnknownType = true;
+            }
+            Assert.IsTrue(hasRemoteOnlyUnknownType, "JSON đang chạy phải sinh phát hiện 'loại chưa khai báo', nếu không nửa test này vô nghĩa");
+            SectionHealth eventTypes = LiveOpsHubFindingRouting.HealthFor(LiveOpsHubHealthTarget.EventTypes, true, session.Check,
+                session.Document, services.Format);
+            Assert.AreEqual(HealthState.Blocked, eventTypes.State,
+                "(V-17) loại chỉ có trong JSON đang chạy phải làm màn Loại event Blocked (tầng CẤU HÌNH, không phải cổng)");
             foreach (LiveEventCalendarFinding finding in report.Findings)
             {
                 if (finding.IsAboutRemoteSnapshot)
@@ -246,7 +259,7 @@ namespace DreamTech.LiveOps.Editor.Tests
             int shouldReview = 0;
             foreach (LiveEventCalendarFinding finding in report.Findings)
             {
-                if (finding.IsIgnored || !LiveOpsHubFindingRouting.BelongsTo(finding, target)) continue;
+                if (finding.IsIgnored || !ExpectedBelongsTo(finding, target)) continue;
                 if (finding.Consequence == LiveEventCalendarConsequence.Dropped) dropped++;
                 else if (finding.Consequence == LiveEventCalendarConsequence.ProgressLost) progressLost++;
                 else if (finding.Consequence == LiveEventCalendarConsequence.ShouldReview) shouldReview++;
@@ -257,6 +270,33 @@ namespace DreamTech.LiveOps.Editor.Tests
                 if (LiveOpsHubFindingRouting.IsNotMeasured(result.Outcome) && ConcernsTarget(result.RuleId, target)) notMeasured++;
             }
             return new LiveOpsHubFindingCounts(dropped, progressLost, shouldReview, notMeasured);
+        }
+
+        /// <summary>
+        /// Bảng 6.4 chép lại trong test theo TargetKind + id luật + cờ "nói về bản remote". Cố ý KHÔNG gọi
+        /// <c>LiveOpsHubFindingRouting.BelongsTo</c>: dùng chính thứ cần chứng minh làm thước thì bộ định tuyến sai kiểu gì test cũng xanh.
+        /// </summary>
+        private static bool ExpectedBelongsTo(LiveEventCalendarFinding finding, LiveOpsHubHealthTarget target)
+        {
+            if (finding == null) return false;
+            bool isUnknownType = string.Equals(finding.RuleId, LiveEventCalendarRuleIds.UnknownEventType, StringComparison.Ordinal);
+            switch (target)
+            {
+                case LiveOpsHubHealthTarget.Calendar:
+                    // Đợt cố định là của màn Lịch; loại chưa khai báo hiện ở cả Lịch lẫn Loại event. Phát hiện chỉ có trong bản remote
+                    // không thuộc màn nào của lịch nháp (V-17).
+                    return !finding.IsAboutRemoteSnapshot
+                        && (finding.TargetKind == LiveEventCalendarTargetKind.FixedEvent || isUnknownType);
+                case LiveOpsHubHealthTarget.RecurringRules:
+                    return !finding.IsAboutRemoteSnapshot && finding.TargetKind == LiveEventCalendarTargetKind.RecurringRule;
+                case LiveOpsHubHealthTarget.EventTypes:
+                    // (V-17) loại lạ CHẶN màn Loại event kể cả khi chỉ có trong JSON đang chạy đã dán.
+                    return isUnknownType;
+                case LiveOpsHubHealthTarget.Validation:
+                    return !finding.IsAboutRemoteSnapshot;
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(target), target, null);
+            }
         }
 
         /// <summary>Cột "Đích" của bảng 6.1 chép lại trong test: luật chưa đo được phải đếm vào đúng màn mà nó có thể nói tới.</summary>
@@ -284,7 +324,7 @@ namespace DreamTech.LiveOps.Editor.Tests
         {
             foreach (LiveEventCalendarFinding finding in report.Findings)
             {
-                if (!finding.IsIgnored && LiveOpsHubFindingRouting.BelongsTo(finding, target)) return finding;
+                if (!finding.IsIgnored && ExpectedBelongsTo(finding, target)) return finding;
             }
             return null;
         }

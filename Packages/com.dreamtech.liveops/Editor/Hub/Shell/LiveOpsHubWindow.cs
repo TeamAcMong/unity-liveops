@@ -324,12 +324,33 @@ namespace DreamTech.LiveOps.Editor
 
         // ------------------------------------------------------------------------------------------------------------ lưu / huỷ
 
-        /// <summary>Unity hỏi khi đóng tab có *: lưu asset qua phiên; chỉ hạ cờ khi file đã ghi (lưu hỏng thì tab vẫn *).</summary>
+        /// <summary>
+        /// Unity hỏi khi đóng tab có *: lưu asset qua phiên; chỉ hạ cờ khi file đã ghi (lưu hỏng thì tab vẫn *). Lưu hỏng KHÔNG được im
+        /// lặng — Unity vẫn đóng cửa sổ sau lời gọi này, nên lý do phải đi qua bus để người dùng còn đọc được.
+        /// </summary>
         public override void SaveChanges()
         {
-            if (_services == null || !_services.Session.Save()) return;
+            if (_services == null) return;
+            if (!_services.Session.Save())
+            {
+                _services.Bus.ShowOutcome(LiveOpsOutcomeRecord.Blocked(SaveFailureHeadline(_services.Session),
+                    LiveOpsHubStrings.ServicesSaveChangesFailedDetail, _services.Clock.UtcNow));
+                UpdateUnsavedState();
+                return;
+            }
             base.SaveChanges();
             UpdateUnsavedState();
+        }
+
+        /// <summary>Câu "vì sao không lưu được" theo đúng nhánh mà <c>Session.Save</c> vừa trượt.</summary>
+        private static string SaveFailureHeadline(LiveOpsHubCalendarSession session)
+        {
+            if (session.DiskConflict != null)
+            {
+                return string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.ServicesSaveFailedDiskConflictFormat, session.AssetFileName);
+            }
+            if (session.AssetPath.Length == 0) return LiveOpsHubStrings.ServicesSaveFailedNoPath;
+            return string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.ServicesSaveFailedFormat, session.AssetFileName);
         }
 
         /// <summary>"Không lưu": asset về bản chụp lúc lưu gần nhất (một Undo group), rồi hạ cờ.</summary>
@@ -573,7 +594,9 @@ namespace DreamTech.LiveOps.Editor
             }
             else if (_pendingAsset != null)
             {
-                builder.WithCalendarAsset(_pendingAsset);
+                // Mở từ inspector: asset tường minh NHƯNG vẫn có bộ tìm — phiên nhớ GUID theo project (PD-16) và đếm được số
+                // LiveEventCalendarAsset cho HelpBox "Có 2 LiveEventCalendarAsset" (7.1).
+                builder.WithCalendarAsset(_pendingAsset).WithAssetLocator(new LiveOpsHubAssetLocator());
             }
             _pendingAsset = null;
             _services = builder.Build();
@@ -672,19 +695,31 @@ namespace DreamTech.LiveOps.Editor
         {
             const int MaximumListedIds = 3;
             LiveEventCalendarDiffResult diff = session.UnsavedDiff;
-            List<string> ids = new List<string>();
+
+            // PD-22: "chưa lưu" rộng hơn diff hậu quả (dấu đã đăng, cảnh báo đã bỏ qua, thứ tự mục). Diff rỗng thì KHÔNG có con số thật
+            // để nêu — câu hỏi nói đúng cái nó biết thay vì bịa "1 thay đổi".
+            if (diff.ChangeCount == 0)
+            {
+                return string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.ServicesSaveChangesMessageNoCountFormat, session.AssetFileName);
+            }
+
+            // "… và N mục khác" đếm theo MỤC (id duy nhất), không theo số thay đổi: hai thay đổi trên cùng một đợt không phải hai mục.
+            List<string> distinctItemIds = new List<string>();
             foreach (LiveEventCalendarChange change in diff.Changes)
             {
-                if (ids.Count >= MaximumListedIds) break;
-                if (!string.IsNullOrEmpty(change.ItemId) && !ids.Contains(change.ItemId)) ids.Add(change.ItemId);
+                if (!string.IsNullOrEmpty(change.ItemId) && !distinctItemIds.Contains(change.ItemId)) distinctItemIds.Add(change.ItemId);
             }
-            int count = Math.Max(diff.ChangeCount, 1);
-            string list = ids.Count == 0 ? LiveOpsHubStrings.ServicesSaveChangesDocumentFields : string.Join(LiveOpsHubStrings.ServicesHealthItemSeparator, ids);
-            if (diff.ChangeCount > ids.Count && ids.Count > 0)
+            int listedCount = Math.Min(distinctItemIds.Count, MaximumListedIds);
+            string list = listedCount == 0
+                ? LiveOpsHubStrings.ServicesSaveChangesDocumentFields
+                : string.Join(LiveOpsHubStrings.ServicesHealthItemSeparator, distinctItemIds.GetRange(0, listedCount).ToArray());
+            if (distinctItemIds.Count > listedCount)
             {
-                list = string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.ServicesSaveChangesMoreFormat, list, diff.ChangeCount - ids.Count);
+                list = string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.ServicesSaveChangesMoreFormat, list,
+                    distinctItemIds.Count - listedCount);
             }
-            return string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.ServicesSaveChangesMessageFormat, session.AssetFileName, count, list);
+            return string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.ServicesSaveChangesMessageFormat, session.AssetFileName,
+                diff.ChangeCount, list);
         }
 
         private void OnSkinChanged()

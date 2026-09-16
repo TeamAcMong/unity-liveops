@@ -3,6 +3,8 @@ using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Text.RegularExpressions;
+using DreamTech.LiveOps.Tests;
+using DreamTech.LiveOps.Unity;
 using NUnit.Framework;
 using UnityEditor;
 using UnityEngine;
@@ -29,6 +31,10 @@ namespace DreamTech.LiveOps.Editor.Tests
     {
         private static readonly DateTime CheckedAtUtc = new DateTime(2026, 9, 13, 8, 46, 30, DateTimeKind.Utc);
 
+        private const string UnsavedAssetFileName = "HubWindowUnsaved.asset";
+        private const string MovedEndUtc = "2026-09-20T12:00:00Z";
+        private const string SecondMovedEndUtc = "2026-09-21T12:00:00Z";
+
         private const double CompilationNoteTimeoutSeconds = 5.0;
         private const double LayoutTimeoutSeconds = 5.0;
 
@@ -43,6 +49,7 @@ namespace DreamTech.LiveOps.Editor.Tests
             _scope = null;
             CloseSessionWindow();
             LiveOpsHubTestServices.ReleaseAll();
+            Undo.ClearAll();
         }
 
         [UnityTest]
@@ -73,6 +80,59 @@ namespace DreamTech.LiveOps.Editor.Tests
         public IEnumerator Open_EverySection_CreateViewWithoutException_RunningCheck()
         {
             yield return AssertEverySectionShows(HubTestContext.RunningCheck);
+        }
+
+        [UnityTest]
+        public IEnumerator UnsavedChanges_MarksTab_SaveClearsIt_DiscardRestoresSavedSnapshot()
+        {
+            LiveEventCalendarAsset asset = LiveOpsHubTestServices.CreateAssetFile(UnsavedAssetFileName, LiveOpsDesignSample.Document);
+            LiveOpsHubServices services = LiveOpsHubTestServices.Build(LiveOpsHubTestServices.CreateBuilder(null).WithCalendarAsset(asset));
+            yield return OpenSessionWindow(services, null);
+            LiveOpsHubWindow window = _sessionWindow;
+            Assert.IsFalse(window.hasUnsavedChanges, "asset vừa lưu: tab không có *");
+
+            services.Session.Apply(CalendarSessionTests.MoveLavaQuestEnd(services.Session.Document, MovedEndUtc), "Dời kết thúc lava-quest");
+
+            Assert.IsTrue(window.hasUnsavedChanges, "sửa một đợt là tab phải có * (8.3)");
+            StringAssert.Contains(services.Session.AssetFileName, window.saveChangesMessage, "câu hỏi lưu phải nêu tên asset");
+            StringAssert.Contains("lava-quest-2026-09b", window.saveChangesMessage, "câu hỏi lưu phải nêu id mục đã đổi");
+
+            window.SaveChanges();
+
+            Assert.IsFalse(window.hasUnsavedChanges, "lưu được thì hạ cờ * trên tab");
+            Assert.IsFalse(services.Session.HasUnsavedChanges);
+
+            // "Không lưu": asset về bản chụp lúc lưu gần nhất.
+            services.Session.Apply(CalendarSessionTests.MoveLavaQuestEnd(services.Session.Document, SecondMovedEndUtc), "Dời kết thúc lần hai");
+            Assert.IsTrue(window.hasUnsavedChanges);
+
+            window.DiscardChanges();
+
+            Assert.IsFalse(window.hasUnsavedChanges, "bỏ thay đổi xong thì hết *");
+            Assert.AreEqual(MovedEndUtc, CalendarSessionTests.FindLavaQuestMid(services.Session.Document).EndUtcText,
+                "Không lưu = về bản chụp lúc lưu gần nhất, không về bản gốc");
+            LogAssert.NoUnexpectedReceived();
+        }
+
+        [UnityTest]
+        public IEnumerator SaveChanges_WhenSaveFails_KeepsTabMarkAndReportsReason()
+        {
+            // Asset chỉ trong bộ nhớ: Session.Save luôn trả false. Unity vẫn đóng cửa sổ sau SaveChanges nên lý do phải đi qua bus.
+            LiveOpsHubServices services = LiveOpsHubTestServices.ForScenario(LiveOpsHubTestServices.EmptyAssetScenario);
+            yield return OpenSessionWindow(services, null);
+            LiveOpsHubWindow window = _sessionWindow;
+            services.Session.Apply(new SetRemoteConfigKeyEdit("live_events_v2"), "Đổi key remote config");
+            Assert.IsTrue(window.hasUnsavedChanges);
+
+            window.SaveChanges();
+
+            Assert.IsTrue(window.hasUnsavedChanges, "lưu hỏng thì tab PHẢI còn * — không được giả vờ đã lưu");
+            Assert.IsTrue(services.Session.HasUnsavedChanges);
+            LiveOpsOutcomeRecord outcome = window.WindowState.LastOutcome;
+            Assert.IsNotNull(outcome, "lưu hỏng phải nói lý do qua bus, không im lặng");
+            Assert.AreEqual(LiveOpsHubStrings.ServicesSaveFailedNoPath, outcome.Headline,
+                "asset chỉ trong bộ nhớ: câu phải nói đúng nhánh đó");
+            LogAssert.NoUnexpectedReceived();
         }
 
         [UnityTest]

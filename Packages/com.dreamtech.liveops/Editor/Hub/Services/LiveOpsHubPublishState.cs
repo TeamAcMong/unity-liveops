@@ -242,9 +242,14 @@ namespace DreamTech.LiveOps.Editor
             if (!outcome.Applied) return outcome;
             SelectActiveStamp(null);
             if (_session.Save()) return outcome;
-            return LiveOpsHubEditOutcome.Failure(_session.AssetPath.Length == 0
-                ? LiveOpsHubStrings.ServicesSaveFailedNoPath
-                : string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.ServicesSaveFailedFormat, _session.AssetFileName));
+            // Lưu hỏng nhưng dấu ĐÃ nằm trong tài liệu (tab có *): trả thất bại MANG group của bước vừa áp để toast vẫn mời được Hoàn tác —
+            // không thì người dùng đọc "Không lưu được…" và tin rằng chưa có gì xảy ra, trong khi lần ⌘S sau sẽ ghi cái dấu đó vào file.
+            string failureText = _session.DiskConflict != null
+                ? string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.ServicesSaveFailedDiskConflictFormat, _session.AssetFileName)
+                : (_session.AssetPath.Length == 0
+                    ? LiveOpsHubStrings.ServicesSaveFailedNoPath
+                    : string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.ServicesSaveFailedFormat, _session.AssetFileName));
+            return LiveOpsHubEditOutcome.FailureAfterApply(outcome.UndoGroup, outcome.UndoName, failureText);
         }
 
         /// <summary>Gỡ dấu mới nhất (một Undo group, không tự lưu — gỡ nhầm thì Hoàn tác trước khi lưu).</summary>

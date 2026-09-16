@@ -82,6 +82,76 @@ namespace DreamTech.LiveOps.Editor.Tests
         }
 
         [Test]
+        public void Session_SaveDuringDiskConflict_RefusesAndKeepsDraft()
+        {
+            LiveEventCalendarAsset asset = LiveOpsHubTestServices.CreateAssetFile(AssetFileName, LiveOpsDesignSample.Document);
+            LiveOpsHubCalendarSession session = CalendarSessionTests.OpenSession(asset);
+            session.Apply(CalendarSessionTests.MoveLavaQuestEnd(session.Document, DraftEndUtc), "Dời kết thúc lava-quest");
+            WriteDiskDocument(session.AssetPath, WithLavaQuestEnd(LiveOpsDesignSample.Document, DiskEndUtc));
+            session.HandleAssetsChanged(new[] { session.AssetPath }, null, null, null);
+            Assert.IsNotNull(session.DiskConflict, "phải đang có băng xung đột, nếu không test này vô nghĩa");
+
+            Assert.IsFalse(session.Save(), "đang có xung đột đĩa thì KHÔNG được lưu — quyết định là của người dùng (4.3)");
+
+            Assert.IsNotNull(session.DiskConflict, "lưu trượt không được tự xoá băng xung đột");
+            Assert.IsTrue(session.HasUnsavedChanges, "nháp chưa vào file thì tab vẫn phải có *");
+            Assert.AreEqual(DiskEndUtc, CalendarSessionTests.FindLavaQuestMid(ReadDiskDocument(session.AssetPath)).EndUtcText,
+                "file trên đĩa phải giữ nguyên bản của người khác — không bị lần lưu này ghi đè");
+
+            // Người dùng chọn "Giữ bản trong Editor" rồi mới lưu được. Chỉ khẳng định "hết bị từ chối": nội dung file sau đó phụ thuộc
+            // lúc Unity reimport cái file vừa bị ghi thẳng sau lưng AssetDatabase — đường đó đã có test riêng
+            // (Session_DiskChangeWithUnsaved_Conflict_KeepEditorVersionRestoresDraft) và không phải thứ test này khoá.
+            session.KeepEditorVersion();
+
+            Assert.IsNull(session.DiskConflict, "trả lời băng xong thì băng biến mất");
+            Assert.IsTrue(session.Save(), "trả lời băng xong thì lưu không còn bị từ chối");
+            Assert.IsFalse(session.HasUnsavedChanges, "lưu xong thì hết * trên tab");
+        }
+
+        [Test]
+        public void Session_AcceptDiskVersion_DropsUndoHistoryOfAsset()
+        {
+            LiveEventCalendarAsset asset = LiveOpsHubTestServices.CreateAssetFile(AssetFileName, LiveOpsDesignSample.Document);
+            LiveOpsHubCalendarSession session = CalendarSessionTests.OpenSession(asset);
+            session.Apply(CalendarSessionTests.MoveLavaQuestEnd(session.Document, DraftEndUtc), "Dời kết thúc lava-quest");
+            Assert.IsTrue(session.Save(), "lưu nháp trước để lần đổi đĩa sau đó không sinh xung đột");
+
+            // Đồng đội đẩy bản khác; phiên không còn gì để mất nên nhận bản đĩa.
+            WriteDiskDocument(session.AssetPath, WithLavaQuestEnd(LiveOpsDesignSample.Document, DiskEndUtc));
+            session.HandleAssetsChanged(new[] { session.AssetPath }, null, null, null);
+            Assert.AreEqual(DiskEndUtc, CalendarSessionTests.FindLavaQuestMid(session.Document).EndUtcText);
+
+            // R-5: ngăn xếp Undo còn ôm bản ghi của nháp cũ trên chính asset này — một lần ⌘Z sẽ dựng lại bản cũ rồi ⌘S ghi đè bản đồng đội.
+            Undo.PerformUndo();
+
+            Assert.AreEqual(DiskEndUtc, CalendarSessionTests.FindLavaQuestMid(session.Document).EndUtcText,
+                "sau khi nhận bản đĩa, ⌘Z không được dựng lại tài liệu cũ của asset");
+            Assert.IsFalse(session.HasUnsavedChanges, "và cũng không được làm asset bẩn trở lại");
+        }
+
+        [Test]
+        public void Session_DiskConflict_SurvivesDomainReload()
+        {
+            LiveEventCalendarAsset asset = LiveOpsHubTestServices.CreateAssetFile(AssetFileName, LiveOpsDesignSample.Document);
+            LiveOpsHubCalendarSession session = CalendarSessionTests.OpenSession(asset);
+            session.Apply(CalendarSessionTests.MoveLavaQuestEnd(session.Document, DraftEndUtc), "Dời kết thúc lava-quest");
+            WriteDiskDocument(session.AssetPath, WithLavaQuestEnd(LiveOpsDesignSample.Document, DiskEndUtc));
+            session.HandleAssetsChanged(new[] { session.AssetPath }, null, null, null);
+            Assert.IsNotNull(session.DiskConflict);
+
+            // Unity nạp lại script: phiên dựng lại từ đầu trên CÙNG asset (cùng GUID → cùng kho SessionState). Trong Editor thật instance
+            // lúc này mang bản đĩa; bản chụp nháp trong kho phiên là thứ duy nhất còn giữ việc của designer.
+            session.Dispose();
+            asset.ApplyDocument(ReadDiskDocument(AssetDatabase.GetAssetPath(asset)));
+            LiveOpsHubCalendarSession restored = CalendarSessionTests.OpenSession(asset);
+
+            Assert.IsNotNull(restored.DiskConflict, "nạp lại script không được làm mất băng xung đột — mất băng là mất nháp im lặng");
+            Assert.AreEqual(DraftEndUtc, CalendarSessionTests.FindLavaQuestMid(restored.Document).EndUtcText, "nháp phải sống lại nguyên vẹn");
+            Assert.AreEqual(DiskEndUtc, CalendarSessionTests.FindLavaQuestMid(restored.DiskConflict.DiskDocument).EndUtcText);
+            Assert.IsTrue(restored.HasUnsavedChanges, "còn nháp chưa lưu thì tab vẫn có *");
+        }
+
+        [Test]
         public void Session_OwnSave_NotReportedAsDiskChange()
         {
             LiveEventCalendarAsset asset = LiveOpsHubTestServices.CreateAssetFile(AssetFileName, LiveOpsDesignSample.Document);
@@ -154,6 +224,21 @@ namespace DreamTech.LiveOps.Editor.Tests
             {
                 UnityEngine.Object.DestroyImmediate(writer);
             }
+        }
+
+        /// <summary>Đọc thẳng file serialize ở đường dẫn asset (không qua instance đang nạp) — dùng để khẳng định file thật mang gì.</summary>
+        private static LiveEventCalendarDocument ReadDiskDocument(string assetPath)
+        {
+            UnityEngine.Object[] loaded = InternalEditorUtility.LoadSerializedFileAndForget(assetPath);
+            Assert.IsNotNull(loaded, "không đọc được file asset ở " + assetPath);
+            LiveEventCalendarDocument document = null;
+            foreach (UnityEngine.Object candidate in loaded)
+            {
+                if (document == null && candidate is LiveEventCalendarAsset calendar) document = calendar.ToDocument();
+                if (candidate != null) UnityEngine.Object.DestroyImmediate(candidate);
+            }
+            Assert.IsNotNull(document, "file ở " + assetPath + " không chứa LiveEventCalendarAsset");
+            return document;
         }
 
         private static LiveEventCalendarDocument WithLavaQuestEnd(LiveEventCalendarDocument document, string endUtc)

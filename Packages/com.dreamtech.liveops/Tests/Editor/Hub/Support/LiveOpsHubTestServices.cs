@@ -36,6 +36,11 @@ namespace DreamTech.LiveOps.Editor.Tests
         /// <summary>Số luật đã xong trong ngữ cảnh đang kiểm — "Đang kiểm 7/12 luật…".</summary>
         public const int RunningCompletedRuleCount = 7;
 
+        /// <summary>Tên Undo group của lệnh sửa dựng ngữ cảnh "kiểm cũ" (= câu toast, 4.3).</summary>
+        private const string StaleScenarioUndoName = "Dời kết thúc lava-quest-2026-09b";
+
+        private const string StaleScenarioMovedEndUtc = "2026-09-20T12:00:00Z";
+
         private static readonly List<LiveOpsHubServices> CreatedServices = new List<LiveOpsHubServices>();
         private static readonly List<UnityEngine.Object> CreatedMemoryAssets = new List<UnityEngine.Object>();
         private static readonly List<string> CreatedAssetGuids = new List<string>();
@@ -50,6 +55,7 @@ namespace DreamTech.LiveOps.Editor.Tests
         {
             LiveOpsHubCalendarSession.SavedSnapshotStoreName, LiveOpsHubCalendarSession.DraftSnapshotStoreName,
             LiveOpsHubCalendarSession.SavedFileHashStoreName, LiveOpsHubCalendarSession.CheckRunningStoreName,
+            LiveOpsHubCalendarSession.DiskConflictStoreName,
             LiveOpsHubPublishState.ExportFormatStoreName, LiveOpsHubPublishState.LastExportedShaStoreName,
             LiveOpsHubPublishState.LastExportedUtcStoreName, LiveOpsHubPublishState.LastExportedViaFileStoreName,
             LiveOpsHubPublishState.ReviewedStoreName, LiveOpsHubPublishState.ActiveBaselineStoreName,
@@ -112,8 +118,12 @@ namespace DreamTech.LiveOps.Editor.Tests
                     clock.Set(CheckedAtUtc);
                     LiveOpsHubServices services = Build(CreateBuilder(clock).WithCalendarAsset(CreateMemoryAsset(LiveOpsDesignSample.Document)));
                     services.Session.RunCheckToCompletion();
+                    // Đi ĐÚNG đường thật (Apply → AcceptAssetDocument → MarkCalendarEdited) thay vì gọi cửa sau vào trạng thái kiểm:
+                    // ngữ cảnh chụp/probe phải là thứ người dùng thật sự tạo ra, không phải trạng thái nặn tay (CC-SHELL-1 "phiên thật").
+                    clock.Set(EditedAfterCheckUtc);
+                    LiveOpsHubEditOutcome outcome = services.Session.Apply(MoveLavaQuestEnd(services.Session.Document), StaleScenarioUndoName);
+                    if (!outcome.Applied) throw new InvalidOperationException("ngữ cảnh kiểm cũ: không sửa được lịch mẫu — " + outcome.FailureText);
                     clock.Set(LiveOpsDesignSample.NowUtc);
-                    services.Session.Check.MarkCalendarEdited(EditedAfterCheckUtc);
                     return services;
                 }
                 case RunningCheckScenario:
@@ -127,6 +137,17 @@ namespace DreamTech.LiveOps.Editor.Tests
                 default:
                     throw new ArgumentOutOfRangeException(nameof(scenarioId), scenarioId, "kịch bản services lạ");
             }
+        }
+
+        /// <summary>Lệnh sửa của ngữ cảnh "kiểm cũ": dời kết thúc đợt lava-quest giữa tháng — thay đổi điển hình của designer.</summary>
+        private static LiveEventCalendarEdit MoveLavaQuestEnd(LiveEventCalendarDocument document)
+        {
+            if (!document.TryGetFixedEvent(LiveOpsDesignSample.LavaQuestMidEntryKey, out FixedLiveEventEntry entry))
+            {
+                throw new InvalidOperationException("lịch mẫu thiếu đợt " + LiveOpsDesignSample.LavaQuestMidEntryKey);
+            }
+            return new ReplaceFixedEventEdit(new FixedLiveEventEntry(entry.EntryKey, entry.EventId, entry.EventType, entry.StartUtcText,
+                StaleScenarioMovedEndUtc, entry.ConfigKey));
         }
 
         /// <summary>Asset lịch chỉ trong bộ nhớ (không file, không GUID) — Lưu trả false, SessionState giữ trong kho bộ nhớ của phiên.</summary>
