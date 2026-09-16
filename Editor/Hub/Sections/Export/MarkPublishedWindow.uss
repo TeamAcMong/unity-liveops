@@ -88,3 +88,33 @@
 .liveops-hub-export-hidden {
     display: none;
 }
+
+/*
+ * Nút "Copy JSON <sha mới>": Button LÀ TextElement nên `text` của nút bị Image con vẽ đè — nút bỏ text, xếp Image rồi Label
+ * thành hàng ([FD §2.12]: icon margin-left −2, margin-right 4).
+ */
+.liveops-hub-export-icon-button {
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+}
+
+.liveops-hub-export-icon-button-icon {
+    margin-left: -2px;
+    margin-right: 4px;
+    flex-shrink: 0;
+}
+
+.liveops-hub-export-icon-button-label {
+    margin: 0;
+    padding: 0;
+}
+
+/*
+ * Câu "Còn thiếu…" in đúng MỘT chỗ (nhãn trái hàng nút, [SD2 §3.11]); slot của nút chính vẫn nhận câu để mang tooltip nhưng
+ * nhãn lý do của nó ẩn. Selector phải đủ ba class để thắng `.liveops-hub-button-slot--blocked > .liveops-hub-button-reason`
+ * của components.uss (cùng số class thì sheet nạp sau thắng, nhưng ba class không phụ thuộc thứ tự nạp).
+ */
+.liveops-hub-button-slot--blocked > .liveops-hub-button-reason.liveops-hub-export-reason-tooltip-only {
+    display: none;
+}

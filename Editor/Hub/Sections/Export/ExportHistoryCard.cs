@@ -99,6 +99,18 @@ namespace DreamTech.LiveOps.Editor
 
             element.Add(BuildCell(row.ShaText, LiveOpsHubClassNames.ExportHistoryCellSha, true));
 
+            // "Đã đối chiếu" [SD2 §3.9]: chấm Ok + giờ, nằm SAU cột sha vì nó là bằng chứng về dấu, không phải một cột dữ liệu.
+            if (row.IsVerifiedAgainstRemote)
+            {
+                LiveOpsStateMark verifiedMark = new LiveOpsStateMark { Size = LiveOpsStateMark.MarkSize.Small };
+                verifiedMark.SetHealth(HealthState.Ok);
+                verifiedMark.AddToClassList(LiveOpsHubClassNames.ExportHistoryVerifiedMark);
+                element.Add(verifiedMark);
+                Label verified = new Label(row.VerifiedText);
+                verified.AddToClassList(LiveOpsHubClassNames.ExportHistoryVerified);
+                element.Add(verified);
+            }
+
             element.AddManipulator(new ContextualMenuManipulator(menuEvent => PopulateMenu(menuEvent, row)));
             return element;
         }

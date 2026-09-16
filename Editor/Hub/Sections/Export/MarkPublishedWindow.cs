@@ -45,6 +45,9 @@ namespace DreamTech.LiveOps.Editor
             LiveOpsHubPaths.ThemeUss, LiveOpsHubPaths.ComponentsUss, LiveOpsHubPaths.MarkPublishedWindowUss,
         };
 
+        private const string CopyIconName = "Clipboard";
+        private const int CopyIconSize = 14;
+
         private readonly Func<MarkPublishedInput> _copyCurrentJson;
         private readonly Label _heading;
         private readonly Label _body;
@@ -52,6 +55,7 @@ namespace DreamTech.LiveOps.Editor
         private readonly Label _shaText;
         private readonly VisualElement _copyRow;
         private readonly Button _copyButton;
+        private readonly Label _copyButtonLabel;
         private readonly Toggle _confirmToggle;
         private readonly Label _noteLabel;
         private readonly TextField _noteField;
@@ -116,6 +120,16 @@ namespace DreamTech.LiveOps.Editor
             _cancelButton = content.Q<Button>(CancelButtonElementName);
             VisualElement confirmHost = content.Q(ConfirmHostElementName);
 
+            // Button LÀ TextElement: `text` do chính nút vẽ trên cả hộp nội dung nên Image con nằm ĐÈ lên chữ. Nút copy của
+            // biến thể "nháp đã đổi" mang icon clip [SD2 §3.11] nên chữ phải là Label con đặt SAU Image.
+            _copyButton.AddToClassList(LiveOpsHubClassNames.ExportIconButton);
+            Image copyIcon = LiveOpsHubIcons.CreateImage(CopyIconName, CopyIconSize);
+            copyIcon.AddToClassList(LiveOpsHubClassNames.ExportIconButtonIcon);
+            _copyButton.Add(copyIcon);
+            _copyButtonLabel = new Label();
+            _copyButtonLabel.AddToClassList(LiveOpsHubClassNames.ExportIconButtonLabel);
+            _copyButton.Add(_copyButtonLabel);
+
             _confirmToggle.label = LiveOpsHubStrings.ExportMarkConfirmToggle;
             _noteLabel.text = LiveOpsHubStrings.ExportMarkNoteLabel;
             SetNotePlaceholder();
@@ -132,6 +146,11 @@ namespace DreamTech.LiveOps.Editor
             confirmHost.Add(_confirmSlot);
 
             MissingLabel = missing;
+            // Đầu vào đã mang tick + ghi chú (biến thể TRÁI của Hình 20, và mọi lần mở lại hộp với dữ liệu đã nhập) thì widget
+            // phải mang đúng giá trị đó: Refresh đọc NGƯỢC từ widget, nên không gieo ở đây là hộp luôn hiện như chưa nhập gì.
+            // SetValueWithoutNotify: gieo giá trị không phải là người dùng thao tác, và Refresh chạy ngay bên dưới.
+            _confirmToggle.SetValueWithoutNotify(_input.ConfirmTicked);
+            _noteField.SetValueWithoutNotify(_input.Note);
             _copyButton.clicked += OnCopyClicked;
             _cancelButton.clicked += OnCancelClicked;
             _confirmToggle.RegisterValueChangedCallback(changeEvent => Refresh());
@@ -174,15 +193,19 @@ namespace DreamTech.LiveOps.Editor
 
             bool hasCopy = state.HasCopyButton && _copyCurrentJson != null;
             _copyRow.EnableInClassList(LiveOpsHubClassNames.ExportHidden, !hasCopy);
-            if (hasCopy) _copyButton.text = state.CopyButtonText;
+            if (hasCopy) _copyButtonLabel.text = state.CopyButtonText;
 
             _confirmToggle.SetEnabled(state.ConfirmSectionEnabled);
             _noteLabel.SetEnabled(state.ConfirmSectionEnabled);
             _noteField.SetEnabled(state.ConfirmSectionEnabled);
 
             MissingLabel.text = state.MissingText;
-            // Lý do in THÀNH CHỮ ở hai chỗ (nhãn trái hàng nút + slot của nút chính) — tooltip chỉ phụ (SPIKE-B SP-3).
+            MissingLabel.EnableInClassList(LiveOpsHubClassNames.ExportHidden, state.MissingText.Length == 0);
+            // Câu "Còn thiếu…" in ĐÚNG MỘT chỗ — nhãn trái hàng nút [SD2 §3.11]. Slot vẫn nhận câu đó để mang tooltip (nút
+            // disabled không nhận hover, R-16), nhưng nhãn lý do của slot bị ẩn: in hai lần làm hàng nút tràn và cắt mất
+            // chính nút "Ghi dấu đã đăng".
             _confirmSlot.SetEnabledWithReason(state.CanMark, state.MissingText);
+            _confirmSlot.ReasonLabel.AddToClassList(LiveOpsHubClassNames.ExportReasonTooltipOnly);
         }
 
         private void SetNotePlaceholder()
@@ -192,6 +215,8 @@ namespace DreamTech.LiveOps.Editor
             placeholder.AddToClassList(LiveOpsHubClassNames.Placeholder);
             placeholder.pickingMode = PickingMode.Ignore;
             _noteField.Add(placeholder);
+            // Gieo sẵn ghi chú không phát ValueChanged nên trạng thái đầu của placeholder phải tự tính, không chờ callback.
+            placeholder.EnableInClassList(LiveOpsHubClassNames.PlaceholderHidden, _input.Note.Length > 0);
             _noteField.RegisterValueChangedCallback(changeEvent =>
                 placeholder.EnableInClassList(LiveOpsHubClassNames.PlaceholderHidden, changeEvent.newValue.Length > 0));
         }

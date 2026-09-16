@@ -32,6 +32,7 @@ namespace DreamTech.LiveOps.Editor
         internal const string NoticesElementName = "export-notices";
         internal const string GateHostElementName = "export-gate-host";
         internal const string MetricsHostElementName = "export-metrics-host";
+        internal const string JsonCardElementName = "export-json-card";
         internal const string JsonTitleElementName = "export-json-title";
         internal const string JsonMetaElementName = "export-json-meta";
         internal const string JsonHostElementName = "export-json-host";
@@ -54,9 +55,11 @@ namespace DreamTech.LiveOps.Editor
         private const int HeaderIconSize = 16;
         private const string ClockPattern = "HH:mm";
 
-        // INTERIM(G-SHELLPOLISH): nút "Mở thư mục" của outcome (c′) chưa hiện — cửa sổ gọi LiveOpsOutcomeView.SetRecord không
-        // truyền nhãn nút nên view ẩn nút dù bản ghi có ActionId. Bản ghi đã mang đủ dữ liệu (id + đường dẫn file), gói gỡ chỉ
-        // cần nối nhãn nút và gọi ILiveOpsHubFileDialog.Reveal.
+        // INTERIM(G-SHELLPOLISH): nút "Mở thư mục" của outcome (c′) chưa hiện — LiveOpsHubWindow.RefreshOutcomeView gọi
+        // LiveOpsOutcomeView.SetRecord(record) KHÔNG truyền nhãn nút nên view ẩn nút dù bản ghi có ActionId, và
+        // OnOutcomeActionInvoked chỉ biết điều hướng theo id màn. Bản ghi ở đây đã mang đủ dữ liệu (id + đường dẫn file); gói gỡ
+        // chỉ cần truyền nhãn nút và gọi ILiveOpsHubFileDialog.Reveal. Sổ nhánh tạm mục 12, I-11 — file cần sửa là
+        // ED/Hub/Shell/LiveOpsHubWindow.cs, thuộc quyền ghi của G-SHELLPOLISH (W5), không phải của G-EXPORT.
         private const string RevealFileActionId = "reveal-file";
 
         private static readonly IReadOnlyList<string> ElementNames = Array.AsReadOnly(new[]
@@ -71,6 +74,7 @@ namespace DreamTech.LiveOps.Editor
         private readonly LiveOpsJsonView _jsonView = new LiveOpsJsonView();
 
         private ExportMetrics _metrics;
+        private ExportGateInput _gateInput;
         private IHubHost _host;
         private VisualElement _root;
         private VisualElement _empty;
@@ -115,6 +119,9 @@ namespace DreamTech.LiveOps.Editor
         internal LiveOpsButtonSlot CopySlot => _copySlot;
         internal LiveOpsButtonSlot SaveFileSlot => _saveFileSlot;
         internal LiveOpsButtonSlot MarkPublishedSlot => _markPublishedSlot;
+
+        /// <summary>Meta của card "JSON sẽ đăng" ("parser của game giữ 4/6 mục · khớp Kiểm lịch") — test đọc thẳng.</summary>
+        internal Label JsonMetaLabel => _jsonMeta;
 
         /// <summary>Model diff đang vẽ — test đọc thẳng thay vì suy ngược từ cây element.</summary>
         internal ExportDiffViewModel DiffModel { get; private set; }
@@ -201,8 +208,13 @@ namespace DreamTech.LiveOps.Editor
 
         public void RestoreViewState(string viewStateJson)
         {
+            // Chuỗi rỗng = cửa sổ CHƯA có trạng thái đã lưu cho màn này, không phải "hãy xoá trạng thái đang có". Khung gọi
+            // RestoreViewState("") ngay sau CreateView, nên thay nguyên _viewState ở đó sẽ xoá dấu vừa khôi phục (trạng thái
+            // (i) mất note + nút "Hoàn tác khôi phục") của thao tác chạy trước khi cửa sổ dựng.
+            if (string.IsNullOrEmpty(viewStateJson)) return;
             _viewState = ExportSessionState.FromJson(viewStateJson);
             _jsonView.IsSingleLine = _viewState.JsonSingleLine;
+            Refresh();
         }
 
         /// <summary>(V-13) Điều hướng có tham số: "Xem diff" của Kiểm lịch mở màn này với nguồn bản so là bản remote đã dán.</summary>
@@ -231,11 +243,13 @@ namespace DreamTech.LiveOps.Editor
             }
 
             Gate = EvaluateGate();
-            _gateCard.Bind(Gate);
+            // (mục 12 I-3) Nút "Dán JSON đang chạy…" chỉ dùng được khi action thật đã dựng — card phải biết để khoá nút kèm lý
+            // do thay vì vẽ nút bật rơi vào no-op (Tổng quan đã đọc cùng hai thuộc tính này).
+            _gateCard.Bind(Gate, Services.Actions.CanPasteRunningJson, Services.Actions.PasteRunningJsonUnavailableReason);
             RefreshNotices(Gate);
             RefreshJson(Gate);
             RefreshDiff();
-            _historyCard.Bind(ExportHistoryModel.Build(session.Document, session.Publish.ActiveStamp, Services.Format));
+            _historyCard.Bind(ExportHistoryModel.Build(session.Document, session.Publish.ActiveStamp, session.Remote, Services.Format));
             _metrics.Bind(session.Publish.CurrentJson, session.Publish.CompareDiff, session.Publish.ActiveStamp);
             RefreshHeaderButtons();
         }
@@ -249,6 +263,7 @@ namespace DreamTech.LiveOps.Editor
             ExportGateInput input = Services.Session.BuildExportGateInput(Services.JsonReadBack, Services.Format);
             PublishedCalendarStamp restored = FindStamp(_viewState.RestoredStampKey);
             if (restored != null) input = input.WithRestoring(restored, CanUndoRestore());
+            _gateInput = input;
             return ExportGateModel.Evaluate(input);
         }
 
@@ -337,11 +352,19 @@ namespace DreamTech.LiveOps.Editor
                 _jsonMeta.text = string.Empty;
                 return;
             }
-            LiveEventCalendarCompilation compilation = Services.Session.Compilation;
-            _jsonMeta.text = readBackRow.State == ExportGateRowState.Ok
+            // Câu này xưng "parser CỦA GAME giữ x/y mục" nên số phải của bản ĐỌC LẠI, không phải của nháp: định dạng 1 bỏ luật
+            // lặp (nháp 8/8 nhưng parser chỉ thấy 4/6) và mọi ca parser đọc khác nháp đều làm hai số lệch nhau.
+            LiveEventCalendarCompilation compilation = ReadBackCompilation();
+            _jsonMeta.text = readBackRow.State == ExportGateRowState.Ok && compilation != null
                 ? string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.ExportJsonCardMetaFormat,
                     Services.Format.Integer(compilation.KeptCount), Services.Format.Integer(compilation.EntryCount))
                 : readBackRow.Text;
+        }
+
+        /// <summary>Bộ biên dịch của bản đọc lại (dãy mục game thật thấy); null khi chưa dựng được đầu vào cổng.</summary>
+        private LiveEventCalendarCompilation ReadBackCompilation()
+        {
+            return _gateInput == null || _gateInput.ReadBack == null ? null : _gateInput.ReadBack.Compilation;
         }
 
         /// <summary>
@@ -352,6 +375,8 @@ namespace DreamTech.LiveOps.Editor
         private IReadOnlyList<LiveOpsJsonLineAnnotation> BuildAnnotations(LiveEventCalendarJsonText json)
         {
             List<LiveOpsJsonLineAnnotation> annotations = new List<LiveOpsJsonLineAnnotation>();
+            LiveEventCalendarDiffResult diff = Services.Session.Publish.CompareDiff;
+            List<int> usedLines = new List<int>();
             LiveEventCalendarCheckReport report = Services.Session.Check.LastReport;
             if (report != null)
             {
@@ -359,19 +384,22 @@ namespace DreamTech.LiveOps.Editor
                 {
                     if (finding.IsIgnored || finding.IsAboutRemoteSnapshot) continue;
                     int line;
-                    if (!TryFindFindingLine(json, finding, out line)) continue;
+                    if (!TryFindFindingLine(json, diff, finding, out line)) continue;
                     annotations.Add(new LiveOpsJsonLineAnnotation(line, LiveOpsHubFindingRouting.StateOf(finding.Consequence),
                         LiveOpsFindingText.ShortLabel(finding)));
+                    usedLines.Add(line);
                 }
             }
 
-            LiveEventCalendarDiffResult diff = Services.Session.Publish.CompareDiff;
             LiveOpsChangeTextContext context = BuildChangeTextContext(diff);
             foreach (LiveEventCalendarChange change in diff.Changes)
             {
                 if (change.Kind != LiveEventCalendarChangeKind.Changed) continue;
                 int line;
                 if (!TryFindChangeLine(json, change, out line)) continue;
+                // Một dòng chỉ mang MỘT chú thích [SD2 §3.6]: phát hiện của Kiểm lịch thắng câu diff — dòng đã có ✕/! nói hậu
+                // quả nặng hơn "trước → sau".
+                if (usedLines.Contains(line)) continue;
                 annotations.Add(new LiveOpsJsonLineAnnotation(line, LiveOpsHubFindingRouting.StateOf(change.Consequence),
                     LiveOpsChangeText.ChangedTooltip(change, context, Services.Format)));
             }
@@ -423,7 +451,16 @@ namespace DreamTech.LiveOps.Editor
             return json.TryGetItemLineRange(change.ItemKind, ItemKeyOf(change), out line, out lastLine);
         }
 
-        private static bool TryFindFindingLine(LiveEventCalendarJsonText json, LiveEventCalendarFinding finding, out int line)
+        /// <summary>
+        /// Dòng mang chú thích của một phát hiện: ưu tiên dòng FIELD, chỉ lùi về dòng mở mục khi không tìm được. Thiết kế đặt
+        /// "!" + câu ở dòng 7 <c>"idPrefix"</c>, không phải ở dòng 4 <c>{</c> — dòng mở mục không nói được phát hiện về cái gì.
+        /// <para>
+        /// Phát hiện KHÔNG khai tên field (<c>LiveEventCalendarFinding</c> chỉ có đích là mục), nên field lấy từ thay đổi của
+        /// CÙNG mục trong diff: hai thứ nói về một chỗ (đổi tiền tố của luật đang chạy là thay đổi <c>idPrefix</c>).
+        /// </para>
+        /// </summary>
+        private static bool TryFindFindingLine(LiveEventCalendarJsonText json, LiveEventCalendarDiffResult diff,
+            LiveEventCalendarFinding finding, out int line)
         {
             line = 0;
             string itemKey = finding.TargetEntryKey.Length > 0 ? finding.TargetEntryKey : finding.TargetId;
@@ -431,6 +468,18 @@ namespace DreamTech.LiveOps.Editor
             LiveEventCalendarItemKind kind = finding.TargetKind == LiveEventCalendarTargetKind.RecurringRule
                 ? LiveEventCalendarItemKind.RecurringRule
                 : LiveEventCalendarItemKind.FixedEvent;
+            if (diff != null)
+            {
+                foreach (LiveEventCalendarChange change in diff.Changes)
+                {
+                    if (change.Kind != LiveEventCalendarChangeKind.Changed) continue;
+                    if (!string.Equals(ItemKeyOf(change), itemKey, StringComparison.Ordinal)) continue;
+                    foreach (LiveEventCalendarFieldChange field in change.Fields)
+                    {
+                        if (json.TryGetFieldLine(change.ItemKind, itemKey, field.FieldName, out line)) return true;
+                    }
+                }
+            }
             int lastLine;
             return json.TryGetItemLineRange(kind, itemKey, out line, out lastLine);
         }
@@ -440,8 +489,11 @@ namespace DreamTech.LiveOps.Editor
             LiveOpsHubPublishState publish = Services.Session.Publish;
             LiveEventCalendarDiffResult diff = publish.CompareDiff;
             LiveOpsHubCompareSource source = publish.ActiveCompareSource;
+            // (g) lần đăng đầu: chưa có dấu nào để so nên KHÔNG có danh sách thay đổi — câu empty của cổng thay cho danh sách.
+            // Vẽ 8 mục "thêm mới" ở đây là nói dối rằng có một bản so ([SD2 §3.8] mục Empty).
+            bool hasBaseline = source == LiveOpsHubCompareSource.Remote || publish.ActiveStamp != null;
             DiffModel = ExportDiffViewModel.Build(diff, BuildChangeTextContext(diff), Services.Format, source, BuildDiffHeaderText(source),
-                Gate == null ? string.Empty : Gate.DiffEmptyText, publish.IsReviewed);
+                Gate == null ? string.Empty : Gate.DiffEmptyText, publish.IsReviewed, hasBaseline);
             _diffCard.Bind(DiffModel, source == LiveOpsHubCompareSource.Remote);
         }
 
@@ -474,32 +526,71 @@ namespace DreamTech.LiveOps.Editor
             if (gate == null)
             {
                 // Chưa có asset: ba nút khoá với đúng câu của trạng thái đó, không phải câu của cổng.
-                _copySlot.SetEnabledWithReason(false, LiveOpsHubStrings.ServicesHealthNoAsset);
-                _saveFileSlot.SetEnabledWithReason(false, LiveOpsHubStrings.ServicesHealthNoAsset);
-                _markPublishedSlot.SetEnabledWithReason(false, LiveOpsHubStrings.ServicesHealthNoAsset);
+                ApplyNoAssetButton(_copySlot, true);
+                ApplyNoAssetButton(_saveFileSlot, false);
+                ApplyNoAssetButton(_markPublishedSlot, false);
                 return;
             }
 
-            ApplyButton(_copySlot, gate.Copy, gate, gate.Copy.IsPrimary);
+            // [SD2 §3.2] in lý do cạnh ĐÚNG MỘT nút — nút mà câu đó nói tới. Nút chính đang khoá thì câu là của nó ((a) "Chặn:
+            // 2 đợt bị bỏ" cạnh Copy, (f) "Không có thay đổi để ghi" cạnh Đánh dấu). Nút chính đang MỞ thì câu nói về bước sau:
+            // (b) "Còn thiếu cho Đánh dấu: copy hoặc lưu file bản này" — nút đang khoá lúc đó là "Đánh dấu đã đăng…".
+            bool reasonOnCopy = !gate.Copy.IsEnabled && (gate.Copy.IsPrimary || gate.MarkPublished.IsEnabled);
+            ApplyButton(_copySlot, gate.Copy, gate, reasonOnCopy);
             ApplyButton(_saveFileSlot, gate.SaveFile, gate, false);
-            ApplyButton(_markPublishedSlot, gate.MarkPublished, gate, gate.MarkPublished.IsPrimary);
+            ApplyButton(_markPublishedSlot, gate.MarkPublished, gate, !reasonOnCopy);
         }
 
-        /// <summary>Lý do của cổng in cạnh nút CHÍNH (bước tiếp theo thật); nút còn lại in tooltip của chính nó thành chữ.</summary>
+        /// <summary>Chưa có asset: chỉ nút đầu in lý do thành chữ, hai nút kia mang tooltip — cùng luật "một câu" của [SD2 §3.2].</summary>
+        private static void ApplyNoAssetButton(LiveOpsButtonSlot slot, bool showsText)
+        {
+            slot.SetEnabledWithReason(false, LiveOpsHubStrings.ServicesHealthNoAsset);
+            slot.ReasonLabel.EnableInClassList(LiveOpsHubClassNames.ExportReasonTooltipOnly, !showsText);
+            slot.ReasonLabel.EnableInClassList(LiveOpsHubClassNames.TextBlocked, showsText);
+            slot.ReasonLabel.EnableInClassList(LiveOpsHubClassNames.ExportReasonQuiet, false);
+        }
+
+        /// <summary>
+        /// Lý do của cổng in thành chữ cạnh đúng một nút; hai nút còn lại chỉ mang tooltip (in cả ba làm chữ chồng lên nhau
+        /// trên header). Mức chữ theo <see cref="ExportGateState.ReasonIsBlocked"/>: (b) và (f) là chữ quiet, không phải chặn.
+        /// </summary>
         private static void ApplyButton(LiveOpsButtonSlot slot, ExportGateButton button, ExportGateState gate, bool showsGateReason)
         {
-            string reason = showsGateReason && gate.ReasonText.Length > 0 ? gate.ReasonText : button.Tooltip;
-            slot.SetEnabledWithReason(button.IsEnabled, reason);
+            // Nút đang MỞ không in lý do: SetEnabledWithReason xoá chữ khi bật, nên in ở đó là in vào chỗ không hiện.
+            bool showsText = showsGateReason && gate.ReasonText.Length > 0 && !button.IsEnabled;
+            // Slot vẫn nhận một câu khi nút khoá (hợp đồng "disabled luôn kèm lý do" + tooltip trên slot, R-16); chỉ NHÃN bị ẩn.
+            slot.SetEnabledWithReason(button.IsEnabled, showsText ? gate.ReasonText : button.Tooltip);
+            slot.ReasonLabel.EnableInClassList(LiveOpsHubClassNames.ExportReasonTooltipOnly, !showsText);
+            slot.ReasonLabel.EnableInClassList(LiveOpsHubClassNames.TextBlocked, showsText && gate.ReasonIsBlocked);
+            slot.ReasonLabel.EnableInClassList(LiveOpsHubClassNames.ExportReasonQuiet, showsText && !gate.ReasonIsBlocked);
             slot.Button.tooltip = button.Tooltip;
             slot.Button.EnableInClassList(LiveOpsHubClassNames.ButtonPrimary, button.IsPrimary);
         }
 
+        /// <summary>
+        /// Nút header: Button LÀ TextElement nên <c>text</c> do chính nút vẽ trên cả hộp nội dung — Image con chỉ CHỒNG lên
+        /// chữ ("Co[icon] JSON"). Nút bỏ <c>text</c>, xếp Image rồi Label thành hàng.
+        /// </summary>
         private LiveOpsButtonSlot BuildHeaderButton(VisualElement container, string elementName, string text, string iconName, Action clicked)
         {
-            Button button = new Button(clicked) { name = elementName, text = text };
+            Button button = new Button(clicked) { name = elementName };
             button.AddToClassList(LiveOpsHubClassNames.Button);
-            if (iconName.Length > 0) button.Insert(0, LiveOpsHubIcons.CreateImage(iconName, HeaderIconSize));
+            button.AddToClassList(LiveOpsHubClassNames.ExportIconButton);
+            if (iconName.Length > 0)
+            {
+                Image icon = LiveOpsHubIcons.CreateImage(iconName, HeaderIconSize);
+                icon.AddToClassList(LiveOpsHubClassNames.ExportIconButtonIcon);
+                button.Add(icon);
+            }
+            Label label = new Label(text);
+            label.AddToClassList(LiveOpsHubClassNames.ExportIconButtonLabel);
+            button.Add(label);
+
             LiveOpsButtonSlot slot = new LiveOpsButtonSlot(button);
+            // Nút sống trong section header của shell, còn ExportSection.uss chỉ nạp lên thân màn (cây khác) — không nạp thêm
+            // ở đây thì class icon/lý do của nút không có style (cùng lý do đã ghi ở EventTypesSection.PopulateHeaderActions).
+            StyleSheet sheet = Services.LayoutLoader.LoadStyleSheet(LiveOpsHubPaths.ExportSectionUss);
+            if (sheet != null) slot.styleSheets.Add(sheet);
             container.Add(slot);
             return slot;
         }
@@ -534,6 +625,12 @@ namespace DreamTech.LiveOps.Editor
         }
 
         private void OnSaveFileClicked()
+        {
+            SaveJsonToFile();
+        }
+
+        /// <summary>Lệnh "Lưu file…" có tên: nút header và kịch bản chụp (c′) đi cùng một đường, không ai dựng outcome bằng tay.</summary>
+        internal void SaveJsonToFile()
         {
             LiveEventCalendarJsonText json = Services.Session.Publish.CurrentJson;
             string defaultName = string.Format(CultureInfo.InvariantCulture, LiveOpsHubPaths.ExportFileNameFormat, json.ShortSha);
@@ -680,9 +777,10 @@ namespace DreamTech.LiveOps.Editor
         private void OnCompareWithStampRequested(PublishedCalendarStamp stamp)
         {
             if (stamp == null) return;
+            // Dấu đang là bản so nằm trong SessionState của phiên (LiveOpsHubPublishState.ActiveStamp) — màn KHÔNG nhớ lại lần
+            // hai: hai chỗ nhớ cùng một thứ là hai chỗ lệch nhau (cùng lý do đã ghi ở đầu ExportSessionState).
             Services.Session.Publish.SelectActiveStamp(stamp);
             Services.Session.Publish.SelectCompareSource(LiveOpsHubCompareSource.Published);
-            _viewState.SelectedStampKey = ExportSessionState.KeyOf(stamp);
             Services.Bus.ShowToast(LiveOpsToastModel.Info(string.Format(CultureInfo.InvariantCulture,
                 LiveOpsHubStrings.ExportHistoryCompareToastFormat, StampTimeText(stamp))));
             Refresh();
@@ -806,7 +904,7 @@ namespace DreamTech.LiveOps.Editor
                 if (names.Contains(change.ItemId)) continue;
                 names.Add(change.ItemId);
             }
-            return string.Join(LiveOpsHubStrings.ExportMarkMissingSeparator, names.ToArray());
+            return string.Join(LiveOpsHubStrings.ExportChangedItemSeparator, names.ToArray());
         }
 
         private PublishedCalendarStamp PreviousStamp()

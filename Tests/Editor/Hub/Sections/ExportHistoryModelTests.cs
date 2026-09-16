@@ -18,6 +18,8 @@ namespace DreamTech.LiveOps.Editor.Tests
         private const string SecondNote = "mở hunt-0916-bonus";
         private const string BrokenStampTimeText = "11/9 16:20 sáng";
 
+        private static readonly DateTime VerifiedUtc = new DateTime(2026, 9, 13, 9, 10, 0, DateTimeKind.Utc);
+
         private readonly LiveOpsHubFormat _format = new LiveOpsHubFormat(LiveOpsDesignSample.DeviceOffset);
 
         [Test]
@@ -80,6 +82,36 @@ namespace DreamTech.LiveOps.Editor.Tests
 
             Assert.IsTrue(model.IsEmpty);
             Assert.AreEqual(LiveOpsHubStrings.ExportHistoryEmpty, model.EmptyText);
+        }
+
+        /// <summary>[SD2 §3.9] Dán JSON đang chạy khớp sha một dấu → hàng ĐÓ mang chấm Ok + "· đã đối chiếu 09:10".</summary>
+        [Test]
+        public void RemoteMatchingStamp_MarksOnlyThatRowVerified()
+        {
+            LiveOpsHubRemoteSnapshot remote = new LiveOpsHubRemoteSnapshot(new LiveOpsHubSessionStore(string.Empty));
+            remote.Set(LiveOpsDesignSample.PublishedSnapshotJson, VerifiedUtc);
+            LiveEventCalendarDocument document = DocumentWithStamps(
+                Stamp("2026-09-11T16:20:00Z", remote.Sha256Hex, FirstNote),
+                Stamp("2026-09-13T09:04:00Z", SecondSha, SecondNote));
+
+            ExportHistoryModel model = ExportHistoryModel.Build(document, document.LatestStamp, remote, _format);
+
+            Assert.IsFalse(model.Rows[0].IsVerifiedAgainstRemote, "dấu mới nhất không khớp bản đang chạy");
+            Assert.AreEqual(string.Empty, model.Rows[0].VerifiedText);
+            Assert.IsTrue(model.Rows[1].IsVerifiedAgainstRemote, "dấu khớp sha bản đang chạy là dấu ĐÃ đối chiếu");
+            Assert.AreEqual(string.Format(System.Globalization.CultureInfo.InvariantCulture,
+                LiveOpsHubStrings.ExportGateRemoteVerifiedSuffixFormat, "09:10"), model.Rows[1].VerifiedText,
+                "câu nêu đúng giờ đối chiếu, dùng lại khoá chữ của cổng xuất");
+        }
+
+        [Test]
+        public void NoRemote_NoRowIsVerified()
+        {
+            LiveEventCalendarDocument document = DocumentWithStamps(Stamp("2026-09-11T16:20:00Z", FirstSha, FirstNote));
+
+            ExportHistoryModel model = ExportHistoryModel.Build(document, document.LatestStamp, null, _format);
+
+            Assert.IsFalse(model.Rows[0].IsVerifiedAgainstRemote, "chưa dán bản đang chạy thì không có gì để đối chiếu");
         }
 
         [Test]

@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using DreamTech.LiveOps.Tests;
 using DreamTech.LiveOps.Unity;
@@ -145,6 +146,10 @@ namespace DreamTech.LiveOps.Editor.Tests
             Assert.IsNotNull(_scope.View.Q(ExportSection.Format1NoticeElementName), "định dạng 1 phải có HelpBox cảnh báo");
             Assert.IsTrue(Section.Gate.Format1NoticeText.Contains("recurring"),
                 "câu cảnh báo nói rõ luật lặp sẽ không được xuất — đó là thứ người dùng mất");
+            // Số mục là của bản ĐỌC LẠI: câu xưng "parser của game", và định dạng 1 bỏ luật lặp nên game chỉ còn 4/6 mục
+            // (nháp vẫn là 6/8). Lấy số của nháp ở đây là in một con số không ai đọc được từ JSON này.
+            Assert.AreEqual(string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.ExportJsonCardMetaFormat, "4", "6"),
+                Section.JsonMetaLabel.text, "meta card JSON nêu đúng 4/6 mục parser giữ");
             LogAssert.NoUnexpectedReceived();
         }
 
@@ -187,6 +192,65 @@ namespace DreamTech.LiveOps.Editor.Tests
                 "header nói rõ đang so với bản remote đã dán");
             Assert.IsFalse(Section.DiffCard.BackToPublishedChip.ClassListContains(LiveOpsHubClassNames.ExportHidden),
                 "chip 'Về bản đã đăng' là đường quay lại");
+            LogAssert.NoUnexpectedReceived();
+        }
+
+        /// <summary>
+        /// [SD2 §3.2] (b): nút chính (Copy) đang MỞ nên câu "Còn thiếu cho Đánh dấu…" phải nằm cạnh nút mà nó nói tới, in chữ
+        /// quiet — và chỉ MỘT nút in chữ, hai nút còn lại chỉ có tooltip.
+        /// </summary>
+        [UnityTest]
+        public IEnumerator ReadyState_ReasonSitsNextToMarkButton_Quiet()
+        {
+            yield return OpenFixedDraft(null, null, null);
+
+            Assert.AreEqual(LiveOpsHubStrings.ExportGateReasonMissingForMark, Section.Gate.ReasonText);
+            Assert.IsFalse(Section.Gate.ReasonIsBlocked, "(b) là chữ quiet, không phải chữ chặn");
+            Assert.AreEqual(Section.Gate.ReasonText, Section.MarkPublishedSlot.Reason, "câu nằm cạnh nút Đánh dấu đã đăng");
+            Assert.IsFalse(Section.MarkPublishedSlot.ReasonLabel.ClassListContains(LiveOpsHubClassNames.ExportReasonTooltipOnly));
+            Assert.IsTrue(Section.MarkPublishedSlot.ReasonLabel.ClassListContains(LiveOpsHubClassNames.ExportReasonQuiet),
+                "ReasonIsBlocked = false thì chữ ở mức quiet");
+            Assert.IsTrue(Section.SaveFileSlot.ReasonLabel.ClassListContains(LiveOpsHubClassNames.ExportReasonTooltipOnly),
+                "nút không mang lý do chỉ có tooltip — in cả ba câu thì chữ chồng lên nhau");
+            LogAssert.NoUnexpectedReceived();
+        }
+
+        /// <summary>(a) Bị chặn: câu "Chặn: …" nằm cạnh nút chính Copy JSON và in chữ chặn.</summary>
+        [UnityTest]
+        public IEnumerator BlockedState_ReasonSitsNextToPrimaryCopy_Blocked()
+        {
+            yield return OpenDesignSample(null, null);
+
+            Assert.IsTrue(Section.Gate.ReasonIsBlocked);
+            Assert.AreEqual(Section.Gate.ReasonText, Section.CopySlot.Reason);
+            Assert.IsTrue(Section.CopySlot.ReasonLabel.ClassListContains(LiveOpsHubClassNames.TextBlocked));
+            Assert.IsTrue(Section.MarkPublishedSlot.ReasonLabel.ClassListContains(LiveOpsHubClassNames.ExportReasonTooltipOnly));
+            LogAssert.NoUnexpectedReceived();
+        }
+
+        /// <summary>(g) Lần đăng đầu: card diff vẽ câu empty của cổng, không liệt kê mọi mục thành "thêm mới".</summary>
+        [UnityTest]
+        public IEnumerator FirstPublish_DiffShowsEmptySentence()
+        {
+            yield return Open(LiveOpsDesignSample.DocumentWithoutPublishedStamp(), null, null, null, null);
+
+            Assert.IsTrue(Section.Gate.HasStatus(ExportGateStatusCode.FirstPublish));
+            Assert.IsTrue(Section.DiffModel.IsEmpty, "chưa có dấu đã đăng thì không có bản so để liệt kê");
+            Assert.AreEqual(Section.Gate.DiffEmptyText, Section.DiffModel.EmptyText);
+            LogAssert.NoUnexpectedReceived();
+        }
+
+        /// <summary>(mục 12 I-3) Nút "Dán JSON đang chạy…" của dòng cổng 4 khoá kèm lý do khi action chưa dựng.</summary>
+        [UnityTest]
+        public IEnumerator PasteRunningJsonRow_DisabledWithReason()
+        {
+            yield return OpenDesignSample(null, null);
+
+            Assert.IsFalse(Section.Services.Actions.CanPasteRunningJson, "bản dev chưa có action dán");
+            LiveOpsButtonSlot slot = Section.GateCard.Q<LiveOpsButtonSlot>();
+            Assert.IsNotNull(slot, "nút của dòng cổng 4 phải nằm trong slot để in được lý do");
+            Assert.IsFalse(slot.Button.enabledSelf, "action chưa dựng thì nút không được vẽ bật rồi rơi vào no-op");
+            Assert.AreEqual(Section.Services.Actions.PasteRunningJsonUnavailableReason, slot.Reason);
             LogAssert.NoUnexpectedReceived();
         }
 
