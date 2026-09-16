@@ -26,6 +26,52 @@
     flex-shrink: 0;
 }
 
+/* Toolbar rút gọn ở --narrow (8.8 [FD §4.2]) — dưới 900px thanh đủ bị cắt mất vế phải: tab zoom nhường chỗ cho menu "3 tuần ▾",
+   "Danh sách" / "Hôm nay (T)" / "Chú giải" vào menu ⋮, ô tìm còn 120px. Mọi phần tử vẫn ở trong cây: đổi theo class chứ không
+   dựng lại toolbar, nên kéo rộng cửa sổ ra là mọi trạng thái còn nguyên. */
+.liveops-hub-calendar-zoom-menu {
+    display: none;
+}
+
+.liveops-hub-calendar-overflow-menu {
+    display: none;
+}
+
+.liveops-hub--narrow .liveops-hub-calendar-zoom-tabs {
+    display: none;
+}
+
+.liveops-hub--narrow .liveops-hub-calendar-zoom-menu {
+    display: flex;
+}
+
+.liveops-hub--narrow .liveops-hub-calendar-overflow-menu {
+    display: flex;
+    flex-shrink: 0;
+}
+
+.liveops-hub--narrow .liveops-hub-calendar-list-toggle {
+    display: none;
+}
+
+.liveops-hub--narrow .liveops-hub-calendar-today-button {
+    display: none;
+}
+
+.liveops-hub--narrow .liveops-hub-calendar-search {
+    width: 120px;
+}
+
+/* Dải chú giải: ẩn khi hẹp (chỗ của nó là menu ⋮), hiện lại khi người dùng bật mục đó. Luật hai class nên nó thắng luật ẩn
+   một class ở trên mà không cần !important. */
+.liveops-hub--narrow .liveops-hub-timeline-legend {
+    display: none;
+}
+
+.liveops-hub--narrow .liveops-hub-timeline-legend.liveops-hub-calendar-legend-shown {
+    display: flex;
+}
+
 .liveops-hub-calendar-hidden-lanes-chip {
     flex-shrink: 0;
     font-size: 10px;
@@ -51,12 +97,35 @@
     overflow: hidden;
 }
 
-/* Inspector là sibling ngoài split nên bề rộng cố định giữ được; --medium (W5) đổi nó thành drawer phủ bên phải.
-   Luật bề rộng 280px khai Ở ĐÂY chứ không ở liveops-hub-components.uss: class dùng chung nhưng chưa gói nào viết luật cho nó,
-   và không có luật thì inspector co giãn theo nội dung — timeline bị bóp còn vài chục pixel [SD1 §3.9]. */
-.liveops-hub-inspector {
-    width: 280px;
-    flex-shrink: 0;
+/* Bề rộng 280px của .liveops-hub-inspector nằm ở liveops-hub-components.uss (class DÙNG CHUNG): sheet này chỉ nạp khi màn Lịch
+   dựng, nên để luật ở đây thì mọi màn khác dùng class đó sau W5 sẽ không có bề rộng nào. Ở lại đây: biến thể drawer của màn Lịch. */
+
+/* Drawer ở --medium [SD1 §3.9]: inspector PHỦ bên phải thay vì bóp trục — ở 820px trục còn 616px, đủ 21 ngày ở 1,22 px/giờ.
+   Luật hai class nên nó thắng luật một class ở trên mà không cần !important. */
+.liveops-hub--medium .liveops-hub-inspector {
+    position: absolute;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    border-left-width: 1px;
+    border-left-color: var(--unity-colors-window-border);
+    background-color: var(--unity-colors-window-background);
+}
+
+/* Nút đóng chỉ có nghĩa khi inspector là drawer; ở cửa sổ rộng nó không đóng được cái gì. */
+.liveops-hub-calendar-drawer-close {
+    display: none;
+}
+
+.liveops-hub--medium .liveops-hub-calendar-drawer-close {
+    display: flex;
+    width: 18px;
+    height: 18px;
+    margin-left: auto;
+    margin-right: var(--liveops-hub-space-4);
+    padding: 0;
+    align-items: center;
+    justify-content: center;
 }
 
 .liveops-hub-calendar-inspector-title {
@@ -175,4 +244,178 @@
     font-size: 10px;
     opacity: 0.82;
     flex-grow: 1;
+}
+
+/* ---------------------------------------------------------------- Chiều sâu W5 (G-CALENDAR-DEPTH) */
+
+/* Hai nút W5 [SD1 §3.1]: "Danh sách" đứng đầu toolbar (đổi bố cục màn), "So với đã đăng" sau phần giãn (đổi pane phải). */
+.liveops-hub-calendar-list-toggle {
+    flex-shrink: 0;
+}
+
+.liveops-hub-calendar-compare-toggle {
+    flex-shrink: 0;
+}
+
+/* Nhãn lý do in cạnh nút bị khoá — SPIKE-B SP-3: chữ thật, không phải tooltip. */
+.liveops-hub-calendar-disabled-reason {
+    font-size: 10px;
+    color: var(--liveops-hub-color-quiet);
+    margin-right: var(--liveops-hub-space-4);
+    flex-shrink: 0;
+}
+
+/* Pane Danh sách [SD1 §3.12]: bảng chiếm hết pane trái của split. */
+.liveops-hub-calendar-list-table {
+    flex-grow: 1;
+}
+
+.liveops-hub-calendar-list-cell {
+    font-size: 11px;
+    padding-left: 6px;
+    padding-right: 6px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.liveops-hub-calendar-list-empty {
+    font-size: 11px;
+    color: var(--liveops-hub-color-quiet);
+    white-space: normal;
+    padding: 8px 6px;
+}
+
+/* Pane So với đã đăng [SD1 §3.4]: cùng 280px với inspector, hai pane loại trừ nhau. */
+.liveops-hub-compare-pane {
+    width: 280px;
+    flex-shrink: 0;
+}
+
+.liveops-hub-calendar-compare-title {
+    font-size: 11px;
+    -unity-font-style: bold;
+    margin-left: var(--liveops-hub-space-4);
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.liveops-hub-calendar-compare-count {
+    font-size: 10px;
+    opacity: 0.7;
+    margin-left: auto;
+    margin-right: var(--liveops-hub-space-4);
+}
+
+.liveops-hub-calendar-compare-body {
+    flex-grow: 1;
+}
+
+.liveops-hub-calendar-compare-group-label {
+    font-size: 10px;
+    -unity-font-style: bold;
+    opacity: 0.82;
+    padding: 5px 6px 1px 6px;
+}
+
+.liveops-hub-calendar-compare-row {
+    flex-direction: row;
+    align-items: center;
+    height: 22px;
+    padding-left: 6px;
+    padding-right: 6px;
+}
+
+.liveops-hub-calendar-compare-row--selected {
+    background-color: var(--unity-colors-highlight-background);
+}
+
+.liveops-hub-calendar-compare-symbol {
+    width: 10px;
+    -unity-font-style: bold;
+    font-size: 10px;
+    margin-left: 6px;
+}
+
+.liveops-hub-calendar-compare-text {
+    flex-shrink: 1;
+    font-size: 11px;
+    margin-left: 6px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.liveops-hub-calendar-compare-note {
+    font-size: 10px;
+    opacity: 0.82;
+    white-space: normal;
+    margin: 8px 6px 0 6px;
+}
+
+/* Hover card của thanh [SD1 §3.8]: 260px, hàng key-value min-height 17, cột key 58. */
+.liveops-hub-calendar-hover-card {
+    width: 260px;
+}
+
+.liveops-hub-calendar-hover-header {
+    flex-direction: row;
+    align-items: center;
+}
+
+.liveops-hub-calendar-hover-row {
+    flex-direction: row;
+    align-items: flex-start;
+    min-height: 17px;
+}
+
+.liveops-hub-calendar-hover-key {
+    width: 58px;
+    flex-shrink: 0;
+    font-size: 10px;
+    opacity: 0.7;
+}
+
+.liveops-hub-calendar-hover-value {
+    flex-shrink: 1;
+    font-size: 10px;
+    white-space: normal;
+}
+
+/* Dòng lỗi [SD1 §3.8]: dấu 12px canh trên rồi tới câu — dấu canh giữa sẽ trôi xuống khi câu xuống hai dòng. */
+.liveops-hub-calendar-hover-problem-row {
+    flex-direction: row;
+    align-items: flex-start;
+    margin-top: 3px;
+}
+
+.liveops-hub-calendar-hover-problem-mark {
+    align-self: flex-start;
+    margin-top: 2px;
+    margin-right: 4px;
+}
+
+.liveops-hub-calendar-hover-problem {
+    flex-shrink: 1;
+    font-size: 10px;
+    white-space: normal;
+}
+
+.liveops-hub-calendar-hover-pinned-row {
+    flex-direction: row;
+    align-items: center;
+    margin-top: 4px;
+}
+
+.liveops-hub-calendar-hover-counter {
+    font-size: 10px;
+    opacity: 0.7;
+    margin-left: auto;
+}
+
+.liveops-hub-calendar-hover-footer {
+    font-size: 10px;
+    opacity: 0.7;
+    white-space: normal;
+    margin-top: 4px;
 }

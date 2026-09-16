@@ -6,6 +6,16 @@
  * thái nằm hoàn toàn ở đây: C# chỉ đổi class (LiveOpsStateMark, LiveOpsHubStyle).
  */
 
+/* ---------------------------------------------------------------- Pane inspector dùng chung — [SD1 §3.9] */
+
+/* 280px cố định: không có luật này inspector co giãn theo nội dung và timeline bị bóp còn vài chục pixel. Luật ở sheet DÙNG
+   CHUNG (không ở CalendarSection.uss) vì class này là hợp đồng của mọi màn có pane phải, không riêng màn Lịch. Biến thể drawer
+   ở --medium vẫn nằm trong sheet của từng màn — nó là bố cục riêng của màn đó. */
+.liveops-hub-inspector {
+    width: 280px;
+    flex-shrink: 0;
+}
+
 /* ---------------------------------------------------------------- Dấu trạng thái (họ tròn) — [FD §2.4] */
 
 .liveops-hub-state-mark {

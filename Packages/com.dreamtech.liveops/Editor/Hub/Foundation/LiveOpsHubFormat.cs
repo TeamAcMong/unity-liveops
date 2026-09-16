@@ -173,9 +173,18 @@ namespace DreamTech.LiveOps.Editor
             return DateTime.SpecifyKind(utc, DateTimeKind.Utc) + _deviceOffset;
         }
 
-        private static string DayMonth(DateTime value)
+        /// <summary>
+        /// "14/9" — ngày/tháng KHÔNG giờ, KHÔNG năm. Dạng tĩnh vì các control tự vẽ (dòng gợi ý của trục, nhãn thước) không cầm
+        /// <see cref="LiveOpsHubFormat"/>; ghép tay ở từng chỗ là khoá cứng thứ tự ngày/tháng ngoài tầm [FD §6.1].
+        /// </summary>
+        internal static string DayMonthText(DateTime value)
         {
             return value.Day.ToString(CultureInfo.InvariantCulture) + "/" + value.Month.ToString(CultureInfo.InvariantCulture);
+        }
+
+        private static string DayMonth(DateTime value)
+        {
+            return DayMonthText(value);
         }
 
         private static string Clock(DateTime value)

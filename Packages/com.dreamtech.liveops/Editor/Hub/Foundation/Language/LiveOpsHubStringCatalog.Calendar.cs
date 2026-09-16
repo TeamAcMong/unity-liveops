@@ -36,9 +36,9 @@ namespace DreamTech.LiveOps.Editor
             table.Add(nameof(LiveOpsHubStrings.CalendarZoomChoices),
                 vietnamese: "Ngày|3 tuần|Tháng",
                 english: "Day|3 weeks|Month");
-            table.Add(nameof(LiveOpsHubStrings.CalendarSnapMenuInterimFormat),
-                vietnamese: "Bắt lưới: {0} · bước lưới nối ở bản sau",
-                english: "Snap: {0} · the grid step is wired in a later build");
+            table.Add(nameof(LiveOpsHubStrings.CalendarSnapMenuFormat),
+                vietnamese: "Bắt lưới: {0}",
+                english: "Snap: {0}");
             table.Add(nameof(LiveOpsHubStrings.CalendarSnapAuto),
                 vietnamese: "Tự động",
                 english: "Automatic");

@@ -259,6 +259,70 @@ namespace DreamTech.LiveOps.Editor.Tests
             Assert.AreEqual(trackWidth, geometry.XOf(geometry.RangeEndUtc), 0.01f, "khoảng preset vừa đúng bề rộng track");
         }
 
+        /// <summary>
+        /// (nợ W4 D-3(c)) Bước bắt lưới của cử chỉ kéo phải là bước THẬT của khung nhìn, do menu "Bắt lưới" bơm xuống — không còn
+        /// luôn luôn tự tính theo zoom. Chọn "1 ngày" xong kéo mà vẫn nhích 15 phút là menu nói một đằng, tay làm một nẻo.
+        /// </summary>
+        [Test]
+        public void DragController_UsesViewportSnapStep()
+        {
+            LiveOpsTimelineModel model = TimelineViewInputs.Checked(LiveOpsDesignSample.Document)()
+                .WithRange(Utc(9, 8), Utc(9, 29))
+                .WithTrackWidth(DesignTrackWidth)
+                .Build();
+            LiveOpsTimelineLaneModel lane = LaneOf(model, "treasure-hunt");
+            LiveOpsTimelineBarModel bar = Single(lane, "hunt-0916-bonus");
+            LiveOpsTimelineGeometry geometry = model.Geometry;
+            float startX = geometry.XOf(bar.StartUtc);
+            // Kéo 10 giờ: bước tự động ở zoom 3 tuần là 1 giờ, nên mặc định phải rơi đúng +10 giờ.
+            float tenHours = (float)(geometry.PixelsPerHour * 10d);
+
+            LiveOpsTimelineDragController automatic = new LiveOpsTimelineDragController();
+            Assert.IsTrue(automatic.BeginBar(lane, geometry, bar, LiveOpsTimelineBarRegion.Body, startX));
+            automatic.Move(startX + tenHours, false);
+            Assert.AreEqual(bar.StartUtc.AddHours(10), automatic.PreviewStartUtc, "Tự động = bước theo zoom (1 giờ ở 3 tuần)");
+
+            LiveOpsTimelineDragController daily = new LiveOpsTimelineDragController { SnapStep = TimeSpan.FromDays(1) };
+            Assert.IsTrue(daily.BeginBar(lane, geometry, bar, LiveOpsTimelineBarRegion.Body, startX));
+            daily.Move(startX + tenHours, false);
+            Assert.AreEqual(0L, daily.PreviewStartUtc.TimeOfDay.Ticks, "bắt lưới 1 ngày: giờ xem trước rơi đúng 00:00 UTC");
+
+            LiveOpsTimelineDragController off = new LiveOpsTimelineDragController { SnapStep = TimeSpan.Zero };
+            Assert.IsTrue(off.BeginBar(lane, geometry, bar, LiveOpsTimelineBarRegion.Body, startX));
+            off.Move(startX + tenHours + 3f, false);
+            Assert.AreNotEqual(0, off.PreviewStartUtc.Ticks % TimeSpan.TicksPerHour,
+                "Tắt bắt lưới: giờ xem trước không bị kéo về mốc tròn nào");
+        }
+
+        /// <summary>
+        /// (nợ W4 D-3(c), phần còn thiếu) Bước bắt lưới phải đi tới CẢ giờ-tại-con-trỏ và bước nhích bàn phím, không chỉ cử chỉ
+        /// kéo: giờ con trỏ là thứ đi vào nhãn menu "Thêm đợt bắt đầu … UTC…" và vào lệnh Dán, còn ← → là đường sửa bằng bàn phím.
+        /// Trước bản vá, chọn "Bắt lưới: 1 ngày" xong nhấn → vẫn nhích đúng 15 phút.
+        /// </summary>
+        [Test]
+        public void EffectiveStepFor_IsSharedByCursorAndKeyboardPaths()
+        {
+            LiveOpsTimelineDragController automatic = new LiveOpsTimelineDragController();
+            LiveOpsTimelineDragController daily = new LiveOpsTimelineDragController { SnapStep = TimeSpan.FromDays(1) };
+            LiveOpsTimelineDragController off = new LiveOpsTimelineDragController { SnapStep = TimeSpan.Zero };
+            const double dayZoomPixelsPerHour = 60d;
+
+            Assert.AreEqual(LiveOpsTimelineGeometry.AutoSnapStep(dayZoomPixelsPerHour), automatic.EffectiveStepFor(dayZoomPixelsPerHour),
+                "Tự động = bước theo zoom, đúng thứ hai đường kia vẫn dùng khi người dùng chưa chọn gì");
+            Assert.AreEqual(TimeSpan.FromDays(1), daily.EffectiveStepFor(dayZoomPixelsPerHour), "chọn 1 ngày thì mọi đường bắt 1 ngày");
+            Assert.AreEqual(TimeSpan.Zero, off.EffectiveStepFor(dayZoomPixelsPerHour), "Tắt = không bắt lưới; nơi gọi tự quyết cách xử");
+        }
+
+        private static LiveOpsTimelineLaneModel LaneOf(LiveOpsTimelineModel model, string typeId)
+        {
+            for (int index = 0; index < model.Lanes.Count; index++)
+            {
+                if (model.Lanes[index].TypeId == typeId) return model.Lanes[index];
+            }
+            Assert.Fail("model thiếu làn " + typeId);
+            return null;
+        }
+
         private static LiveOpsTimelineBarModel Single(LiveOpsTimelineLaneModel lane, string eventId)
         {
             List<LiveOpsTimelineBarModel> matches = TimelineTestQueries.Where(lane.Bars, bar => bar.EventId == eventId);

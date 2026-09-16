@@ -524,6 +524,7 @@ namespace DreamTech.LiveOps.Editor.Tests
 
             private void CloseWindow()
             {
+                RunCleanup();
                 if (_languageScope != null)
                 {
                     _languageScope.Dispose();
@@ -541,6 +542,25 @@ namespace DreamTech.LiveOps.Editor.Tests
                     }
                 }
                 _window = null;
+            }
+
+            /// <summary>
+            /// Việc dọn của kịch bản vừa chụp: chạy SAU khi ảnh đã ghi, trước khi kịch bản kế mở. Ngoại lệ chỉ ghi cảnh báo — dọn
+            /// hỏng không được làm hỏng cả lượt chụp, nhưng phải để lại dấu vết để người chạy biết có rác còn lại.
+            /// </summary>
+            private void RunCleanup()
+            {
+                if (_scenarioIndex < 0 || _scenarioIndex >= _scenarios.Count) return;
+                Action cleanup = Current.Cleanup;
+                if (cleanup == null) return;
+                try
+                {
+                    cleanup();
+                }
+                catch (Exception exception)
+                {
+                    Debug.LogWarning(LogPrefix + "dọn sau kịch bản " + Current.Id + " ném " + exception.Message);
+                }
             }
 
             private void Complete()
