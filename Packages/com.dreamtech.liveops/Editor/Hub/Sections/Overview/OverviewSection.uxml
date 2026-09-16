@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Thân màn Tổng quan (Hình 4/5): hàng metric → card Việc cần làm → card Đường đi của lịch → card 7 ngày tới → note cuối.
+  Empty (a) "chưa có asset" nằm SẴN trong cây và chỉ bật/tắt bằng `hidden` từ C#: tên element sống còn phải Q được ở CẢ hai
+  ngữ cảnh (không asset và dữ liệu mẫu) vì probe 9.3 và HubWindowTests duyệt cả hai.
+  Không câu chữ nào trong file này — mọi label do C# đổ từ LiveOpsHubStrings (lint chặn chữ hiển thị trong UXML).
+-->
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:liveops="DreamTech.LiveOps.Editor">
+    <ui:VisualElement name="overview-body" class="liveops-hub-overview-page">
+        <ui:VisualElement name="overview-empty" class="liveops-hub-empty">
+            <ui:Label name="overview-empty-title" class="liveops-hub-empty-title" />
+            <ui:Label name="overview-empty-body" class="liveops-hub-empty-body" />
+            <ui:VisualElement name="overview-empty-steps" class="liveops-hub-overview-step-list" />
+            <ui:VisualElement name="overview-empty-actions" class="liveops-hub-overview-empty-actions" />
+        </ui:VisualElement>
+
+        <ui:VisualElement name="overview-default" class="liveops-hub-overview-default">
+            <ui:VisualElement name="overview-metrics" class="liveops-hub-overview-metric-row" />
+
+            <ui:VisualElement name="overview-needs-action-card" class="liveops-hub-card">
+                <ui:VisualElement class="liveops-hub-card-header">
+                    <ui:Label name="overview-needs-action-title" class="liveops-hub-overview-card-title" />
+                    <ui:Label name="overview-needs-action-subtitle" class="liveops-hub-overview-card-subtitle" />
+                </ui:VisualElement>
+                <ui:VisualElement name="overview-needs-action-body" class="liveops-hub-overview-card-body" />
+            </ui:VisualElement>
+
+            <ui:VisualElement name="overview-flow-card" class="liveops-hub-card">
+                <ui:VisualElement class="liveops-hub-card-header">
+                    <ui:Label name="overview-flow-title" class="liveops-hub-overview-card-title" />
+                    <ui:Label name="overview-flow-subtitle" class="liveops-hub-overview-card-subtitle" />
+                </ui:VisualElement>
+                <ui:VisualElement name="overview-flow" class="liveops-hub-overview-flow" />
+            </ui:VisualElement>
+
+            <ui:VisualElement name="overview-upcoming-card" class="liveops-hub-card">
+                <ui:VisualElement class="liveops-hub-card-header">
+                    <ui:Label name="overview-upcoming-title" class="liveops-hub-overview-card-title" />
+                    <ui:Label name="overview-upcoming-subtitle" class="liveops-hub-overview-card-subtitle" />
+                    <ui:VisualElement class="liveops-hub-overview-card-spacer" />
+                    <liveops:LiveOpsTabStrip name="overview-upcoming-tabs" />
+                </ui:VisualElement>
+                <ui:VisualElement name="overview-upcoming" class="liveops-hub-overview-upcoming-table" />
+            </ui:VisualElement>
+
+            <ui:Label name="overview-footer-note" class="liveops-hub-note" />
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>
