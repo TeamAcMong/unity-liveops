@@ -1,0 +1,722 @@
+/*
+ * liveops-hub-timeline.uss — timeline của màn Lịch ([SD1 §3.2–3.7], kế hoạch 7.3, G-TIMELINE-VIEW). Nạp sau controls, trước motion.
+ *
+ * Element tự vẽ (làn, thước, minimap) khai lại token trên selector của CHÍNH nó bằng var(): custom property không kế thừa từ
+ * .liveops-hub-root ([API §12.2]) — thiếu dòng khai lại thì màu vẽ Painter2D mất âm thầm (TimelineSkinTokenTests).
+ *
+ * Con trỏ chuột theo vùng (V-11) bằng cursor trên element vùng bắt: thân thanh cố định move-arrow, mép 8px resize-horizontal,
+ * thanh lặp/đã khép/dải arrow. Không đặt style.cursor trong C# (luật style inline [FD §2.14]).
+ */
+
+/* ---------------------------------------------------------------- Khung: vùng chính · minimap · chú giải · gợi ý */
+
+.liveops-hub-timeline {
+    flex-direction: column;
+    flex-grow: 1;
+    min-height: 0;
+    overflow: hidden;
+    background-color: var(--unity-colors-window-background);
+}
+
+.liveops-hub-timeline--hidden {
+    display: none;
+}
+
+.liveops-hub-timeline-main {
+    flex-grow: 1;
+    flex-shrink: 1;
+    min-height: 0;
+}
+
+.liveops-hub-timeline-body {
+    flex-grow: 1;
+    flex-shrink: 1;
+}
+
+/* Lớp phủ nằm thẳng track (bỏ 168px header), phủ cả thước lẫn thân — vạch bây giờ chạy từ tầng 2 xuống hết các làn, trên thanh. */
+.liveops-hub-timeline-overlay {
+    position: absolute;
+    left: 168px;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    overflow: hidden;
+}
+
+.liveops-hub-timeline-now-line {
+    position: absolute;
+    top: 18px;
+    bottom: 0;
+    width: 2px;
+    background-color: var(--liveops-hub-color-now);
+}
+
+.liveops-hub-timeline-cursor-line {
+    position: absolute;
+    top: 18px;
+    bottom: 0;
+    width: 1px;
+    background-color: var(--unity-colors-default-text);
+    opacity: 0.35;
+}
+
+/* ---------------------------------------------------------------- Thước: góc trục 168×46 · tầng 1 18 · tầng 2 18 · dấu 10 · giờ máy 14 */
+
+.liveops-hub-timeline-ruler {
+    flex-direction: row;
+    flex-shrink: 0;
+    height: 46px;
+    border-bottom-width: 1px;
+    border-color: var(--unity-colors-window-border);
+}
+
+.liveops-hub-timeline-ruler--day-zoom {
+    height: 60px;
+}
+
+.liveops-hub-timeline-ruler-corner {
+    width: 168px;
+    flex-shrink: 0;
+    padding: 4px 6px;
+    background-color: var(--unity-colors-toolbar-background);
+    border-right-width: 1px;
+    border-color: var(--unity-colors-window-border);
+}
+
+.liveops-hub-timeline-ruler-corner-title {
+    font-size: 11px;
+    -unity-font-style: bold;
+}
+
+.liveops-hub-timeline-ruler-corner-subtitle {
+    font-size: 10px;
+    opacity: 0.7;
+    white-space: normal;
+}
+
+.liveops-hub-timeline-ruler-track {
+    --liveops-hub-ruler-day-line: var(--liveops-hub-timeline-grid-monday);
+    --liveops-hub-ruler-week-line: var(--unity-colors-default-text);
+    flex-grow: 1;
+    overflow: hidden;
+}
+
+.liveops-hub-timeline-ruler-tier {
+    height: 18px;
+    flex-shrink: 0;
+    background-color: var(--unity-colors-toolbar-background);
+}
+
+.liveops-hub-timeline-ruler-tier--day {
+    border-top-width: 1px;
+    border-color: var(--unity-colors-window-border);
+}
+
+.liveops-hub-timeline-ruler-tier--marks {
+    height: 10px;
+    background-color: var(--unity-colors-window-background);
+}
+
+.liveops-hub-timeline-ruler-tier--device {
+    height: 14px;
+    background-color: var(--unity-colors-window-background);
+}
+
+.liveops-hub-timeline-ruler-label {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    padding: 0 0 0 2px;
+    margin: 0;
+    font-size: 10px;
+    opacity: 0.82;
+    overflow: hidden;
+    -unity-text-align: middle-left;
+    white-space: nowrap;
+}
+
+.liveops-hub-timeline-ruler-tier--month > .liveops-hub-timeline-ruler-label {
+    letter-spacing: 0.5px;
+}
+
+.liveops-hub-timeline-ruler-label--emphasized {
+    -unity-font-style: bold;
+    opacity: 1;
+}
+
+.liveops-hub-timeline-ruler-tier--device > .liveops-hub-timeline-ruler-label {
+    font-size: 9px;
+    opacity: 0.7;
+}
+
+/* Cờ bây giờ: cao 16, nền --now, chữ màu nền cửa sổ, mono 9,5px, bo 2, căn giữa trên vạch [SD1 §3.2]. */
+.liveops-hub-timeline-ruler-now-flag {
+    position: absolute;
+    top: 1px;
+    height: 16px;
+    padding: 0 3px;
+    margin: 0;
+    font-size: 9.5px;
+    border-radius: 2px;
+    translate: -50% 0;
+    color: var(--unity-colors-window-background);
+    background-color: var(--liveops-hub-color-now);
+    -unity-text-align: middle-center;
+}
+
+/* Bubble giờ tại con trỏ ở tầng 2 (V-11): cao 16 nền tooltip, căn giữa, đè số ngày quanh con trỏ. */
+.liveops-hub-timeline-ruler-bubble {
+    position: absolute;
+    top: 1px;
+    height: 16px;
+    padding: 0 4px;
+    margin: 0;
+    font-size: 10px;
+    border-width: 1px;
+    border-radius: 3px;
+    translate: -50% 0;
+    background-color: var(--unity-colors-tooltip-background);
+    border-color: var(--unity-colors-tooltip-border);
+    -unity-text-align: middle-center;
+}
+
+/* Cờ đã đăng: viền trái 2px + viền trên 3px, rộng 5 cao 8 [SD1 §3.2]. */
+.liveops-hub-timeline-ruler-published-flag {
+    position: absolute;
+    top: 1px;
+    width: 5px;
+    height: 8px;
+    border-left-width: 2px;
+    border-top-width: 3px;
+    border-color: var(--unity-colors-default-text);
+}
+
+/* ---------------------------------------------------------------- Làn: header 168 + track Painter2D */
+
+.liveops-hub-timeline-lane-row {
+    flex-direction: row;
+    flex-shrink: 0;
+    border-bottom-width: 1px;
+    border-color: var(--unity-colors-window-border);
+}
+
+.liveops-hub-timeline-lane-header {
+    width: 168px;
+    flex-shrink: 0;
+    padding: 4px 6px;
+    background-color: var(--unity-colors-toolbar-background);
+    border-right-width: 1px;
+    border-color: var(--unity-colors-window-border);
+    overflow: hidden;
+}
+
+.liveops-hub-timeline-lane-name-row {
+    flex-direction: row;
+    align-items: center;
+    min-height: 14px;
+}
+
+.liveops-hub-timeline-lane-swatch {
+    width: 9px;
+    height: 9px;
+    margin-right: 5px;
+    flex-shrink: 0;
+}
+
+.liveops-hub-timeline-lane-name {
+    flex-shrink: 1;
+    padding: 0;
+    margin: 0 5px 0 0;
+    font-size: 11px;
+    -unity-font-style: bold;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.liveops-hub-timeline-lane-name--placeholder {
+    -unity-font-style: bold-and-italic;
+    opacity: 0.7;
+}
+
+.liveops-hub-timeline-lane-loop-icon {
+    opacity: 0.7;
+    margin-right: 5px;
+}
+
+/* Chip trạng thái dòng tên: cao 14, padding 0 4, bo 3, 9px, nền default-background; dấu 7px + số. */
+.liveops-hub-timeline-lane-chip {
+    flex-direction: row;
+    align-items: center;
+    height: 14px;
+    padding: 0 4px;
+    margin-left: auto;
+    border-radius: 3px;
+    background-color: var(--unity-colors-default-background);
+}
+
+.liveops-hub-timeline-lane-chip > .unity-label {
+    font-size: 9px;
+    padding: 0 0 0 3px;
+    margin: 0;
+}
+
+.liveops-hub-timeline-lane-meta-row {
+    flex-direction: row;
+    align-items: center;
+    margin-top: 2px;
+    padding-left: 14px;
+}
+
+.liveops-hub-timeline-lane-meta {
+    flex-shrink: 1;
+    padding: 0;
+    margin: 0;
+    font-size: 10px;
+    opacity: 0.82;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.liveops-hub-timeline-lane-meta--secondary {
+    margin-top: 2px;
+    padding-left: 14px;
+}
+
+.liveops-hub-timeline-unplaceable-chip {
+    flex-direction: row;
+    align-items: center;
+    height: 14px;
+    padding: 0 4px;
+    margin-left: 6px;
+    border-radius: 3px;
+    background-color: var(--unity-colors-default-background);
+    flex-shrink: 0;
+}
+
+.liveops-hub-timeline-unplaceable-chip > .unity-label {
+    font-size: 9px;
+    padding: 0 0 0 3px;
+    margin: 0;
+}
+
+.liveops-hub-timeline-lane {
+    --liveops-hub-lane-weekend: var(--liveops-hub-timeline-weekend);
+    --liveops-hub-lane-today: var(--liveops-hub-timeline-today);
+    --liveops-hub-lane-grid: var(--liveops-hub-timeline-grid);
+    --liveops-hub-lane-grid-monday: var(--liveops-hub-timeline-grid-monday);
+    --liveops-hub-lane-overlap: var(--liveops-hub-color-blocked-fill);
+    flex-grow: 1;
+    flex-shrink: 1;
+    overflow: hidden;
+    background-color: var(--unity-colors-window-background);
+}
+
+/* Nhãn "chồng 12 giờ" 10px blocked-text phía trên vùng chồng (top −13 so với padTop 16), căn giữa. */
+.liveops-hub-timeline-overlap-label {
+    position: absolute;
+    top: 1px;
+    padding: 0;
+    margin: 0;
+    font-size: 10px;
+    translate: -50% 0;
+    white-space: nowrap;
+}
+
+/* Tag "bị bỏ": cao 16, padding 0 4, 10px, chữ blocked, nền cửa sổ, viền, bo 3 — đặt tại x2 + 4, y + 2. */
+.liveops-hub-timeline-dropped-tag {
+    position: absolute;
+    flex-direction: row;
+    align-items: center;
+    height: 16px;
+    padding: 0 4px;
+    border-width: 1px;
+    border-radius: 3px;
+    border-color: var(--unity-colors-window-border);
+    background-color: var(--unity-colors-window-background);
+}
+
+.liveops-hub-timeline-dropped-tag > .unity-label {
+    font-size: 10px;
+    padding: 0 0 0 3px;
+    margin: 0;
+}
+
+.liveops-hub-timeline-dropped-tag--will-drop {
+    border-color: var(--liveops-hub-color-blocked-fill);
+}
+
+/* Chip "Đợt tới": Tag ở mép phải track (right 8, top padTop + 5), nền cửa sổ, kèm chevron phải. */
+.liveops-hub-timeline-next-chip {
+    position: absolute;
+    right: 8px;
+    background-color: var(--unity-colors-window-background);
+}
+
+.liveops-hub-timeline-next-chip > .unity-label {
+    font-size: 10px;
+    padding: 0 6px 0 0;
+    margin: 0;
+}
+
+/* ---------------------------------------------------------------- Thanh [SD1 §3.5]: cao 20, bo 2, 10px, padding 0 4 2, dải đáy 3px */
+
+.liveops-hub-timeline-bar {
+    position: absolute;
+    height: 20px;
+    flex-direction: row;
+    align-items: center;
+    padding: 0 4px 2px 4px;
+    border-width: 1px;
+    border-radius: 2px;
+    border-color: var(--unity-colors-button-border);
+    border-bottom-color: var(--unity-colors-button-border_accent);
+    background-color: var(--unity-colors-button-background);
+    cursor: move-arrow;
+}
+
+.liveops-hub-timeline-bar--recurring {
+    border-color: var(--unity-colors-window-border);
+    background-color: var(--unity-colors-toolbar_button-background);
+    cursor: arrow;
+}
+
+.liveops-hub-timeline-bar--merged {
+    cursor: arrow;
+}
+
+.liveops-hub-timeline-bar--ended {
+    background-color: var(--unity-colors-window-background);
+    cursor: arrow;
+}
+
+.liveops-hub-timeline-bar--ended > .liveops-hub-timeline-bar__stripe {
+    opacity: 0.5;
+}
+
+.liveops-hub-timeline-bar--ended > .liveops-hub-timeline-bar__label {
+    opacity: 0.7;
+}
+
+.liveops-hub-timeline-bar--hover {
+    background-color: var(--unity-colors-button-background-hover);
+}
+
+.liveops-hub-timeline-bar--selected {
+    background-color: var(--unity-colors-highlight-background-inactive);
+    border-color: var(--liveops-hub-color-quiet);
+}
+
+.liveops-hub-timeline--has-focus .liveops-hub-timeline-bar--selected {
+    background-color: var(--unity-colors-highlight-background);
+    border-color: var(--unity-colors-highlight-background);
+}
+
+.liveops-hub-timeline--has-focus .liveops-hub-timeline-bar--selected > .liveops-hub-timeline-bar__label {
+    color: var(--liveops-hub-color-on-selection);
+}
+
+.liveops-hub-timeline--has-focus .liveops-hub-timeline-bar--selected > .liveops-hub-timeline-bar__strike,
+.liveops-hub-timeline--has-focus .liveops-hub-timeline-bar--selected > .liveops-hub-timeline-bar__changed {
+    background-color: var(--liveops-hub-color-on-selection);
+}
+
+.liveops-hub-timeline-bar--focused {
+    border-color: var(--liveops-hub-color-focus);
+}
+
+.liveops-hub-timeline-bar--dragging {
+    border-color: var(--unity-colors-default-text);
+}
+
+.liveops-hub-timeline-bar--will-drop {
+    border-color: var(--liveops-hub-color-blocked-fill);
+}
+
+.liveops-hub-timeline-bar__stripe {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 3px;
+}
+
+.liveops-hub-timeline-bar__label {
+    flex-grow: 1;
+    flex-shrink: 1;
+    padding: 0;
+    margin: 0;
+    font-size: 10px;
+    overflow: hidden;
+    white-space: nowrap;
+    -unity-text-align: middle-left;
+}
+
+.liveops-hub-timeline-bar--changed > .liveops-hub-timeline-bar__label {
+    margin-right: 8px;
+}
+
+.liveops-hub-timeline-bar--clipped-start {
+    padding-left: 8px;
+}
+
+.liveops-hub-timeline-bar--clipped-end {
+    padding-right: 8px;
+}
+
+.liveops-hub-timeline-bar__loop-icon {
+    margin-right: 3px;
+    opacity: 0.82;
+    flex-shrink: 0;
+}
+
+.liveops-hub-timeline-bar__lock-icon {
+    margin-right: 3px;
+    flex-shrink: 0;
+}
+
+/* Vuông "khác bản đã đăng" 5×5 góc phải trên. */
+.liveops-hub-timeline-bar__changed {
+    position: absolute;
+    top: 1px;
+    right: 1px;
+    width: 5px;
+    height: 5px;
+    background-color: var(--unity-colors-default-text);
+}
+
+/* Gạch bị bỏ 1px ở top 9, cách mép 3 — màu blocked-text (đang chọn có focus thì trắng). */
+.liveops-hub-timeline-bar__strike {
+    position: absolute;
+    top: 9px;
+    left: 3px;
+    right: 3px;
+    height: 1px;
+    background-color: var(--liveops-hub-color-blocked-text);
+}
+
+/* Dấu cắt mép ◂ ▸ 5×10: cha overflow hidden chứa vuông 7×7 xoay 45°, màu chữ opacity 0,82; top 5 cách mép 1. */
+.liveops-hub-timeline-bar__clip-start,
+.liveops-hub-timeline-bar__clip-end {
+    position: absolute;
+    top: 4px;
+    width: 5px;
+    height: 10px;
+    overflow: hidden;
+}
+
+.liveops-hub-timeline-bar__clip-start {
+    left: 1px;
+}
+
+.liveops-hub-timeline-bar__clip-end {
+    right: 1px;
+}
+
+.liveops-hub-timeline-bar__clip-shape {
+    position: absolute;
+    top: 1.5px;
+    width: 7px;
+    height: 7px;
+    rotate: 45deg;
+    opacity: 0.82;
+    background-color: var(--unity-colors-default-text);
+}
+
+.liveops-hub-timeline-bar__clip-start > .liveops-hub-timeline-bar__clip-shape {
+    left: 1.5px;
+}
+
+.liveops-hub-timeline-bar__clip-end > .liveops-hub-timeline-bar__clip-shape {
+    left: -3.5px;
+}
+
+/* Vùng bắt mép 8px (4 trong, 4 ngoài) — con trỏ resize-horizontal (V-11); tay nắm 2×12 ở top 4 chỉ hiện khi hover, opacity 0,7. */
+.liveops-hub-timeline-bar__edge {
+    position: absolute;
+    top: -1px;
+    bottom: -1px;
+    width: 8px;
+    cursor: resize-horizontal;
+}
+
+.liveops-hub-timeline-bar__edge--start {
+    left: -5px;
+}
+
+.liveops-hub-timeline-bar__edge--end {
+    right: -5px;
+}
+
+.liveops-hub-timeline-bar__handle {
+    position: absolute;
+    top: 4px;
+    left: 3px;
+    width: 2px;
+    height: 12px;
+    opacity: 0.7;
+    background-color: var(--unity-colors-default-text);
+    display: none;
+}
+
+.liveops-hub-timeline-bar--hover > .liveops-hub-timeline-bar__edge > .liveops-hub-timeline-bar__handle {
+    display: flex;
+}
+
+/* Bóng ở chỗ cũ khi kéo: nền trong suốt, viền 1px màu chữ opacity 0,5. */
+.liveops-hub-timeline-bar-ghost {
+    position: absolute;
+    height: 20px;
+    border-width: 1px;
+    border-radius: 2px;
+    border-color: var(--unity-colors-default-text);
+    opacity: 0.5;
+}
+
+/* Readout bám mép đang kéo: cao 18, padding 0 6, nền tooltip, 10px. */
+.liveops-hub-timeline-readout {
+    position: absolute;
+    flex-direction: row;
+    align-items: center;
+    height: 18px;
+    padding: 0 6px;
+    border-width: 1px;
+    border-radius: 3px;
+    background-color: var(--unity-colors-tooltip-background);
+    border-color: var(--unity-colors-tooltip-border);
+}
+
+.liveops-hub-timeline-readout-text,
+.liveops-hub-timeline-readout-overlap {
+    padding: 0;
+    margin: 0;
+    font-size: 10px;
+    white-space: nowrap;
+}
+
+/* ---------------------------------------------------------------- Minimap 20px · chú giải · dòng gợi ý 18px */
+
+.liveops-hub-timeline-minimap {
+    --liveops-hub-minimap-event-color-0: var(--liveops-hub-event-color-0);
+    --liveops-hub-minimap-event-color-1: var(--liveops-hub-event-color-1);
+    --liveops-hub-minimap-event-color-2: var(--liveops-hub-event-color-2);
+    --liveops-hub-minimap-event-color-3: var(--liveops-hub-event-color-3);
+    --liveops-hub-minimap-event-color-4: var(--liveops-hub-event-color-4);
+    --liveops-hub-minimap-event-color-5: var(--liveops-hub-event-color-5);
+    --liveops-hub-minimap-event-color-6: var(--liveops-hub-event-color-6);
+    --liveops-hub-minimap-event-color-7: var(--liveops-hub-event-color-7);
+    --liveops-hub-minimap-blocked: var(--liveops-hub-color-blocked-fill);
+    --liveops-hub-minimap-warning: var(--liveops-hub-color-warning-fill);
+    --liveops-hub-minimap-now: var(--liveops-hub-color-now);
+    --liveops-hub-minimap-text: var(--unity-colors-default-text);
+    height: 20px;
+    flex-shrink: 0;
+    margin-left: 168px;
+    overflow: hidden;
+    border-top-width: 1px;
+    border-color: var(--unity-colors-window-border);
+    background-color: var(--unity-colors-default-background);
+}
+
+.liveops-hub-timeline-legend {
+    flex-direction: row;
+    flex-wrap: wrap;
+    flex-shrink: 0;
+    min-height: 20px;
+    padding: 3px 8px 0 8px;
+    border-top-width: 1px;
+    border-color: var(--unity-colors-window-border);
+}
+
+.liveops-hub-timeline-legend-item {
+    flex-direction: row;
+    align-items: center;
+    margin: 0 14px 3px 0;
+}
+
+.liveops-hub-timeline-legend-sample {
+    width: 18px;
+    height: 10px;
+    margin-right: 4px;
+    border-width: 1px;
+    border-radius: 2px;
+    border-color: var(--unity-colors-button-border);
+    background-color: var(--unity-colors-button-background);
+}
+
+.liveops-hub-timeline-legend-sample--recurring {
+    border-color: var(--unity-colors-window-border);
+    background-color: var(--unity-colors-toolbar_button-background);
+}
+
+.liveops-hub-timeline-legend-sample--ended {
+    opacity: 0.5;
+    background-color: var(--unity-colors-window-background);
+}
+
+.liveops-hub-timeline-legend-sample--overlap {
+    border-color: var(--liveops-hub-color-blocked-fill);
+    background-color: var(--liveops-hub-color-blocked-tint);
+}
+
+.liveops-hub-timeline-legend-sample > .liveops-hub-timeline-bar__strike {
+    top: 3px;
+}
+
+.liveops-hub-timeline-legend-sample > .liveops-hub-timeline-bar__changed {
+    width: 3px;
+    height: 3px;
+}
+
+.liveops-hub-timeline-legend-sample > .liveops-hub-timeline-bar__clip-start {
+    top: -1px;
+    left: 0;
+    height: 8px;
+}
+
+.liveops-hub-timeline-legend-sample-mark {
+    margin-right: 4px;
+}
+
+.liveops-hub-timeline-legend-item > .liveops-hub-icon {
+    margin-right: 3px;
+    opacity: 0.82;
+}
+
+.liveops-hub-timeline-legend-text {
+    padding: 0;
+    margin: 0;
+    font-size: 10px;
+}
+
+.liveops-hub-timeline-hint {
+    flex-direction: row;
+    align-items: center;
+    flex-shrink: 0;
+    height: 18px;
+    padding: 0 8px;
+    border-top-width: 1px;
+    border-color: var(--unity-colors-window-border);
+    background-color: var(--unity-colors-toolbar-background);
+    overflow: hidden;
+}
+
+.liveops-hub-timeline-hint-subject {
+    padding: 0;
+    margin: 0 4px 0 0;
+    font-size: 10px;
+    -unity-font-style: bold;
+    flex-shrink: 0;
+}
+
+.liveops-hub-timeline-hint-text {
+    flex-shrink: 1;
+    padding: 0;
+    margin: 0;
+    font-size: 10px;
+    opacity: 0.82;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
