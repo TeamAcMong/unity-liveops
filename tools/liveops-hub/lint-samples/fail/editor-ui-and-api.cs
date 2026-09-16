@@ -1,8 +1,8 @@
 // lint-sample-path: Packages/com.dreamtech.liveops/Editor/Hub/Shell/LiveOpsShellSample.cs
-// Mẫu vi phạm UI + API cấm: chữ tiếng Việt ngoài LiveOpsHubStrings, style inline không phép, DisplayDialog,
+// Mẫu vi phạm UI + API cấm: chữ hiển thị ngoài thư mục catalog, style inline không phép, DisplayDialog,
 // icon winbtn_win_close, GetInstanceID, System.Linq, id luật dạng chuỗi.
 // lint-expect: package-forbidden
-// lint-expect: ui-vietnamese-string
+// lint-expect: display-text-only-in-catalog
 // lint-expect: ui-inline-style
 // lint-expect: ui-inline-style
 // lint-expect: display-dialog

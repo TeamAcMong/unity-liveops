@@ -30,6 +30,11 @@ RUNTIME_UNITY_PREFIX = PACKAGE_PREFIX + "Runtime/Unity/"
 EDITOR_PREFIX = PACKAGE_PREFIX + "Editor/"
 TESTS_PREFIX = PACKAGE_PREFIX + "Tests/"
 HUB_SECTIONS_PREFIX = PACKAGE_PREFIX + "Editor/Hub/Sections/"
+# Chữ hai ngôn ngữ của hub sống trong đúng thư mục này (G-I18N §1.2): file catalog giữ câu, các file hạ tầng cạnh nó giữ câu
+# lỗi lập trình của chính bảng chữ (không đi qua catalog được vì ném ra trong lúc bảng đang dựng).
+HUB_LANGUAGE_PREFIX = PACKAGE_PREFIX + "Editor/Hub/Foundation/Language/"
+HUB_STRINGS_PREFIX = PACKAGE_PREFIX + "Editor/Hub/Foundation/LiveOpsHubStrings"
+HUB_CATALOG_PREFIX = HUB_LANGUAGE_PREFIX + "LiveOpsHubStringCatalog"
 
 ERROR = "error"
 WARNING = "warning"
@@ -66,13 +71,19 @@ RULE_ID_LITERAL_ALLOWED_FILES = [
     PACKAGE_PREFIX + "Runtime/Core/Calendar/Validation/LiveEventCalendarRuleIds.cs",
     PACKAGE_PREFIX + "Runtime/Core/Calendar/Validation/LiveEventCalendarDetailCodes.cs",
     PACKAGE_PREFIX + "Editor/Hub/Services/LiveOpsFindingText.cs",
-    PACKAGE_PREFIX + "Editor/Hub/Foundation/LiveOpsHubStrings.Findings.cs",
+    PACKAGE_PREFIX + "Editor/Hub/Foundation/Language/LiveOpsHubStringCatalog.Findings.cs",
 ]
 # 6.1 chặn chuỗi CHỨA id ("Luật overlap-same-type không chạy"), không chỉ chuỗi bằng đúng id. Biên là ký tự không thuộc id
 # (chữ thường, số, gạch nối) để tên class USS kiểu "liveops-overlap-same-type-row" hay "overlap-same-types" không báo nhầm.
 RULE_ID_IN_LITERAL = re.compile(r"(?<![a-z0-9-])(%s)(?![a-z0-9-])" % "|".join(re.escape(rule_id) for rule_id in RULE_IDS))
 
 VIETNAMESE_CHARACTER = re.compile(u"[À-ỹĐđ]")
+# Khuôn DUY NHẤT của một thành viên LiveOpsHubStrings (G-I18N §1.1): tên hai vế phải khớp nhau, nên khoá catalog không bao giờ
+# lệch tên thành viên. Mọi khuôn khác (const, chuỗi viết thẳng, khoá khác tên) là ĐỎ.
+STRINGS_CATALOG_PROPERTY = re.compile(
+    r"^\s*internal static string ([A-Za-z0-9_]+)\s*=>\s*LiveOpsHubStringCatalog\.Text\(nameof\(([A-Za-z0-9_]+)\)\)\s*;\s*$")
+STRINGS_MEMBER_DECLARATION = re.compile(r"\b(?:const|static|readonly)\b[^=;]*\bstring\b")
+CATALOG_ADD_CALL = re.compile(r"\btable\.Add\s*\(")
 STYLE_INLINE_ALLOWED = re.compile(r"//\s*style-inline-allowed:\s*(\d+)")
 INTERIM_MARK = re.compile(r"INTERIM\(([^)]*)\)")
 
@@ -80,6 +91,24 @@ INTERIM_MARK = re.compile(r"INTERIM\(([^)]*)\)")
 # (vd UNITY_6000_0_OR_NEWER đúng mà UNITY_2023_2_OR_NEWER sai).
 VERSION_CANDIDATES = [(2022, 3), (2023, 1), (2023, 2), (6000, 0), (6000, 6)]
 VERSION_SYMBOL = re.compile(r"^UNITY_(\d+)_(\d+)_OR_NEWER$")
+
+
+def iterate_catalog_add_calls(code_lines):
+    """Trả (dòng bắt đầu, cả câu lệnh) cho từng `table.Add(` — câu lệnh trải tối đa vài dòng nên phải gom tới dấu `;`."""
+    calls = []
+    index = 0
+    while index < len(code_lines):
+        if CATALOG_ADD_CALL.search(code_lines[index]):
+            start = index
+            parts = []
+            while index < len(code_lines):
+                parts.append(code_lines[index])
+                if ";" in code_lines[index]:
+                    break
+                index += 1
+            calls.append((start + 1, " ".join(parts)))
+        index += 1
+    return calls
 
 
 class Finding(object):
@@ -437,7 +466,9 @@ class CSharpLinter(object):
         in_editor = relative_path.startswith(EDITOR_PREFIX)
         in_tests = relative_path.startswith(TESTS_PREFIX)
         in_hub_sections = relative_path.startswith(HUB_SECTIONS_PREFIX)
-        is_strings_file = os.path.basename(relative_path).startswith("LiveOpsHubStrings")
+        is_strings_file = relative_path.startswith(HUB_STRINGS_PREFIX) or os.path.basename(relative_path).startswith("LiveOpsHubStrings")
+        in_language_folder = relative_path.startswith(HUB_LANGUAGE_PREFIX)
+        is_catalog_file = relative_path.startswith(HUB_CATALOG_PREFIX)
 
         def report(line_number, rule, severity, message, symbol="*"):
             if self.allow_list.allows(rule, relative_path, symbol):
@@ -564,11 +595,28 @@ class CSharpLinter(object):
                         report(line_number, "test-forbidden", ERROR, "`%s` trong test: %s" % (token, why), token)
 
             # UI
-            if in_editor and not is_strings_file:
+            if in_editor and not in_language_folder:
                 for literal in string_literals:
                     if VIETNAMESE_CHARACTER.search(literal):
-                        report(line_number, "ui-vietnamese-string", ERROR, "chuỗi tiếng Việt ngoài LiveOpsHubStrings.*.cs — chữ UI phải ở một chỗ")
+                        report(line_number, "display-text-only-in-catalog", ERROR,
+                               "chuỗi hiển thị ngoài Editor/Hub/Foundation/Language/ — câu người dùng đọc chỉ nằm trong catalog hai ngôn ngữ (G-I18N §4)")
                         break
+            if is_strings_file and not in_language_folder:
+                if re.search(r"\bconst\b", code):
+                    report(line_number, "strings-must-be-catalog-property", ERROR,
+                           "LiveOpsHubStrings không được còn `const` — mỗi thành viên là property đọc catalog (G-I18N §1.1)")
+                elif string_literals:
+                    report(line_number, "strings-must-be-catalog-property", ERROR,
+                           "chuỗi viết thẳng trong LiveOpsHubStrings — câu nằm ở Language/LiveOpsHubStringCatalog.<Vùng>.cs")
+                elif STRINGS_MEMBER_DECLARATION.search(code):
+                    shape = STRINGS_CATALOG_PROPERTY.match(code)
+                    if shape is None:
+                        report(line_number, "strings-must-be-catalog-property", ERROR,
+                               "thành viên không đúng khuôn `internal static string <Tên> => LiveOpsHubStringCatalog.Text(nameof(<Tên>));`")
+                    elif shape.group(1) != shape.group(2):
+                        report(line_number, "strings-must-be-catalog-property", ERROR,
+                               "khoá `%s` không trùng tên thành viên `%s` — luôn dùng nameof của chính nó" % (shape.group(2), shape.group(1)),
+                               shape.group(1))
             if in_editor and STYLE_ASSIGNMENT.search(code):
                 allowed = STYLE_INLINE_ALLOWED.search(raw_line)
                 if not allowed or not (1 <= int(allowed.group(1)) <= 10):
@@ -605,6 +653,14 @@ class CSharpLinter(object):
                     var_match = VAR_DECLARATION.search(part)
                     if var_match and not re.search(r"\bnew\b", part):
                         report(statement_start_line, "var-without-new", ERROR, "`var %s` không đi với `new` — viết kiểu tường minh khi vế phải không lộ kiểu" % var_match.group(1), var_match.group(1))
+
+        if is_catalog_file:
+            for line_number, call in iterate_catalog_add_calls(code_lines):
+                has_vietnamese = "vietnamese:" in call
+                has_english = "english:" in call
+                if not has_vietnamese or not has_english:
+                    report(line_number, "catalog-entry-needs-both-languages", ERROR,
+                           "table.Add phải gọi theo tên cả `vietnamese:` lẫn `english:` — muốn một giá trị chung thì dùng AddShared")
 
         if in_tests and not relative_path.endswith("LiveOpsHubTestCategories.cs"):
             code_text = "\n".join(code_lines)
