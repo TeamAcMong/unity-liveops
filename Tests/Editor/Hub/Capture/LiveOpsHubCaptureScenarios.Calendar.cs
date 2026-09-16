@@ -555,6 +555,13 @@ namespace DreamTech.LiveOps.Editor.Tests
                 if (_hasRunAction) return;
                 // Một lần duy nhất: pose chạy lại ở mỗi lượt layout, nhưng xoá/hoàn tác hai lần là hai bước Undo và sai cả ảnh lẫn tài liệu.
                 _hasRunAction = true;
+                // Và chạy ở LƯỢT SAU: lệnh sửa dựng lại toàn bộ cây làn, mà lúc này panel đang duyệt danh sách element chờ layout để
+                // phát GeometryChangedEvent — đổi cây giữa chừng ném "Collection was modified" (thấy ở khung 14 khi ⌘Z).
+                _timeline.schedule.Execute(RunAction);
+            }
+
+            private void RunAction()
+            {
                 _action(_presenter, _toast);
                 Rebuild();
             }
