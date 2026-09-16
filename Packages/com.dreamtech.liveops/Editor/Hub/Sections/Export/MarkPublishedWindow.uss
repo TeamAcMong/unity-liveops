@@ -1,0 +1,90 @@
+/*
+ * MarkPublishedWindow.uss — hộp Đánh dấu đã đăng (410×330), [SD2 §3.11], kế hoạch 7.6.
+ * Nạp sau theme + components vào gốc liveops-hub-root của CHÍNH cửa sổ hộp (panel riêng — sheet của cửa sổ hub không tới đây).
+ *
+ * Luật: thân padding 10px 12px; heading 12px đậm; đoạn thân 11px xuống dòng; dòng sha là hàng ngang (dấu + câu); nút
+ * "Copy JSON <sha mới>" thụt 14px cho thấy nó thuộc dòng sha ở trên; ô ghi chú cao 40px; hàng nút dính đáy nhờ
+ * margin-top auto để chỗ dư nằm TRÊN hàng nút. Không màu trần — trạng thái dùng class của components.
+ */
+
+.liveops-hub-root {
+    flex-grow: 1;
+    background-color: var(--unity-colors-window-background);
+}
+
+.liveops-hub-export-mark-window {
+    flex-grow: 1;
+    flex-direction: column;
+    padding: 10px 12px;
+}
+
+.liveops-hub-export-mark-heading {
+    font-size: 12px;
+    -unity-font-style: bold;
+    white-space: normal;
+    padding: 0;
+    margin: 0;
+}
+
+.liveops-hub-export-mark-body {
+    font-size: 11px;
+    white-space: normal;
+    padding: 0;
+    margin: 6px 0 0 0;
+}
+
+.liveops-hub-export-mark-sha-row {
+    flex-direction: row;
+    align-items: center;
+    margin: 8px 0 0 0;
+}
+
+.liveops-hub-export-mark-sha-text {
+    font-size: 11px;
+    white-space: normal;
+    flex-shrink: 1;
+    padding: 0;
+    margin: 0 0 0 6px;
+}
+
+.liveops-hub-export-mark-copy-row {
+    flex-direction: row;
+    align-items: center;
+    margin: 4px 0 0 14px;
+}
+
+.liveops-hub-export-mark-note-label {
+    font-size: 11px;
+    padding: 0;
+    margin: 8px 0 0 0;
+}
+
+.liveops-hub-export-mark-note-field {
+    height: 40px;
+    margin: 4px 0 0 0;
+}
+
+.liveops-hub-export-mark-button-row {
+    flex-direction: row;
+    align-items: center;
+    flex-shrink: 0;
+    margin-top: auto;
+    padding-top: 12px;
+}
+
+.liveops-hub-export-mark-missing {
+    flex-grow: 1;
+    flex-shrink: 1;
+    min-width: 0;
+    font-size: 10px;
+    opacity: 0.82;
+    padding: 0;
+    margin: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+.liveops-hub-export-hidden {
+    display: none;
+}

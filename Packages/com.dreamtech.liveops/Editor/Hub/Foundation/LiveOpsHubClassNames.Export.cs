@@ -14,6 +14,13 @@ namespace DreamTech.LiveOps.Editor
         internal const string ExportGateColumn = "liveops-hub-export-gate-column";
         internal const string ExportMetricRow = "liveops-hub-export-metric-row";
         internal const string ExportJsonColumn = "liveops-hub-export-json-column";
+
+        /// <summary>Khối thân mặc định (hai hàng card) — ẩn nguyên khối khi chưa có asset, để empty thay CẢ thân.</summary>
+        internal const string ExportDefaultBody = "liveops-hub-export-default";
+
+        /// <summary>Ô chứa khối metric (rộng 560px) và ô chứa JSON viewer — giữ bề rộng bố cục, tách khỏi control bên trong.</summary>
+        internal const string ExportMetricHost = "liveops-hub-export-metric-host";
+        internal const string ExportJsonHost = "liveops-hub-export-json-host";
         internal const string ExportSideColumn = "liveops-hub-export-side-column";
 
         /// <summary>Khối bị ẩn hoàn toàn (empty "chưa có asset" hoặc thân mặc định) — display:none, không chỉ trong suốt.</summary>
@@ -22,6 +29,12 @@ namespace DreamTech.LiveOps.Editor
         /// <summary>Metric cuối hàng: bỏ margin-right (USS không có <c>:last-child</c>, class bật từ C#).</summary>
         internal const string ExportMetricLast = "liveops-hub-export-metric--last";
         internal const string ExportMetricValueRow = "liveops-hub-export-metric-value-row";
+        internal const string ExportMetricFootRow = "liveops-hub-export-metric-foot-row";
+
+        // Tiêu đề và meta của ba card — khai riêng cho vùng Export để không mượn class của màn khác (V-5).
+        internal const string ExportCardTitle = "liveops-hub-export-card-title";
+        internal const string ExportCardMeta = "liveops-hub-export-card-meta";
+        internal const string ExportCardSpacer = "liveops-hub-export-card-spacer";
 
         // Card cổng xuất — dòng cao 22px, dấu 8px + chữ + meta/nút/chevron [SD2 §3.4]
         internal const string ExportGateRow = "liveops-hub-export-gate-row";
@@ -62,7 +75,6 @@ namespace DreamTech.LiveOps.Editor
         internal const string ExportHistoryTable = "liveops-hub-export-history-table";
         internal const string ExportHistoryHeadRow = "liveops-hub-export-history-head-row";
         internal const string ExportHistoryRow = "liveops-hub-export-history-row";
-        internal const string ExportHistoryRowActive = "liveops-hub-export-history-row--active";
         internal const string ExportHistoryCell = "liveops-hub-export-history-cell";
         internal const string ExportHistoryCellTime = "liveops-hub-export-history-cell--time";
         internal const string ExportHistoryCellPublisher = "liveops-hub-export-history-cell--publisher";
