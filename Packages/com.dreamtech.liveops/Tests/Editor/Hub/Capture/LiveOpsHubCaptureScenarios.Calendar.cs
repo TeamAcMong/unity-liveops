@@ -167,7 +167,7 @@ namespace DreamTech.LiveOps.Editor.Tests
         private const int CalendarFrameCanvasWidth = 803;
         private const int CalendarFrameCanvasHeight = 420;
         private const int CalendarFrameLaneWidth = 635;
-        private const string CalendarFrameCanvasElementName = "capture-calendar-frame";
+        internal const string CalendarFrameCanvasElementName = "capture-calendar-frame";
         private const string CalendarFrameTimelineElementName = "capture-calendar-frame-timeline";
         private const string CalendarFrameSectionId = "capture-calendar-frame";
 
@@ -257,13 +257,13 @@ namespace DreamTech.LiveOps.Editor.Tests
                     new LiveOpsHubCaptureExpectedFrame(LiveOpsHubClassNames.TimelineLane, CalendarFrameLaneWidth, 0f));
         }
 
-        internal static LiveEventCalendarDocument CalendarFrameResizeEndDocument()
+        private static LiveEventCalendarDocument CalendarFrameResizeEndDocument()
         {
             return TimelineViewInputs.WithFixedTimes(LiveOpsDesignSample.Document, LiveOpsDesignSample.LavaQuestMidEntryKey,
                 "2026-09-17T00:00:00Z", "2026-09-19T00:00:00Z");
         }
 
-        internal static LiveEventCalendarDocument CalendarFrameOverlapDocument()
+        private static LiveEventCalendarDocument CalendarFrameOverlapDocument()
         {
             return TimelineViewInputs.WithFixedTimes(LiveOpsDesignSample.Document, LiveOpsDesignSample.HuntBonusEntryKey,
                 "2026-09-17T00:00:00Z", "2026-09-18T12:00:00Z");
@@ -284,7 +284,7 @@ namespace DreamTech.LiveOps.Editor.Tests
         }
 
         /// <summary>Khung ảnh cố định, KHÔNG padding: track phải còn đúng 635px sau khi trừ header làn 168px.</summary>
-        internal static VisualElement CreateCalendarFrameCanvas()
+        private static VisualElement CreateCalendarFrameCanvas()
         {
             VisualElement canvas = new VisualElement { name = CalendarFrameCanvasElementName };
             canvas.style.width = CalendarFrameCanvasWidth;
@@ -294,7 +294,7 @@ namespace DreamTech.LiveOps.Editor.Tests
             return canvas;
         }
 
-        internal static LiveOpsTimelineElement CreateCalendarFrameTimeline(VisualElement canvas)
+        private static LiveOpsTimelineElement CreateCalendarFrameTimeline(VisualElement canvas)
         {
             LiveOpsTimelineElement timeline = new LiveOpsTimelineElement { name = CalendarFrameTimelineElementName };
             timeline.style.flexGrow = 1;
@@ -520,17 +520,15 @@ namespace DreamTech.LiveOps.Editor.Tests
                 return LiveOpsHubWindow.OpenWithServices(_services, new List<IHubSection> { section }, section.Id);
             }
 
-            internal CalendarTimelinePresenter Presenter => _presenter;
-            internal LiveOpsToast Toast => _toast;
-            internal LiveOpsTimelineElement Timeline => _timeline;
-
             private VisualElement BuildView()
             {
                 VisualElement canvas = CreateCalendarFrameCanvas();
                 _timeline = CreateCalendarFrameTimeline(canvas);
                 _timeline.IntentRaised += _presenter.HandleIntent;
                 _presenter.ToastRequested += _toast.Show;
-                _presenter.DocumentEdited += Rebuild;
+                // Nghe PHIÊN chứ không chỉ presenter: Undo của khung 14 đổi tài liệu ngoài đường của presenter, và khung 14 phải
+                // vẽ lại trong đúng một frame sau ⌘Z ([SD1 §3.8] khung 14 — không spinner).
+                _services.Session.DocumentChanged += Rebuild;
                 _timeline.RangeChanged += (startUtc, endUtc) => Pose();
                 _timeline.RegisterCallback<GeometryChangedEvent>(geometryEvent => Pose());
 
@@ -541,7 +539,11 @@ namespace DreamTech.LiveOps.Editor.Tests
                 canvas.Add(_toast);
 
                 // Lệnh chụp đóng cửa sổ sau mỗi kịch bản: gỡ delegate Undo của tracker, nếu không nó sống tới domain reload kế tiếp.
-                canvas.RegisterCallback<DetachFromPanelEvent>(detachEvent => _undoTracker.Dispose());
+                canvas.RegisterCallback<DetachFromPanelEvent>(detachEvent =>
+                {
+                    _services.Session.DocumentChanged -= Rebuild;
+                    _undoTracker.Dispose();
+                });
                 return canvas;
             }
 
