@@ -164,6 +164,47 @@ namespace DreamTech.LiveOps.Editor.Tests
             LogAssert.NoUnexpectedReceived();
         }
 
+        /// <summary>
+        /// (Q-W4-4 mở rộng) Ô JSON là lối sửa thứ NĂM của cùng một luật: bấm "Áp" trong lúc còn nháp sẽ dựng nháp mới đè nháp
+        /// cũ, đúng lỗ hổng mà Q-W4-4 bịt ở bốn ô kia. Nút ghi khoá kèm ĐÚNG câu lý do đó in thành chữ; ô nhập vẫn mở để còn
+        /// đọc và sao chép JSON.
+        /// </summary>
+        [UnityTest]
+        public IEnumerator DraftInOneField_LocksJsonApply_WithReasonAsText()
+        {
+            yield return OpenPublishedPrefixSample(new ScriptedLiveOpsHubConfirmationPresenter());
+
+            Section.Form.PrefixField.value = NewPrefix;
+            yield return null;
+
+            string expectedReason = string.Format(CultureInfo.InvariantCulture,
+                LiveOpsHubStrings.RecurringFieldLockedByDraftFormat, LiveOpsHubStrings.RecurringIdPrefixLabel);
+            Assert.IsTrue(Section.Form.JsonFoldout.ApplySlot.IsBlocked, "còn nháp thì nút Áp của foldout JSON cũng phải khoá");
+            Assert.AreEqual(expectedReason, Section.Form.JsonFoldout.ApplySlot.Reason, "lý do in THÀNH CHỮ cạnh nút, không chỉ tooltip");
+            Assert.IsTrue(Section.Form.JsonFoldout.Editor.enabledSelf, "ô nhập vẫn mở: khoá là để không nuốt nháp, không phải để cấm đọc");
+            LogAssert.NoUnexpectedReceived();
+        }
+
+        /// <summary>
+        /// Ô JSON hiện luật ĐANG GHI, kể cả khi form đang giữ nháp. Cùng một nghĩa "đang ghi" với chỗ nút "Áp" so ứng viên
+        /// (<c>TryGetWrittenRule</c>); đổ JSON của nháp vào thì câu "JSON chưa đổi so với luật đang ghi" nói sai về chính
+        /// thứ nó vừa so, và người dùng đọc JSON của nháp như thể Main.asset đã đổi.
+        /// </summary>
+        [UnityTest]
+        public IEnumerator DraftHeld_JsonBox_ShowsWrittenRuleNotDraft()
+        {
+            yield return OpenPublishedPrefixSample(new ScriptedLiveOpsHubConfirmationPresenter());
+
+            Section.Form.PrefixField.value = NewPrefix;
+            yield return null;
+
+            Assert.IsTrue(Section.Draft.NeedsConfirmation, "gõ tiền tố mới khi đợt đang chạy chỉ tạo nháp tại ô");
+            string json = Section.Form.JsonFoldout.Editor.value;
+            StringAssert.Contains(PublishedPrefix, json, "ô JSON phải hiện tiền tố của luật đang ghi trong Main.asset");
+            Assert.IsFalse(json.Contains(NewPrefix), "…chứ không phải tiền tố của nháp chưa ghi");
+            LogAssert.NoUnexpectedReceived();
+        }
+
         /// <summary>Huỷ nháp tại ô mở lại cả bốn ô và xoá hết nhãn lý do — khoá là trạng thái tạm, không phải cửa một chiều.</summary>
         [UnityTest]
         public IEnumerator DraftResolved_UnlocksAllFields()

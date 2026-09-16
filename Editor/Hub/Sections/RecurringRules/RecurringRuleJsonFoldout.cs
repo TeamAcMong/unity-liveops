@@ -42,6 +42,7 @@ namespace DreamTech.LiveOps.Editor
 
         private string _eventType = string.Empty;
         private string _writtenJson = string.Empty;
+        private string _draftLockReason = string.Empty;
         private RecurringLiveEventRule _candidate;
         private bool _isEdited;
         private ILiveOpsHubJsonReadBack _jsonReadBack = new GameParserLiveOpsHubJsonReadBack();
@@ -66,6 +67,9 @@ namespace DreamTech.LiveOps.Editor
             Button applyButton = new Button(RaiseApply) { name = ApplyElementName, text = LiveOpsHubStrings.RecurringJsonApplyButton };
             applyButton.AddToClassList(LiveOpsHubClassNames.Button);
             applyButton.AddToClassList(LiveOpsHubClassNames.ButtonPrimary);
+            // Nút ĐẦU của hàng: .liveops-hub-button có margin-left 4px, không bỏ thì hàng nút thụt vào 4px so với mép ô JSON
+            // (W4 bỏ đúng chỗ này trên nút Copy, lúc Copy còn đứng đầu).
+            applyButton.AddToClassList(LiveOpsHubClassNames.ButtonFirst);
             _applySlot = new LiveOpsButtonSlot(applyButton);
             actions.Add(_applySlot);
             Button copyButton = new Button(RaiseCopy) { name = CopyElementName, text = LiveOpsHubStrings.RecurringJsonCopyButton };
@@ -126,19 +130,16 @@ namespace DreamTech.LiveOps.Editor
         }
 
         /// <summary>
-        /// Đặt chữ trong ô và kiểm ngay — dùng cho kịch bản CHỤP ẢNH dựng trạng thái TRƯỚC khi cửa sổ gắn vào panel
-        /// (<c>OpenRecurring</c> chạy <c>prepare</c> trước <c>Show</c> để tránh đua với lượt layout đầu tiên, SP-16). UI
-        /// Toolkit không phát <see cref="ChangeEvent{T}"/> khi phần tử chưa thuộc panel, nên gán thẳng <c>Editor.value</c>
-        /// lúc đó im lặng không kiểm gì. <paramref name="eventType"/> phải là loại của luật đang chọn (khớp tham số đầu
-        /// <see cref="Bind"/> sẽ gọi ngay sau khi cửa sổ hiện) — không khớp thì <c>Bind</c> coi đây là "đổi sang luật khác"
-        /// và xoá cờ đang sửa, chữ vừa gán bị đè mất y như gán thẳng <c>Editor.value</c>. Luồng người dùng thật không gọi
-        /// hàm này: ô đã ở trong panel nên <c>RegisterValueChangedCallback</c> đủ.
+        /// (Q-W4-4, user duyệt 16/9) Form báo xuống: đang có một ô giữ nháp chưa ghi, kèm lý do đã dựng sẵn thành chữ ("" =
+        /// hết nháp). Ô JSON là lối sửa thứ NĂM của cùng một luật, nên nó phải đóng cùng lỗ hổng mà Q-W4-4 bịt ở bốn ô kia:
+        /// bấm "Áp" trong lúc còn nháp sẽ dựng nháp MỚI đè nháp cũ và cái người dùng vừa gõ ở ô kia biến mất không dấu vết.
+        /// Ô nhập vẫn mở để còn đọc/sao chép JSON — chỉ nút ghi bị khoá, và lý do in thành chữ cạnh nút (SPIKE-B SP-3).
         /// </summary>
-        internal void SetEditorTextForCapture(string eventType, string text)
+        internal void SetLockedByDraft(string reason)
         {
-            _eventType = eventType ?? string.Empty;
-            _editor.SetValueWithoutNotify(text ?? string.Empty);
-            _isEdited = true;
+            string nextReason = reason ?? string.Empty;
+            if (string.Equals(nextReason, _draftLockReason, StringComparison.Ordinal)) return;
+            _draftLockReason = nextReason;
             Validate();
         }
 
@@ -146,6 +147,12 @@ namespace DreamTech.LiveOps.Editor
         {
             _candidate = null;
             string text = _editor.value ?? string.Empty;
+            // Nháp đang giữ ở một ô khác thì khoá TRƯỚC mọi kiểm khác: dù JSON có đọc được thì áp vào lúc này cũng nuốt nháp.
+            if (_draftLockReason.Length > 0)
+            {
+                ShowBlocked(_draftLockReason, showAsError: false);
+                return;
+            }
             if (string.Equals(text, _writtenJson, StringComparison.Ordinal))
             {
                 ShowBlocked(LiveOpsHubStrings.RecurringJsonUnchangedReason, showAsError: false);
@@ -153,9 +160,19 @@ namespace DreamTech.LiveOps.Editor
             }
 
             LiveOpsJsonSyntaxLocator.SyntaxError syntaxError;
-            if (LiveOpsJsonSyntaxLocator.TryFindFirstError(text, out syntaxError))
+            // allowMultipleRoots: ô này được bọc vào mảng "recurring" trước khi đưa cho parser, nên hai luật cách nhau bằng
+            // dấu phẩy KHÔNG phải lỗi cú pháp — nó phải ra câu thân thiện "nhận đúng một object luật lặp" ở dưới.
+            if (LiveOpsJsonSyntaxLocator.TryFindFirstError(text, true, out syntaxError))
             {
                 ShowBlocked(LiveOpsJsonSyntaxLocator.Describe(syntaxError), showAsError: true);
+                return;
+            }
+
+            // Cú pháp sạch nhưng gốc không phải object (mảng, số, chuỗi…): bọc vào mảng rồi mượn parser game sẽ ra câu trần
+            // của JsonUtility, trong khi câu đúng — và đã hứa sẵn trong RecurringJsonNotOneRuleReason — là "không phải mảng".
+            if (!StartsWithObject(text))
+            {
+                ShowBlocked(LiveOpsHubStrings.RecurringJsonNotOneRuleReason, showAsError: true);
                 return;
             }
 
@@ -195,6 +212,18 @@ namespace DreamTech.LiveOps.Editor
             _errorLabel.text = showAsError ? reason : string.Empty;
             _errorLabel.EnableInClassList(LiveOpsHubClassNames.RecurringHidden, !showAsError);
             _applySlot.SetEnabledWithReason(false, reason);
+        }
+
+        /// <summary>Ký tự đáng kể đầu tiên có phải '{' — chuỗi đã qua bộ dò cú pháp nên không rỗng và không chỉ có khoảng trắng.</summary>
+        private static bool StartsWithObject(string text)
+        {
+            for (int index = 0; index < text.Length; index++)
+            {
+                char character = text[index];
+                if (character == ' ' || character == '\t' || character == '\n' || character == '\r') continue;
+                return character == '{';
+            }
+            return false;
         }
 
         private void RaiseApply()

@@ -11,9 +11,9 @@ namespace DreamTech.LiveOps.Editor.Tests
     /// cuối dòng 3 nên dòng lỗi đọc đúng ví dụ của thiết kế ("Dòng 3, ký tự 18: thiếu dấu phẩy") và nút "Áp" khoá kèm chính
     /// câu đó in thành chữ cạnh nút (SPIKE-B SP-3).</item>
     /// </list>
-    /// Trạng thái dựng TRƯỚC khi mở cửa sổ, qua chính control của form (mở foldout + gõ vào ô): cửa sổ dựng bằng
-    /// <c>OpenWithServices</c> có <c>windowState</c> rỗng nên không có trạng thái view đã lưu nào đè lại, và đặt sau khi Show
-    /// là một cuộc đua với lượt layout đầu tiên.
+    /// Trạng thái gõ dựng SAU khi cửa sổ hiện, qua đúng đường người dùng đi (<c>Editor.value</c>): ô đã thuộc panel nên UI
+    /// Toolkit phát <c>ChangeEvent</c> và foldout tự kiểm, không cần một seam riêng trong control sản phẩm. Vẽ lại form sau
+    /// đó không nuốt chữ (foldout giữ cờ "đang sửa dở"), nên không có cuộc đua nào với lượt layout đầu tiên.
     /// </summary>
     [NUnit.Framework.Category(LiveOpsHubTestCategories.UI)]
     internal static partial class LiveOpsHubCaptureScenarios
@@ -37,26 +37,40 @@ namespace DreamTech.LiveOps.Editor.Tests
             });
         }
 
+        /// <summary>
+        /// Chiều cao ô JSON (<c>min-height</c> 116 của <c>.liveops-hub-recurring-json-editor</c>) và chiều cao một DÒNG lỗi
+        /// (chữ 10px, dòng 13). Đo hai khung RIÊNG của hình này chứ không chỉ năm khung chung của khung hub: dòng lỗi CHỈ có
+        /// khung khi foldout thật sự đang báo lỗi — ảnh lỡ chụp JSON đúng thì nó ẩn (<c>display: none</c>, cao 0) và số đo đỏ
+        /// ngay, thay vì "đạt" với nội dung sai như lần chụp đầu của gói.
+        /// </summary>
+        private const float RecurringJsonEditorHeight = 116f;
+
+        private const float RecurringJsonErrorHeight = 13f;
+
         static partial void RegisterRecurringJson(List<LiveOpsHubCaptureScenario> scenarios)
         {
+            // expectedFrames GHI ĐÈ bảng mặc định của measure-capture.py, nên phải kèm lại năm khung khung-hub
+            // (ShellFramesWith) — khai mỗi hai khung riêng là lặng lẽ bỏ đo cả rail/header/status của hình này.
+            List<LiveOpsHubCaptureExpectedFrame> frames = new List<LiveOpsHubCaptureExpectedFrame>(ShellFramesWith(
+                new LiveOpsHubCaptureExpectedFrame(RecurringRuleJsonFoldout.EditorElementName, 0f, RecurringJsonEditorHeight)));
+            frames.Add(new LiveOpsHubCaptureExpectedFrame(RecurringRuleJsonFoldout.ErrorElementName, 0f, RecurringJsonErrorHeight));
             scenarios.Add(new LiveOpsHubCaptureScenario(LiveOpsHubCaptureScenarioIds.H14eRecurringJsonError, StandardWidth, StandardHeight,
-                OpenRecurringJsonError));
+                    OpenRecurringJsonError)
+                .WithExpectedFrames(frames.ToArray()));
         }
 
         private static EditorWindow OpenRecurringJsonError()
         {
-            return OpenRecurring(LiveOpsDesignSample.Document, section =>
-            {
-                RecurringRuleJsonFoldout foldout = section.Form.JsonFoldout;
-                foldout.value = true;
-                // KHÔNG gán thẳng Editor.value: kịch bản dựng trạng thái TRƯỚC khi cửa sổ Show (SP-16, xem OpenRecurring),
-                // lúc đó foldout chưa thuộc panel nào nên ChangeEvent của UI Toolkit không phát — chữ gán vào sẽ bị Bind()
-                // đầu tiên (sau khi cửa sổ hiện) đè mất mà không qua bộ kiểm. SetEditorTextForCapture đi thẳng đường kiểm
-                // (SetValueWithoutNotify + Validate) và tự khớp eventType với luật weekly-pass đang chọn nên Bind() đầu
-                // tiên đó không coi đây là "đổi sang luật khác" rồi xoá cờ đang sửa — luồng người dùng thật gõ khi ô đã
-                // trong panel nên không cần đường này.
-                foldout.SetEditorTextForCapture(RecurringWeeklyPassType, RecurringJsonWithMissingComma());
-            });
+            RecurringRulesSection target = null;
+            EditorWindow window = OpenRecurring(LiveOpsDesignSample.Document, section => target = section);
+            if (target == null) return window;
+            RecurringRuleJsonFoldout foldout = target.Form.JsonFoldout;
+            foldout.value = true;
+            // Gán SAU khi cửa sổ Show: lúc này ô đã thuộc panel nên gán value phát ChangeEvent y như người dùng gõ, foldout
+            // chạy đúng bộ kiểm của mình và khoá "Áp" kèm câu lỗi. Gán TRƯỚC Show thì không có panel, ChangeEvent không phát
+            // và Bind() đầu tiên đè mất chữ — đó là lý do kịch bản này không dùng tham số prepare để gõ.
+            foldout.Editor.value = RecurringJsonWithMissingComma();
+            return window;
         }
     }
 }
