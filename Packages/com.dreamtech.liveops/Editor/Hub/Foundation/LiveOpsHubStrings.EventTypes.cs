@@ -113,6 +113,7 @@ namespace DreamTech.LiveOps.Editor
         internal static string EventTypesToastDeclaredFormat => LiveOpsHubStringCatalog.Text(nameof(EventTypesToastDeclaredFormat));
         internal static string EventTypesToastRemovedFormat => LiveOpsHubStringCatalog.Text(nameof(EventTypesToastRemovedFormat));
         internal static string EventTypesToastColorChangedFormat => LiveOpsHubStringCatalog.Text(nameof(EventTypesToastColorChangedFormat));
+        internal static string EventTypesToastTypeIdChangedFormat => LiveOpsHubStringCatalog.Text(nameof(EventTypesToastTypeIdChangedFormat));
         internal static string EventTypesToastDisplayNameChangedFormat => LiveOpsHubStringCatalog.Text(nameof(EventTypesToastDisplayNameChangedFormat));
         internal static string EventTypesToastRequiresJoinOnFormat => LiveOpsHubStringCatalog.Text(nameof(EventTypesToastRequiresJoinOnFormat));
         internal static string EventTypesToastRequiresJoinOffFormat => LiveOpsHubStringCatalog.Text(nameof(EventTypesToastRequiresJoinOffFormat));
