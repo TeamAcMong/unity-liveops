@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using DreamTech.LiveOps.Tests;
 using DreamTech.LiveOps.Unity;
 using UnityEditor;
@@ -23,6 +24,12 @@ namespace DreamTech.LiveOps.Editor.Tests
 
         /// <summary>Thư mục asset thật của test (9.1) — tạo khi cần, xoá ở <see cref="ReleaseAll"/>.</summary>
         public const string TestFolder = "Assets/__LiveOpsHubTests__";
+
+        /// <summary>Đường dẫn tuyệt đối của <see cref="TestFolder"/> — để hỏi ĐĨA khi AssetDatabase còn nhớ trạng thái cũ.</summary>
+        private static string AbsoluteTestFolder
+        {
+            get { return Path.Combine(Directory.GetCurrentDirectory(), TestFolder); }
+        }
 
         public const string PublisherName = "DatHoUnityDev";
         public const string PublisherSource = "git user.name";
@@ -164,9 +171,15 @@ namespace DreamTech.LiveOps.Editor.Tests
         /// <summary>Asset lịch thật trên đĩa dưới <see cref="TestFolder"/>, đã lưu (không bẩn).</summary>
         public static LiveEventCalendarAsset CreateAssetFile(string fileName, LiveEventCalendarDocument document)
         {
-            if (!AssetDatabase.IsValidFolder(TestFolder))
+            if (!AssetDatabase.IsValidFolder(TestFolder) || !Directory.Exists(AbsoluteTestFolder))
             {
-                AssetDatabase.CreateFolder("Assets", TestFolder.Substring("Assets/".Length));
+                // Hai vế: AssetDatabase chưa biết thư mục, HOẶC nó tưởng còn mà đĩa đã hết (xem ghi chú ở ReleaseAll).
+                if (AssetDatabase.IsValidFolder(TestFolder)) AssetDatabase.Refresh();
+                if (!AssetDatabase.IsValidFolder(TestFolder))
+                {
+                    AssetDatabase.CreateFolder("Assets", TestFolder.Substring("Assets/".Length));
+                }
+
                 _createdTestFolder = true;
             }
             string path = TestFolder + "/" + fileName;
@@ -208,6 +221,10 @@ namespace DreamTech.LiveOps.Editor.Tests
             {
                 AssetDatabase.DeleteAsset(TestFolder);
                 _createdTestFolder = false;
+                // (cổng W5) Refresh ngay: sau DeleteAsset trong CÙNG một frame, AssetDatabase.IsValidFolder còn trả true trong khi
+                // thư mục đã biến mất trên đĩa — lượt chụp kế tiếp vì thế bỏ qua CreateFolder rồi chết ở "Parent directory must
+                // exist". Chỉ lộ ra khi chạy ĐỦ kịch bản (một kịch bản W5 tạo asset thật trước đó thì DeleteAsset mới có việc).
+                AssetDatabase.Refresh();
             }
         }
     }
