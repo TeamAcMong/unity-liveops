@@ -44,6 +44,12 @@ namespace DreamTech.LiveOps.Editor.Tests
         /// <summary>Số khung layout tối thiểu phải chờ trước khi chụp (spinner, transition vào); lệnh chụp luôn chờ layout có trước.</summary>
         public int MinimumSettleFrames { get; private set; } = 5;
 
+        /// <summary>
+        /// Ngôn ngữ chụp. Mặc định TIẾNG VIỆT vì ma trận 9.5 so ảnh với hình thiết kế (chữ tiếng Việt): hub đổi ngôn ngữ mặc
+        /// định sang English không được làm lệch một ảnh nào đã đạt số đo. Kịch bản nào cố tình chụp bản dịch thì tự khai.
+        /// </summary>
+        public LiveOpsHubLanguageId Language { get; private set; } = LiveOpsHubLanguageId.Vietnamese;
+
         public LiveOpsHubCaptureScenario WithExpectedFrames(params LiveOpsHubCaptureExpectedFrame[] frames)
         {
             ExpectedFrames = frames ?? Array.Empty<LiveOpsHubCaptureExpectedFrame>();
@@ -53,6 +59,12 @@ namespace DreamTech.LiveOps.Editor.Tests
         public LiveOpsHubCaptureScenario WithMinimumSettleFrames(int frames)
         {
             MinimumSettleFrames = Math.Max(0, frames);
+            return this;
+        }
+
+        public LiveOpsHubCaptureScenario WithLanguage(LiveOpsHubLanguageId language)
+        {
+            Language = language;
             return this;
         }
     }

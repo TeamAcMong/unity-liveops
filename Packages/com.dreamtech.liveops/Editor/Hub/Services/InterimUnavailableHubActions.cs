@@ -11,7 +11,7 @@ namespace DreamTech.LiveOps.Editor
     internal sealed class InterimUnavailableHubActions : ILiveOpsHubActions
     {
         // INTERIM(G-PASTE): lý do tạm hiện cạnh nút; câu nằm ở LiveOpsHubStrings (chữ UI chỉ ở file chuỗi).
-        internal const string InterimPasteNotBuiltReason = LiveOpsHubStrings.KitActionNotBuiltInDevBuild;
+        internal static string InterimPasteNotBuiltReason => LiveOpsHubStrings.KitActionNotBuiltInDevBuild;
 
         public bool CanPasteRunningJson => false;
         public string PasteRunningJsonUnavailableReason => InterimPasteNotBuiltReason;

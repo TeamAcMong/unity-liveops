@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.UIElements;
@@ -15,6 +16,15 @@ namespace DreamTech.LiveOps.Editor.Tests
     internal static partial class LiveOpsHubCaptureScenarios
     {
         internal const string StateMarksGalleryElementName = "capture-state-marks";
+        // Chữ health của Hình 28 khung 1 — ảnh tiếng Việt của ma trận 9.5 đã đạt số đo với đúng bốn câu này, đổi một ký tự là
+        // phải chụp lại cả hình; bản mẫu tiếng Anh dùng đường riêng (OpenFailureSectionForTranslationSample).
+        private const string FixtureWarningBadge = "1 mất tiến độ";
+        private const string FixtureWarningReason = "weekly-pass đổi tiền tố khi weekly-pass-35 đang chạy";
+        private const string FixtureBlockedBadge = "2 bị bỏ";
+        private const string FixtureBlockedReason = "2 đợt sẽ bị game bỏ khi đọc lịch";
+        // Câu lý do của bản mẫu tiếng Anh: id + mũi tên, không thuộc ngôn ngữ nào — catalog không có câu tương đương cho ca
+        // fixture này, mà một câu tiếng Việt trong ảnh tiếng Anh thì người soát bản dịch đọc nhầm thành chỗ chưa dịch.
+        private const string NeutralWarningReason = "weekly-pass → weekly-pass-35";
         private const int StandardWidth = 1280;
         private const int StandardHeight = 760;
         private const int StateMarksWidth = 640;
@@ -36,6 +46,15 @@ namespace DreamTech.LiveOps.Editor.Tests
 
             scenarios.Add(new LiveOpsHubCaptureScenario(LiveOpsHubCaptureScenarioIds.H28cCompiling, StandardWidth, StandardHeight,
                 () => LiveOpsHubWindow.OpenForTest(LiveOpsHubSections.Create(), new ManualLiveOpsHubCompilationState(true), null, LiveOpsHubSections.Ids.Calendar)));
+
+            // G-I18N (W3.5): mẫu tiếng Anh, ngoài ma trận 9.5 — dựng lại đúng hai kịch bản trên (khung sườn + card lỗi có
+            // chữ finding) nhưng ghim English, để cổng gói có ảnh thật đối chiếu catalog không chỉ đọc code.
+            scenarios.Add(new LiveOpsHubCaptureScenario(LiveOpsHubCaptureScenarioIds.HsShellSkeletonEnglish, StandardWidth, StandardHeight,
+                () => LiveOpsHubWindow.OpenForTest(LiveOpsHubSections.Create(), new ManualLiveOpsHubCompilationState(false), null, LiveOpsHubSections.Ids.Overview))
+                .WithLanguage(LiveOpsHubLanguageId.English));
+
+            scenarios.Add(new LiveOpsHubCaptureScenario(LiveOpsHubCaptureScenarioIds.H28aFailureSectionEnglish, StandardWidth, StandardHeight,
+                OpenFailureSectionForTranslationSample).WithLanguage(LiveOpsHubLanguageId.English));
         }
 
         /// <summary>
@@ -44,12 +63,30 @@ namespace DreamTech.LiveOps.Editor.Tests
         /// </summary>
         private static EditorWindow OpenFailureSection()
         {
+            return OpenFailureSection(FixtureWarningBadge, FixtureWarningReason, FixtureBlockedBadge, FixtureBlockedReason);
+        }
+
+        /// <summary>
+        /// Bản mẫu soát bản dịch của Hình 28 khung 1: chữ health lấy từ CHÍNH catalog (và câu lý do là id trung tính) nên ảnh
+        /// tiếng Anh không lẫn chữ Việt gán cứng của fixture. Ảnh tiếng Việt vẫn đi đường <see cref="OpenFailureSection"/> với
+        /// đúng chữ cũ, nên không kịch bản nào của ma trận 9.5 phải chụp lại.
+        /// </summary>
+        private static EditorWindow OpenFailureSectionForTranslationSample()
+        {
+            return OpenFailureSection(
+                string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.ShellRailProgressLostCountFormat, 1),
+                NeutralWarningReason,
+                string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.ShellRailDroppedCountFormat, 2),
+                string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.ShellRailBlockerDroppedDetailFormat, 2));
+        }
+
+        private static EditorWindow OpenFailureSection(string warningBadge, string warningReason, string blockedBadge, string blockedReason)
+        {
             List<FakeHubSection> sections = FakeHubSection.CreateRegistryShaped();
             sections[2].CreateViewException = CreateThrownException();
             // Số đếm đi cùng badge như phiên thật (6.4, V-21 CC-SHELL-5 (b)): rail cộng Counts, chữ badge chỉ để hiện.
-            sections[3].Health = SectionHealth.Warning("1 mất tiến độ", "weekly-pass đổi tiền tố khi weekly-pass-35 đang chạy")
-                .WithCounts(new LiveOpsHubFindingCounts(0, 1, 0, 0));
-            sections[4].Health = SectionHealth.Blocked("2 bị bỏ", "2 đợt sẽ bị game bỏ khi đọc lịch").WithCounts(new LiveOpsHubFindingCounts(2, 1, 2, 1));
+            sections[3].Health = SectionHealth.Warning(warningBadge, warningReason).WithCounts(new LiveOpsHubFindingCounts(0, 1, 0, 0));
+            sections[4].Health = SectionHealth.Blocked(blockedBadge, blockedReason).WithCounts(new LiveOpsHubFindingCounts(2, 1, 2, 1));
             return LiveOpsHubWindow.OpenForTest(FakeHubSection.AsSections(sections), new ManualLiveOpsHubCompilationState(false), null,
                 LiveOpsHubSections.Ids.Calendar);
         }
