@@ -31,7 +31,21 @@ namespace DreamTech.LiveOps.Editor
             Headline = new Label(row.Headline) { enableRichText = true };
             Headline.AddToClassList(LiveOpsHubClassNames.ValidationRowHeadline);
             Headline.AddToClassList(TextClassOf(row.State));
-            text.Add(Headline);
+            if (row.TagText.Length > 0)
+            {
+                // Chỉ bọc khi CÓ tag: hàng không tag giữ nguyên cây của W4 nên ảnh đã chụp không đổi một pixel nào.
+                VisualElement headlineLine = new VisualElement();
+                headlineLine.AddToClassList(LiveOpsHubClassNames.ValidationRowHeadlineLine);
+                headlineLine.Add(Headline);
+                TagLabel = new Label(row.TagText);
+                TagLabel.AddToClassList(LiveOpsHubClassNames.Tag);
+                headlineLine.Add(TagLabel);
+                text.Add(headlineLine);
+            }
+            else
+            {
+                text.Add(Headline);
+            }
 
             MetaLabel = new Label(row.MetaText) { enableRichText = true };
             MetaLabel.AddToClassList(LiveOpsHubClassNames.ValidationRowMeta);
@@ -51,9 +65,12 @@ namespace DreamTech.LiveOps.Editor
             }
             Add(text);
 
-            VisualElement actions = new VisualElement();
+            Actions = new VisualElement();
+            VisualElement actions = Actions;
             actions.AddToClassList(LiveOpsHubClassNames.ValidationRowActions);
-            if (row.Action != ValidationRowAction.None && row.ActionText.Length > 0)
+            // "Quyết định… ▾" là MENU chứ không phải nút ([SD2 §2.4]) và menu cần phiên để áp, nên màn cắm nó vào sau
+            // (SetDecisionMenu). Dựng một nút chết ở đây rồi thay là chỗ dễ để sót một nút bấm không làm gì.
+            if (row.Action != ValidationRowAction.None && row.Action != ValidationRowAction.Decision && row.ActionText.Length > 0)
             {
                 ActionButton = new Button(OnActionClicked) { text = row.ActionText, tooltip = row.ActionTooltip };
                 ActionButton.AddToClassList(LiveOpsHubClassNames.Button);
@@ -82,6 +99,12 @@ namespace DreamTech.LiveOps.Editor
 
         internal ValidationRow Row { get; }
         internal Label Headline { get; }
+
+        /// <summary>Tag cạnh headline ("đã tới hẹn", "hẹn tới 14/9 00:00"); null khi hàng không có tag.</summary>
+        internal Label TagLabel { get; }
+
+        /// <summary>Khối nút căn phải — màn cắm <see cref="DecisionMenu"/> vào đây cho hàng "Quyết định… ▾".</summary>
+        internal VisualElement Actions { get; private set; }
         internal Label MetaLabel { get; }
         internal Label RuleIdLabel { get; }
         internal Label ManualFixLabel { get; }
@@ -93,6 +116,17 @@ namespace DreamTech.LiveOps.Editor
             EnableInClassList(LiveOpsHubClassNames.ValidationRowSelected, selected);
             EnableInClassList(LiveOpsHubClassNames.RowActive, selected);
         }
+
+        /// <summary>Cắm menu "Quyết định… ▾" vào đầu khối nút; gọi lại lần nữa thì thay menu cũ, không chồng hai menu.</summary>
+        internal void SetDecisionMenu(VisualElement menu)
+        {
+            if (menu == null) throw new ArgumentNullException(nameof(menu));
+            if (DecisionMenuElement != null) DecisionMenuElement.RemoveFromHierarchy();
+            DecisionMenuElement = menu;
+            Actions.Insert(0, menu);
+        }
+
+        internal VisualElement DecisionMenuElement { get; private set; }
 
         /// <summary>Hàng cuối card mang <c>--last</c> do C# gắn: USS của Unity không có <c>:last-child</c> ([SD2 §2.2]).</summary>
         internal void MarkAsLast()

@@ -36,8 +36,8 @@ namespace DreamTech.LiveOps.Editor
     }
 
     /// <summary>
-    /// Động từ của khối nút bên phải một hàng ([SD2 §2.4] — bốn động từ không trộn). W4 chỉ dựng Sửa và Đề xuất…;
-    /// Quyết định… và Bỏ qua cảnh báo… là INTERIM(G-VALIDATION-DEPTH) nên hàng chỉ còn link (mục 12 I-7).
+    /// Động từ của khối nút bên phải một hàng ([SD2 §2.4] — bốn động từ KHÔNG TRỘN: Sửa áp ngay, Đề xuất… luôn hỏi,
+    /// Quyết định… là menu vì có hai cách đều đúng, Bỏ qua cảnh báo… chỉ có ở Warning).
     /// </summary>
     internal enum ValidationRowAction
     {
@@ -48,6 +48,15 @@ namespace DreamTech.LiveOps.Editor
         DeclareType = 4,
         PasteRunningJson = 5,
         CopyError = 6,
+
+        /// <summary>Hàng vẽ <see cref="DecisionMenu"/> thay cho nút — màn cắm menu vào vì menu cần phiên để áp.</summary>
+        Decision = 7,
+
+        /// <summary>Mở popover "Bỏ qua cảnh báo…" ([SD2 §2.7]).</summary>
+        IgnoreWarning = 8,
+
+        /// <summary>Nút nhỏ "Bỏ bỏ qua" của hàng trong nhóm "Đã bỏ qua" (V-15).</summary>
+        Unignore = 9,
     }
 
     /// <summary>
@@ -126,7 +135,17 @@ namespace DreamTech.LiveOps.Editor
         internal ValidationRow(LiveEventCalendarFinding finding, LiveEventCalendarRuleResult ruleResult, HealthState state,
             string headline, string metaText, string ruleIdLine, ValidationRowAction action, string actionText, string actionTooltip,
             string linkText, string manualFixSentence)
+            : this(finding, ruleResult, state, headline, metaText, ruleIdLine, action, actionText, actionTooltip, linkText,
+                manualFixSentence, string.Empty, null)
         {
+        }
+
+        internal ValidationRow(LiveEventCalendarFinding finding, LiveEventCalendarRuleResult ruleResult, HealthState state,
+            string headline, string metaText, string ruleIdLine, ValidationRowAction action, string actionText, string actionTooltip,
+            string linkText, string manualFixSentence, string tagText, IgnoredCalendarWarning ignoredWarning)
+        {
+            TagText = tagText ?? string.Empty;
+            IgnoredWarning = ignoredWarning;
             Finding = finding;
             RuleResult = ruleResult;
             State = state;
@@ -157,6 +176,15 @@ namespace DreamTech.LiveOps.Editor
 
         /// <summary>(V-21 CC-VALB-3) Câu chỉ cách sửa tay khi luật không đưa ra lệnh sửa nào — "" với hàng có lệnh sửa.</summary>
         internal string ManualFixSentence { get; }
+
+        /// <summary>
+        /// Tag nhỏ cạnh headline: "đã tới hẹn" khi ghi chú hẹn giờ hết hạn (V-22 CC-FT-1), "hẹn tới 14/9 00:00" trên hàng của
+        /// nhóm "Đã bỏ qua". "" khi hàng không có gì để gắn.
+        /// </summary>
+        internal string TagText { get; }
+
+        /// <summary>Cảnh báo đã bỏ qua mà hàng này đại diện (nhóm "Đã bỏ qua", V-15); null với mọi hàng khác.</summary>
+        internal IgnoredCalendarWarning IgnoredWarning { get; }
 
         /// <summary>Khoá ổn định để giữ lựa chọn qua mỗi lần dựng lại (dấu vân tay phát hiện, hoặc id luật).</summary>
         internal string SelectionKey => Finding != null ? Finding.Fingerprint : (RuleResult != null ? RuleResult.RuleId : string.Empty);
@@ -495,36 +523,33 @@ namespace DreamTech.LiveOps.Editor
             ValidationRowAction action = ActionOf(finding);
             string actionText = action == ValidationRowAction.None ? string.Empty : LiveOpsFindingText.PrimaryButtonText(finding);
             string linkText = LiveOpsFindingText.LinkText(finding);
-            if (action == ValidationRowAction.None && linkText.Length == 0
-                && finding.RepairKind != LiveEventCalendarRepairKind.Ignorable)
+            if (action == ValidationRowAction.None && linkText.Length == 0)
             {
-                // Hàng Quyết định… (W4 chỉ có link, I-7) và hàng luật 9 không lệnh sửa (CC-VALB-3): chữ nút chính LÀ link.
-                // KHÔNG áp cho "Bỏ qua cảnh báo…": W4 ẩn hẳn động từ đó (mục 12 I-7). Đổ chữ nút vào link sẽ ra một link mang
-                // chữ "Bỏ qua cảnh báo…" mà bấm vào lại nhảy sang màn Lịch — nói một đằng làm một nẻo.
+                // Hàng luật 9 không có lệnh sửa nào (CC-VALB-3): chữ nút chính LÀ link — không có động từ nào để bấm.
                 linkText = LiveOpsFindingText.PrimaryButtonText(finding);
             }
+
+            // (V-22 CC-FT-1) Ghi chú hẹn giờ đã tới hạn: phát hiện quay lại danh sách kèm tag, nếu không nó trông y hệt một
+            // phát hiện mới và người đọc không nhớ chính mình đã hẹn nó tháng trước.
+            string tagText = finding.DueReminder != null ? LiveOpsFindingText.DueReminderTag : string.Empty;
 
             return new ValidationRow(finding, null, LiveOpsHubFindingRouting.StateOf(finding.Consequence),
                 LiveOpsFindingText.Headline(finding, format, context.LatestStamp),
                 LiveOpsFindingText.Meta(finding, format, context.NowUtc),
                 LiveOpsFindingText.RuleIdLine(finding), action, actionText,
                 LiveOpsFindingText.PrimaryButtonTooltip(finding, format, context.CalendarAssetName), linkText,
-                LiveOpsFindingText.ManualFixSentence(finding, format));
+                LiveOpsFindingText.ManualFixSentence(finding, format), tagText, null);
         }
 
-        /// <summary>
-        /// Động từ của hàng. W4: Quyết định… và Bỏ qua cảnh báo… chưa dựng nên trả <see cref="ValidationRowAction.None"/> —
-        /// hàng còn link, không nút chết.
-        /// </summary>
+        /// <summary>Động từ của hàng — bốn động từ của [SD2 §2.4] ánh xạ thẳng từ <c>RepairKind</c> mà luật đã chọn.</summary>
         private static ValidationRowAction ActionOf(LiveEventCalendarFinding finding)
         {
             switch (finding.RepairKind)
             {
                 case LiveEventCalendarRepairKind.SafeRepair: return ValidationRowAction.SafeRepair;
                 case LiveEventCalendarRepairKind.Proposal: return ValidationRowAction.Proposal;
-                // INTERIM(G-VALIDATION-DEPTH): "Quyết định… ▾" hiện thành link "Mở luật"; "Bỏ qua cảnh báo…" ẩn (mục 12 I-7).
-                case LiveEventCalendarRepairKind.Decision:
-                case LiveEventCalendarRepairKind.Ignorable: return ValidationRowAction.None;
+                case LiveEventCalendarRepairKind.Decision: return ValidationRowAction.Decision;
+                case LiveEventCalendarRepairKind.Ignorable: return ValidationRowAction.IgnoreWarning;
             }
 
             if (string.Equals(finding.RuleId, LiveEventCalendarRuleIds.RemoteSnapshotDrift, StringComparison.Ordinal) &&
