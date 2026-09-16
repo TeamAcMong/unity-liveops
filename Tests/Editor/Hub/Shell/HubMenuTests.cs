@@ -238,30 +238,41 @@ namespace DreamTech.LiveOps.Editor.Tests
         /// (Q-1, PD-8) Popover "Đổi key remote…": nút chính khoá kèm lý do IN THÀNH CHỮ khi key rỗng / có khoảng trắng / không
         /// đổi gì (SP-3), và key hợp lệ đi vào một lệnh sửa có Undo.
         /// </summary>
-        [Test]
-        public void RemoteKeyPopover_BlocksBadKeyWithWrittenReason()
+        [UnityTest]
+        public IEnumerator RemoteKeyPopover_BlocksBadKeyWithWrittenReason()
         {
             List<string> applied = new List<string>();
             OverviewRemoteKeyPopover popover = new OverviewRemoteKeyPopover(LiveEventCalendarDocument.DefaultRemoteConfigKey, applied.Add);
-            popover.BuildForTest();
+            VisualElement built = popover.BuildForTest();
+
+            // Nội dung popover phải nằm trong một panel THẬT: BaseField.value gửi ChangeEvent bằng SendEvent, mà SendEvent trên
+            // cây ngoài panel là no-op — lý do khoá sẽ không bao giờ đổi theo ký tự gõ vào (đúng điểm của SP-3).
+            _scope = LiveOpsHubWindowTestScope.Open();
+            yield return _scope.WaitForLayout();
+            _scope.Window.SectionBody.Add(built);
+            yield return null;
 
             Assert.AreEqual(LiveEventCalendarDocument.DefaultRemoteConfigKey, popover.KeyField.value, "ô mở ra đã có key đang dùng để sửa");
             Assert.IsFalse(popover.ConfirmSlot.Button.enabledSelf, "chưa đổi gì thì không có gì để áp");
             Assert.AreEqual(LiveOpsHubStrings.OverviewRemoteKeyUnchangedReason, popover.ConfirmSlot.ReasonLabel.text);
 
             popover.KeyField.value = string.Empty;
+            yield return null;
             Assert.IsFalse(popover.ConfirmSlot.Button.enabledSelf);
             Assert.AreEqual(LiveOpsHubStrings.OverviewRemoteKeyEmptyReason, popover.ConfirmSlot.ReasonLabel.text,
                 "key rỗng = game không biết đọc lịch ở đâu, phải nói ra chứ không im lặng cho qua");
 
             popover.KeyField.value = "liveops calendar v2";
+            yield return null;
             Assert.IsFalse(popover.ConfirmSlot.Button.enabledSelf);
             Assert.AreEqual(LiveOpsHubStrings.OverviewRemoteKeyWhitespaceReason, popover.ConfirmSlot.ReasonLabel.text);
 
             popover.KeyField.value = "liveops_calendar_v2";
+            yield return null;
             Assert.IsTrue(popover.ConfirmSlot.Button.enabledSelf);
             Assert.AreEqual(string.Empty, popover.ConfirmSlot.ReasonLabel.text, "mở nút thì xoá lý do");
             CollectionAssert.IsEmpty(applied, "chưa bấm thì chưa áp gì");
+            LogAssert.NoUnexpectedReceived();
         }
 
         /// <summary>Ba sheet của gói khác đã vào nhóm bắt buộc — cờ là hợp đồng với probe CLI, không chỉ với cửa sổ.</summary>
