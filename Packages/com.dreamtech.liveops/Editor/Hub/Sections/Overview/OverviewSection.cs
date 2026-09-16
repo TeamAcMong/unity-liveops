@@ -43,9 +43,11 @@ namespace DreamTech.LiveOps.Editor
         internal const int DraftTabIndex = 0;
         internal const int PublishedTabIndex = 1;
 
+        // <see cref="BodyElementName"/> KHÔNG có trong danh sách: chính nó là root của view, mà Q() chỉ tìm con — probe 9.3
+        // và HubWindowTests Q trên view nên để tên root vào đây sẽ luôn báo thiếu.
         private static readonly IReadOnlyList<string> ElementNames = Array.AsReadOnly(new[]
         {
-            BodyElementName, EmptyElementName, DefaultBodyElementName, MetricsElementName, NeedsActionBodyElementName,
+            EmptyElementName, DefaultBodyElementName, MetricsElementName, NeedsActionBodyElementName,
             FlowElementName, UpcomingElementName, UpcomingTabsElementName, FooterNoteElementName,
         });
 
@@ -113,7 +115,8 @@ namespace DreamTech.LiveOps.Editor
             root.Q<Label>(FlowSubtitleElementName).text = LiveOpsHubStrings.OverviewFlowCardSubtitle;
             root.Q<Label>(FooterNoteElementName).text = LiveOpsHubStrings.OverviewFooterNote;
 
-            _needsActionList = new OverviewNeedsActionList(root.Q(NeedsActionBodyElementName), OnNeedsActionRowActivated, Navigate);
+            _needsActionList = new OverviewNeedsActionList(root.Q(NeedsActionBodyElementName), OnNeedsActionRowActivated, Navigate,
+                DisabledReasonOf);
             _pipelineFlow = new OverviewPipelineFlow(root.Q(FlowElementName));
             _upcomingTable = new OverviewUpcomingTable(root.Q(UpcomingElementName));
 
@@ -339,6 +342,18 @@ namespace DreamTech.LiveOps.Editor
                     _services.Actions.PasteRunningJson(_root != null ? _root.worldBound : new Rect());
                     break;
             }
+        }
+
+        /// <summary>
+        /// Lý do in cạnh nút khoá của một hàng. Model chỉ biết "được hay không" (cờ của mục 3) — câu vì sao là của chính port,
+        /// nên view hỏi port thay vì để model chép lại một câu nó không sở hữu.
+        /// </summary>
+        private string DisabledReasonOf(OverviewNeedsActionRow row)
+        {
+            if (row.DisabledReason.Length > 0) return row.DisabledReason;
+            return row.Action == OverviewRowAction.PasteRunningJson
+                ? _services.Actions.PasteRunningJsonUnavailableReason
+                : string.Empty;
         }
 
         private void Navigate(LiveOpsHubNavigation navigation)
