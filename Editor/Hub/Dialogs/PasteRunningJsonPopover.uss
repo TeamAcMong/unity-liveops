@@ -1,0 +1,51 @@
+/*
+ * Popover "Dán / Nhập JSON đang chạy" ([SD2 §2.9], vá V-14). Số đo bám khuôn popover của hub: rộng 320 ([FD §7]),
+ * padding 10, khe giữa các khối 6. Popover là panel RIÊNG nên sheet này được nạp thẳng lên cây popover; mọi màu đi qua
+ * token của liveops-hub-theme.uss để hai skin cùng đọc được.
+ * USS không có gap nên khoảng cách là margin-top của từng khối.
+ */
+
+/* Ẩn bằng class: trạng thái/chế độ không được gán style inline ([FD §2.14]). */
+.liveops-hub-paste-hidden {
+    display: none;
+}
+
+.liveops-hub-paste {
+    width: 320px;
+    padding: var(--liveops-hub-space-10);
+}
+
+.liveops-hub-paste-header {
+    -unity-font-style: bold;
+    margin-bottom: var(--liveops-hub-space-6);
+}
+
+/* Ô dán cao 96px: đủ thấy một đợt trọn vẹn mà không cuộn, vẫn để popover thấp hơn nửa màn hình. */
+.liveops-hub-paste-input {
+    min-height: 96px;
+    margin-top: var(--liveops-hub-space-2);
+}
+
+.liveops-hub-paste-input .unity-text-element {
+    white-space: normal;
+}
+
+/* Dòng trạng thái là câu người dùng phải đọc trước khi bấm, không phải chú thích mờ — giữ cỡ chữ thường. */
+.liveops-hub-paste-status {
+    margin-top: var(--liveops-hub-space-4);
+    white-space: normal;
+}
+
+.liveops-hub-paste-remote-key {
+    margin-top: var(--liveops-hub-space-4);
+    font-size: 10px;
+    color: var(--liveops-hub-color-quiet);
+    white-space: normal;
+}
+
+.liveops-hub-paste-footer {
+    flex-direction: row;
+    justify-content: flex-end;
+    align-items: center;
+    margin-top: var(--liveops-hub-space-8);
+}
