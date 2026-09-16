@@ -457,7 +457,48 @@ namespace DreamTech.LiveOps.Editor
                 }
             }
             _groups.Add(collapsedRow);
+            AttachDecisionMenus();
             ApplySelection();
+        }
+
+        /// <summary>
+        /// Hàng "Quyết định… ▾" nhận menu SAU khi card dựng xong: menu phải áp được lệnh sửa nên nó cần phiên, mà hàng cố ý
+        /// không biết gì về phiên (test hàng không cần asset). Màn là chỗ duy nhất có cả hai.
+        /// </summary>
+        private void AttachDecisionMenus()
+        {
+            for (int index = 0; index < _visibleRows.Count; index++)
+            {
+                ValidationFindingRow rowView = _visibleRows[index];
+                if (rowView.Row.Action != ValidationRowAction.Decision || rowView.Row.Finding == null) continue;
+                LiveEventCalendarFinding finding = rowView.Row.Finding;
+                DecisionMenu menu = new DecisionMenu(finding, Services.Format, repair => ApplyDecision(finding, repair));
+                rowView.SetDecisionMenu(menu.Element);
+            }
+        }
+
+        /// <summary>Chọn một mục của "Quyết định… ▾": cùng ba việc với mọi lệnh sửa (một Undo group, một toast, tự kiểm lại).</summary>
+        private void ApplyDecision(LiveEventCalendarFinding finding, LiveEventCalendarRepair repair)
+        {
+            string undoName = string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.ValidationDepthDecisionAppliedFormat,
+                finding.TargetId, LiveOpsFindingText.PlainText(LiveOpsFindingText.RepairOptionText(finding, repair, Services.Format)));
+            ApplyEdit(repair.Edit, undoName);
+        }
+
+        private void OpenIgnorePopover(LiveEventCalendarFinding finding)
+        {
+            if (finding == null) return;
+            IgnoreWarningPopover popover = new IgnoreWarningPopover(finding, Services.Format, Services.LayoutLoader,
+                Services.Session.AssetFileName, warning => ApplyIgnoreWarning(finding, warning));
+            LiveOpsPopoverContent.ShowSingle(ActivatorBoundsOf(RowOf(finding)), popover);
+        }
+
+        /// <summary>Bỏ qua = ghi một <see cref="IgnoredCalendarWarning"/> vào asset lịch ([SD2 §2.7]) — hoàn tác được như mọi lệnh sửa.</summary>
+        private void ApplyIgnoreWarning(LiveEventCalendarFinding finding, IgnoredCalendarWarning warning)
+        {
+            string undoName = string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.ValidationDepthIgnoreUndoFormat,
+                finding.RuleId, finding.TargetId);
+            ApplyEdit(new AddIgnoredWarningEdit(warning), undoName);
         }
 
         private void RefreshEmptyState(ValidationViewModel model)
@@ -663,6 +704,9 @@ namespace DreamTech.LiveOps.Editor
                     break;
                 case ValidationRowAction.CopyError:
                     Services.Clipboard.Text = LiveOpsFindingText.PlainText(row.Headline + RuleErrorSeparator + row.MetaText);
+                    break;
+                case ValidationRowAction.IgnoreWarning:
+                    OpenIgnorePopover(row.Finding);
                     break;
             }
         }

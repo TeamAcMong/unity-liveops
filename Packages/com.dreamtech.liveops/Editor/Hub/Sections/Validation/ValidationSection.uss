@@ -406,6 +406,12 @@
     margin-top: var(--liveops-hub-space-8);
 }
 
+/* Headline + tag trên một dòng; tag tự co nên headline vẫn chiếm phần còn lại. */
+.liveops-hub-validation-row-headline-line {
+    flex-direction: row;
+    align-items: center;
+}
+
 /* ----- popover Bỏ qua cảnh báo… ([SD2 §2.7], Hình 17 ô 5) ----- */
 
 /* 300px theo mockup — hẹp hơn popover Đề xuất… 320px vì chỉ có một Toggle và một ô ghi chú; khoá ở USS để cây dựng ngoài
@@ -419,6 +425,10 @@
  * chính là vế nói cho người dùng biết bỏ qua KHÔNG phải tắt luật vĩnh viễn. */
 .liveops-hub-validation-ignore-scope {
     margin-bottom: var(--liveops-hub-space-8);
+}
+
+/* Nhãn của Toggle là một Label con: `white-space` đặt trên chính Toggle không tới được nó. */
+.liveops-hub-validation-ignore-scope .unity-label {
     white-space: normal;
 }
 

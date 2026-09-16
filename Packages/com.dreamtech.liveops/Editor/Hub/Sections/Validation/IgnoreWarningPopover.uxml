@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Popover "Bỏ qua cảnh báo…" ([SD2 §2.7], Hình 17 ô 5) — PopupWindow 300px riêng: Toggle phạm vi (bật sẵn), ô ghi chú BẮT BUỘC
+  đang focus, footer "lưu trong <asset>" + "Huỷ" và nút chính "Bỏ qua".
+  Nút "Bỏ qua" KHÔNG khai ở đây: nó phải nằm trong LiveOpsButtonSlot để in lý do khoá thành chữ khi chưa có ghi chú
+  (SPIKE-B SP-3), mà slot là một element do C# dựng quanh nút.
+  Không câu chữ nào trong file này — mọi label do C# đổ từ LiveOpsHubStrings (lint chặn chữ hiển thị trong UXML).
+-->
+<ui:UXML xmlns:ui="UnityEngine.UIElements">
+    <ui:VisualElement name="ignore-warning-body" class="liveops-hub-validation-ignore-popover">
+        <ui:Label name="ignore-warning-header" class="liveops-hub-validation-proposal-header" />
+        <ui:Toggle name="ignore-warning-scope" class="liveops-hub-validation-ignore-scope" />
+        <ui:Label name="ignore-warning-note-label" class="liveops-hub-validation-ignore-note-label" />
+        <ui:TextField name="ignore-warning-note" multiline="true" />
+        <ui:VisualElement name="ignore-warning-footer" class="liveops-hub-validation-ignore-footer">
+            <ui:Label name="ignore-warning-hint" class="liveops-hub-validation-ignore-hint" />
+            <ui:Button name="ignore-warning-cancel" class="liveops-hub-button" />
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

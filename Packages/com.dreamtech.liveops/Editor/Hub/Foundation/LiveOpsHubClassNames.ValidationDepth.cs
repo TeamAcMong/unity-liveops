@@ -29,6 +29,12 @@ namespace DreamTech.LiveOps.Editor
         internal const string ValidationIgnoreFooter = "liveops-hub-validation-ignore-footer";
         internal const string ValidationIgnoreHint = "liveops-hub-validation-ignore-hint";
 
+        /// <summary>
+        /// Hàng ngang headline + tag của một hàng phát hiện — chỉ dựng khi CÓ tag ("đã tới hẹn"), để hàng không tag giữ nguyên
+        /// cây của W4 và ảnh đã chụp không đổi.
+        /// </summary>
+        internal const string ValidationRowHeadlineLine = "liveops-hub-validation-row-headline-line";
+
         // Nhóm "Đã bỏ qua (n) ▸" mở ra (V-15, [SD2 §2.7] ô 6): mỗi mục một hàng có nút nhỏ "Bỏ bỏ qua".
         internal const string ValidationIgnoredRow = "liveops-hub-validation-ignored-row";
         internal const string ValidationIgnoredNote = "liveops-hub-validation-ignored-note";
