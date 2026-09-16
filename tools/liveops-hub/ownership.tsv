@@ -596,7 +596,7 @@ file	tools/liveops-hub/compile-check.sh	G-TOOLS	G-TOOLS tạo
 file	tools/liveops-hub/contact-sheet.py	G-TOOLS	G-TOOLS tạo
 file	tools/liveops-hub/contract-changes.md	*	* mọi gói ghi yêu cầu đổi hợp đồng rồi dừng (10.1)
 file	tools/liveops-hub/contract-freeze-W3.md	G-SESSION	G-SESSION tạo — 10.3 G-SESSION
-file	tools/liveops-hub/lint-allow.tsv	G-TOOLS,G-I18N	G-TOOLS tạo — ngoại lệ lint mỗi gói thêm ở cổng đợt; G-I18N đổi id luật ui-vietnamese-string → display-text-only-in-catalog ở dòng ngoại lệ đang có (V-28, tự duyệt theo uỷ quyền user 15/9)
+file	tools/liveops-hub/lint-allow.tsv	G-TOOLS,G-I18N,G-PASTE	G-TOOLS tạo — ngoại lệ lint mỗi gói thêm ở cổng đợt; G-I18N đổi id luật ui-vietnamese-string → display-text-only-in-catalog ở dòng ngoại lệ đang có (V-28, tự duyệt theo uỷ quyền user 15/9); G-PASTE thêm ngoại lệ display-dialog cho hộp "Không tạo được asset" (7.0, V-14 bước 4)
 file	tools/liveops-hub/lint-samples/**	G-TOOLS,G-I18N	G-TOOLS tạo — bộ mẫu code-lint --self-test; G-I18N sửa (ngôn ngữ, W3.5)
 file	tools/liveops-hub/make-temp-project-2022.sh	G-TOOLS	G-TOOLS tạo
 file	tools/liveops-hub/make-worktree.sh	G-TOOLS	G-TOOLS tạo
