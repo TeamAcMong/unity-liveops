@@ -54,10 +54,6 @@ namespace DreamTech.LiveOps.Editor
                 vietnamese: "tên tài khoản máy",
                 english: "machine account name");
 
-            table.Add(nameof(LiveOpsHubStrings.KitActionNotBuiltInDevBuild),
-                vietnamese: "Chưa có trong bản dev này",
-                english: "Not built in this dev build");
-
             table.Add(nameof(LiveOpsHubStrings.KitJsonSyntaxPositionFormat),
                 vietnamese: "Dòng {0}, ký tự {1}: {2}",
                 english: "Line {0}, character {1}: {2}");
