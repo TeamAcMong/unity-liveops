@@ -59,9 +59,9 @@ namespace DreamTech.LiveOps.Editor
         }
 
         /// <summary>
-        /// Health của màn tính từ báo cáo kiểm: Blocked khi còn loại chưa khai báo (kể cả loại chỉ có trong JSON đang chạy, V-17),
-        /// Warning khi hai loại cùng ô màu, còn lại Ok. Badge để rỗng có chủ đích — badge của rail do
-        /// <see cref="LiveOpsHubFindingRouting"/> dựng, màn không đếm lại.
+        /// Health của màn: Blocked khi báo cáo kiểm còn loại chưa khai báo (kể cả loại chỉ có trong JSON đang chạy, V-17),
+        /// Warning khi hai loại cùng ô màu (tính thẳng trên nháp, không luật nào lo), còn lại Ok. Badge để rỗng có chủ đích —
+        /// badge của rail do <see cref="LiveOpsHubFindingRouting"/> dựng, màn không đếm lại.
         /// </summary>
         public SectionHealth Health
         {
@@ -339,16 +339,20 @@ namespace DreamTech.LiveOps.Editor
 
         private SectionHealth BuildHealth()
         {
-            if (_report == null) return SectionHealth.Ok();
-
+            // Loại chưa khai báo chỉ tính từ BÁO CÁO: đó là kết luận của luật 8, và rail đọc đúng nguồn đó — chưa kiểm thì rail
+            // chưa biết, màn cũng không được tự kết luận thay. Trùng màu thì ngược lại: đọc thẳng nháp (không luật nào lo), nên
+            // thấy được ngay cả khi chưa kiểm — đúng như LiveOpsHubFindingRouting.HealthFor làm.
             StringBuilder reason = new StringBuilder();
             bool hasUndeclared = false;
-            foreach (LiveEventCalendarFinding finding in _report.Findings)
+            if (_report != null)
             {
-                if (finding.IsIgnored || !LiveOpsHubFindingRouting.BelongsTo(finding, LiveOpsHubHealthTarget.EventTypes)) continue;
-                hasUndeclared = true;
-                if (reason.Length > 0) reason.Append(LiveOpsHubStrings.EventTypesPartSeparator);
-                reason.Append(UndeclaredText(finding.TargetId));
+                foreach (LiveEventCalendarFinding finding in _report.Findings)
+                {
+                    if (finding.IsIgnored || !LiveOpsHubFindingRouting.BelongsTo(finding, LiveOpsHubHealthTarget.EventTypes)) continue;
+                    hasUndeclared = true;
+                    if (reason.Length > 0) reason.Append(LiveOpsHubStrings.EventTypesPartSeparator);
+                    reason.Append(UndeclaredText(finding.TargetId));
+                }
             }
             if (hasUndeclared) return SectionHealth.Blocked(string.Empty, reason.ToString());
 
