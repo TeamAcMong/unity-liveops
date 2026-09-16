@@ -179,6 +179,15 @@
 
 /* ---------------------------------------------------------------- Chiều sâu W5 (G-CALENDAR-DEPTH) */
 
+/* Hai nút W5 [SD1 §3.1]: "Danh sách" đứng đầu toolbar (đổi bố cục màn), "So với đã đăng" sau phần giãn (đổi pane phải). */
+.liveops-hub-calendar-list-toggle {
+    flex-shrink: 0;
+}
+
+.liveops-hub-calendar-compare-toggle {
+    flex-shrink: 0;
+}
+
 /* Nhãn lý do in cạnh nút bị khoá — SPIKE-B SP-3: chữ thật, không phải tooltip. */
 .liveops-hub-calendar-disabled-reason {
     font-size: 10px;

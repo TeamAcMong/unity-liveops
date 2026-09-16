@@ -345,6 +345,52 @@ namespace DreamTech.LiveOps.Editor.Tests
             LogAssert.NoUnexpectedReceived();
         }
 
+        /// <summary>
+        /// (nợ W4 D-3(b), Hình 12 khung 13) Con trỏ đứng trên CHỖ TRỐNG của một làn cố định: dòng gợi ý nêu tên làn, khoảng đang
+        /// xem và microcopy "nhấp đúp chỗ trống để thêm đợt". Nhấp đúp là đường duy nhất tạo đợt bằng chuột ở chỗ trống; trước W5
+        /// dòng gợi ý chỉ có ba trạng thái nên khung 13 vẽ y hệt khung 1 và cử chỉ đó không được nói ra ở đâu.
+        /// </summary>
+        [UnityTest]
+        public IEnumerator HintLine_EmptyLane_ShowsDoubleClickHint()
+        {
+            yield return OpenDesignSample();
+            LiveOpsTimelineLane lane = Element.FindLaneElement("star-tournament");
+            Assert.IsNotNull(lane, "làn star-tournament phải có trên trục 3 tuần");
+            Vector2 empty = TimelineHarness.WorldPointOf(lane, new DateTime(2026, 9, 16, 12, 0, 0, DateTimeKind.Utc),
+                lane.PaddingTop + 14f);
+
+            _panel.SendMouse(EventType.MouseMove, empty);
+
+            Assert.AreEqual("star-tournament", Element.HintLine.Subject.text, "gợi ý nói về LÀN đang trỏ tới");
+            StringAssert.Contains("nhấp đúp", Element.HintLine.Description.text,
+                "và nêu đúng cử chỉ tạo đợt ở chỗ trống [SD1 §3.8 khung 13]");
+
+            _panel.SendMouse(EventType.MouseMove, Element.HintLine.worldBound.center);
+            Assert.AreEqual(string.Empty, Element.HintLine.Subject.text, "rời làn thì gợi ý về trạng thái nghỉ");
+            LogAssert.NoUnexpectedReceived();
+        }
+
+        /// <summary>
+        /// (nợ W4 D-3(a), Hình 12 khung 5) Vế thứ ba của readout: câu kiểm nhanh mà presenter tính. Element chỉ VẼ câu được đưa
+        /// xuống — nó không gọi kiểm, nên test bơm thẳng câu và xem nó có tới được nhãn không.
+        /// </summary>
+        [UnityTest]
+        public IEnumerator Readout_ShowsQuickCheckTagFromPresenter()
+        {
+            yield return OpenDesignSample();
+            Assert.IsTrue(Element.ReadoutQuickCheck.ClassListContains(LiveOpsHubClassNames.TimelineHidden),
+                "không có câu thì không vẽ một vế rỗng");
+
+            Element.SetDragQuickCheckTag(LiveOpsHubStrings.CalendarQuickCheckOkTag, HealthState.Ok);
+            Assert.IsFalse(Element.ReadoutQuickCheck.ClassListContains(LiveOpsHubClassNames.TimelineHidden));
+            Assert.AreEqual(LiveOpsHubStrings.CalendarQuickCheckOkTag, Element.ReadoutQuickCheckText.text);
+            Assert.AreEqual(HealthState.Ok, Element.ReadoutQuickCheckMark.HealthValue);
+
+            Element.SetDragQuickCheckTag(string.Empty, HealthState.Ok);
+            Assert.IsTrue(Element.ReadoutQuickCheck.ClassListContains(LiveOpsHubClassNames.TimelineHidden));
+            LogAssert.NoUnexpectedReceived();
+        }
+
         [UnityTest]
         public IEnumerator Hover_RaisesEnterLeaveOnce()
         {
