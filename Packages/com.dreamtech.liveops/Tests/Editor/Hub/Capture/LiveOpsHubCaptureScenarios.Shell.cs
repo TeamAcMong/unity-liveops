@@ -4,6 +4,7 @@ using System.Globalization;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.UIElements;
+using DreamTech.LiveOps.Tests;
 
 namespace DreamTech.LiveOps.Editor.Tests
 {
@@ -30,6 +31,18 @@ namespace DreamTech.LiveOps.Editor.Tests
         private const int StateMarksWidth = 640;
         private const int StateMarksHeight = 300;
 
+        // G-HOSTUI (W4) — Hình 3 nửa khung, palette Hình 6, toast Hình 7, khung với phiên thật.
+        internal const string ShellComponentsTableElementName = "capture-components-shell";
+        private const int ShellComponentsWidth = 1080;
+        private const int ShellComponentsHeight = 300;
+        private const string PaletteTypingQuery = "kiem";
+        private const string PaletteNoMatchQuery = "xyz";
+        private const string ToastUndoMessage = "Đã dời kết thúc lava-quest-2026-09b 19/9 → 20/9 00:00 UTC";
+        private const string ToastBuriedMessage = "Đã áp mẫu \"Hằng tuần thứ Hai\" cho weekly-pass";
+        private const string ToastOtherActionName = "Đổi màu loại hunt";
+        private const int PaletteFocusSettleFrames = 8;
+        private const int ToastEditDelaySeconds = 12;
+
         static partial void RegisterShell(List<LiveOpsHubCaptureScenario> scenarios)
         {
             scenarios.Add(new LiveOpsHubCaptureScenario(LiveOpsHubCaptureScenarioIds.H02StateMarks, StandardWidth, StandardHeight, OpenStateMarksGallery,
@@ -55,7 +68,311 @@ namespace DreamTech.LiveOps.Editor.Tests
 
             scenarios.Add(new LiveOpsHubCaptureScenario(LiveOpsHubCaptureScenarioIds.H28aFailureSectionEnglish, StandardWidth, StandardHeight,
                 OpenFailureSectionForTranslationSample).WithLanguage(LiveOpsHubLanguageId.English));
+
+            // ---------------------------------------------------------------- G-HOSTUI (W4)
+
+            // Khung với PHIÊN THẬT (mẫu thiết kế 13/9 08:47): chip, status bar và rail đều nói về cùng một lịch, khác với
+            // hs-shell-skeleton của W2 (màn giữ chỗ, không phiên).
+            scenarios.Add(new LiveOpsHubCaptureScenario(LiveOpsHubCaptureScenarioIds.HsShellWithSession, StandardWidth, StandardHeight,
+                    OpenShellWithSession)
+                .WithExpectedFrames(
+                    new LiveOpsHubCaptureExpectedFrame(LiveOpsHubClassNames.Rail, 196f, 0f),
+                    new LiveOpsHubCaptureExpectedFrame(LiveOpsHubClassNames.Header, 0f, 26f),
+                    new LiveOpsHubCaptureExpectedFrame(LiveOpsHubClassNames.Status, 0f, 20f),
+                    new LiveOpsHubCaptureExpectedFrame(LiveOpsHubClassNames.Content, 1084f, 0f)));
+
+            scenarios.Add(new LiveOpsHubCaptureScenario(LiveOpsHubCaptureScenarioIds.H03bComponentsShell, StandardWidth, StandardHeight,
+                    () => OpenShellComponentsTable(), window => window.rootVisualElement.Q(ShellComponentsTableElementName))
+                .WithMinimumSettleFrames(PseudoStateSettleFrames)
+                .WithExpectedFrames(new LiveOpsHubCaptureExpectedFrame(ShellComponentsTableElementName, ShellComponentsWidth, ShellComponentsHeight)));
+
+            // Ba trạng thái palette ([FD §3.8]). Chụp cả cửa sổ chứ không riêng panel: scrim phủ CẢ rail là điểm của hình.
+            scenarios.Add(new LiveOpsHubCaptureScenario(LiveOpsHubCaptureScenarioIds.H06aPaletteEmpty, StandardWidth, StandardHeight,
+                    () => OpenPaletteScenario(string.Empty))
+                .WithMinimumSettleFrames(PaletteFocusSettleFrames));
+            scenarios.Add(new LiveOpsHubCaptureScenario(LiveOpsHubCaptureScenarioIds.H06bPaletteTyping, StandardWidth, StandardHeight,
+                    () => OpenPaletteScenario(PaletteTypingQuery))
+                .WithMinimumSettleFrames(PaletteFocusSettleFrames));
+            scenarios.Add(new LiveOpsHubCaptureScenario(LiveOpsHubCaptureScenarioIds.H06cPaletteNoMatch, StandardWidth, StandardHeight,
+                    () => OpenPaletteScenario(PaletteNoMatchQuery))
+                .WithMinimumSettleFrames(PaletteFocusSettleFrames));
+
+            // Ba trạng thái toast (Hình 7) trong cửa sổ THẬT có phiên — khác hf-toast-bare của W2 (cửa sổ trần, toast gắn tay).
+            scenarios.Add(new LiveOpsHubCaptureScenario(LiveOpsHubCaptureScenarioIds.H07aToastUndo, StandardWidth, StandardHeight,
+                    () => OpenToastScenario(ToastState.Undoable))
+                .WithExpectedFrames(new LiveOpsHubCaptureExpectedFrame(LiveOpsHubClassNames.Toast, 0f, ToastHeight)));
+            scenarios.Add(new LiveOpsHubCaptureScenario(LiveOpsHubCaptureScenarioIds.H07bToastUndoDisabled, StandardWidth, StandardHeight,
+                    () => OpenToastScenario(ToastState.Buried))
+                .WithExpectedFrames(new LiveOpsHubCaptureExpectedFrame(LiveOpsHubClassNames.Toast, 0f, ToastHeight)));
+            scenarios.Add(new LiveOpsHubCaptureScenario(LiveOpsHubCaptureScenarioIds.H07cToastRedo, StandardWidth, StandardHeight,
+                    () => OpenToastScenario(ToastState.Undone))
+                .WithExpectedFrames(new LiveOpsHubCaptureExpectedFrame(LiveOpsHubClassNames.Toast, 0f, ToastHeight)));
         }
+
+        // ================================================================================================ G-HOSTUI (W4)
+
+        /// <summary>Cửa sổ hub trên phiên mẫu thiết kế đã kiểm xong — chip, status bar, rail cùng đọc một lịch.</summary>
+        private static EditorWindow OpenShellWithSession()
+        {
+            LiveOpsHubServices services = LiveOpsHubTestServices.FromDesignSample();
+            return LiveOpsHubWindow.OpenWithServices(services, LiveOpsHubSections.Ids.Overview);
+        }
+
+        /// <summary>
+        /// Palette mở sẵn với câu tìm cho trước. Palette focus ô nhập ở khung SAU khi mở, nên kịch bản chờ thêm khung
+        /// (<see cref="PaletteFocusSettleFrames"/>) để ảnh có đúng viền focus của ô.
+        /// </summary>
+        private static EditorWindow OpenPaletteScenario(string query)
+        {
+            LiveOpsHubServices services = LiveOpsHubTestServices.FromDesignSample();
+            LiveOpsHubWindow window = LiveOpsHubWindow.OpenWithServices(services, LiveOpsHubSections.Ids.Calendar);
+            window.HubRoot?.AddToClassList(LiveOpsHubClassNames.NoMotion);
+            window.OpenPalette();
+            if (query.Length > 0) window.Palette.ApplyQuery(query);
+            return window;
+        }
+
+        private enum ToastState
+        {
+            /// <summary>Hoàn tác bật: bước Undo vừa tạo còn trên đỉnh.</summary>
+            Undoable,
+
+            /// <summary>Hoàn tác khoá: đã có thao tác khác sau đó (Undo là stack chung của Editor).</summary>
+            Buried,
+
+            /// <summary>Đã hoàn tác: chữ đổi thành "Đã hoàn tác: …" với nút Làm lại.</summary>
+            Undone,
+        }
+
+        /// <summary>
+        /// Toast trong cửa sổ thật. Nhóm Undo là thao tác THẬT trên lịch mẫu (không ép trạng thái nút): ca "Buried" làm thêm một
+        /// thao tác nữa nên bước cũ tụt khỏi đỉnh và nút tự khoá kèm "Đã có thao tác khác sau đó".
+        /// </summary>
+        private static EditorWindow OpenToastScenario(ToastState state)
+        {
+            LiveOpsHubServices services = LiveOpsHubTestServices.FromDesignSample();
+            LiveOpsHubWindow window = LiveOpsHubWindow.OpenWithServices(services, LiveOpsHubSections.Ids.Calendar);
+            window.HubRoot?.AddToClassList(LiveOpsHubClassNames.NoMotion);
+
+            // Nhích đồng hồ vài giây trước khi sửa: không thì câu status bar đọc thành "Lịch đã đổi lúc 08:47:00, sau lần kiểm
+            // 08:47:00" — cùng một giây ở hai vế, người soát ảnh sẽ tưởng câu bị hỏng.
+            ManualLiveOpsClock clock = services.Clock as ManualLiveOpsClock;
+            if (clock != null) clock.Set(LiveOpsDesignSample.NowUtc.AddSeconds(ToastEditDelaySeconds));
+
+            string message = state == ToastState.Buried ? ToastBuriedMessage : ToastUndoMessage;
+            LiveOpsHubEditOutcome outcome = services.Session.Apply(MoveLavaQuestEndForToast(services), message);
+            LiveOpsToastModel model = LiveOpsToastModel.ForEdit(message, outcome.UndoGroup);
+
+            if (state == ToastState.Buried)
+            {
+                // Thao tác thứ hai đẩy bước cũ xuống dưới đỉnh — đúng cách người dùng làm mất quyền Hoàn tác của toast.
+                services.Session.Apply(new SetRemoteConfigKeyEdit("liveops_calendar_v2"), ToastOtherActionName);
+            }
+            if (state == ToastState.Undone) model = model.AsUndone();
+
+            services.Bus.ShowToast(model);
+            return window;
+        }
+
+        private static LiveEventCalendarEdit MoveLavaQuestEndForToast(LiveOpsHubServices services)
+        {
+            FixedLiveEventEntry entry;
+            services.Session.Document.TryGetFixedEvent(LiveOpsDesignSample.LavaQuestMidEntryKey, out entry);
+            return new ReplaceFixedEventEdit(new FixedLiveEventEntry(entry.EntryKey, entry.EventId, entry.EventType, entry.StartUtcText,
+                ToastMovedEndUtc, entry.ConfigKey));
+        }
+
+        private const string ToastMovedEndUtc = "2026-09-20T00:00:00Z";
+
+        // ---------------------------------------------------------------- h03b: nửa Shell của Hình 3
+
+        /// <summary>
+        /// Hình 3 nửa khung ([FD §2.4]): Chip (trung tính · hover · nháp a · nháp c) · Hàng rail (nghỉ · hover · active · active mất
+        /// focus · focus bàn phím) · Hàng bảng (nghỉ · hover · selected · selected mất focus · active bản so). Dựng bằng ĐÚNG class
+        /// của khung trong cửa sổ hub thật nên màu là màu token hai skin, không phải màu dán tay.
+        /// <para>
+        /// Hover/active/focus ép bằng <c>pseudoStates</c> qua reflection (SP-18) — chỉ trong code chụp. "Active mất focus" là trạng
+        /// thái riêng của rail/bảng (class <c>--has-focus</c> trên container, không phải pseudo-state), nên hai cột đó dựng bằng
+        /// container không mang class đó.
+        /// </para>
+        /// </summary>
+        private static EditorWindow OpenShellComponentsTable()
+        {
+            FakeHubSection canvas = new FakeHubSection("shell-components", LiveOpsHubStrings.ShellWindowTitle, "Hình 3", PipelineStage.Configure)
+            {
+                ViewFactory = BuildShellComponentsTable,
+                RequiredElementNames = new[] { ShellComponentsTableElementName },
+            };
+            return LiveOpsHubWindow.OpenForTest(new List<IHubSection> { canvas }, new ManualLiveOpsHubCompilationState(false), null, canvas.Id);
+        }
+
+        private static VisualElement BuildShellComponentsTable()
+        {
+            List<(VisualElement Element, string States)> forced = new List<(VisualElement, string)>();
+            VisualElement table = CreateCanvas(ShellComponentsTableElementName, ShellComponentsWidth, ShellComponentsHeight);
+
+            // Không có hàng tiêu đề cột dùng chung: ba hàng có ba bộ trạng thái KHÁC nhau (chip 4, rail 5, bảng 5 — ma trận 9.5),
+            // nên một tiêu đề cột chung sẽ dán nhãn sai cho hàng chip. Mỗi ô tự mang tên trạng thái của nó.
+            table.Add(BuildChipRow(forced));
+            table.Add(BuildRailRow(forced));
+            table.Add(BuildListRow(forced));
+
+            // Gán lại mỗi lần layout đổi: focus controller/con trỏ thật có thể xoá cờ khi panel dựng lại (như h03a).
+            table.RegisterCallback<GeometryChangedEvent>(geometryEvent => ApplyPseudoStates(forced));
+            return table;
+        }
+
+        private static VisualElement BuildChipRow(List<(VisualElement Element, string States)> forced)
+        {
+            VisualElement row = CreateComponentRow(ShellRowHeight, true);
+            row.Add(CreateComponentCell(CreateCaption("Chip"), ShellCaptionWidth));
+            row.Add(CreateCaptionedCell("trung tính", CreateChip(ChipAssetKey, ChipAssetName, string.Empty, false, forced), ChipCellWidth));
+            row.Add(CreateCaptionedCell("hover", CreateChip(ChipAssetKey, ChipAssetName, string.Empty, true, forced), ChipCellWidth));
+            row.Add(CreateCaptionedCell("nháp (a)", CreateChip(string.Empty, ChipUnsavedLeft, ChipUnsavedRight, false, forced), ChipCellWidth));
+            row.Add(CreateCaptionedCell("nháp (c)", CreateChip(string.Empty, LiveOpsHubStrings.ShellChipNeverPublished, string.Empty, false, forced), ChipCellWidth));
+            return row;
+        }
+
+        private static VisualElement CreateChip(string key, string leftText, string rightText, bool hovered,
+            List<(VisualElement Element, string States)> forced)
+        {
+            VisualElement chip = new VisualElement();
+            chip.AddToClassList(LiveOpsHubClassNames.Chip);
+            if (key.Length > 0)
+            {
+                Label keyLabel = new Label(key);
+                keyLabel.AddToClassList(LiveOpsHubClassNames.ChipKey);
+                chip.Add(keyLabel);
+            }
+            Label left = new Label(leftText);
+            left.AddToClassList(LiveOpsHubClassNames.ChipText);
+            chip.Add(left);
+            if (rightText.Length > 0)
+            {
+                VisualElement divider = new VisualElement();
+                divider.AddToClassList(LiveOpsHubClassNames.ChipDivider);
+                chip.Add(divider);
+                Label right = new Label(rightText);
+                right.AddToClassList(LiveOpsHubClassNames.ChipText);
+                chip.Add(right);
+            }
+            if (hovered) forced.Add((chip, PseudoStateHover));
+            return chip;
+        }
+
+        private static VisualElement BuildRailRow(List<(VisualElement Element, string States)> forced)
+        {
+            VisualElement row = CreateComponentRow(ShellRowHeight, true);
+            row.Add(CreateComponentCell(CreateCaption("Hàng rail"), ShellCaptionWidth));
+            row.Add(CreateCaptionedCell("nghỉ", CreateRailRow(false, false, PseudoStateNone, forced)));
+            row.Add(CreateCaptionedCell("hover", CreateRailRow(false, false, PseudoStateHover, forced)));
+            row.Add(CreateCaptionedCell("active", CreateRailRow(true, true, PseudoStateNone, forced)));
+            row.Add(CreateCaptionedCell("active mất focus", CreateRailRow(true, false, PseudoStateNone, forced)));
+            row.Add(CreateCaptionedCell("focus bàn phím", CreateRailRow(false, false, PseudoStateFocus, forced)));
+            return row;
+        }
+
+        /// <param name="containerHasFocus">Class <c>--has-focus</c> trên container rail — đây là thứ phân biệt "active" với
+        /// "active mất focus", không phải pseudo-state của chính hàng ([FD §3.5]).</param>
+        private static VisualElement CreateRailRow(bool isActive, bool containerHasFocus, string pseudoStates,
+            List<(VisualElement Element, string States)> forced)
+        {
+            VisualElement container = new VisualElement();
+            container.AddToClassList(LiveOpsHubClassNames.Rail);
+            container.EnableInClassList(LiveOpsHubClassNames.RailHasFocus, containerHasFocus);
+            // Hàng rail thật nằm trong rail 196px; ô bảng hẹp hơn nên bỏ bề rộng cố định của rail đi (hình học của code chụp).
+            container.style.width = ShellCellWidth - ShellCellPadding;
+            container.style.flexShrink = 0;
+
+            VisualElement railRow = new VisualElement();
+            railRow.AddToClassList(LiveOpsHubClassNames.RailRow);
+            railRow.EnableInClassList(LiveOpsHubClassNames.RailRowActive, isActive);
+            Label label = new Label(LiveOpsHubStrings.ShellValidationTitle);
+            label.AddToClassList(LiveOpsHubClassNames.RailRowLabel);
+            railRow.Add(label);
+            LiveOpsStateMark mark = new LiveOpsStateMark { Size = LiveOpsStateMark.MarkSize.Small };
+            mark.SetHealth(HealthState.Blocked);
+            mark.AddToClassList(LiveOpsHubClassNames.RailRowMark);
+            railRow.Add(mark);
+            container.Add(railRow);
+
+            if (pseudoStates != PseudoStateNone) forced.Add((railRow, pseudoStates));
+            return container;
+        }
+
+        private static VisualElement BuildListRow(List<(VisualElement Element, string States)> forced)
+        {
+            VisualElement row = CreateComponentRow(ShellRowHeight, true);
+            row.Add(CreateComponentCell(CreateCaption("Hàng bảng"), ShellCaptionWidth));
+            row.Add(CreateCaptionedCell("nghỉ", CreateListRow(false, false, false, PseudoStateNone, forced)));
+            row.Add(CreateCaptionedCell("hover", CreateListRow(false, false, false, PseudoStateHover, forced)));
+            row.Add(CreateCaptionedCell("selected", CreateListRow(true, true, false, PseudoStateNone, forced)));
+            row.Add(CreateCaptionedCell("selected mất focus", CreateListRow(true, false, false, PseudoStateNone, forced)));
+            row.Add(CreateCaptionedCell("active bản so", CreateListRow(false, false, true, PseudoStateNone, forced)));
+            return row;
+        }
+
+        /// <param name="isActiveCompareSource">Hàng "đang là bản so" của bảng lịch sử dấu — dùng class hàng active, không phải selected.</param>
+        private static VisualElement CreateListRow(bool isSelected, bool containerHasFocus, bool isActiveCompareSource, string pseudoStates,
+            List<(VisualElement Element, string States)> forced)
+        {
+            VisualElement container = new VisualElement();
+            container.EnableInClassList(LiveOpsHubClassNames.ListHasFocus, containerHasFocus);
+            container.style.width = ShellCellWidth - ShellCellPadding;
+            container.style.flexShrink = 0;
+
+            VisualElement listRow = new VisualElement();
+            listRow.AddToClassList(LiveOpsHubClassNames.FindingRow);
+            // "Selected" là class của ListView gốc Unity (bảng 8.10 không có hằng riêng): lấy từ hằng của engine để ảnh dùng
+            // ĐÚNG class mà bảng thật mang, không phải một chuỗi gõ tay trông giống.
+            listRow.EnableInClassList(BaseVerticalCollectionView.itemSelectedVariantUssClassName, isSelected);
+            listRow.EnableInClassList(LiveOpsHubClassNames.RowActive, isActiveCompareSource);
+            LiveOpsHubStyle.SetSeverityStripe(listRow, HealthState.Blocked);
+            Label label = new Label(ListRowText);
+            label.style.marginLeft = 6;
+            listRow.Add(label);
+            container.Add(listRow);
+
+            if (pseudoStates != PseudoStateNone) forced.Add((listRow, pseudoStates));
+            return container;
+        }
+
+        /// <summary>Một ô của Hình 3: tên trạng thái 10px rồi tới chính thành phần — mỗi hàng có bộ trạng thái riêng nên nhãn đi theo ô.</summary>
+        private static VisualElement CreateCaptionedCell(string stateCaption, VisualElement content)
+        {
+            return CreateCaptionedCell(stateCaption, content, ShellCellWidth);
+        }
+
+        /// <param name="width">Hàng chip chỉ có 4 ô nên ô rộng hơn — chip nháp (a) hai phần dài hơn một hàng rail, cắt là mất chữ.</param>
+        private static VisualElement CreateCaptionedCell(string stateCaption, VisualElement content, float width)
+        {
+            VisualElement cell = new VisualElement();
+            cell.style.width = width;
+            cell.style.flexShrink = 0;
+            cell.style.flexDirection = FlexDirection.Column;
+            cell.style.justifyContent = Justify.Center;
+            Label caption = new Label(stateCaption);
+            caption.AddToClassList(LiveOpsHubClassNames.Caption);
+            caption.style.marginBottom = 3;
+            cell.Add(caption);
+            cell.Add(content);
+            return cell;
+        }
+
+        private const string PseudoStateNone = "";
+        private const string PseudoStateHover = "Hover";
+        private const string PseudoStateFocus = "Focus";
+        private const float ShellCaptionWidth = 110f;
+        private const float ShellCellWidth = 180f;
+        private const float ChipCellWidth = 236f;
+        private const float ShellCellPadding = 8f;
+        private const float ShellRowHeight = 44f;
+        private const string ChipAssetKey = "Lịch";
+        private const string ChipAssetName = "Main.asset";
+        private const string ChipUnsavedLeft = "Chưa lưu · ⌘S";
+        private const string ChipUnsavedRight = "5 khác bản đã đăng";
+        private const string ListRowText = "hunt-0916-bonus";
+
 
         /// <summary>
         /// Hình 28 khung 1 ([FD §4.1]): Tổng quan · Lịch (active, ném khi dựng) · Luật lặp Warning · Kiểm lịch Blocked. Exception ném thật
