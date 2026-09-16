@@ -15,6 +15,28 @@ namespace DreamTech.LiveOps.Editor
         internal const string SectionActionsEmpty = "liveops-hub-section-actions--empty";
         internal const string ShellNotes = "liveops-hub-shell-notes";
 
+        // Header của G-HOSTUI (W4): ô "Đi tới màn…", khoảng giãn, phần chữ của chip.
+        internal const string HeaderSpacer = "liveops-hub-header-spacer";
+        internal const string GotoLabel = "liveops-hub-goto-label";
+        internal const string GotoKey = "liveops-hub-goto-key";
+        internal const string ChipText = "liveops-hub-chip-text";
+        internal const string ChipHidden = "liveops-hub-chip--hidden";
+        internal const string ChipClickable = "liveops-hub-chip--clickable";
+
+        /// <summary>Dấu trạng thái 7 px đầu chip nháp — dạng (c) của [FD §3.3] là một vòng RỖNG trước chữ "Chưa có dấu đã đăng".</summary>
+        internal const string ChipMark = "liveops-hub-chip-mark";
+
+        /// <summary>Nửa trái chip nháp dạng (a) in đậm ([FD §3.3]) — chip duy nhất mời làm một việc.</summary>
+        internal const string ChipTextStrong = "liveops-hub-chip-text--strong";
+
+        // Chỗ cắm outcome ở cuối cột nội dung (8.1 bước 7).
+        internal const string OutcomeHost = "liveops-hub-outcome-host";
+
+        // Băng "tệp đã đổi trên đĩa" (4.3, SPIKE-B SP-8b) — dựng trong hub-shell-notes như note đang biên dịch.
+        internal const string DiskBanner = "liveops-hub-disk-banner";
+        internal const string DiskBannerText = "liveops-hub-disk-banner-text";
+        internal const string DiskBannerActions = "liveops-hub-disk-banner-actions";
+
         // Menu chọn ngôn ngữ ở góc phải header (G-I18N).
         internal const string LanguageMenu = "liveops-hub-language-menu";
 

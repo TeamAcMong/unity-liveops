@@ -226,6 +226,7 @@ file	Packages/com.dreamtech.liveops/Editor/Hub/Icons/d_liveops-hub-clipboard@2x.
 file	Packages/com.dreamtech.liveops/Editor/Hub/Icons/liveops-hub-calendar.png	G-HUBBASE	G-HUBBASE tạo
 file	Packages/com.dreamtech.liveops/Editor/Hub/Icons/liveops-hub-calendar@2x.png	G-HUBBASE	G-HUBBASE tạo
 file	Packages/com.dreamtech.liveops/Editor/Hub/Inspector/LiveEventCalendarAssetInspector.cs	G-INSPECTOR	G-INSPECTOR tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Inspector/LiveEventCalendarAssetInspector.uss	G-INSPECTOR	G-INSPECTOR tạo (vá review F-4: chữ xuống dòng bằng USS vì [FD §2.14] cấm style inline)
 file	Packages/com.dreamtech.liveops/Editor/Hub/Palette/LiveOpsHubPalette.cs	G-FEEDBACK	G-FEEDBACK tạo
 file	Packages/com.dreamtech.liveops/Editor/Hub/Palette/LiveOpsPaletteMatcher.cs	G-FEEDBACK	G-FEEDBACK tạo
 file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Calendar/AddEventFlowModel.cs	G-CALENDAR	G-CALENDAR tạo
@@ -346,7 +347,7 @@ file	Packages/com.dreamtech.liveops/Editor/Hub/Shell/LiveOpsHubWindowState.cs	G-
 file	Packages/com.dreamtech.liveops/Editor/Hub/UI/LiveOpsHub.uxml	G-SHELL,G-I18N,G-HOSTUI,G-SHELLPOLISH	G-SHELL tạo; G-HOSTUI sửa; G-SHELLPOLISH sửa; G-I18N sửa (ngôn ngữ, W3.5)
 file	Packages/com.dreamtech.liveops/Editor/Hub/UI/liveops-hub-components.uss	G-HUBBASE	G-HUBBASE tạo
 file	Packages/com.dreamtech.liveops/Editor/Hub/UI/liveops-hub-controls.uss	G-CONTROLS	G-CONTROLS tạo
-file	Packages/com.dreamtech.liveops/Editor/Hub/UI/liveops-hub-feedback.uss	G-FEEDBACK	G-FEEDBACK tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/UI/liveops-hub-feedback.uss	G-FEEDBACK,G-HOSTUI	G-FEEDBACK tạo; G-HOSTUI sửa CHỈ khối .liveops-hub-palette (CC-HOSTUI-1 + L-6 của soát 16/9: căn giữa ngang) — palette chỉ được gắn vào cửa sổ thật ở G-HOSTUI (W4) nên W2 không có ảnh nào lộ lỗi; ngoại lệ tự duyệt theo uỷ quyền user 15/9, ghi ở contract-changes-G-HOSTUI.md
 file	Packages/com.dreamtech.liveops/Editor/Hub/UI/liveops-hub-motion.uss	G-HUBBASE	G-HUBBASE tạo
 file	Packages/com.dreamtech.liveops/Editor/Hub/UI/liveops-hub-shell.uss	G-SHELL,G-I18N,G-HOSTUI,G-SHELLPOLISH	G-SHELL tạo; G-HOSTUI sửa; G-SHELLPOLISH sửa; G-I18N sửa (ngôn ngữ, W3.5)
 file	Packages/com.dreamtech.liveops/Editor/Hub/UI/liveops-hub-theme.uss	G-HUBBASE	G-HUBBASE tạo
@@ -599,7 +600,7 @@ file	tools/liveops-hub/lint-samples/**	G-TOOLS,G-I18N	G-TOOLS tạo — bộ m�
 file	tools/liveops-hub/make-temp-project-2022.sh	G-TOOLS	G-TOOLS tạo
 file	tools/liveops-hub/make-worktree.sh	G-TOOLS	G-TOOLS tạo
 file	tools/liveops-hub/measure-capture.py	G-TOOLS	G-TOOLS tạo
-file	tools/liveops-hub/ownership.tsv	G-TOOLS,G-FIX-W2-1,G-I18N	G-TOOLS tạo; G-FIX-W2-1 ghi V-21 (phụ thuộc cùng đợt W2, quyền ghi D-3/CC-SHELL-1/2/5/CC-VALB-1/5); G-I18N sửa (ngôn ngữ, W3.5)
+file	tools/liveops-hub/ownership.tsv	G-TOOLS,G-FIX-W2-1,G-I18N,G-HOSTUI,G-INSPECTOR	G-TOOLS tạo; G-FIX-W2-1 ghi V-21 (phụ thuộc cùng đợt W2, quyền ghi D-3/CC-SHELL-1/2/5/CC-VALB-1/5); G-I18N sửa (ngôn ngữ, W3.5); G-HOSTUI ghi ngoại lệ quyền ghi liveops-hub-feedback.uss (H-2 của soát 16/9); G-INSPECTOR thêm một dòng file USS của chính thư mục mình (vá review F-4, tự duyệt theo uỷ quyền user 15/9)
 file	tools/liveops-hub/run-editmode.sh	G-TOOLS	G-TOOLS tạo
 file	tools/liveops-hub/run-playmode.sh	G-TOOLS	G-TOOLS tạo
 file	tools/liveops-hub/unity-slot.sh	G-TOOLS	G-TOOLS tạo
