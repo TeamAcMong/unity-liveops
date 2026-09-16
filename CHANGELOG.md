@@ -37,13 +37,15 @@ không đổi: `Parse`, `LiveOpsSystem` và mọi port của 0.1.0 giữ nguyên
 **LiveOps Hub (`DreamTech.LiveOps.Editor`, chỉ Editor)**
 - Cửa sổ `Tools → DreamTech → LiveOps → LiveOps Hub` (và nút "Mở trong LiveOps Hub" ở inspector asset) với 6 màn:
   Tổng quan, Loại event, Lịch, Luật lặp, Kiểm lịch, Xuất JSON. Hai skin sáng/tối, palette ⌘K, status bar, toast + Undo.
-- **Lịch:** timeline kéo–thả, minimap, hover card ghim được, menu chuột phải, ⌘+kéo tạo đợt, đưa làn lên/xuống,
-  pane "Danh sách", pane "So với" (bản đã đăng hoặc bản trên đĩa), inspector thành drawer khi cửa sổ hẹp.
+- **Lịch:** timeline kéo–thả **bắt lưới** theo menu "Bắt lưới" (Tự động / 15 phút / 1 giờ / 1 ngày / Tắt), tag đọc
+  nhanh ngay trên thanh khi kéo ("sẽ bị bỏ", chồng bao nhiêu), dòng gợi ý nói cử chỉ nhấp đúp khi con trỏ đứng ở chỗ
+  trống của một làn; minimap, hover card ghim được, menu chuột phải, ⌘+kéo tạo đợt, đưa làn lên/xuống, pane "Danh sách",
+  pane "So với" (bản đã đăng hoặc bản trên đĩa), inspector thành drawer khi cửa sổ hẹp.
 - **Luật lặp:** neo / chu kỳ / thời gian chạy / tiền tố id, preset, và foldout "JSON của luật này" sửa thẳng bằng JSON
   với lỗi có dòng và cột.
 - **Kiểm lịch:** sửa an toàn, sửa hàng loạt (một bước Undo), card xem trước, bỏ qua kèm ghi chú và phạm vi, hẹn xem lại
   có tag "đã tới hẹn"; nút áp đề xuất in động từ theo cách sửa.
-- **Xuất JSON:** chọn định dạng 1 hay 2, cổng xuất đếm điều kiện chặn, Copy, lưu file `<key>-<sha6>.json`, đánh dấu đã
+- **Xuất JSON:** chọn định dạng 1 hay 2, cổng xuất đếm điều kiện chặn, Copy, lưu file `liveops_calendar-<sha6>.json`, đánh dấu đã
   đăng. Hub **không** gửi gì lên Firebase.
 - **Dán / Nhập JSON đang chạy:** dán bản đang chạy để so (`remote-snapshot-drift` hết "chưa kiểm"), thay nháp bằng bản
   dán, hoặc nhập thành asset mới khi project chưa có asset nào.
@@ -66,7 +68,8 @@ không đổi: `Parse`, `LiveOpsSystem` và mọi port của 0.1.0 giữ nguyên
 - Test giao diện của hub (category `LiveOpsHub.UI`) phải chạy **không** `-nographics`; 2022.3 với `-nographics` cho
   layout NaN. Category `LiveOpsHub.Logic` và test core/Unity chạy được `-nographics`.
 - Số test và bộ ảnh của bản phát hành được chốt ở mục kiểm chứng khi bump version.
-- Đường chạy của game không gọi SHA-256 (chỉ hub gọi), nên IL2CPP strip không ảnh hưởng game.
+- Đường chạy của game hiện không gọi SHA-256 (chỉ hub gọi). **Chưa dựng build IL2CPP để kiểm** — kết luận
+  "strip không ảnh hưởng game" chờ bản demo IL2CPP của R-28.
 
 ### Chưa có ở bản này
 - **Màn P2 của hub** (Trực tiếp, Dữ liệu người chơi) và **màn P3** (Mô phỏng): chưa đăng ký, rail và ⌘7–9 **ẩn** chứ
