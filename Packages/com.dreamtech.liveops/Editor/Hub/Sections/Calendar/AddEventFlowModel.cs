@@ -44,6 +44,13 @@ namespace DreamTech.LiveOps.Editor
         private readonly DateTime _nowUtc;
         private readonly string _entryKey;
 
+        // Kiểm nhanh chạy hết luật làn trên một tài liệu xem trước; popover hỏi WillBeDropped/DropFinding bốn lần mỗi lần vẽ lại
+        // (nút chính, nhãn Quay lại, thẻ kiểm nhanh, nút gửi). Model bất biến nên tính một lần rồi nhớ là đủ và luôn đúng.
+        private LiveEventCalendarCheckReport _quickCheckReport;
+        private bool _hasQuickCheckReport;
+        private LiveEventCalendarFinding _dropFinding;
+        private bool _hasDropFinding;
+
         private AddEventFlowModel(LiveOpsHubCalendarSession session, DateTime nowUtc, string entryKey, int step, string eventType,
             string startDateText, string startTimeText, int durationHours, string eventId, string configKey)
         {
@@ -119,8 +126,11 @@ namespace DreamTech.LiveOps.Editor
         {
             get
             {
+                if (_hasQuickCheckReport) return _quickCheckReport;
+                _hasQuickCheckReport = true;
                 LiveEventCalendarDocument preview = BuildPreviewDocument();
-                return preview == null ? null : _session.CheckLane(EventType, preview);
+                _quickCheckReport = preview == null || EventType.Length == 0 ? null : _session.CheckLane(EventType, preview);
+                return _quickCheckReport;
             }
         }
 
@@ -139,20 +149,28 @@ namespace DreamTech.LiveOps.Editor
         {
             get
             {
-                LiveEventCalendarCheckReport report = QuickCheck;
-                if (report == null) return null;
-                string eventId = SuggestedEventId;
-                IReadOnlyList<LiveEventCalendarFinding> findings = report.Findings;
-                for (int index = 0; index < findings.Count; index++)
-                {
-                    LiveEventCalendarFinding finding = findings[index];
-                    if (finding.Consequence != LiveEventCalendarConsequence.Dropped) continue;
-                    bool isThisEntry = string.Equals(finding.TargetEntryKey, _entryKey, StringComparison.Ordinal)
-                        || string.Equals(finding.TargetId, eventId, StringComparison.Ordinal);
-                    if (isThisEntry) return finding;
-                }
-                return null;
+                if (_hasDropFinding) return _dropFinding;
+                _hasDropFinding = true;
+                _dropFinding = FindDropFinding();
+                return _dropFinding;
             }
+        }
+
+        private LiveEventCalendarFinding FindDropFinding()
+        {
+            LiveEventCalendarCheckReport report = QuickCheck;
+            if (report == null) return null;
+            string eventId = SuggestedEventId;
+            IReadOnlyList<LiveEventCalendarFinding> findings = report.Findings;
+            for (int index = 0; index < findings.Count; index++)
+            {
+                LiveEventCalendarFinding finding = findings[index];
+                if (finding.Consequence != LiveEventCalendarConsequence.Dropped) continue;
+                bool isThisEntry = string.Equals(finding.TargetEntryKey, _entryKey, StringComparison.Ordinal)
+                    || string.Equals(finding.TargetId, eventId, StringComparison.Ordinal);
+                if (isThisEntry) return finding;
+            }
+            return null;
         }
 
         /// <summary>Bước 1 mở từ nút header: chưa có loại, giờ mặc định là 00:00 UTC của ngày mai theo đồng hồ của phiên.</summary>
@@ -179,7 +197,16 @@ namespace DreamTech.LiveOps.Editor
         /// <summary>Loại lọc theo chuỗi gõ; loại có luật lặp vẫn hiện (disabled) để người dùng biết nó tồn tại và sửa ở đâu.</summary>
         public IReadOnlyList<AddEventTypeChoice> TypeChoices(string filterText)
         {
-            LiveEventCalendarDocument document = _session.Document ?? LiveEventCalendarDocument.Empty;
+            return TypeChoicesOf(_session.Document ?? LiveEventCalendarDocument.Empty, filterText);
+        }
+
+        /// <summary>
+        /// Cùng một quyết định "loại nào tạo đợt cố định được" cho popover Thêm đợt và ô "Loại" của inspector — hai đường vào một
+        /// quyết định mà tính riêng thì sớm muộn cũng lệch (inspector từng liệt kê cả loại có luật lặp).
+        /// </summary>
+        internal static IReadOnlyList<AddEventTypeChoice> TypeChoicesOf(LiveEventCalendarDocument document, string filterText)
+        {
+            if (document == null) document = LiveEventCalendarDocument.Empty;
             string filter = filterText == null ? string.Empty : filterText.Trim();
             List<AddEventTypeChoice> choices = new List<AddEventTypeChoice>();
             IReadOnlyList<LiveEventTypeDefinition> types = document.EventTypes;
@@ -200,16 +227,30 @@ namespace DreamTech.LiveOps.Editor
             return choices;
         }
 
+        /// <summary>
+        /// Chọn loại — GIỮ NGUYÊN bước. Bấm một hàng loại là "đang trỏ", không phải "đi tiếp" [SD1 §3.11 bước 1: hàng loại nổi
+        /// highlight và nút "Tiếp" là nút chính]; nhảy bước ngay khi click thì người dùng không bao giờ thấy trạng thái đang trỏ
+        /// và không đổi ý được bằng mắt.
+        /// </summary>
         public AddEventFlowModel WithType(string typeId)
         {
-            return new AddEventFlowModel(_session, _nowUtc, _entryKey, StepChooseTimes, typeId, StartDateText, StartTimeText,
+            return new AddEventFlowModel(_session, _nowUtc, _entryKey, Step, typeId, StartDateText, StartTimeText,
                 DurationHours, EventId, ConfigKey);
         }
 
+        /// <summary>Đặt giờ — cũng giữ nguyên bước, vì gõ vào ô ngày không phải là bấm "Tiếp".</summary>
         public AddEventFlowModel WithTimes(string startDateText, string startTimeText, int durationHours)
         {
-            return new AddEventFlowModel(_session, _nowUtc, _entryKey, StepReview, EventType, startDateText, startTimeText,
+            return new AddEventFlowModel(_session, _nowUtc, _entryKey, Step, EventType, startDateText, startTimeText,
                 durationHours, EventId, ConfigKey);
+        }
+
+        /// <summary>Đúng một đường tiến bước (Enter hoặc nút "Tiếp"); chưa đủ dữ liệu thì trả chính nó.</summary>
+        public AddEventFlowModel Next()
+        {
+            if (Step >= StepReview || !CanAdvance()) return this;
+            return new AddEventFlowModel(_session, _nowUtc, _entryKey, Step + 1, EventType, StartDateText, StartTimeText,
+                DurationHours, EventId, ConfigKey);
         }
 
         public AddEventFlowModel WithEventId(string eventId)

@@ -17,8 +17,15 @@ namespace DreamTech.LiveOps.Editor.Tests
     {
         private const int CalendarWidth = 1280;
         private const int CalendarHeight = 760;
-        private const int AddEventPopoverWindowWidth = 420;
-        private const int AddEventPopoverWindowHeight = 420;
+        /// <summary>
+        /// Cửa sổ chụp popover: rail của hub chiếm 196px, nên cột nội dung = bề rộng cửa sổ − 196. Cửa sổ 420 chỉ chừa 224px và
+        /// popover 320px bị CẮT — đó là lý do mọi ảnh Hình 13b của lượt trước rộng đúng 224. 560 − 196 = 364, đủ chỗ cho 320.
+        /// </summary>
+        private const int AddEventPopoverWindowWidth = 560;
+        private const int AddEventPopoverWindowHeight = 460;
+
+        /// <summary>Bề rộng inspector đợt của màn Lịch [SD1 §3.9].</summary>
+        private const float CalendarInspectorWidth = 280f;
         private const string AddEventCaptureSectionId = "capture-add-event";
 
         /// <summary>18/9 10:00 UTC — mốc giả định của hình hộp "Rút ngắn đợt đang chạy" [SD1 §3.15]: lava-quest-2026-09b đang chạy.</summary>
@@ -30,14 +37,17 @@ namespace DreamTech.LiveOps.Editor.Tests
                 () => OpenCalendar(LiveOpsDesignSample.HuntBonusEntryKey)));
 
             scenarios.Add(new LiveOpsHubCaptureScenario(LiveOpsHubCaptureScenarioIds.H01aInspectorEmpty, CalendarWidth, CalendarHeight,
-                () => OpenCalendar(string.Empty), CalendarInspectorOf));
+                    () => OpenCalendar(string.Empty), CalendarInspectorOf)
+                .WithExpectedFrames(CalendarInspectorExpectedFrame()));
 
             // Thanh sinh từ luật: khoá thanh của timeline là "<loại>#<chỉ số>" — inspector nhận đúng luật weekly-pass.
             scenarios.Add(new LiveOpsHubCaptureScenario(LiveOpsHubCaptureScenarioIds.H01bInspectorRecurring, CalendarWidth, CalendarHeight,
-                () => OpenCalendar("weekly-pass#35"), CalendarInspectorOf));
+                    () => OpenCalendar("weekly-pass#35"), CalendarInspectorOf)
+                .WithExpectedFrames(CalendarInspectorExpectedFrame()));
 
             scenarios.Add(new LiveOpsHubCaptureScenario(LiveOpsHubCaptureScenarioIds.H01dInspectorUnreadable, CalendarWidth, CalendarHeight,
-                () => OpenCalendar(LiveOpsDesignSample.LavaQuestLateEntryKey), CalendarInspectorOf));
+                    () => OpenCalendar(LiveOpsDesignSample.LavaQuestLateEntryKey), CalendarInspectorOf)
+                .WithExpectedFrames(CalendarInspectorExpectedFrame()));
 
             scenarios.Add(new LiveOpsHubCaptureScenario(LiveOpsHubCaptureScenarioIds.H08aConfirmShortenRunning,
                     (int)LiveOpsConfirmWindow.Width, (int)LiveOpsConfirmWindow.Level1Height, OpenShortenRunningConfirm,
@@ -60,16 +70,20 @@ namespace DreamTech.LiveOps.Editor.Tests
                     LiveOpsConfirmWindow.Width, LiveOpsConfirmWindow.Level1Height)));
 
             scenarios.Add(new LiveOpsHubCaptureScenario(LiveOpsHubCaptureScenarioIds.H13bAddEventStep1, AddEventPopoverWindowWidth,
-                AddEventPopoverWindowHeight, () => OpenAddEventPopover(AddEventFlowModel.StepChooseType), AddEventPopoverRootOf));
+                    AddEventPopoverWindowHeight, () => OpenAddEventPopover(AddEventFlowModel.StepChooseType), AddEventPopoverRootOf)
+                .WithExpectedFrames(AddEventPopoverExpectedFrame()));
 
             scenarios.Add(new LiveOpsHubCaptureScenario(LiveOpsHubCaptureScenarioIds.H13bAddEventStep2, AddEventPopoverWindowWidth,
-                AddEventPopoverWindowHeight, () => OpenAddEventPopover(AddEventFlowModel.StepChooseTimes), AddEventPopoverRootOf));
+                    AddEventPopoverWindowHeight, () => OpenAddEventPopover(AddEventFlowModel.StepChooseTimes), AddEventPopoverRootOf)
+                .WithExpectedFrames(AddEventPopoverExpectedFrame()));
 
             scenarios.Add(new LiveOpsHubCaptureScenario(LiveOpsHubCaptureScenarioIds.H13bAddEventStep3, AddEventPopoverWindowWidth,
-                AddEventPopoverWindowHeight, () => OpenAddEventPopover(AddEventFlowModel.StepReview), AddEventPopoverRootOf));
+                    AddEventPopoverWindowHeight, () => OpenAddEventPopover(AddEventFlowModel.StepReview), AddEventPopoverRootOf)
+                .WithExpectedFrames(AddEventPopoverExpectedFrame()));
 
             scenarios.Add(new LiveOpsHubCaptureScenario(LiveOpsHubCaptureScenarioIds.H13bAddEventOverlap, AddEventPopoverWindowWidth,
-                AddEventPopoverWindowHeight, OpenAddEventPopoverWithOverlap, AddEventPopoverRootOf));
+                    AddEventPopoverWindowHeight, OpenAddEventPopoverWithOverlap, AddEventPopoverRootOf)
+                .WithExpectedFrames(AddEventPopoverExpectedFrame()));
 
             RegisterCalendarFrames(scenarios);
         }
@@ -87,6 +101,19 @@ namespace DreamTech.LiveOps.Editor.Tests
         private static VisualElement CalendarInspectorOf(EditorWindow window)
         {
             return window.rootVisualElement.Q(LiveOpsHubPaths.CalendarElementNames.Inspector);
+        }
+
+        /// <summary>Inspector đợt rộng đúng 280px [SD1 §3.9]. Không khai khung này thì ảnh (a)/(b)/(d) không đo gì và
+        /// "MEASURE OK" là lời khen rỗng — bề rộng từng trôi 252/458/833px mà cổng vẫn xanh.</summary>
+        private static LiveOpsHubCaptureExpectedFrame CalendarInspectorExpectedFrame()
+        {
+            return new LiveOpsHubCaptureExpectedFrame(LiveOpsHubPaths.CalendarElementNames.Inspector, CalendarInspectorWidth, 0f);
+        }
+
+        /// <summary>Popover Thêm đợt rộng 320px [SD1 §3.11] — cùng lý do với khung inspector.</summary>
+        private static LiveOpsHubCaptureExpectedFrame AddEventPopoverExpectedFrame()
+        {
+            return new LiveOpsHubCaptureExpectedFrame(LiveOpsPopoverContent.RootElementName, AddEventPopover.PopoverWidth, 0f);
         }
 
         /// <summary>Hộp rút ngắn dựng từ CHÍNH presenter trên phiên thật, không phải chữ dán — câu trong ảnh là câu code sinh ra.</summary>
@@ -118,12 +145,19 @@ namespace DreamTech.LiveOps.Editor.Tests
             return result ?? services.Session.Document;
         }
 
+        /// <summary>
+        /// Ba bước của Hình 13b trên CÙNG một mốc 21/9 00:00 + 72 giờ: id đề nghị <c>hunt-0921</c> ở bước 3 chỉ khớp khi bước 2
+        /// đã ở 21/9. Trước đây bước 2 để nguyên mặc định "ngày mai" (14/9) nên hai ảnh kể hai câu chuyện khác nhau.
+        /// </summary>
         private static EditorWindow OpenAddEventPopover(int step)
         {
             LiveOpsHubServices services = LiveOpsHubTestServices.ForScenario(LiveOpsHubTestServices.DesignSampleScenario);
             AddEventFlowModel flow = AddEventFlowModel.Create(services.Session, services.Clock.UtcNow);
-            if (step >= AddEventFlowModel.StepChooseTimes) flow = flow.WithType("treasure-hunt");
-            if (step >= AddEventFlowModel.StepReview) flow = flow.WithTimes("2026-09-21", "00:00", 72);
+            if (step >= AddEventFlowModel.StepChooseTimes)
+            {
+                flow = flow.WithType("treasure-hunt").Next().WithTimes("2026-09-21", "00:00", 72);
+            }
+            if (step >= AddEventFlowModel.StepReview) flow = flow.Next();
             return OpenAddEventPopoverHost(services, flow);
         }
 
@@ -133,7 +167,9 @@ namespace DreamTech.LiveOps.Editor.Tests
             LiveOpsHubServices services = LiveOpsHubTestServices.ForScenario(LiveOpsHubTestServices.DesignSampleScenario);
             AddEventFlowModel flow = AddEventFlowModel.Create(services.Session, services.Clock.UtcNow)
                 .WithType("treasure-hunt")
-                .WithTimes("2026-09-15", "00:00", 72);
+                .Next()
+                .WithTimes("2026-09-15", "00:00", 72)
+                .Next();
             return OpenAddEventPopoverHost(services, flow);
         }
 
@@ -147,15 +183,28 @@ namespace DreamTech.LiveOps.Editor.Tests
             FakeHubSection section = new FakeHubSection(AddEventCaptureSectionId, LiveOpsHubStrings.ShellCalendarTitle,
                 LiveOpsHubStrings.ShellCalendarSubtitle, PipelineStage.Schedule)
             {
-                ViewFactory = popover.Build,
+                ViewFactory = () => BuildAddEventPopoverView(popover),
                 RequiredElementNames = LiveOpsHubPaths.RequiredAddEventPopoverElementNames,
             };
             return LiveOpsHubWindow.OpenWithServices(services, new List<IHubSection> { section }, section.Id);
         }
 
+        /// <summary>
+        /// Dựng qua <c>BuildForTest</c> của lớp gốc: nó bọc nội dung trong gốc có token + sheet của popover, đúng cây mà cửa sổ
+        /// popover thật dựng. Thân màn giả rộng hơn 320 nên ghim bề rộng cửa sổ popover vào chính gốc đó.
+        /// </summary>
+        private static VisualElement BuildAddEventPopoverView(AddEventPopover popover)
+        {
+            VisualElement popoverRoot = popover.BuildForTest();
+            popoverRoot.style.width = AddEventPopover.PopoverWidth;
+            popoverRoot.style.flexShrink = 0;
+            popoverRoot.style.alignSelf = Align.FlexStart;
+            return popoverRoot;
+        }
+
         private static VisualElement AddEventPopoverRootOf(EditorWindow window)
         {
-            return window.rootVisualElement.Q(LiveOpsHubPaths.AddEventPopoverElementNames.Root);
+            return window.rootVisualElement.Q(LiveOpsPopoverContent.RootElementName);
         }
 
         // ================================================================================================ Hình 12 [SD1 §3.8]
@@ -181,6 +230,9 @@ namespace DreamTech.LiveOps.Editor.Tests
         /// <summary>Ngoại lệ khung 6 [SD1 §3.8]: trục 16/9 → 21/9 để lava-quest-2026-09b nằm giữa khung khi kéo mép cuối.</summary>
         private static readonly DateTime CalendarFrameEdgeRangeStartUtc = new DateTime(2026, 9, 16, 0, 0, 0, DateTimeKind.Utc);
         private static readonly DateTime CalendarFrameEdgeRangeEndUtc = new DateTime(2026, 9, 21, 0, 0, 0, DateTimeKind.Utc);
+
+        /// <summary>Khung 13: con trỏ đứng giữa khoảng trống của làn star-tournament (16/9 12:00 UTC).</summary>
+        private static readonly DateTime CalendarFrameCursorUtc = new DateTime(2026, 9, 16, 12, 0, 0, DateTimeKind.Utc);
 
         private const string CalendarFrameHuntLaneTypeId = "treasure-hunt";
         private const string CalendarFrameLavaQuestLaneTypeId = "lava-quest";
@@ -416,7 +468,11 @@ namespace DreamTech.LiveOps.Editor.Tests
         /// </summary>
         private static void PoseCalendarFrameNextChip(LiveOpsTimelineElement timeline)
         {
-            ApplyCalendarFrameRange(timeline, CalendarFrameRangeStartUtc, CalendarFrameRangeEndUtc, CalendarFrameStarTournamentLaneTypeId);
+            if (!ApplyCalendarFrameRange(timeline, CalendarFrameRangeStartUtc, CalendarFrameRangeEndUtc,
+                CalendarFrameStarTournamentLaneTypeId)) return;
+            // Con trỏ đang ở TRONG làn trống — đúng tình huống mà [SD1 §3.8 khung 13] mô tả ("nhấp đúp chỗ trống để thêm đợt").
+            // Không có tư thế này thì khung 13 trùng từng byte với khung 1 và không chứng minh được trạng thái nào cả.
+            timeline.SetCursor(CalendarFrameCursorUtc);
         }
 
         /// <summary>

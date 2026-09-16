@@ -27,6 +27,8 @@ namespace DreamTech.LiveOps.Editor
         private string _dragBarKey = string.Empty;
         private LiveEventCalendarDocument _dragStartDocument;
         private FixedLiveEventEntry _dragStartEntry;
+        private LiveEventCalendarCheckReport _previewLaneCheckReport;
+        private string _previewQuickCheckText = string.Empty;
 
         public CalendarTimelinePresenter(LiveOpsHubServices services)
         {
@@ -68,6 +70,30 @@ namespace DreamTech.LiveOps.Editor
         public LiveOpsTimelineModel Model => _model;
 
         public IReadOnlyList<string> HiddenLanes => _hiddenLanes;
+
+        /// <summary>
+        /// Làn ẩn do màn giữ qua domain reload; presenter là nơi duy nhất cầm danh sách này (trước đây màn giữ một bản thứ hai
+        /// và chip "Đang ẩn n làn" đếm bản không ai đọc).
+        /// </summary>
+        public void SetHiddenLanes(IEnumerable<string> typeIds)
+        {
+            _hiddenLanes.Clear();
+            if (typeIds == null) return;
+            foreach (string typeId in typeIds)
+            {
+                if (!string.IsNullOrEmpty(typeId) && !_hiddenLanes.Contains(typeId)) _hiddenLanes.Add(typeId);
+            }
+        }
+
+        /// <summary>
+        /// Kết quả "kiểm nhanh làn này" của lần xem trước gần nhất (7.3: preview → <c>UpdateContinuousEdit</c> + <c>CheckLane</c>);
+        /// <c>null</c> khi không có cử chỉ kéo nào đang mở. KHÔNG bao giờ ghi vào <see cref="LiveOpsHubCheckState"/> — kết quả một
+        /// làn không được làm "mới" kết quả cả lịch (mục 2159 của kế hoạch).
+        /// </summary>
+        internal LiveEventCalendarCheckReport PreviewLaneCheckReport => _previewLaneCheckReport;
+
+        /// <summary>Câu tag của kiểm nhanh khi đang kéo: "kiểm nhanh làn này: không chồng" hoặc headline của phát hiện Bị bỏ.</summary>
+        internal string PreviewQuickCheckText => _previewQuickCheckText;
 
         /// <summary>Dựng đầu vào của model timeline từ phiên: nháp, bản biên dịch, báo cáo kiểm (có thể cũ), diff với bản đã đăng.</summary>
         public LiveOpsTimelineInput BuildInput(DateTime rangeStartUtc, DateTime rangeEndUtc, float trackWidth)
@@ -207,6 +233,41 @@ namespace DreamTech.LiveOps.Editor
                 if (_dragGroup == LiveOpsHubEditOutcome.NoUndoGroup) return;
             }
             session.UpdateContinuousEdit(new ReplaceFixedEventEdit(ClampedEntry(entry, intent)));
+            // 7.3: mỗi bước xem trước chạy kiểm nhanh CHÍNH LÀN đó trên nháp vừa đổi. Không có nó thì dấu "bị bỏ" và vế "chồng n
+            // giờ" trên khung vẫn là kết quả của lần kiểm cũ — người dùng đã kéo hết chồng giờ mà màn hình còn báo chồng.
+            RefreshPreviewQuickCheck(session, entry.EventType);
+        }
+
+        private void RefreshPreviewQuickCheck(LiveOpsHubCalendarSession session, string eventType)
+        {
+            if (string.IsNullOrEmpty(eventType))
+            {
+                ClearPreviewQuickCheck();
+                return;
+            }
+            _previewLaneCheckReport = session.CheckLane(eventType, session.Document);
+            _previewQuickCheckText = QuickCheckTextOf(_previewLaneCheckReport);
+        }
+
+        private void ClearPreviewQuickCheck()
+        {
+            _previewLaneCheckReport = null;
+            _previewQuickCheckText = string.Empty;
+        }
+
+        /// <summary>Không có phát hiện Bị bỏ nào trên làn = câu Ok; có thì nêu đúng câu của phát hiện nặng nhất (V-8).</summary>
+        private string QuickCheckTextOf(LiveEventCalendarCheckReport report)
+        {
+            if (report == null) return string.Empty;
+            IReadOnlyList<LiveEventCalendarFinding> findings = report.Findings;
+            for (int index = 0; index < findings.Count; index++)
+            {
+                LiveEventCalendarFinding finding = findings[index];
+                if (finding.Consequence != LiveEventCalendarConsequence.Dropped) continue;
+                LiveEventCalendarDocument document = _services.Session.Document ?? LiveEventCalendarDocument.Empty;
+                return LiveOpsFindingText.Headline(finding, _services.Format, document.LatestStamp);
+            }
+            return LiveOpsHubStrings.CalendarQuickCheckOkTag;
         }
 
         private void CommitDrag(LiveOpsHubCalendarSession session, FixedLiveEventEntry entry, MoveBarIntent intent)
@@ -251,6 +312,7 @@ namespace DreamTech.LiveOps.Editor
 
         private void ResetDragState()
         {
+            ClearPreviewQuickCheck();
             _dragGroup = LiveOpsHubEditOutcome.NoUndoGroup;
             _dragBarKey = string.Empty;
             _dragStartDocument = null;
@@ -347,7 +409,7 @@ namespace DreamTech.LiveOps.Editor
             if (decision.Requirement == LiveOpsConfirmRequirement.NotAllowed) return false;
             if (decision.Requirement == LiveOpsConfirmRequirement.TypeToConfirm || decision.Requirement == LiveOpsConfirmRequirement.Level1)
             {
-                LiveOpsConfirmRequest request = BuildEditRequest(decision, toastMessage);
+                LiveOpsConfirmRequest request = BuildEditRequest(decision, operation);
                 if (_services.Confirmation.Confirm(request) != LiveOpsConfirmResult.Destructive) return false;
             }
             LiveOpsHubEditOutcome outcome = session.Apply(edit, toastMessage);
@@ -381,16 +443,30 @@ namespace DreamTech.LiveOps.Editor
             return true;
         }
 
-        private LiveOpsConfirmRequest BuildEditRequest(LiveOpsConfirmDecision decision, string title)
+        /// <summary>
+        /// Hộp của một lệnh sửa từ inspector. Tiêu đề là CÂU HỎI và nhãn nút phá huỷ nói đúng việc sắp làm: dùng "Rút ngắn đợt"
+        /// cho mọi lệnh (kể cả đổi id) là mời người dùng bấm một nút nói sai việc. Thân luôn có câu PD-17 ("Editor này chưa có
+        /// bản ghi của …") sau câu "không biết số người chơi toàn cục" — cùng cặp câu với hộp rút ngắn (7.0).
+        /// </summary>
+        private LiveOpsConfirmRequest BuildEditRequest(LiveOpsConfirmDecision decision, LiveOpsEditOperation operation)
         {
+            bool isShorten = operation == LiveOpsEditOperation.ChangeFixedEventTimes;
+            string titleFormat = isShorten
+                ? LiveOpsHubStrings.CalendarShortenConfirmTitleFormat
+                : LiveOpsHubStrings.CalendarEditRunningConfirmTitleFormat;
+            string destructiveLabel = isShorten
+                ? LiveOpsHubStrings.CalendarShortenDestructiveLabel
+                : LiveOpsHubStrings.CalendarEditDestructiveLabel;
+            string noRecord = string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.CalendarNoEditorRecordFormat,
+                decision.RunningEventId);
             LiveOpsConfirmRequest.Builder builder = new LiveOpsConfirmRequest.Builder()
-                .WithTitle(title)
-                .WithBody(LiveOpsHubStrings.CalendarUnknownPlayerCountSentence);
+                .WithTitle(string.Format(CultureInfo.InvariantCulture, titleFormat, decision.RunningEventId))
+                .WithBody(LiveOpsHubStrings.CalendarUnknownPlayerCountSentence + " " + noRecord);
             if (decision.Requirement == LiveOpsConfirmRequirement.TypeToConfirm)
             {
                 builder = builder.WithTypeToConfirm(decision.RunningEventId);
             }
-            return builder.WithButtons(LiveOpsHubStrings.CalendarShortenDestructiveLabel, LiveOpsHubStrings.KitConfirmKeepLabel).Build();
+            return builder.WithButtons(destructiveLabel, LiveOpsHubStrings.KitConfirmKeepLabel).Build();
         }
 
         private void AskAndUndoIfSafe(LiveOpsConfirmRequest request)

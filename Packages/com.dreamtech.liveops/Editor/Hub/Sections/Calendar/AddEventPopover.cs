@@ -1,20 +1,25 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
-using UnityEditor;
+using UnityEditor.UIElements;
 using UnityEngine;
 using UnityEngine.UIElements;
 
 namespace DreamTech.LiveOps.Editor
 {
     /// <summary>
-    /// Popover Thêm đợt ba bước [SD1 §3.11] — cửa sổ riêng (<see cref="PopupWindow"/>) nên không bị cắt ở mép hub và tự đóng khi
-    /// mất focus. <c>PopupWindowContent</c> KHÔNG tự xử lý Escape, nên <see cref="OnOpen"/> đăng ký <c>KeyDownEvent</c>
-    /// TrickleDown trên root của cửa sổ popup: gặp Escape thì chặn lan và đóng — Esc = đóng, không tạo gì.
+    /// Popover Thêm đợt ba bước [SD1 §3.11]. Dựng trên <see cref="LiveOpsPopoverContent"/> — lớp gốc của MỌI popover hub — nên
+    /// cửa sổ đúng 320×N, Esc đóng, focus đầu vào ô lọc và không bao giờ có hai popover cùng mở. Cây popover là panel RIÊNG nên
+    /// sheet của màn Lịch phải gắn lại ở đây: không có nó thì <c>liveops-hub-calendar--hidden</c> không tới nơi và ba bước hiện
+    /// cùng lúc (lỗi đã thấy trên ảnh Hình 13b).
+    /// <para>
+    /// Enter = bước tiếp; ở bước xem lại có chồng giờ Enter là "Quay lại sửa giờ", KHÔNG phải "Vẫn thêm" (SP-2 (c): nút phá huỷ
+    /// không bao giờ là nút mặc định). Escape do lớp gốc lo.
+    /// </para>
     /// </summary>
-    internal sealed class AddEventPopover : PopupWindowContent
+    internal sealed class AddEventPopover : LiveOpsPopoverContent
     {
-        /// <summary>Bề rộng popover theo mockup; chiều cao để UIElements tự tính theo nội dung từng bước.</summary>
+        /// <summary>Bề rộng popover theo mockup; chiều cao mockup 236 — nội dung từng bước vẫn cuộn được trong đó.</summary>
         internal const float PopoverWidth = 320f;
 
         internal const float PopoverHeight = 236f;
@@ -52,33 +57,27 @@ namespace DreamTech.LiveOps.Editor
 
         internal VisualElement Root => _root;
 
-        public override Vector2 GetWindowSize()
+        protected override Vector2 PopoverSize
         {
-            return new Vector2(PopoverWidth, PopoverHeight);
+            get { return new Vector2(PopoverWidth, PopoverHeight); }
         }
 
-        public override void OnGUI(Rect rect)
+        protected override Focusable InitialFocus
         {
-            // Nội dung là UIElements; OnGUI chỉ để thoả hợp đồng PopupWindowContent.
+            get { return _typeFilter; }
         }
 
-        public override void OnOpen()
-        {
-            VisualElement windowRoot = editorWindow == null ? null : editorWindow.rootVisualElement;
-            if (windowRoot == null) return;
-            windowRoot.Add(Build());
-            windowRoot.RegisterCallback<KeyDownEvent>(OnKeyDown, TrickleDown.TrickleDown);
-            _typeFilter?.Focus();
-        }
-
-        /// <summary>Dựng cây popover — tách khỏi <see cref="OnOpen"/> để test dựng được mà không mở cửa sổ thật.</summary>
-        internal VisualElement Build()
+        protected override VisualElement BuildContent()
         {
             VisualTreeAsset layout = _layoutLoader.LoadVisualTree(LiveOpsHubPaths.AddEventPopoverUxml);
             _root = new VisualElement();
-            _root.AddToClassList(LiveOpsHubClassNames.Root);
             if (layout == null) return _root;
             layout.CloneTree(_root);
+
+            // Panel riêng: PopoverSheets của lớp gốc chỉ có theme + components + feedback + motion. Class riêng của màn Lịch
+            // (bước ẩn/hiện, step-dot, hàng loại, hàng nút) sống ở CalendarSection.uss nên gắn thêm chính sheet đó.
+            StyleSheet calendarSheet = _layoutLoader.LoadStyleSheet(LiveOpsHubPaths.CalendarSectionUss);
+            if (calendarSheet != null) _root.styleSheets.Add(calendarSheet);
 
             _headerTitle = _root.Q<Label>(LiveOpsHubPaths.AddEventPopoverElementNames.HeaderTitle);
             _stepDots = _root.Q(LiveOpsHubPaths.AddEventPopoverElementNames.StepDots);
@@ -94,6 +93,8 @@ namespace DreamTech.LiveOps.Editor
                 LiveOpsPlaceholder.Attach(_typeFilter, LiveOpsHubStrings.CalendarAddTypeFilterPlaceholder);
                 _typeFilter.RegisterValueChangedCallback(_ => RefreshTypeList());
             }
+            // Escape đã có ở lớp gốc; Enter là đường riêng của popover này nên đăng ký trên chính cây nội dung.
+            _root.RegisterCallback<KeyDownEvent>(OnKeyDown, TrickleDown.TrickleDown);
             Refresh();
             return _root;
         }
@@ -168,6 +169,7 @@ namespace DreamTech.LiveOps.Editor
             row.Add(tag);
 
             if (!choice.IsEnabled) return row;
+            // Bấm một hàng chỉ ĐANG TRỎ tới loại đó: bước sau mở bằng Enter hoặc nút "Tiếp" [SD1 §3.11 bước 1].
             row.RegisterCallback<ClickEvent>(_ =>
             {
                 _flow = _flow.WithType(choice.TypeId);
@@ -186,11 +188,20 @@ namespace DreamTech.LiveOps.Editor
             start.SetRawTextWithoutNotify(_flow.StartDateText, _flow.StartTimeText);
             start.RawTextCommitted += (dateText, timeText) =>
             {
-                _flow = _flow.WithTimes(dateText, timeText, _flow.DurationHours).Back();
+                _flow = _flow.WithTimes(dateText, timeText, _flow.DurationHours);
                 Refresh();
             };
             _stepTimes.Add(start);
 
+            _stepTimes.Add(BuildDurationRow());
+            _stepTimes.Add(BuildEndRow());
+        }
+
+        /// <summary>Hàng "Dài": ô số · đơn vị "giờ" · ghi chú "= 3 ngày" [SD1 §3.11 bước 2] — số giờ trần không đọc ra được độ dài.</summary>
+        private VisualElement BuildDurationRow()
+        {
+            VisualElement row = new VisualElement();
+            row.AddToClassList(LiveOpsHubClassNames.CalendarFieldRow);
             IntegerField duration = new IntegerField(LiveOpsHubStrings.CalendarFieldDurationLabel)
             {
                 value = _flow.DurationHours,
@@ -198,24 +209,58 @@ namespace DreamTech.LiveOps.Editor
             };
             duration.RegisterValueChangedCallback(change =>
             {
-                _flow = _flow.WithTimes(_flow.StartDateText, _flow.StartTimeText, change.newValue).Back();
+                _flow = _flow.WithTimes(_flow.StartDateText, _flow.StartTimeText, change.newValue);
                 Refresh();
             });
-            _stepTimes.Add(duration);
+            row.Add(duration);
+            row.Add(new Label(LiveOpsHubStrings.CalendarDurationUnitLabel));
+            row.Add(BuildDurationNote(_flow.DurationHours, _services.Format));
+            return row;
+        }
 
-            Label end = new Label(EndText());
-            end.AddToClassList(LiveOpsHubClassNames.Mono);
-            _stepTimes.Add(end);
+        /// <summary>"= 3 ngày" — dùng chung với inspector để hai chỗ không viết hai kiểu cùng một con số.</summary>
+        internal static Label BuildDurationNote(int durationHours, LiveOpsHubFormat format)
+        {
+            string text = durationHours > 0
+                ? string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.CalendarDurationNoteFormat,
+                    format.Duration(TimeSpan.FromHours(durationHours), false))
+                : string.Empty;
+            Label note = new Label(text);
+            note.AddToClassList(LiveOpsHubClassNames.CalendarFieldSubline);
+            return note;
+        }
 
-            Label endNote = new Label(LiveOpsHubStrings.CalendarAddEndAutoNote);
+        /// <summary>Hàng "Kết thúc": có NHÃN như mọi field khác, giờ tự tính, dòng phụ "UTC · tự tính" kèm giờ máy.</summary>
+        private VisualElement BuildEndRow()
+        {
+            VisualElement wrapper = new VisualElement();
+            VisualElement row = new VisualElement();
+            row.AddToClassList(LiveOpsHubClassNames.CalendarFieldRow);
+            row.Add(new Label(LiveOpsHubStrings.CalendarFieldEndLabel));
+            Label endValue = new Label(EndText());
+            endValue.AddToClassList(LiveOpsHubClassNames.Mono);
+            row.Add(endValue);
+            wrapper.Add(row);
+
+            Label endNote = new Label(EndNoteText());
             endNote.AddToClassList(LiveOpsHubClassNames.CalendarFieldSubline);
-            _stepTimes.Add(endNote);
+            wrapper.Add(endNote);
+            return wrapper;
         }
 
         private string EndText()
         {
             DateTime? endUtc = _flow.EndUtc;
             return endUtc == null ? string.Empty : _services.Format.ShortDateTime(endUtc.Value);
+        }
+
+        /// <summary>"UTC · tự tính" + giờ máy của chính mốc đó — ô giờ chỉ nhận UTC nên dòng phụ là chỗ duy nhất nói giờ máy.</summary>
+        private string EndNoteText()
+        {
+            DateTime? endUtc = _flow.EndUtc;
+            if (endUtc == null) return LiveOpsHubStrings.CalendarAddEndAutoNote;
+            return LiveOpsHubStrings.CalendarAddEndAutoNote + LiveOpsHubStrings.ShellRailPartSeparator
+                   + _services.Format.DeviceTimeLine(endUtc.Value);
         }
 
         private void RefreshReview()
@@ -236,6 +281,7 @@ namespace DreamTech.LiveOps.Editor
             timesRow.AddToClassList(LiveOpsHubClassNames.CalendarFieldRow);
             timesRow.Add(new Label(LiveOpsHubStrings.CalendarAddTimesLabel));
             timesRow.Add(new Label(TimesText()));
+            timesRow.Add(BuildDurationNote(_flow.DurationHours, _services.Format));
             _stepReview.Add(timesRow);
 
             TextField configKey = new TextField(LiveOpsHubStrings.CalendarFieldConfigKeyLabel)
@@ -304,7 +350,7 @@ namespace DreamTech.LiveOps.Editor
 
             if (_flow.Step == AddEventFlowModel.StepChooseType)
             {
-                _buttons.Add(MakeButton(LiveOpsHubStrings.CalendarAddCancelButton, Close, false));
+                _buttons.Add(MakeButton(LiveOpsHubStrings.CalendarAddCancelButton, ClosePopover, false));
             }
             else
             {
@@ -356,40 +402,21 @@ namespace DreamTech.LiveOps.Editor
 
         internal void Advance()
         {
-            if (!_flow.CanAdvance()) return;
-            if (_flow.Step == AddEventFlowModel.StepChooseType)
-            {
-                _flow = _flow.WithType(_flow.EventType);
-                Refresh();
-                return;
-            }
-            if (_flow.Step == AddEventFlowModel.StepChooseTimes)
-            {
-                _flow = _flow.WithTimes(_flow.StartDateText, _flow.StartTimeText, _flow.DurationHours);
-                Refresh();
-            }
+            AddEventFlowModel next = _flow.Next();
+            if (ReferenceEquals(next, _flow)) return;
+            _flow = next;
+            Refresh();
         }
 
         internal void Submit()
         {
             _submit(_flow);
-            Close();
-        }
-
-        internal void Close()
-        {
-            if (editorWindow != null) editorWindow.Close();
+            ClosePopover();
         }
 
         /// <summary>Enter = bước tiếp; ở bước xem lại có chồng giờ thì Enter là "Quay lại sửa giờ", KHÔNG phải "Vẫn thêm" (7.0 (c)).</summary>
         internal void OnKeyDown(KeyDownEvent keyEvent)
         {
-            if (keyEvent.keyCode == KeyCode.Escape)
-            {
-                keyEvent.StopPropagation();
-                Close();
-                return;
-            }
             if (keyEvent.keyCode != KeyCode.Return && keyEvent.keyCode != KeyCode.KeypadEnter) return;
             keyEvent.StopPropagation();
             if (_flow.Step != AddEventFlowModel.StepReview)

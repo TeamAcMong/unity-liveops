@@ -222,6 +222,62 @@ namespace DreamTech.LiveOps.Editor.Tests
                 "nhánh chiều sâu của W5 bỏ qua có chủ ý (mục 12 I-5) — không được lặng lẽ sửa tài liệu");
         }
 
+        /// <summary>
+        /// 7.3 bắt mỗi bước xem trước chạy "kiểm nhanh làn này" trên nháp vừa đổi. Dời hunt-0916-bonus +12 giờ là vừa đủ hết chồng
+        /// với hunt-0914, nên tag phải đổi sang câu Ok NGAY lúc xem trước — không đợi thả, không đọc lại báo cáo kiểm cũ.
+        /// </summary>
+        [Test]
+        public void PreviewDrag_RunsLaneQuickCheck()
+        {
+            LiveOpsHubServices services = CreateServices();
+            CalendarTimelinePresenter presenter = CreatePresenter(services, LiveOpsTimelineZoom.ThreeWeeks);
+            LiveEventCalendarCheckReport reportBeforeDrag = services.Session.Check.LastReport;
+            Assert.IsNull(presenter.PreviewLaneCheckReport, "chưa kéo thì không có kết quả kiểm nhanh nào");
+
+            DateTime overlappingStartUtc = new DateTime(2026, 9, 16, 12, 0, 0, DateTimeKind.Utc);
+            presenter.HandleIntent(new MoveBarIntent(LiveOpsDesignSample.HuntBonusEntryKey, overlappingStartUtc,
+                overlappingStartUtc.AddHours(36), LiveOpsTimelineGesturePhase.Preview));
+            Assert.IsNotNull(presenter.PreviewLaneCheckReport, "mỗi bước xem trước phải gọi CheckLane (7.3)");
+            Assert.AreNotEqual(LiveOpsHubStrings.CalendarQuickCheckOkTag, presenter.PreviewQuickCheckText,
+                "đợt vẫn chồng hunt-0914 nên kiểm nhanh phải nêu phát hiện Bị bỏ");
+
+            DateTime clearStartUtc = new DateTime(2026, 9, 17, 0, 0, 0, DateTimeKind.Utc);
+            presenter.HandleIntent(new MoveBarIntent(LiveOpsDesignSample.HuntBonusEntryKey, clearStartUtc,
+                clearStartUtc.AddHours(36), LiveOpsTimelineGesturePhase.Preview));
+            Assert.AreEqual(LiveOpsHubStrings.CalendarQuickCheckOkTag, presenter.PreviewQuickCheckText,
+                "dời +12 giờ là hết chồng — tag đổi ngay ở bước xem trước [SD1 §3.8 khung 5]");
+
+            presenter.HandleIntent(new MoveBarIntent(LiveOpsDesignSample.HuntBonusEntryKey, clearStartUtc,
+                clearStartUtc.AddHours(36), LiveOpsTimelineGesturePhase.Commit));
+            Assert.IsNull(presenter.PreviewLaneCheckReport, "thả chuột xong không còn cử chỉ nào đang mở");
+            Assert.AreSame(reportBeforeDrag, services.Session.Check.LastReport,
+                "kiểm nhanh một làn KHÔNG bao giờ ghi vào trạng thái Kiểm lịch (mục 2159)");
+        }
+
+        [Test]
+        public void EditRunningEvent_ConfirmSaysWhatItDoes()
+        {
+            LiveOpsHubServices services = CreateServices();
+            _clock.Set(WhileMidQuestRunningUtc);
+            CalendarTimelinePresenter presenter = CreatePresenter(services, LiveOpsTimelineZoom.ThreeWeeks);
+            _confirmation.Enqueue(LiveOpsConfirmResult.Safe);
+            Assert.IsTrue(services.Session.Document.TryGetFixedEvent(LiveOpsDesignSample.LavaQuestMidEntryKey,
+                out FixedLiveEventEntry entry));
+
+            presenter.ApplyEdit(new ReplaceFixedEventEdit(entry.WithEventId("lava-quest-2026-09b-doi")),
+                LiveOpsEditOperation.RenameOrRetypeFixedEvent, entry.EntryKey, "toast", string.Empty);
+
+            Assert.AreEqual(1, _confirmation.Requests.Count, "đổi id đợt đang chạy phải hỏi");
+            LiveOpsConfirmRequest request = _confirmation.Requests[0];
+            StringAssert.Contains("lava-quest-2026-09b", request.Title, "tiêu đề là câu hỏi về chính đợt đang chạy");
+            Assert.IsTrue(request.Title.EndsWith("?", StringComparison.Ordinal),
+                "tiêu đề hộp là CÂU HỎI, không phải câu quá khứ của toast");
+            Assert.AreNotEqual(LiveOpsHubStrings.CalendarShortenDestructiveLabel, request.DestructiveLabel,
+                "nút phá huỷ không được nói 'Rút ngắn đợt' khi việc sắp làm là đổi id");
+            StringAssert.Contains(LiveOpsHubStrings.CalendarUnknownPlayerCountSentence, request.Body);
+            StringAssert.Contains("lava-quest-2026-09b", request.Body, "thân hộp có câu PD-17 nêu Editor chưa có bản ghi của đợt");
+        }
+
         [Test]
         public void Delete_RaisesToastAndClearsSelection()
         {
