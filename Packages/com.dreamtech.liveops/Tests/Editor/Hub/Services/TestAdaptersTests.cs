@@ -186,28 +186,6 @@ namespace DreamTech.LiveOps.Editor.Tests
             Assert.IsNull(loader.LoadVisualTree(LiveOpsHubPaths.ShellUxml));
         }
 
-        // INTERIM(G-PASTE): hai test dưới khoá action tạm (sổ nhánh tạm I-3). G-PASTE xoá InterimUnavailableHubActions thì xoá
-        // cùng hai test này và thay bằng Actions_DefaultCanPasteRunningJson_IsTrue ở PasteRunningJsonTests.
-        [Test]
-        public void Interim_CanPasteRunningJson_False_WithReason()
-        {
-            ILiveOpsHubActions actions = new InterimUnavailableHubActions();
-
-            Assert.IsFalse(actions.CanPasteRunningJson);
-            Assert.AreEqual("Chưa có trong bản dev này", actions.PasteRunningJsonUnavailableReason);
-            Assert.DoesNotThrow(() => actions.PasteRunningJson(new Rect(0, 0, 10, 10)));
-        }
-
-        [Test]
-        public void Interim_CanImportRunningJson_False()
-        {
-            ILiveOpsHubActions actions = new InterimUnavailableHubActions();
-
-            Assert.IsFalse(actions.CanImportRunningJson);
-            Assert.AreEqual("Chưa có trong bản dev này", actions.ImportRunningJsonUnavailableReason);
-            Assert.DoesNotThrow(() => actions.ImportRunningJsonIntoNewAsset(new Rect(0, 0, 10, 10)));
-        }
-
         private T Track<T>(T createdObject) where T : UnityEngine.Object
         {
             _createdObjects.Add(createdObject);

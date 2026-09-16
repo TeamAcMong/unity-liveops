@@ -1,0 +1,99 @@
+/*
+ * Popover "Dán / Nhập JSON đang chạy" ([SD2 §2.9], vá V-14). Số đo bám khuôn popover của hub: rộng 320 ([FD §7]),
+ * padding 10, khe giữa các khối 6. Popover là panel RIÊNG nên sheet này được nạp thẳng lên cây popover; mọi màu đi qua
+ * token của liveops-hub-theme.uss để hai skin cùng đọc được.
+ * USS không có gap nên khoảng cách là margin-top của từng khối.
+ */
+
+/* Ẩn bằng class: trạng thái/chế độ không được gán style inline ([FD §2.14]). */
+.liveops-hub-paste-hidden {
+    display: none;
+}
+
+/*
+ * KHÔNG đặt width: 320px ở đây. 320 là bề rộng CỬA SỔ popover ([FD §7]), mà gốc `.liveops-hub-popover` đã có
+ * padding 10 trái/phải — thân rộng 320 trong một cửa sổ 320 thì 20px lề phải bị cắt, chữ chạy sát mép (thấy ở ảnh h09f:
+ * nhãn Toggle cụt đúng mép cửa sổ). Để thân giãn theo gốc thì nó tự ra 300 và lề hai bên bằng nhau.
+ * flex-grow: 1 — thân phải cao đúng cửa sổ popover thì hàng nút mới dính đáy được; cao "theo nội dung" là cao vô hạn.
+ */
+.liveops-hub-paste {
+    flex-grow: 1;
+    padding: var(--liveops-hub-space-10);
+}
+
+.liveops-hub-paste-header {
+    -unity-font-style: bold;
+    margin-bottom: var(--liveops-hub-space-6);
+}
+
+/*
+ * Khung cuộn bao quanh ô dán, cao 96px: đủ thấy một đợt trọn vẹn mà không cuộn. Phải là ScrollView chứ không phải ô
+ * tự nở: bản đang chạy dài hàng trăm dòng, ô nở theo nội dung thì nó đẩy dòng trạng thái và HÀNG NÚT ra ngoài cửa sổ
+ * popover — người dùng không còn nút nào để bấm (ảnh h09f của lượt trước: cây ô dán nở quá 550px).
+ * Cao CỐ ĐỊNH đúng 96 (không flex-grow): 96 là số của thiết kế và là số ảnh chụp đo lại được — cho ô ăn chỗ thừa thì
+ * chiều cao đổi theo chế độ và theo bản dịch, không còn gì để khoá. Chỗ thừa dồn xuống hàng nút qua margin-top: auto.
+ */
+.liveops-hub-paste-input-scroll {
+    height: 96px;
+    flex-shrink: 0;
+    margin-top: var(--liveops-hub-space-2);
+}
+
+/*
+ * white-space đặt trên CHÍNH ô (giống .liveops-hub-recurring-json-editor), không ở tầng hậu duệ .unity-text-element:
+ * ảnh h09f của lượt trước cho thấy luật ở tầng hậu duệ KHÔNG ăn — mọi dòng JSON dài bị cắt cụt ngay mép trong của ô.
+ */
+.liveops-hub-paste-input {
+    margin: 0;
+    white-space: normal;
+}
+
+/* Dòng trạng thái là câu người dùng phải đọc trước khi bấm, không phải chú thích mờ — giữ cỡ chữ thường. */
+.liveops-hub-paste-status {
+    margin-top: var(--liveops-hub-space-4);
+    white-space: normal;
+}
+
+/*
+ * Hàng Toggle ghi dấu: ô tích trái, câu là Label RIÊNG bên phải. Không dùng `Toggle.text` vì nhãn của BaseBoolField
+ * không xuống dòng được — câu dài hơn 280px bị cụt ở mép, mà vế bị cụt ("để hub bảo vệ đợt đang chạy") chính là lý do
+ * người dùng bật nó. Cùng cách IgnoreWarningPopover đã làm (soát W5 F-2).
+ * Khe dưới 6px: Yoga đo Label hai dòng bằng chiều cao MỘT dòng trong hàng flex nên dòng thứ hai tràn khỏi hộp của chính nó.
+ */
+.liveops-hub-paste-stamp {
+    flex-direction: row;
+    align-items: flex-start;
+    margin-bottom: var(--liveops-hub-space-6);
+}
+
+.liveops-hub-paste-stamp-box {
+    flex-grow: 0;
+    flex-shrink: 0;
+    margin-right: var(--liveops-hub-space-6);
+}
+
+.liveops-hub-paste-stamp-label {
+    flex-grow: 1;
+    flex-shrink: 1;
+    white-space: normal;
+}
+
+.liveops-hub-paste-remote-key {
+    margin-top: var(--liveops-hub-space-4);
+    font-size: 10px;
+    color: var(--liveops-hub-color-quiet);
+    white-space: normal;
+}
+
+/*
+ * Hàng nút dính đáy bằng margin-top: auto (cùng cách hộp xác nhận làm) — chỗ thừa của cửa sổ dồn vào đây chứ không
+ * làm ô dán phình ra. flex-shrink: 0 vì hàng nút là thứ duy nhất không được co: không thấy nút thì cả popover vô dụng.
+ */
+.liveops-hub-paste-footer {
+    flex-direction: row;
+    justify-content: flex-end;
+    align-items: center;
+    flex-shrink: 0;
+    margin-top: auto;
+    padding-top: var(--liveops-hub-space-8);
+}
