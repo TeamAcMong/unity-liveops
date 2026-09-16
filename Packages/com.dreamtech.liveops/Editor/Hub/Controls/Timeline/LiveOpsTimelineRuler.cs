@@ -30,6 +30,13 @@ namespace DreamTech.LiveOps.Editor
         /// <summary>Cờ đã đăng đặt left = X − 1 để tâm cán 2px nằm đúng giờ đăng [SD1 §3.2].</summary>
         internal const float PublishedFlagOffset = 1f;
 
+        /// <summary>
+        /// Khoảng trống tối thiểu giữa hai nhãn tầng 1 (phiếu D-2 của cổng W4). Tầng 1 chứa CẢ nhãn tháng lẫn nhãn "Tuần n"
+        /// [SD1 §3.2]; khi khung bắt đầu đúng thứ Hai thì hai nhãn cùng nằm ở x = 0 và chữ chồng lên nhau (đọc ra "THÁNG9 2026").
+        /// Thước bỏ nhãn đứng sau — cùng cách [SD1 §3.2] đã bỏ nhãn tuần khi hết chỗ trước mép phải.
+        /// </summary>
+        private const float MonthTierLabelGap = 6f;
+
         private const string ClockFormat = "HH:mm";
         private const float LineWidth = 1f;
         private const float HalfPixel = 0.5f;
@@ -130,7 +137,8 @@ namespace DreamTech.LiveOps.Editor
                 switch (tick.Tier)
                 {
                     case LiveOpsTimelineRulerTier.MonthAndWeek:
-                        BindLabel(LabelAt(_monthLabels, MonthTier, monthCount++), tick, float.NaN, string.Empty);
+                        // Tầng 1 bind sau cả vòng: thứ tự tick trong danh sách là "tháng trước, tuần sau", không theo x,
+                        // nên phải sắp theo x mới biết nhãn nào chồng nhãn nào (phiếu D-2).
                         break;
                     case LiveOpsTimelineRulerTier.DayOrHour:
                         BindLabel(LabelAt(_dayLabels, DayTier, dayCount++), tick, NextTickPosition(ticks, index), format.ShortDateTimeUtc(tick.TimeUtc));
@@ -140,6 +148,7 @@ namespace DreamTech.LiveOps.Editor
                         break;
                 }
             }
+            monthCount = BindMonthTierLabels(ticks);
             HideFrom(_monthLabels, monthCount);
             HideFrom(_dayLabels, dayCount);
             HideFrom(_deviceLabels, deviceCount);
@@ -185,6 +194,41 @@ namespace DreamTech.LiveOps.Editor
             PublishedFlag.tooltip = string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.TimelinePublishedFlagTooltipFormat,
                 format.ShortDateTime(publishedUtc), model.PublishedShortSha);
             PublishedFlag.style.left = model.Geometry.XOf(publishedUtc) - PublishedFlagOffset; // style-inline-allowed: 3
+        }
+
+        /// <summary>
+        /// Bind nhãn tầng 1 theo thứ tự x và bỏ nhãn nào chồng lên nhãn đứng trước (phiếu D-2). Trả về số nhãn đã hiện.
+        /// Tick tháng được thêm trước tick tuần nên khi trùng x, nhãn THÁNG giữ chỗ còn nhãn "Tuần n" bị bỏ — nhãn tháng là
+        /// thứ duy nhất nói năm, bỏ nó thì khung không còn mốc tháng nào.
+        /// </summary>
+        private int BindMonthTierLabels(IReadOnlyList<LiveOpsTimelineRulerTick> ticks)
+        {
+            List<LiveOpsTimelineRulerTick> tierTicks = new List<LiveOpsTimelineRulerTick>();
+            for (int index = 0; index < ticks.Count; index++)
+            {
+                if (ticks[index].Tier != LiveOpsTimelineRulerTier.MonthAndWeek) continue;
+                if (ticks[index].Text.Length == 0) continue;
+                InsertByPosition(tierTicks, ticks[index]);
+            }
+
+            int visibleCount = 0;
+            float nextFreeX = float.NegativeInfinity;
+            for (int index = 0; index < tierTicks.Count; index++)
+            {
+                LiveOpsTimelineRulerTick tick = tierTicks[index];
+                if (tick.X < nextFreeX) continue;
+                BindLabel(LabelAt(_monthLabels, MonthTier, visibleCount++), tick, float.NaN, string.Empty);
+                nextFreeX = tick.X + tick.Text.Length * LiveOpsTimelineGeometry.LabelCharacterWidth + MonthTierLabelGap;
+            }
+            return visibleCount;
+        }
+
+        /// <summary>Chèn giữ thứ tự x, tick thêm trước thắng khi trùng x (List.Sort không ổn định nên không dùng được ở đây).</summary>
+        private static void InsertByPosition(List<LiveOpsTimelineRulerTick> sorted, LiveOpsTimelineRulerTick tick)
+        {
+            int position = sorted.Count;
+            while (position > 0 && sorted[position - 1].X > tick.X) position--;
+            sorted.Insert(position, tick);
         }
 
         private float NextTickPosition(IReadOnlyList<LiveOpsTimelineRulerTick> ticks, int index)

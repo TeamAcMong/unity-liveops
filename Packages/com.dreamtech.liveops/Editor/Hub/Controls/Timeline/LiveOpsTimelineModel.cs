@@ -30,8 +30,9 @@ namespace DreamTech.LiveOps.Editor
     {
         public LiveOpsTimelineBarModel(string barKey, string eventId, string eventType, LiveOpsTimelineBarSource source, DateTime startUtc,
             DateTime endUtc, int rowIndex, int stripCount, LiveEventPhase phase, bool isRunning, bool isEnded, bool isDropped,
-            bool isChangedSincePublished, string renamedFromId, HealthState worstFinding)
+            bool isChangedSincePublished, string renamedFromId, HealthState worstFinding, double stripActiveHours = 0)
         {
+            StripActiveHours = stripActiveHours;
             BarKey = barKey ?? string.Empty;
             EventId = eventId ?? string.Empty;
             EventType = eventType ?? string.Empty;
@@ -63,6 +64,23 @@ namespace DreamTech.LiveOps.Editor
 
         /// <summary>Số đợt trong thanh — 1 với thanh đơn.</summary>
         public int StripCount { get; }
+
+        /// <summary>Tổng số giờ các đợt trong dải thật sự chạy (không tính khe nghỉ) — 0 với thanh đơn.</summary>
+        public double StripActiveHours { get; }
+
+        /// <summary>
+        /// Nhịp chạy của dải, làm tròn tới giờ: "sky-race · 42 đợt · <b>20 giờ/ngày</b>" [SD1 §3.8 khung 11]. Nhãn dải nói nhịp vì
+        /// dải là một element thay 42 thanh — không có nó người dùng không biết dải đặc hay thưa. 0 khi dải dài 0 (không chia được).
+        /// </summary>
+        public int StripHoursPerDay
+        {
+            get
+            {
+                double spanDays = (EndUtc - StartUtc).TotalDays;
+                if (spanDays <= 0d) return 0;
+                return (int)Math.Round(StripActiveHours / spanDays, MidpointRounding.AwayFromZero);
+            }
+        }
 
         public LiveEventPhase Phase { get; }
         public bool IsRunning { get; }
@@ -573,9 +591,11 @@ namespace DreamTech.LiveOps.Editor
             bool isChanged = false;
             string renamedFromId = string.Empty;
             HealthState worst = HealthState.Ok;
+            double activeHours = 0d;
             for (int index = firstIndex; index < endIndex; index++)
             {
                 LiveEventInstance occurrence = occurrences[index];
+                activeHours += (occurrence.EndUtc - occurrence.StartUtc).TotalHours;
                 if (occurrence.PhaseAt(nowUtc) == LiveEventPhase.Active) isRunning = true;
                 string previousId = context.RenamedRunningIdOf(typeId, occurrence.EventId);
                 if (previousId.Length > 0)
@@ -599,7 +619,7 @@ namespace DreamTech.LiveOps.Editor
             LiveEventPhase stripPhase = PhaseOf(first.StartUtc, last.EndUtc, nowUtc);
             return new PendingBar(typeId + RecurringStripKeyInfix + firstOccurrenceIndex.ToString(CultureInfo.InvariantCulture), stripId, typeId,
                 LiveOpsTimelineBarSource.RecurringStrip, first.StartUtc, last.EndUtc, count, stripPhase, isRunning, last.EndUtc <= nowUtc, false,
-                isChanged, string.Empty, worst, 0);
+                isChanged, string.Empty, worst, 0, activeHours);
         }
 
         private static PendingBar FixedPending(List<FixedCandidate> candidates, int firstIndex, int endIndex)
@@ -955,6 +975,7 @@ namespace DreamTech.LiveOps.Editor
             private readonly string _eventType;
             private readonly LiveOpsTimelineBarSource _source;
             private readonly int _stripCount;
+            private readonly double _stripActiveHours;
             private readonly LiveEventPhase _phase;
             private readonly bool _isRunning;
             private readonly bool _isEnded;
@@ -965,8 +986,9 @@ namespace DreamTech.LiveOps.Editor
 
             public PendingBar(string barKey, string eventId, string eventType, LiveOpsTimelineBarSource source, DateTime startUtc, DateTime endUtc,
                 int stripCount, LiveEventPhase phase, bool isRunning, bool isEnded, bool isDropped, bool isChanged, string renamedFromId,
-                HealthState worstFinding, int sortGroup)
+                HealthState worstFinding, int sortGroup, double stripActiveHours = 0)
             {
+                _stripActiveHours = stripActiveHours;
                 _barKey = barKey;
                 _eventId = eventId;
                 _eventType = eventType;
@@ -1002,6 +1024,12 @@ namespace DreamTech.LiveOps.Editor
                 {
                     if (members[index].EndUtc > endUtc) endUtc = members[index].EndUtc;
                 }
+                double activeHours = 0d;
+                for (int index = 0; index < members.Count; index++)
+                {
+                    activeHours += (members[index].EndUtc - members[index].StartUtc).TotalHours;
+                }
+                _stripActiveHours = activeHours;
                 Members = members;
                 StartUtc = first.StartUtc;
                 EndUtc = endUtc;
@@ -1035,7 +1063,7 @@ namespace DreamTech.LiveOps.Editor
             public LiveOpsTimelineBarModel ToModel(int row)
             {
                 return new LiveOpsTimelineBarModel(_barKey, _eventId, _eventType, _source, StartUtc, EndUtc, row, _stripCount, _phase, _isRunning,
-                    _isEnded, _isDropped, _isChanged, _renamedFromId, _worstFinding);
+                    _isEnded, _isDropped, _isChanged, _renamedFromId, _worstFinding, _stripActiveHours);
             }
 
             public LiveOpsTimelineBarModel ToStripModel(BuildContext context, int row)
@@ -1055,7 +1083,7 @@ namespace DreamTech.LiveOps.Editor
                 }
                 LiveEventPhase phase = PhaseOf(StartUtc, EndUtc, nowUtc);
                 return new LiveOpsTimelineBarModel(_barKey, _eventId, _eventType, _source, StartUtc, EndUtc, row, _stripCount, phase, isRunning,
-                    EndUtc <= nowUtc, isDropped, isChanged, string.Empty, worst);
+                    EndUtc <= nowUtc, isDropped, isChanged, string.Empty, worst, _stripActiveHours);
             }
         }
 

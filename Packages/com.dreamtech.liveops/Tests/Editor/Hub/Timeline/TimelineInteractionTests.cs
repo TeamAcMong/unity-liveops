@@ -521,7 +521,10 @@ namespace DreamTech.LiveOps.Editor.Tests
             Assert.AreEqual(46f, ruler.resolvedStyle.height, 0.5f, "thước 3 tuần 46px [SD1 §3.2]");
             List<string> monthTexts = TimelineTestQueries.Map(ruler.VisibleMonthLabels, label => label.text);
             CollectionAssert.Contains(monthTexts, "THÁNG 9 2026");
-            CollectionAssert.Contains(monthTexts, "Tuần 38");
+            CollectionAssert.Contains(monthTexts, "Tuần 39");
+            // Khung bắt đầu đúng thứ Hai 14/9 nên nhãn "Tuần 38" rơi vào x = 0 y như nhãn tháng; thước bỏ nhãn đứng sau để
+            // chữ không chồng nhau (phiếu D-2 của cổng W4) — nhãn tháng giữ chỗ vì nó là mốc duy nhất nói năm.
+            CollectionAssert.DoesNotContain(monthTexts, "Tuần 38", "hai nhãn tầng 1 không bao giờ chồng chữ");
             List<string> dayTexts = TimelineTestQueries.Map(ruler.VisibleDayLabels, label => label.text);
             CollectionAssert.Contains(dayTexts, "T2 14", "thứ Hai ghi \"T2 14\"");
             Assert.IsTrue(TimelineTestQueries.Single(ruler.VisibleDayLabels, label => label.text == "T2 14")
