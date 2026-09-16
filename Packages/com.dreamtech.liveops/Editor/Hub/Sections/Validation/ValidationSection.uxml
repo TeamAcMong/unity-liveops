@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Thân màn Kiểm lịch (Hình 15/16): HelpBox "kết quả cũ" → toolbar lọc → dải summary → hộp đang kiểm → thân hai cột
+  (card nhóm | pane Chi tiết). Pane Chi tiết là SIBLING của cột card, không nằm trong split: ở --medium nó thành drawer
+  phủ bên phải, và drawer không thể là một nửa của TwoPaneSplitView.
+  Cả mười hai element sống ở MỌI trạng thái (chưa kiểm · đang kiểm · cũ · không còn lỗi · không có asset): probe 9.3 và
+  HubWindowTests duyệt nhiều ngữ cảnh nên phần chưa dùng chỉ ẩn bằng `hidden`, không bị gỡ khỏi cây.
+  Không câu chữ nào trong file này — mọi label do C# đổ từ LiveOpsHubStrings (lint chặn chữ hiển thị trong UXML).
+-->
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:liveops="DreamTech.LiveOps.Editor">
+    <ui:VisualElement name="validation-body" class="liveops-hub-validation-page">
+        <ui:VisualElement name="validation-notice" />
+
+        <ui:VisualElement name="validation-toolbar" class="liveops-hub-validation-toolbar">
+            <liveops:LiveOpsTabStrip name="validation-tabs" />
+            <ui:VisualElement name="validation-type-menu" />
+            <ui:VisualElement class="liveops-hub-validation-toolbar-spacer" />
+            <ui:TextField name="validation-search" class="liveops-hub-validation-search" />
+        </ui:VisualElement>
+
+        <ui:VisualElement name="validation-summary" class="liveops-hub-validation-summary" />
+
+        <ui:VisualElement name="validation-progress" class="liveops-hub-validation-progress" />
+
+        <ui:VisualElement name="validation-content" class="liveops-hub-validation-content">
+            <ui:ScrollView name="validation-groups" class="liveops-hub-validation-groups" />
+        </ui:VisualElement>
+
+        <ui:VisualElement name="validation-empty" class="liveops-hub-empty" />
+    </ui:VisualElement>
+</ui:UXML>
