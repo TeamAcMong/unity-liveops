@@ -315,6 +315,9 @@ namespace DreamTech.LiveOps.Editor
             table.Add(nameof(LiveOpsHubStrings.ShellOverwriteDiskConfirmSafe),
                 vietnamese: "Không ghi đè",
                 english: "Do not overwrite");
+            table.Add(nameof(LiveOpsHubStrings.ShellOutcomeRevealFileButton),
+                vietnamese: "Mở thư mục",
+                english: "Open folder");
             table.Add(nameof(LiveOpsHubStrings.ShellDiskConflictLogFormat),
                 vietnamese: "LiveOps Hub: {0} vừa đổi trên đĩa trong lúc hub còn thay đổi chưa lưu — nháp vẫn giữ trong phiên, băng trên đầu thân đang hỏi giữ bản nào.",
                 english: "LiveOps Hub: {0} changed on disk while the hub still had unsaved changes — the draft is kept in the session; the banner above the body is asking which copy to keep.");

@@ -517,13 +517,32 @@ namespace DreamTech.LiveOps.Editor
         {
             if (_outcomeView == null) return;
             if (windowState.LastOutcome == null) _outcomeView.ClearRecord();
-            else _outcomeView.SetRecord(windowState.LastOutcome);
+            else _outcomeView.SetRecord(windowState.LastOutcome, OutcomeActionLabelOf(windowState.LastOutcome.ActionId));
         }
 
-        /// <summary>Nút trên outcome là một hành động của MÀN đang mở (vd "Mở Xuất JSON") — khung chỉ chuyển tiếp.</summary>
+        /// <summary>
+        /// Nhãn nút của outcome. <c>LiveOpsOutcomeView</c> ẩn nút khi nhãn rỗng, nên id nào khung chưa biết cách làm thì KHÔNG
+        /// hiện nút — không bao giờ có nút trỏ tới thứ khung không chạy được (mục 12 I-11).
+        /// </summary>
+        private static string OutcomeActionLabelOf(string actionId)
+        {
+            return string.Equals(actionId, ExportSection.RevealFileActionId, StringComparison.Ordinal)
+                ? LiveOpsHubStrings.ShellOutcomeRevealFileButton
+                : string.Empty;
+        }
+
+        /// <summary>
+        /// Nút trên outcome là một hành động của MÀN đang mở (vd "Mở Xuất JSON") — khung chỉ chuyển tiếp. "Mở thư mục" là ngoại
+        /// lệ có chủ đích: nó chạm hệ điều hành, mà port <c>ILiveOpsHubFileDialog</c> chỉ khung mới giữ.
+        /// </summary>
         private void OnOutcomeActionInvoked(string actionId, string actionArgument)
         {
             if (string.IsNullOrEmpty(actionId)) return;
+            if (string.Equals(actionId, ExportSection.RevealFileActionId, StringComparison.Ordinal))
+            {
+                if (!string.IsNullOrEmpty(actionArgument)) _fileDialog?.Reveal(actionArgument);
+                return;
+            }
             if (FindSection(actionId) != null) Navigate(actionId);
         }
 
