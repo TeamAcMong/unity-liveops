@@ -103,6 +103,37 @@ namespace DreamTech.LiveOps.Editor.Tests
             LogAssert.NoUnexpectedReceived();
         }
 
+        /// <summary>
+        /// (SPIKE-B SP-3, nợ G-CONTROLS gỡ ở G-SHELLPOLISH W5) Lý do khoá phải IN THÀNH CHỮ cạnh tab, không chỉ tooltip: test này
+        /// CỐ Ý không assert tooltip — đường tooltip đã có test riêng ở trên, còn đây là đường người dùng luôn nhìn thấy.
+        /// </summary>
+        [UnityTest]
+        public IEnumerator DisabledTab_ReasonRenderedAsText()
+        {
+            _panel = ControlsTestPanel.Open();
+            VisualElement root = _panel.CreateRoot(false);
+            LiveOpsTabStrip strip = new LiveOpsTabStrip { Choices = "Nháp|Bản đã đăng" };
+            root.Add(strip);
+            yield return ControlsTestPanel.WaitForLayout(strip);
+
+            Assert.AreEqual(string.Empty, strip.ReasonLabelAt(1).text, "tab đang mở không in lý do nào");
+            Assert.IsFalse(strip.SlotAt(1).ClassListContains(LiveOpsHubClassNames.TabStripSlotBlocked));
+
+            strip.SetChoiceEnabled(1, false, "Chưa có dấu đã đăng");
+            yield return null;
+            Assert.AreEqual("Chưa có dấu đã đăng", strip.ReasonLabelAt(1).text, "lý do khoá in thành chữ cạnh tab (SP-3)");
+            Assert.IsTrue(strip.SlotAt(1).ClassListContains(LiveOpsHubClassNames.TabStripSlotBlocked), "slot bật class để USS hiện phần chữ");
+            Assert.IsTrue(strip.ReasonLabelAt(1).ClassListContains(LiveOpsHubClassNames.TextBlocked), "chữ lý do dùng màu blocked-text ([FD §3.6])");
+            yield return ControlsTestPanel.WaitForLayout(strip.ReasonLabelAt(1));
+            Assert.Greater(strip.ReasonLabelAt(1).layout.width, 0f, "chữ lý do phải CHIẾM CHỖ THẬT, không chỉ có text mà display:none");
+
+            strip.SetChoiceEnabled(1, true, null);
+            yield return null;
+            Assert.AreEqual(string.Empty, strip.ReasonLabelAt(1).text, "mở tab thì xoá chữ lý do");
+            Assert.IsFalse(strip.SlotAt(1).ClassListContains(LiveOpsHubClassNames.TabStripSlotBlocked));
+            LogAssert.NoUnexpectedReceived();
+        }
+
         private static void AssertOnlyTabOn(LiveOpsTabStrip strip, int selected)
         {
             for (int index = 0; index < strip.ChoiceCount; index++)

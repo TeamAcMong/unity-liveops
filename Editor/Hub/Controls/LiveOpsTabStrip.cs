@@ -16,7 +16,9 @@ namespace DreamTech.LiveOps.Editor
     /// về đúng preset zoom khi đang zoom tự do (V-11).
     ///
     /// Mỗi tab nằm trong một slot mang tooltip lý do: toggle disabled có thể không nhận hover nên tooltip đặt trên chính toggle không
-    /// hiện (R-16, cùng lý do <see cref="LiveOpsButtonSlot"/>).
+    /// hiện (R-16, cùng lý do <see cref="LiveOpsButtonSlot"/>). Slot còn mang một <see cref="Label"/> IN LÝ DO THÀNH CHỮ cạnh tab
+    /// (SPIKE-B SP-3): tooltip là đường phụ, vì cả tab lẫn slot đều có thể không nhận hover ở một bản Unity và khi đó người dùng
+    /// chỉ thấy một tab xám không nói vì sao.
     /// </summary>
 #if UNITY_2023_2_OR_NEWER
     [UxmlElement]
@@ -27,6 +29,7 @@ namespace DreamTech.LiveOps.Editor
 
         private readonly List<ToolbarToggle> _tabs = new List<ToolbarToggle>();
         private readonly List<VisualElement> _slots = new List<VisualElement>();
+        private readonly List<Label> _reasonLabels = new List<Label>();
         private string _choices = string.Empty;
         private int _selectedIndex = -1;
 
@@ -91,6 +94,10 @@ namespace DreamTech.LiveOps.Editor
             _tabs[index].SetEnabled(enabled);
             string shownReason = enabled ? string.Empty : reason;
             _slots[index].tooltip = shownReason;
+            // Lý do là CHỮ cạnh tab (SP-3); tooltip trên slot và trên chính nhãn chỉ là đường phụ khi chữ bị cắt.
+            _reasonLabels[index].text = shownReason;
+            _reasonLabels[index].tooltip = shownReason;
+            _slots[index].EnableInClassList(LiveOpsHubClassNames.TabStripSlotBlocked, !enabled);
         }
 
         /// <summary>Toggle của tab thứ <paramref name="index"/> — cho test và kịch bản chụp ép trạng thái hover/nhấn.</summary>
@@ -105,17 +112,30 @@ namespace DreamTech.LiveOps.Editor
             return _slots[index];
         }
 
+        /// <summary>Nhãn in lý do cạnh tab thứ <paramref name="index"/>; chữ rỗng khi tab đang mở (SP-3).</summary>
+        internal Label ReasonLabelAt(int index)
+        {
+            return _reasonLabels[index];
+        }
+
         private void RebuildTabs()
         {
             foreach (VisualElement slot in _slots) slot.RemoveFromHierarchy();
             _slots.Clear();
             _tabs.Clear();
+            _reasonLabels.Clear();
 
             string[] labels = _choices.Length == 0 ? Array.Empty<string>() : _choices.Split(ChoiceSeparator);
             for (int index = 0; index < labels.Length; index++)
             {
                 VisualElement slot = new VisualElement();
                 slot.AddToClassList(LiveOpsHubClassNames.TabStripSlot);
+                // Nhãn lý do đứng TRƯỚC tab, cùng lối "lý do ngắn màu blocked-text ngay bên trái" của nút chính ([FD §3.6]);
+                // dựng sẵn cho mọi tab để bật/tắt là đổi class, không dựng lại cây khi khoá.
+                Label reason = new Label();
+                reason.AddToClassList(LiveOpsHubClassNames.TabStripReason);
+                reason.AddToClassList(LiveOpsHubClassNames.TextBlocked);
+                slot.Add(reason);
                 ToolbarToggle tab = new ToolbarToggle { text = labels[index] };
                 tab.AddToClassList(LiveOpsHubClassNames.TabStripTab);
                 int tabIndex = index;
@@ -123,6 +143,7 @@ namespace DreamTech.LiveOps.Editor
                 slot.Add(tab);
                 Add(slot);
                 _slots.Add(slot);
+                _reasonLabels.Add(reason);
                 _tabs.Add(tab);
             }
 

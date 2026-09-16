@@ -26,6 +26,16 @@ namespace DreamTech.LiveOps.Editor
         internal const string TabStripSlot = "liveops-hub-tab-strip__slot";
         internal const string TabStripTab = "liveops-hub-tab-strip__tab";
 
+        /// <summary>
+        /// Lý do tab bị khoá, IN THÀNH CHỮ cạnh tab (SPIKE-B SP-3, nợ G-CONTROLS gỡ ở G-SHELLPOLISH W5). Vì sao không để tooltip
+        /// một mình: element disabled có thể không nhận hover nên tooltip không bao giờ hiện (cùng lý do
+        /// <c>liveops-hub-button-reason</c> của <c>LiveOpsButtonSlot</c>) — người dùng nhìn tab xám mà không biết vì sao.
+        /// </summary>
+        internal const string TabStripReason = "liveops-hub-tab-strip__reason";
+
+        /// <summary>Slot của tab đang khoá — bật phần chữ lý do (USS không có <c>:disabled</c> trên element cha).</summary>
+        internal const string TabStripSlotBlocked = "liveops-hub-tab-strip__slot--blocked";
+
         // Thanh chu kỳ luật lặp — ba con theo flex-grow bằng số giờ: chạy (màu loại) · nghỉ · tràn (blocked-fill).
         internal const string CycleBarRun = "liveops-hub-cycle-bar__run";
         internal const string CycleBarRest = "liveops-hub-cycle-bar__rest";

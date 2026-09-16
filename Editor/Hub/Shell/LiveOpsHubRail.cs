@@ -1,6 +1,9 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Text;
+using UnityEditor;
+using UnityEngine;
 using UnityEngine.UIElements;
 
 namespace DreamTech.LiveOps.Editor
@@ -10,9 +13,25 @@ namespace DreamTech.LiveOps.Editor
     /// khi model đổi (chữ ký chuỗi) — cửa sổ làm mới health mỗi giây, dựng lại mỗi giây thì mất focus bàn phím và hover.
     /// Di chuyển bằng <c>NavigationMoveEvent</c>, mở bằng <c>NavigationSubmitEvent</c> như ListView gốc; focus theo vùng bằng
     /// <c>FocusIn/FocusOut</c> vì USS không có <c>:focus-within</c>.
+    /// <para>
+    /// Cửa sổ dưới 900 px ([FD §3.7], mục 12 I-8): rail còn 36 px — một ô icon cho MỖI TẦNG (36×32, icon 16, dấu 7 px góc phải
+    /// trên), bấm ô mở <see cref="LiveOpsHubNarrowRailMenu"/>, đáy là ô icon lỗi của ô chặn. Cả hai hình dạng dựng SẴN trong cây
+    /// và USS chọn bằng class trên root: đổi bề rộng cửa sổ không được dựng lại rail (mất focus, mất hover). Nút ‹› ghim mở
+    /// lưu vào EditorPrefs nên lựa chọn sống qua domain reload và qua lần mở sau.
+    /// </para>
     /// </summary>
     internal sealed class LiveOpsHubRail
     {
+        /// <summary>Khoá EditorPrefs của nút ‹› ([FD §3.7] để trống tên khoá; 10.3 chốt đúng chuỗi này).</summary>
+        internal const string PinnedOpenPreferenceKey = "LiveOpsHub.RailPinnedOpen";
+
+        internal const string PinElementName = "hub-rail-pin";
+        internal const string NarrowElementName = "hub-rail-narrow";
+        internal const string NarrowBlockerElementName = "hub-rail-narrow-blocker";
+
+        private const int NarrowIconSize = 16;
+
+        private readonly VisualElement _hubRoot;
         private readonly VisualElement _railElement;
         private readonly Label _caption;
         private readonly ScrollView _scroll;
@@ -21,6 +40,10 @@ namespace DreamTech.LiveOps.Editor
         private readonly Dictionary<string, VisualElement> _rowsBySectionId = new Dictionary<string, VisualElement>(StringComparer.Ordinal);
         private readonly List<VisualElement> _sectionRows = new List<VisualElement>();
         private readonly Dictionary<VisualElement, string> _sectionIdsByRow = new Dictionary<VisualElement, string>();
+        private readonly VisualElement _narrowHost;
+        private readonly List<VisualElement> _narrowCells = new List<VisualElement>();
+        private readonly Button _pinButton;
+        private bool _isPinnedOpen;
         private string _signature = string.Empty;
         private string _activeSectionId = string.Empty;
         private LiveOpsHubRailModel _model;
@@ -29,11 +52,30 @@ namespace DreamTech.LiveOps.Editor
         {
             if (hubRoot == null) throw new ArgumentNullException(nameof(hubRoot));
             _navigate = navigate ?? throw new ArgumentNullException(nameof(navigate));
+            _hubRoot = hubRoot;
             _railElement = hubRoot.Q(LiveOpsHubPaths.ShellElementNames.Rail);
             _caption = hubRoot.Q<Label>(LiveOpsHubPaths.ShellElementNames.RailCaption);
             _scroll = hubRoot.Q<ScrollView>(LiveOpsHubPaths.ShellElementNames.RailScroll);
             _blockerHost = hubRoot.Q(LiveOpsHubPaths.ShellElementNames.RailBlockerHost);
             _caption.text = LiveOpsHubStrings.ShellRailCaption;
+
+            // Hai phần dưới dựng bằng C# thay vì khai trong LiveOpsHub.uxml: cùng lối với dấu trạng thái của chip header — khung
+            // UXML không phải biết tới control dual-path, và danh sách element sống còn của khung không đổi theo một breakpoint.
+            _pinButton = new Button(TogglePinnedOpen)
+            {
+                name = PinElementName,
+                tooltip = LiveOpsHubStrings.ShellRailPinTooltip,
+            };
+            _pinButton.AddToClassList(LiveOpsHubClassNames.RailPin);
+            _pinButton.Add(new LiveOpsChevron(LiveOpsChevron.ChevronDirection.Left));
+            _pinButton.Add(new LiveOpsChevron(LiveOpsChevron.ChevronDirection.Right));
+            _railElement.Insert(0, _pinButton);
+
+            _narrowHost = new VisualElement { name = NarrowElementName };
+            _narrowHost.AddToClassList(LiveOpsHubClassNames.RailNarrow);
+            _railElement.Add(_narrowHost);
+
+            ApplyPinnedOpen(EditorPrefs.GetBool(PinnedOpenPreferenceKey, false));
 
             _railElement.RegisterCallback<FocusInEvent>(OnFocusIn);
             _railElement.RegisterCallback<FocusOutEvent>(OnFocusOut);
@@ -53,6 +95,36 @@ namespace DreamTech.LiveOps.Editor
         internal int RebuildCount { get; private set; }
 
         internal IReadOnlyList<VisualElement> SectionRows => _sectionRows;
+
+        /// <summary>Ô icon tầng của rail 36 px, theo đúng thứ tự tầng; rỗng trước lần <see cref="Build"/> đầu.</summary>
+        internal IReadOnlyList<VisualElement> NarrowCells => _narrowCells;
+
+        /// <summary>Ô icon lỗi ở đáy rail thu gọn; null khi model không có ô chặn.</summary>
+        internal VisualElement NarrowBlockerElement { get; private set; }
+
+        internal Button PinButton => _pinButton;
+
+        /// <summary>Người dùng ghim rail mở ở cửa sổ hẹp (nút ‹›, nhớ trong EditorPrefs).</summary>
+        internal bool IsPinnedOpen => _isPinnedOpen;
+
+        /// <summary>Đổi trạng thái ghim và ghi EditorPrefs — đường duy nhất, để class trên root và khoá không bao giờ lệch nhau.</summary>
+        internal void TogglePinnedOpen()
+        {
+            SetPinnedOpen(!_isPinnedOpen);
+        }
+
+        internal void SetPinnedOpen(bool pinnedOpen)
+        {
+            EditorPrefs.SetBool(PinnedOpenPreferenceKey, pinnedOpen);
+            ApplyPinnedOpen(pinnedOpen);
+        }
+
+        private void ApplyPinnedOpen(bool pinnedOpen)
+        {
+            _isPinnedOpen = pinnedOpen;
+            // Class nằm trên ROOT chứ không trên rail: nó phải thắng được .liveops-hub--narrow, mà class đó cũng ở root.
+            _hubRoot.EnableInClassList(LiveOpsHubClassNames.RailPinnedOpen, pinnedOpen);
+        }
 
         internal VisualElement GetRow(string sectionId)
         {
@@ -93,6 +165,8 @@ namespace DreamTech.LiveOps.Editor
             BlockerElement = model.HasBlocker ? CreateBlocker(model) : null;
             if (BlockerElement != null) _blockerHost.Add(BlockerElement);
 
+            BuildNarrow(model);
+
             SetActiveSection(_activeSectionId);
             VisualElement toFocus = GetRow(focusedSectionId);
             toFocus?.Focus();
@@ -104,6 +178,100 @@ namespace DreamTech.LiveOps.Editor
             foreach (KeyValuePair<string, VisualElement> pair in _rowsBySectionId)
             {
                 pair.Value.EnableInClassList(LiveOpsHubClassNames.RailRowActive, string.Equals(pair.Key, _activeSectionId, StringComparison.Ordinal));
+            }
+            ApplyNarrowActiveCell();
+        }
+
+        /// <summary>
+        /// Hình dạng 36 px ([FD §3.7]): một ô cho mỗi TẦNG (không phải mỗi màn — 36 px không đủ cho 6 hàng có nghĩa), dấu trạng
+        /// thái của tầng ở góc phải trên, và ô icon lỗi ở đáy khi có ô chặn.
+        /// </summary>
+        private void BuildNarrow(LiveOpsHubRailModel model)
+        {
+            _narrowHost.Clear();
+            _narrowCells.Clear();
+            NarrowBlockerElement = null;
+
+            for (int stageIndex = 0; stageIndex < model.Stages.Count; stageIndex++)
+            {
+                LiveOpsHubRailStageRow stage = model.Stages[stageIndex];
+                VisualElement cell = new VisualElement { focusable = true, tabIndex = 0, tooltip = stage.Caption };
+                cell.AddToClassList(LiveOpsHubClassNames.RailNarrowCell);
+                cell.Add(LiveOpsHubIcons.CreateImage(PipelineStages.IconNameOf(stage.Stage), NarrowIconSize));
+
+                LiveOpsStateMark mark = new LiveOpsStateMark { Size = LiveOpsStateMark.MarkSize.Small, pickingMode = PickingMode.Ignore };
+                mark.SetHealth(stage.State);
+                mark.AddToClassList(LiveOpsHubClassNames.RailNarrowMark);
+                cell.Add(mark);
+
+                LiveOpsHubRailStageRow captured = stage;
+                cell.RegisterCallback<ClickEvent>(clickEvent => OpenStageMenu(captured));
+                cell.RegisterCallback<NavigationSubmitEvent>(submitEvent =>
+                {
+                    OpenStageMenu(captured);
+                    submitEvent.StopPropagation();
+                });
+                _narrowHost.Add(cell);
+                _narrowCells.Add(cell);
+            }
+
+            if (!model.HasBlocker) return;
+            VisualElement blockerCell = new VisualElement
+            {
+                name = NarrowBlockerElementName,
+                focusable = true,
+                tabIndex = 0,
+                tooltip = string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.ShellRailNarrowBlockerTooltipFormat,
+                    model.BlockerTitle, model.BlockerDetail),
+            };
+            blockerCell.AddToClassList(LiveOpsHubClassNames.RailNarrowCell);
+            blockerCell.AddToClassList(LiveOpsHubClassNames.RailNarrowCellBlocker);
+            LiveOpsStateMark blockerMark = new LiveOpsStateMark { Size = LiveOpsStateMark.MarkSize.Regular, pickingMode = PickingMode.Ignore };
+            blockerMark.SetHealth(HealthState.Blocked);
+            blockerCell.Add(blockerMark);
+            LiveOpsHubNavigation navigation = model.BlockerNavigation;
+            blockerCell.RegisterCallback<ClickEvent>(clickEvent => _navigate(navigation));
+            blockerCell.RegisterCallback<NavigationSubmitEvent>(submitEvent =>
+            {
+                _navigate(navigation);
+                submitEvent.StopPropagation();
+            });
+            _narrowHost.Add(blockerCell);
+            NarrowBlockerElement = blockerCell;
+        }
+
+        private void OpenStageMenu(LiveOpsHubRailStageRow stage)
+        {
+            int stageIndex = IndexOfStage(stage);
+            Rect activator = stageIndex >= 0 && stageIndex < _narrowCells.Count ? _narrowCells[stageIndex].worldBound : _railElement.worldBound;
+            LiveOpsHubNarrowRailMenu.Show(activator, stage, _activeSectionId, sectionId => _navigate(LiveOpsHubNavigation.To(sectionId)));
+        }
+
+        private int IndexOfStage(LiveOpsHubRailStageRow stage)
+        {
+            if (_model == null) return -1;
+            for (int index = 0; index < _model.Stages.Count; index++)
+            {
+                if (ReferenceEquals(_model.Stages[index], stage)) return index;
+            }
+            return -1;
+        }
+
+        /// <summary>Ô tầng đang chứa màn đang mở — rail thu gọn tô ô đó, thay cho hàng active của rail 196 px.</summary>
+        private void ApplyNarrowActiveCell()
+        {
+            if (_model == null) return;
+            for (int index = 0; index < _narrowCells.Count && index < _model.Stages.Count; index++)
+            {
+                bool isActive = false;
+                IReadOnlyList<LiveOpsHubRailSectionRow> rows = _model.Stages[index].Rows;
+                for (int rowIndex = 0; rowIndex < rows.Count; rowIndex++)
+                {
+                    if (!string.Equals(rows[rowIndex].SectionId, _activeSectionId, StringComparison.Ordinal)) continue;
+                    isActive = true;
+                    break;
+                }
+                _narrowCells[index].EnableInClassList(LiveOpsHubClassNames.RailNarrowCellActive, isActive);
             }
         }
 

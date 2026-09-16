@@ -41,10 +41,12 @@ namespace DreamTech.LiveOps.Editor
         /// <summary>⌘S của Unity sau khi hub đã lưu lịch (8.7) — chuỗi menu, không phải shortcut id.</summary>
         internal const string SaveMenuPath = "File/Save";
 
-        internal const string DiskBannerElementName = "hub-disk-banner";
-        internal const string DiskBannerReloadElementName = "hub-disk-banner-reload";
-        internal const string DiskBannerDiffElementName = "hub-disk-banner-diff";
-        internal const string DiskBannerKeepElementName = "hub-disk-banner-keep";
+        // Tên element của băng đĩa do chính view giữ (LiveOpsHubDiskConflictBanner); cửa sổ chuyển tiếp để test đã có từ W4 và
+        // probe không phải đổi chỗ tra.
+        internal const string DiskBannerElementName = LiveOpsHubDiskConflictBanner.ElementName;
+        internal const string DiskBannerReloadElementName = LiveOpsHubDiskConflictBanner.ReloadButtonName;
+        internal const string DiskBannerDiffElementName = LiveOpsHubDiskConflictBanner.DiffButtonName;
+        internal const string DiskBannerKeepElementName = LiveOpsHubDiskConflictBanner.KeepButtonName;
 
         [SerializeField] private LiveOpsHubWindowState windowState = new LiveOpsHubWindowState();
 
@@ -94,6 +96,20 @@ namespace DreamTech.LiveOps.Editor
         [NonSerialized] private StatusBarSignature _statusSignature;
         [NonSerialized] private bool _hasStatusSignature;
         [NonSerialized] private Action _saveMenuCommandForTest;
+
+        // Cửa sổ dữ liệu mẫu (menu ⋮ "Hiện dữ liệu mẫu"): asset DontSave không đường dẫn — người gọi sở hữu và phải
+        // DestroyImmediate, vì DontSave gồm cả DontUnloadUnusedAsset nên Unity không bao giờ tự dọn (mục 3, ràng buộc vòng đời).
+        [NonSerialized] private LiveEventCalendarAsset _ownedPreviewAsset;
+        [NonSerialized] private bool _ownsInjectedServices;
+
+        // Cờ DUY NHẤT của cửa sổ mẫu sống qua domain reload: mọi thứ khác của nó ([NonSerialized] services tiêm vào, cờ cách
+        // ly, asset mẫu) bị xoá khi biên dịch lại. Không nhớ điều này thì cửa sổ mẫu dựng lại thành cửa sổ hub THẬT trên lịch
+        // thật, và người dùng tưởng đang nghịch dữ liệu mẫu (R-24).
+        [SerializeField] private bool isPreviewSampleWindow;
+        [NonSerialized] private Action<string> _openUrlForTest;
+
+        // Người dùng đã chọn "Giữ bản trong Editor" và chưa lưu lần nào từ đó — lần ⌘S tới mới thật sự ghi đè bản trên đĩa.
+        [NonSerialized] private bool _isOverwriteOfDiskPending;
 
         IReadOnlyList<IHubSection> IHubHost.Sections => _sections;
 
@@ -183,6 +199,54 @@ namespace DreamTech.LiveOps.Editor
             return window;
         }
 
+        /// <summary>
+        /// Menu ⋮ "Hiện dữ liệu mẫu (chỉ để xem giao diện)" ([FD §3.3]): một cửa sổ hub THỨ HAI chạy trên tài liệu mẫu
+        /// 13/9/2026 08:47 với đồng hồ đứng yên. Asset mẫu chỉ sống trong bộ nhớ (<c>DontSave</c>, không đường dẫn) nên
+        /// không bao giờ ra đĩa, và không ghi Undo — sửa thử ở đây không chen vào lịch sử Undo của lịch thật (R-24).
+        /// Cửa sổ này sở hữu cả services lẫn asset và dọn cả hai khi đóng.
+        /// </summary>
+        internal static LiveOpsHubWindow OpenPreviewSample()
+        {
+            LiveEventCalendarAsset sampleAsset;
+            LiveOpsHubServices services = BuildPreviewSampleServices(out sampleAsset);
+            LiveOpsHubWindow window = CreateInstance<LiveOpsHubWindow>();
+            // Không đi qua OpenWithServices vì cờ mẫu phải nằm trên cửa sổ TRƯỚC Show: Show có thể chạy CreateGUI ngay, và
+            // sau này chính cờ đó là thứ duy nhất còn lại sau domain reload.
+            window.isPreviewSampleWindow = true;
+            window._injectedServices = services;
+            window._pendingSectionId = LiveOpsHubSections.Ids.Overview;
+            window._isIsolatedFromSessionState = true;
+            window._ownedPreviewAsset = sampleAsset;
+            window._ownsInjectedServices = true;
+            window.Show();
+            return window;
+        }
+
+        /// <summary>
+        /// Trạng thái của cửa sổ mẫu NGAY SAU domain reload, dựng bằng đúng thứ Unity còn giữ: mỗi field
+        /// <c>[SerializeField]</c> sống, mọi field <c>[NonSerialized]</c> về mặc định. Chỉ test dùng — mô phỏng reload bằng
+        /// cách gọi tay <c>OnDisable</c>/<c>OnEnable</c> để lại cửa sổ nửa sống nửa chết và làm hỏng test chạy sau.
+        /// </summary>
+        internal static LiveOpsHubWindow OpenPreviewSampleAfterDomainReloadForTest()
+        {
+            LiveOpsHubWindow window = CreateInstance<LiveOpsHubWindow>();
+            window.isPreviewSampleWindow = true;
+            window.Show();
+            return window;
+        }
+
+        /// <summary>Phiên mẫu 13/9/2026 08:47 với đồng hồ đứng yên trên asset chỉ sống trong bộ nhớ — một chỗ dựng duy nhất,
+        /// dùng cả lúc mở cửa sổ lẫn lúc dựng lại sau domain reload.</summary>
+        private static LiveOpsHubServices BuildPreviewSampleServices(out LiveEventCalendarAsset sampleAsset)
+        {
+            sampleAsset = LiveOpsHubPreviewSample.CreateAsset();
+            return new LiveOpsHubServicesBuilder()
+                .WithClock(LiveOpsHubPreviewSample.CreateClock())
+                .WithTimeZone(LiveOpsHubPreviewSample.CreateTimeZone())
+                .WithCalendarAsset(sampleAsset)
+                .Build();
+        }
+
         // ------------------------------------------------------------------------------------------------------------ vòng đời
 
         private void OnEnable()
@@ -190,6 +254,9 @@ namespace DreamTech.LiveOps.Editor
             ApplyWindowTitle();
             minSize = new Vector2(MinimumWidth, MinimumHeight);
             if (windowState == null) windowState = new LiveOpsHubWindowState();
+            // Cờ cách ly là [NonSerialized] nên reload xoá mất: bật lại ngay ở đây để cửa sổ mẫu không ghi màn đang mở của
+            // nó vào SessionState dùng chung với cửa sổ hub thật.
+            if (isPreviewSampleWindow) _isIsolatedFromSessionState = true;
             // Đăng ký ở OnEnable chứ không ở CreateGUI: chính tay xử lý gọi lại CreateGUI, mà CreateGUI mở đầu bằng
             // TearDownChrome — gỡ đăng ký trong đó sẽ cắt luôn sự kiện đang chạy.
             LiveOpsHubLanguage.Changed -= OnLanguageChanged;
@@ -486,13 +553,32 @@ namespace DreamTech.LiveOps.Editor
         {
             if (_outcomeView == null) return;
             if (windowState.LastOutcome == null) _outcomeView.ClearRecord();
-            else _outcomeView.SetRecord(windowState.LastOutcome);
+            else _outcomeView.SetRecord(windowState.LastOutcome, OutcomeActionLabelOf(windowState.LastOutcome.ActionId));
         }
 
-        /// <summary>Nút trên outcome là một hành động của MÀN đang mở (vd "Mở Xuất JSON") — khung chỉ chuyển tiếp.</summary>
+        /// <summary>
+        /// Nhãn nút của outcome. <c>LiveOpsOutcomeView</c> ẩn nút khi nhãn rỗng, nên id nào khung chưa biết cách làm thì KHÔNG
+        /// hiện nút — không bao giờ có nút trỏ tới thứ khung không chạy được (mục 12 I-11).
+        /// </summary>
+        private static string OutcomeActionLabelOf(string actionId)
+        {
+            return string.Equals(actionId, ExportSection.RevealFileActionId, StringComparison.Ordinal)
+                ? LiveOpsHubStrings.ShellOutcomeRevealFileButton
+                : string.Empty;
+        }
+
+        /// <summary>
+        /// Nút trên outcome là một hành động của MÀN đang mở (vd "Mở Xuất JSON") — khung chỉ chuyển tiếp. "Mở thư mục" là ngoại
+        /// lệ có chủ đích: nó chạm hệ điều hành, mà port <c>ILiveOpsHubFileDialog</c> chỉ khung mới giữ.
+        /// </summary>
         private void OnOutcomeActionInvoked(string actionId, string actionArgument)
         {
             if (string.IsNullOrEmpty(actionId)) return;
+            if (string.Equals(actionId, ExportSection.RevealFileActionId, StringComparison.Ordinal))
+            {
+                if (!string.IsNullOrEmpty(actionArgument)) _fileDialog?.Reveal(actionArgument);
+                return;
+            }
             if (FindSection(actionId) != null) Navigate(actionId);
         }
 
@@ -636,41 +722,59 @@ namespace DreamTech.LiveOps.Editor
             }
             if (_diskBanner != null) _diskBanner.RemoveFromHierarchy();
 
-            _diskBanner = new VisualElement { name = DiskBannerElementName };
-            _diskBanner.AddToClassList(LiveOpsHubClassNames.Note);
-            _diskBanner.AddToClassList(LiveOpsHubClassNames.DiskBanner);
-
-            Label text = new Label(string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.ShellDiskBannerFormat,
-                _services.Session.AssetFileName, _services.Format.ShortDateTimeUtc(conflict.DetectedUtc)));
-            text.AddToClassList(LiveOpsHubClassNames.DiskBannerText);
-            _diskBanner.Add(text);
-
-            VisualElement actions = new VisualElement();
-            actions.AddToClassList(LiveOpsHubClassNames.DiskBannerActions);
-            Button reload = new Button(ReloadFromDisk) { name = DiskBannerReloadElementName, text = LiveOpsHubStrings.ShellDiskBannerReloadButton };
-            reload.tooltip = string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.ShellDiskBannerReloadTooltipFormat,
-                conflict.LostIfReload.ChangeCount);
-            actions.Add(reload);
-            actions.Add(new Button(() => Navigate(LiveOpsHubNavigation.To(LiveOpsHubSections.Ids.Export).WithCompareSource(LiveOpsHubCompareSource.Disk)))
-            {
-                name = DiskBannerDiffElementName,
-                text = LiveOpsHubStrings.ShellDiskBannerDiffButton,
-            });
-            actions.Add(new Button(KeepEditorVersion) { name = DiskBannerKeepElementName, text = LiveOpsHubStrings.ShellDiskBannerKeepButton });
-            _diskBanner.Add(actions);
+            _diskBanner = LiveOpsHubDiskConflictBanner.Create(conflict, _services.Session.AssetFileName, _services.Format,
+                ReloadFromDisk,
+                // Đi qua BUS chứ không gọi thẳng Navigate: "Xem khác biệt" là một yêu cầu điều hướng như mọi yêu cầu khác của
+                // hub (V-13), nên nó phải quan sát được ở cùng một chỗ — cửa sổ vẫn là nơi nghe và thực hiện.
+                // Đích là màn LỊCH, không phải Xuất JSON: bảng V-13 cho nguồn Disk đúng một chỗ vẽ — pane "So với" của Lịch
+                // (4.3 "Xem khác biệt mở pane So với, nguồn là bản trên đĩa"; ảnh h28f-calendar-compare-disk).
+                () => _services.Bus.Navigate(LiveOpsHubNavigation.To(LiveOpsHubSections.Ids.Calendar).WithCompareSource(LiveOpsHubCompareSource.Disk)),
+                KeepEditorVersion).Element;
             _notes.Add(_diskBanner);
         }
 
         private void ReloadFromDisk()
         {
             _services?.Session.ReloadFromDisk();
+            // Bản đĩa đã thắng: không còn gì để ghi đè, hộp ⌘S không được hỏi nữa.
+            _isOverwriteOfDiskPending = false;
             UpdateDiskBanner();
         }
 
+        /// <summary>
+        /// "Giữ bản trong Editor": phiên ghi nháp lại vào asset và hạ cờ xung đột, nhưng file trên đĩa VẪN là bản của đồng đội —
+        /// lần ⌘S tới mới thật sự ghi đè. Cửa sổ nhớ điều đó để mở hộp cấp 1 đúng lúc (Hình 28 khung 4 dòng cuối).
+        /// </summary>
         private void KeepEditorVersion()
         {
-            _services?.Session.KeepEditorVersion();
+            if (_services == null) return;
+            _services.Session.KeepEditorVersion();
+            _isOverwriteOfDiskPending = true;
             UpdateDiskBanner();
+        }
+
+        /// <summary>
+        /// Hộp cấp 1 "Ghi đè N mục vừa đổi trên đĩa?" — chỉ hỏi khi người dùng đã chọn "Giữ bản trong Editor" và chưa lưu lần nào
+        /// từ đó. Trả false = người dùng giữ lại bản trên đĩa, <see cref="SaveChanges"/> dừng (asset vẫn bẩn, tab vẫn có "*").
+        /// </summary>
+        private bool ConfirmOverwriteOfDiskIfNeeded()
+        {
+            if (!_isOverwriteOfDiskPending || _services == null) return true;
+            LiveEventCalendarDiffResult diff = _services.Session.UnsavedDiff;
+            string itemList = LiveOpsHubDiskConflictBanner.ItemListOf(diff);
+            string fileName = _services.Session.AssetFileName;
+            string body = itemList.Length == 0
+                ? string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.ShellOverwriteDiskConfirmBodyWithoutItemsFormat, fileName)
+                : string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.ShellOverwriteDiskConfirmBodyFormat, fileName, itemList);
+            LiveOpsConfirmRequest request = new LiveOpsConfirmRequest.Builder()
+                .WithLevel(LiveOpsConfirmLevel.Level1)
+                .WithTitle(string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.ShellOverwriteDiskConfirmTitleFormat,
+                    _services.Format.Integer(diff.ChangeCount)))
+                .WithBody(body)
+                .WithKeyHint(LiveOpsHubStrings.ShellOverwriteDiskConfirmKeyHint)
+                .WithButtons(LiveOpsHubStrings.ShellOverwriteDiskConfirmDestructive, LiveOpsHubStrings.ShellOverwriteDiskConfirmSafe)
+                .Build();
+            return _services.Confirmation.Confirm(request) == LiveOpsConfirmResult.Destructive;
         }
 
         /// <summary>
@@ -738,6 +842,9 @@ namespace DreamTech.LiveOps.Editor
         public override void SaveChanges()
         {
             if (_services == null) return;
+            // Mức xác nhận của thao tác này là LiveOpsEditOperation.OverwriteDiskChanges = cấp 1 (bảng 7.0) — hỏi TRƯỚC khi ghi,
+            // vì ghi rồi thì bản của đồng đội trên đĩa đã mất và Undo của hub không lấy lại được.
+            if (!ConfirmOverwriteOfDiskIfNeeded()) return;
             if (!_services.Session.Save())
             {
                 _services.Bus.ShowOutcome(LiveOpsOutcomeRecord.Blocked(SaveFailureHeadline(_services.Session),
@@ -746,6 +853,8 @@ namespace DreamTech.LiveOps.Editor
                 return;
             }
             base.SaveChanges();
+            // Đĩa đã mang bản trong Editor: lần ⌘S sau không còn gì để hỏi.
+            _isOverwriteOfDiskPending = false;
             UpdateUnsavedState();
         }
 
@@ -770,22 +879,98 @@ namespace DreamTech.LiveOps.Editor
 
         public void AddItemsToMenu(GenericMenu menu)
         {
-            // INTERIM(G-SHELLPOLISH): menu ⋮ mới có "Kiểm lại tất cả (F5)" và "Tắt chuyển động"; "Mở tài liệu LiveOps" và "Hiện dữ
-            // liệu mẫu" thêm ở G-SHELLPOLISH (mục 12 I-8) — không thêm mục disabled trỏ tới thứ chưa có.
+            if (menu == null) throw new ArgumentNullException(nameof(menu));
+            IReadOnlyList<OverflowMenuEntry> entries = BuildOverflowMenuEntries();
+            for (int index = 0; index < entries.Count; index++)
+            {
+                OverflowMenuEntry entry = entries[index];
+                if (entry.IsEnabled) menu.AddItem(new GUIContent(entry.Text), entry.IsOn, entry.Invoke);
+                else menu.AddDisabledItem(new GUIContent(entry.Text));
+            }
+        }
+
+        /// <summary>
+        /// Mục của menu ⋮ theo đúng thứ tự [FD §3.3]: Kiểm lại tất cả (F5) · Tắt chuyển động · Mở tài liệu LiveOps · Hiện dữ
+        /// liệu mẫu. "Hiện hướng dẫn phím tắt" là [P1-lùi] (G-OPT-SHORTCUTHELP, W6) nên KHÔNG có mục disabled trỏ tới nó.
+        /// <para>
+        /// Tách khỏi <see cref="AddItemsToMenu"/> vì <c>GenericMenu</c> không cho đọc lại nhãn: phần quyết định (mục nào, chữ gì,
+        /// mục nào bật/khoá) nằm ở đây để test đọc thẳng, cùng lối với <see cref="LiveOpsHubNarrowRailMenu.BuildItems"/>.
+        /// </para>
+        /// </summary>
+        internal IReadOnlyList<OverflowMenuEntry> BuildOverflowMenuEntries()
+        {
             string checkKeyLabel = LiveOpsHubKeyLabels.For(LiveOpsHubShortcuts.CheckAllId);
             string checkAllText = checkKeyLabel.Length == 0
                 ? LiveOpsHubStrings.ShellCheckAllMenuWithoutKey
                 : string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.ShellCheckAllMenuFormat, checkKeyLabel);
-            if (_services != null && _services.Session.Asset != null) menu.AddItem(new GUIContent(checkAllText), false, StartCheckFromShortcut);
-            else menu.AddDisabledItem(new GUIContent(checkAllText));
-
+            bool hasAsset = _services != null && _services.Session.Asset != null;
             bool reduceMotion = EditorPrefs.GetBool(ReduceMotionPreferenceKey, false);
-            menu.AddItem(new GUIContent(LiveOpsHubStrings.ShellReduceMotionMenu), reduceMotion, () =>
+
+            return new[]
             {
-                bool enabled = !EditorPrefs.GetBool(ReduceMotionPreferenceKey, false);
-                EditorPrefs.SetBool(ReduceMotionPreferenceKey, enabled);
-                _hubRoot?.EnableInClassList(LiveOpsHubClassNames.NoMotion, enabled);
-            });
+                new OverflowMenuEntry(checkAllText, hasAsset, false, StartCheckFromShortcut),
+                new OverflowMenuEntry(LiveOpsHubStrings.ShellReduceMotionMenu, true, reduceMotion, ToggleReduceMotion),
+                new OverflowMenuEntry(LiveOpsHubStrings.ShellOpenDocumentationMenu, true, false, OpenDocumentation),
+                new OverflowMenuEntry(LiveOpsHubStrings.ShellShowDesignSampleMenu, true, false, ShowDesignSample),
+            };
+        }
+
+        private void ToggleReduceMotion()
+        {
+            bool enabled = !EditorPrefs.GetBool(ReduceMotionPreferenceKey, false);
+            EditorPrefs.SetBool(ReduceMotionPreferenceKey, enabled);
+            _hubRoot?.EnableInClassList(LiveOpsHubClassNames.NoMotion, enabled);
+        }
+
+        /// <summary>
+        /// "Mở tài liệu LiveOps": README của package — cùng địa chỉ mà link "Vì sao? (tài liệu luật)" của Kiểm lịch mở, và cùng
+        /// <c>documentationUrl</c> trong <c>package.json</c>, nên hub chỉ có MỘT nơi gọi là tài liệu.
+        /// </summary>
+        private void OpenDocumentation()
+        {
+            if (_openUrlForTest != null) _openUrlForTest(LiveOpsHubPaths.RuleDocumentationBaseUrl);
+            else Application.OpenURL(LiveOpsHubPaths.RuleDocumentationBaseUrl);
+        }
+
+        private void ShowDesignSample()
+        {
+            OpenPreviewSample();
+        }
+
+        /// <summary>
+        /// Thay <c>Application.OpenURL</c> cho test — mở trình duyệt thật trong batchmode là tác dụng phụ ra ngoài Unity. Cùng
+        /// seam với <see cref="SetSaveMenuCommandForTest"/>. null = mở thật.
+        /// </summary>
+        internal void SetOpenUrlForTest(Action<string> openUrl)
+        {
+            _openUrlForTest = openUrl;
+        }
+
+        /// <summary>Một mục của menu ⋮ — bất biến, không giữ tham chiếu tới <c>GenericMenu</c>.</summary>
+        internal readonly struct OverflowMenuEntry
+        {
+            private readonly Action _invoke;
+
+            internal OverflowMenuEntry(string text, bool isEnabled, bool isOn, Action invoke)
+            {
+                Text = text;
+                IsEnabled = isEnabled;
+                IsOn = isOn;
+                _invoke = invoke;
+            }
+
+            internal string Text { get; }
+
+            /// <summary>false = mục xám (vd chưa có asset lịch thì "Kiểm lại tất cả" không làm được gì).</summary>
+            internal bool IsEnabled { get; }
+
+            /// <summary>Mục có dấu tích ("Tắt chuyển động" đang bật).</summary>
+            internal bool IsOn { get; }
+
+            internal void Invoke()
+            {
+                _invoke?.Invoke();
+            }
         }
 
         // ------------------------------------------------------------------------------------------------------------ phím tắt
@@ -863,6 +1048,9 @@ namespace DreamTech.LiveOps.Editor
         internal LiveOpsHoverCardHost HoverCardHost => _hoverCardHost;
         internal LiveOpsHubUndoTracker UndoTracker => _undoTracker;
         internal VisualElement DiskBanner => _diskBanner;
+
+        /// <summary>Đã chọn "Giữ bản trong Editor", chưa lưu — lần ⌘S tới mở hộp "Ghi đè N mục vừa đổi trên đĩa?".</summary>
+        internal bool IsOverwriteOfDiskPending => _isOverwriteOfDiskPending;
         internal LiveOpsHubRail Rail => _rail;
         internal LiveOpsHubSectionHeader SectionHeader => _sectionHeader;
         internal LiveOpsHubStatusBar StatusBar => _statusBar;
@@ -1083,6 +1271,17 @@ namespace DreamTech.LiveOps.Editor
                 _ownsServices = false;
                 return;
             }
+            if (isPreviewSampleWindow)
+            {
+                // Domain reload đã xoá services tiêm vào: dựng lại ĐÚNG phiên mẫu. Rơi xuống nhánh mặc định dưới là đi tìm
+                // asset lịch thật của project — cửa sổ "chỉ để xem giao diện" hoá ra đang sửa lịch thật (R-24).
+                LiveEventCalendarAsset sampleAsset;
+                _services = BuildPreviewSampleServices(out sampleAsset);
+                _ownedPreviewAsset = sampleAsset;
+                _ownsInjectedServices = true;
+                _isIsolatedFromSessionState = true;
+                return;
+            }
             LiveOpsHubServicesBuilder builder = new LiveOpsHubServicesBuilder();
             if (_isIsolatedFromSessionState)
             {
@@ -1138,9 +1337,15 @@ namespace DreamTech.LiveOps.Editor
         {
             if (_services == null) return;
             // R-25: domain reload/đóng cửa sổ giữa lúc kéo hoặc kiểm — phiên huỷ kéo dở (không để Undo group mở) và dừng nhịp kiểm.
-            if (_ownsServices) _services.Session.Dispose();
+            if (_ownsServices || _ownsInjectedServices) _services.Session.Dispose();
             _services = null;
             _ownsServices = false;
+            _ownsInjectedServices = false;
+            _injectedServices = null;
+            if (_ownedPreviewAsset == null) return;
+            // DontSave gồm DontUnloadUnusedAsset: không tay nào dọn thì asset mẫu sống tới khi tắt Unity.
+            DestroyImmediate(_ownedPreviewAsset);
+            _ownedPreviewAsset = null;
         }
 
         private void OnSessionDocumentChanged()
@@ -1157,8 +1362,10 @@ namespace DreamTech.LiveOps.Editor
 
         private void OnSessionDiskChangeDetected()
         {
-            // Hub không tự đè nháp (SP-8b): băng hỏi người dùng giữ bản nào. Log giữ nguyên để lịch sử Console còn dấu vết lần đổi.
-            Debug.LogWarning(string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.InterimDiskConflictLog, _services.Session.AssetFileName));
+            // Hub không tự đè nháp (SP-8b): băng hỏi người dùng giữ bản nào. Log giữ lại để lịch sử Console còn dấu vết lần đổi.
+            Debug.LogWarning(string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.ShellDiskConflictLogFormat, _services.Session.AssetFileName));
+            // Xung đột MỚI: câu trả lời cũ không còn nghĩa, người dùng phải chọn lại trước khi ⌘S ghi đè thứ gì.
+            _isOverwriteOfDiskPending = false;
             UpdateDiskBanner();
             InvalidateAndRefreshHealth();
         }
