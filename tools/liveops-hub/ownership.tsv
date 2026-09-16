@@ -284,8 +284,8 @@ file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/RecurringRules/Recurring
 file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/RecurringRules/RecurringRuleList.cs	G-RECURRING	G-RECURRING tạo
 file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/RecurringRules/RecurringRuleModel.cs	G-RECURRING	G-RECURRING tạo
 file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/RecurringRules/RecurringRuleSentence.cs	G-RECURRING	G-RECURRING tạo
-file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/RecurringRules/RecurringRulesSection.cs	G-SHELL,G-SESSION,G-RECURRING	G-SHELL tạo; G-SESSION sửa; G-RECURRING sửa
-file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/RecurringRules/RecurringRulesSection.uss	G-RECURRING	G-RECURRING tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/RecurringRules/RecurringRulesSection.cs	G-SHELL,G-SESSION,G-RECURRING,G-RECURRING-JSON	G-SHELL tạo; G-SESSION sửa; G-RECURRING sửa; G-RECURRING-JSON sửa (nối foldout JSON sửa được vào lối vào RequestFieldChange — V-34 mở rộng)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/RecurringRules/RecurringRulesSection.uss	G-RECURRING,G-RECURRING-JSON	G-RECURRING tạo; G-RECURRING-JSON sửa (style ô JSON sửa được + nhãn lý do khoá ô)
 file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/RecurringRules/RecurringRulesSection.uxml	G-RECURRING,G-RECURRING-JSON	G-RECURRING tạo; G-RECURRING-JSON sửa
 file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Validation/DecisionMenu.cs	G-VALIDATION-DEPTH	G-VALIDATION-DEPTH tạo
 file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Validation/IgnoreWarningPopover.cs	G-VALIDATION-DEPTH	G-VALIDATION-DEPTH tạo
@@ -323,7 +323,7 @@ file	Packages/com.dreamtech.liveops/Editor/Hub/Services/LiveOpsHubSectionBus.cs	
 file	Packages/com.dreamtech.liveops/Editor/Hub/Services/LiveOpsHubServices.cs	G-SESSION	G-SESSION tạo
 file	Packages/com.dreamtech.liveops/Editor/Hub/Services/LiveOpsHubServicesBuilder.cs	G-SESSION,G-PASTE	G-SESSION tạo; G-PASTE sửa
 file	Packages/com.dreamtech.liveops/Editor/Hub/Services/LiveOpsHubTestAdapters.cs	G-HUBKIT,G-FIX-W1-2	G-HUBKIT tạo; G-FIX-W1-2 thêm ReadBackDocument (C-1, V-20)
-file	Packages/com.dreamtech.liveops/Editor/Hub/Services/LiveOpsJsonSyntaxLocator.cs	G-HUBKIT	G-HUBKIT tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Services/LiveOpsJsonSyntaxLocator.cs	G-HUBKIT,G-RECURRING-JSON	G-HUBKIT tạo; G-RECURRING-JSON sửa (nhiều giá trị gốc cách nhau bằng dấu phẩy ở top-level là cú pháp hợp lệ — ô luôn được bọc vào mảng trước khi đưa cho parser; lỗi "không đúng một luật" phải do tầng đọc-lại báo, không phải cú pháp — bug thấy ở cổng gói, test JsonWithTwoRules_BlocksApplyWithReason)
 file	Packages/com.dreamtech.liveops/Editor/Hub/Shell/IHubHost.cs	G-SHELL,G-SESSION	G-SHELL tạo; G-SESSION sửa
 file	Packages/com.dreamtech.liveops/Editor/Hub/Shell/IHubSection.cs	G-SHELL	G-SHELL tạo
 file	Packages/com.dreamtech.liveops/Editor/Hub/Shell/LiveOpsHealthThrottle.cs	G-SHELL	G-SHELL tạo
@@ -517,7 +517,7 @@ file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Sections/ProposalPopoverTes
 file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Sections/RecurringJsonFoldoutTests.cs	G-RECURRING-JSON	G-RECURRING-JSON tạo
 file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Sections/RecurringPrefixDraftTests.cs	G-RECURRING	G-RECURRING tạo
 file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Sections/RecurringRuleModelTests.cs	G-RECURRING	G-RECURRING tạo
-file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Sections/RecurringRulesSectionTests.cs	G-RECURRING	G-RECURRING tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Sections/RecurringRulesSectionTests.cs	G-RECURRING,G-RECURRING-JSON	G-RECURRING tạo; G-RECURRING-JSON thêm test Q-W4-4 DraftInOneField_LocksOtherThree_WithReasonAsText / DraftResolved_UnlocksAllFields
 file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Sections/SectionTestScope.cs	G-SHELL	G-SHELL tạo
 file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Sections/ValidationDepthTests.cs	G-VALIDATION-DEPTH	G-VALIDATION-DEPTH tạo
 file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Sections/ValidationSectionTests.cs	G-VALIDATION	G-VALIDATION tạo
@@ -530,7 +530,7 @@ file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Services/DiskChangeTests.cs
 file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Services/EventIdSuggesterTests.cs	G-HUBKIT	G-HUBKIT tạo
 file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Services/ExportGateTests.cs	G-EXPORTGATE	G-EXPORTGATE tạo
 file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Services/FindingRoutingTests.cs	G-SESSION	G-SESSION tạo
-file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Services/JsonSyntaxLocatorTests.cs	G-HUBKIT	G-HUBKIT tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Services/JsonSyntaxLocatorTests.cs	G-HUBKIT,G-RECURRING-JSON	G-HUBKIT tạo; G-RECURRING-JSON thêm test cấp locator cho công tắc allowMultipleRoots (soát W5 R-3: đổi hành vi top-level của dịch vụ dùng chung mà không có test cấp locator nào ghim)
 file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Services/JsonWriterSyntaxFuzzTests.cs	G-ROUNDTRIP	G-ROUNDTRIP tạo
 file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Services/LiveOpsChangeTextTests.cs	G-FINDINGTEXT	G-FINDINGTEXT tạo
 file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Services/LiveOpsFindingTextTests.cs	G-FINDINGTEXT	G-FINDINGTEXT tạo
@@ -600,7 +600,7 @@ file	tools/liveops-hub/lint-samples/**	G-TOOLS,G-I18N	G-TOOLS tạo — bộ m�
 file	tools/liveops-hub/make-temp-project-2022.sh	G-TOOLS	G-TOOLS tạo
 file	tools/liveops-hub/make-worktree.sh	G-TOOLS	G-TOOLS tạo
 file	tools/liveops-hub/measure-capture.py	G-TOOLS	G-TOOLS tạo
-file	tools/liveops-hub/ownership.tsv	G-TOOLS,G-FIX-W2-1,G-I18N,G-HOSTUI,G-INSPECTOR,G-FIX-W4-1,G-FIX-W4-2	G-TOOLS tạo; G-FIX-W2-1 ghi V-21 (phụ thuộc cùng đợt W2, quyền ghi D-3/CC-SHELL-1/2/5/CC-VALB-1/5); G-I18N sửa (ngôn ngữ, W3.5); G-HOSTUI ghi ngoại lệ quyền ghi liveops-hub-feedback.uss (H-2 của soát 16/9); G-INSPECTOR thêm một dòng file USS của chính thư mục mình (vá review F-4, tự duyệt theo uỷ quyền user 15/9); G-FIX-W4-1/G-FIX-W4-2 ghi quyền sửa của hai gói sửa ở cổng W4 (phiếu D-1…D-6, CC-HOSTUI-4)
+file	tools/liveops-hub/ownership.tsv	G-TOOLS,G-FIX-W2-1,G-I18N,G-HOSTUI,G-INSPECTOR,G-FIX-W4-1,G-FIX-W4-2,G-RECURRING-JSON	G-TOOLS tạo; G-FIX-W2-1 ghi V-21 (phụ thuộc cùng đợt W2, quyền ghi D-3/CC-SHELL-1/2/5/CC-VALB-1/5); G-I18N sửa (ngôn ngữ, W3.5); G-HOSTUI ghi ngoại lệ quyền ghi liveops-hub-feedback.uss (H-2 của soát 16/9); G-INSPECTOR thêm một dòng file USS của chính thư mục mình (vá review F-4, tự duyệt theo uỷ quyền user 15/9); G-FIX-W4-1/G-FIX-W4-2 ghi quyền sửa của hai gói sửa ở cổng W4 (phiếu D-1…D-6, CC-HOSTUI-4); G-RECURRING-JSON thêm mình vào năm dòng RecurringRulesSection.cs/.uss + RecurringRulesSectionTests.cs + LiveOpsJsonSyntaxLocator.cs + JsonSyntaxLocatorTests.cs (lệch kỹ thuật tự duyệt — bốn tập W5 vẫn rời nhau, năm file này không gói W5 nào khác đụng; LiveOpsJsonSyntaxLocator.cs thêm ở bước cổng gói để sửa lỗi nhỏ thấy khi chạy EditMode lần đầu)
 file	tools/liveops-hub/run-editmode.sh	G-TOOLS	G-TOOLS tạo
 file	tools/liveops-hub/run-playmode.sh	G-TOOLS	G-TOOLS tạo
 file	tools/liveops-hub/unity-slot.sh	G-TOOLS	G-TOOLS tạo

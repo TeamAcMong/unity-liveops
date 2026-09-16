@@ -282,9 +282,25 @@ namespace DreamTech.LiveOps.Editor
             table.Add(nameof(LiveOpsHubStrings.RecurringJsonCopiedToastFormat),
                 vietnamese: "Đã copy JSON của luật {0}",
                 english: "Copied the JSON of rule {0}");
-            table.Add(nameof(LiveOpsHubStrings.RecurringJsonReadOnlyNote),
-                vietnamese: "Bản này chỉ đọc — sửa luật ở các ô phía trên",
-                english: "This view is read-only — edit the rule in the fields above");
+            table.Add(nameof(LiveOpsHubStrings.RecurringJsonApplyButton),
+                vietnamese: "Áp",
+                english: "Apply");
+            table.Add(nameof(LiveOpsHubStrings.RecurringJsonUnchangedReason),
+                vietnamese: "JSON chưa đổi so với luật đang ghi",
+                english: "The JSON is unchanged from the rule as written");
+            table.Add(nameof(LiveOpsHubStrings.RecurringJsonUnreadableFormat),
+                vietnamese: "Parser của game không đọc được JSON này: {0}",
+                english: "The game parser cannot read this JSON: {0}");
+            table.Add(nameof(LiveOpsHubStrings.RecurringJsonNotOneRuleReason),
+                vietnamese: "Ô này nhận đúng một object luật lặp, không phải mảng hay nhiều luật",
+                english: "This box takes exactly one recurring rule object, not an array and not several rules");
+            table.Add(nameof(LiveOpsHubStrings.RecurringJsonTypeLockedFormat),
+                vietnamese: "Không đổi được \"type\" ở đây — luật này của loại {0}; đổi loại thì thêm luật mới",
+                english: "\"type\" cannot be changed here — this rule belongs to type {0}; to change the type, add a new rule");
+
+            table.Add(nameof(LiveOpsHubStrings.RecurringFieldLockedByDraftFormat),
+                vietnamese: "Khoá trong lúc ô {0} còn nháp chưa ghi",
+                english: "Locked while the {0} field still holds an unsaved draft");
 
             table.Add(nameof(LiveOpsHubStrings.RecurringPresetWeeklyMonday),
                 vietnamese: "Hằng tuần thứ Hai 00:00 UTC",

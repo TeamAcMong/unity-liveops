@@ -52,14 +52,28 @@ namespace DreamTech.LiveOps.Editor
 
         /// <summary>
         /// true + <paramref name="error"/> khi chuỗi không phải JSON hợp lệ; false khi hợp lệ. Không bao giờ ném: null hoặc chuỗi
-        /// trắng là "JSON kết thúc giữa chừng" tại vị trí cuối.
+        /// trắng là "JSON kết thúc giữa chừng" tại vị trí cuối. JSON chỉ có MỘT gốc — nội dung sau giá trị gốc là lỗi.
         /// </summary>
         public static bool TryFindFirstError(string json, out SyntaxError error)
+        {
+            return TryFindFirstError(json, false, out error);
+        }
+
+        /// <summary>
+        /// Bản có công tắc cho người gọi đang dò một MẨU sẽ được bọc vào mảng trước khi đưa cho parser (ô JSON của foldout
+        /// Luật lặp: <c>{"recurring":[ … ]}</c>). Với họ, nhiều giá trị gốc cách nhau bằng dấu phẩy là cú pháp hợp lệ và lỗi
+        /// "không đúng một luật" phải do tầng đọc-lại báo bằng câu thân thiện, không phải câu cú pháp.
+        /// <para>
+        /// Mặc định <paramref name="allowMultipleRoots"/> = false cho MỌI người gọi khác (cổng Xuất, popover Dán, fuzz của
+        /// bộ ghi): với họ chuỗi là cả một tài liệu, nên "{},{}" là tài liệu hỏng và phải ra vị trí dòng/ký tự.
+        /// </para>
+        /// </summary>
+        public static bool TryFindFirstError(string json, bool allowMultipleRoots, out SyntaxError error)
         {
             string text = json ?? string.Empty;
             int errorOffset;
             string reasonCode;
-            if (Scan(text, out errorOffset, out reasonCode))
+            if (Scan(text, allowMultipleRoots, out errorOffset, out reasonCode))
             {
                 error = null;
                 return false;
@@ -89,7 +103,7 @@ namespace DreamTech.LiveOps.Editor
         }
 
         /// <returns>true khi hợp lệ.</returns>
-        private static bool Scan(string text, out int errorOffset, out string reasonCode)
+        private static bool Scan(string text, bool allowMultipleRoots, out int errorOffset, out string reasonCode)
         {
             var containers = new Stack<char>();
             ScanState state = ScanState.ExpectValue;
@@ -169,7 +183,17 @@ namespace DreamTech.LiveOps.Editor
                     default:
                         if (containers.Count == 0)
                         {
-                            // Nội dung sau giá trị gốc (vd hai object liền nhau) không phải thiếu dấu phẩy — JSON chỉ có một gốc.
+                            // Chỉ người gọi đã khai allowMultipleRoots mới được coi nhiều giá trị gốc cách nhau bằng dấu
+                            // phẩy là hợp lệ: mẩu của họ sẽ được bọc vào một mảng trước khi đưa cho parser, nên lỗi "không
+                            // đúng một luật" là chuyện của tầng đọc-lại (câu thân thiện), không phải của cú pháp. Người gọi
+                            // mặc định đang dò CẢ tài liệu: với họ "{},{}" là tài liệu hỏng và phải ra dòng/ký tự. Ký tự
+                            // khác dấu phẩy sau giá trị gốc (vd hai object dính liền) luôn là lỗi cú pháp ở cả hai bên.
+                            if (allowMultipleRoots && character == ',')
+                            {
+                                index++;
+                                state = ScanState.ExpectValue;
+                                break;
+                            }
                             return Fail(index, ReasonUnexpectedCharacter, out errorOffset, out reasonCode);
                         }
                         char container = containers.Peek();
