@@ -30,10 +30,6 @@ namespace DreamTech.LiveOps.Editor
                 vietnamese: "Không có lỗi nào sửa nhanh an toàn được",
                 english: "No error can be fixed safely");
 
-            table.Add(nameof(LiveOpsHubStrings.ValidationBulkRepairNotBuiltReason),
-                vietnamese: "Sửa nhiều lỗi một lượt chưa có trong bản dev này",
-                english: "Fixing several errors at once is not in this dev build yet");
-
             table.Add(nameof(LiveOpsHubStrings.ValidationRecheckButton),
                 vietnamese: "Kiểm lại",
                 english: "Check again");

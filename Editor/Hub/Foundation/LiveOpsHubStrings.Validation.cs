@@ -20,12 +20,6 @@ namespace DreamTech.LiveOps.Editor
         internal static string ValidationSafeRepairButtonFormat => LiveOpsHubStringCatalog.Text(nameof(ValidationSafeRepairButtonFormat));
         internal static string ValidationSafeRepairNothingReason => LiveOpsHubStringCatalog.Text(nameof(ValidationSafeRepairNothingReason));
 
-        /// <summary>
-        /// Lý do tạm của nút "Sửa các lỗi an toàn (n)…" khi n &gt; 1 — W4 chưa có card xem trước hàng loạt (mục 12 I-7).
-        /// Hằng đọc nó tên <c>InterimBulkRepairReason</c> ở <see cref="ValidationSection"/>; khoá catalog giữ tên thường.
-        /// </summary>
-        internal static string ValidationBulkRepairNotBuiltReason => LiveOpsHubStringCatalog.Text(nameof(ValidationBulkRepairNotBuiltReason));
-
         internal static string ValidationRecheckButton => LiveOpsHubStringCatalog.Text(nameof(ValidationRecheckButton));
 
         /// <summary>Nút Kiểm lại lúc đang chạy: đổi chữ chứ không chỉ disabled, để biết vì sao bấm không được.</summary>

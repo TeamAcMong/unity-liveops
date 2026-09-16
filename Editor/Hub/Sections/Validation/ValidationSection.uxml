@@ -7,6 +7,9 @@
   Khối empty đứng TRƯỚC thân hai cột: trạng thái "không còn lỗi" vẽ cả hai cùng lúc (câu empty trên, card Chưa kiểm dưới,
   [SD2 §2.8]) nên thứ tự trong cây chính là thứ tự đọc.
 
+  Chỗ cắm validation-bulk-preview-host nằm NGAY DƯỚI dải summary vì [SD2 §2.5] đòi card xem trước sửa hàng loạt chen đúng
+  chỗ đó; nó rỗng và không mang class nên cao 0 khi chưa bấm "Sửa các lỗi an toàn (n)…".
+
   Cả mười hai element sống ở MỌI trạng thái (chưa kiểm · đang kiểm · cũ · không còn lỗi · không có asset): probe 9.3 và
   HubWindowTests duyệt nhiều ngữ cảnh nên phần chưa dùng chỉ ẩn bằng `hidden`, không bị gỡ khỏi cây.
   Không câu chữ nào trong file này — mọi label do C# đổ từ LiveOpsHubStrings (lint chặn chữ hiển thị trong UXML).
@@ -23,6 +26,8 @@
         </ui:VisualElement>
 
         <ui:VisualElement name="validation-summary" class="liveops-hub-validation-summary" />
+
+        <ui:VisualElement name="validation-bulk-preview-host" />
 
         <ui:VisualElement name="validation-progress" class="liveops-hub-validation-progress" />
 
