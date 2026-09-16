@@ -56,10 +56,6 @@ namespace DreamTech.LiveOps.Editor
                 vietnamese: "JSON cho key liveops_calendar, so với lần đăng",
                 english: "JSON for key liveops_calendar, compared to last publish");
 
-            table.Add(nameof(LiveOpsHubStrings.InterimPlaceholderReason),
-                vietnamese: "Màn này chưa dựng ở bản dev",
-                english: "This section is not built in the dev build");
-
             table.Add(nameof(LiveOpsHubStrings.ShellRailCaption),
                 vietnamese: "ĐƯỜNG ĐI CỦA LỊCH",
                 english: "CALENDAR PATH");

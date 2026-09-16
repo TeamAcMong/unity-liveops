@@ -31,9 +31,6 @@ namespace DreamTech.LiveOps.Editor
         internal static string ShellExportTitle => LiveOpsHubStringCatalog.Text(nameof(ShellExportTitle));
         internal static string ShellExportSubtitle => LiveOpsHubStringCatalog.Text(nameof(ShellExportSubtitle));
 
-        // INTERIM(G-SHELLPOLISH): lý do health + dòng đầu thân của màn giữ chỗ (mục 12 I-2) — xoá cùng InterimPlaceholderSection.
-        internal static string InterimPlaceholderReason => LiveOpsHubStringCatalog.Text(nameof(InterimPlaceholderReason));
-
         // Rail — [FD §3.5]
         internal static string ShellRailCaption => LiveOpsHubStringCatalog.Text(nameof(ShellRailCaption));
         internal static string ShellRailNotMeasuredBadge => LiveOpsHubStringCatalog.Text(nameof(ShellRailNotMeasuredBadge));
