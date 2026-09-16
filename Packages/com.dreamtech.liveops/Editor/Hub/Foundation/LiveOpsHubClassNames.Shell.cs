@@ -15,6 +15,9 @@ namespace DreamTech.LiveOps.Editor
         internal const string SectionActionsEmpty = "liveops-hub-section-actions--empty";
         internal const string ShellNotes = "liveops-hub-shell-notes";
 
+        // Menu chọn ngôn ngữ ở góc phải header (G-I18N).
+        internal const string LanguageMenu = "liveops-hub-language-menu";
+
         // Rail
         internal const string RailScroll = "liveops-hub-rail-scroll";
         internal const string RailStageLabel = "liveops-hub-rail-stage-label";

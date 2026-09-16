@@ -166,16 +166,46 @@ namespace DreamTech.LiveOps.Editor
 
         private void OnEnable()
         {
-            titleContent = new GUIContent(LiveOpsHubStrings.ShellWindowTitle, LiveOpsHubIcons.Get(LiveOpsHubPaths.CalendarIconName));
+            ApplyWindowTitle();
             minSize = new Vector2(MinimumWidth, MinimumHeight);
             if (windowState == null) windowState = new LiveOpsHubWindowState();
+            // Đăng ký ở OnEnable chứ không ở CreateGUI: chính tay xử lý gọi lại CreateGUI, mà CreateGUI mở đầu bằng
+            // TearDownChrome — gỡ đăng ký trong đó sẽ cắt luôn sự kiện đang chạy.
+            LiveOpsHubLanguage.Changed -= OnLanguageChanged;
+            LiveOpsHubLanguage.Changed += OnLanguageChanged;
         }
 
         private void OnDisable()
         {
+            LiveOpsHubLanguage.Changed -= OnLanguageChanged;
             CaptureCurrentViewState();
             TearDownChrome();
             ReleaseServices();
+        }
+
+        private void OnDestroy()
+        {
+            // OnDisable chạy trước OnDestroy ở mọi đường đóng cửa sổ đã biết; gỡ lần nữa để một đường lạ không để lại handler
+            // trỏ vào cửa sổ đã chết (event tĩnh sống lâu hơn cửa sổ).
+            LiveOpsHubLanguage.Changed -= OnLanguageChanged;
+        }
+
+        private void ApplyWindowTitle()
+        {
+            titleContent = new GUIContent(LiveOpsHubStrings.ShellWindowTitle, LiveOpsHubIcons.Get(LiveOpsHubPaths.CalendarIconName));
+        }
+
+        /// <summary>
+        /// Đổi ngôn ngữ đụng chữ ở khắp nơi (tiêu đề cửa sổ, rail, header màn, thân màn, status bar) nên dựng lại cả khung bằng
+        /// chính <see cref="CreateGUI"/> — đường này Unity vẫn chạy lại sau mỗi lần nạp script, rẻ và không sót chỗ nào. Trạng
+        /// thái view của màn được chụp trước để người dùng không mất chỗ đang cuộn/đang chọn khi chỉ đổi ngôn ngữ.
+        /// </summary>
+        private void OnLanguageChanged()
+        {
+            ApplyWindowTitle();
+            if (_hubRoot == null && !IsLayoutMissing) return;
+            CaptureCurrentViewState();
+            CreateGUI();
         }
 
         private void OnFocus()
@@ -395,6 +425,15 @@ namespace DreamTech.LiveOps.Editor
         internal bool IsSectionFailed(string sectionId) => _failedSectionIds.Contains(sectionId ?? string.Empty);
 
         /// <summary>Thay trạng thái cửa sổ như sau domain reload (test chứng minh trạng thái view đi lại vào màn).</summary>
+        /// <summary>
+        /// Chạy đúng đường dựng lại khi đổi ngôn ngữ. Test UI cần seam này vì nó đổi ngôn ngữ bằng scope ghim (không bắn
+        /// <see cref="LiveOpsHubLanguage.Changed"/>) để khỏi ghi vào pref thật của máy người chạy test.
+        /// </summary>
+        internal void RebuildForLanguageChangeForTest()
+        {
+            OnLanguageChanged();
+        }
+
         internal void ReplaceWindowStateForTest(LiveOpsHubWindowState state)
         {
             windowState = state ?? new LiveOpsHubWindowState();
