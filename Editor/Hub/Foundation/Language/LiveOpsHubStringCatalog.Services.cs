@@ -61,10 +61,6 @@ namespace DreamTech.LiveOps.Editor
                 vietnamese: "Hub về trạng thái chưa có lịch — tạo hoặc chọn asset khác ở Tổng quan.",
                 english: "The hub is back to having no calendar — create or pick another asset in Overview.");
 
-            table.Add(nameof(LiveOpsHubStrings.InterimDiskConflictLog),
-                vietnamese: "LiveOps Hub: {0} vừa đổi trên đĩa trong lúc hub còn thay đổi chưa lưu — nháp vẫn giữ trong phiên (Tải lại / Giữ bản trong Editor chưa có ở bản dev này).",
-                english: "LiveOps Hub: {0} changed on disk while the hub still had unsaved changes — the draft is kept in the session (Reload / Keep editor version are not built in this dev build).");
-
             table.Add(nameof(LiveOpsHubStrings.ServicesHealthNoAsset),
                 vietnamese: "Chưa có asset lịch",
                 english: "No calendar asset");

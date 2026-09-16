@@ -267,9 +267,23 @@ namespace DreamTech.LiveOps.Editor
                 vietnamese: "Hiện dữ liệu mẫu (chỉ để xem giao diện)",
                 english: "Show sample data (for looking at the UI only)");
 
-            table.Add(nameof(LiveOpsHubStrings.ShellDiskBannerFormat),
-                vietnamese: "{0} đã đổi trên đĩa lúc {1}. Bản đang sửa trong Editor vẫn còn — chọn giữ bản nào.",
-                english: "{0} changed on disk at {1}. Your in-editor draft is still here — choose which copy to keep.");
+            table.Add(nameof(LiveOpsHubStrings.ShellDiskBannerHeadFormat),
+                vietnamese: "{0} trên đĩa đổi lúc {1}, khác bản trong Editor ở {2} mục ({3}).",
+                english: "{0} changed on disk at {1}; it differs from the editor copy in {2} items ({3}).");
+            table.Add(nameof(LiveOpsHubStrings.ShellDiskBannerHeadWithoutItemsFormat),
+                vietnamese: "{0} trên đĩa đổi lúc {1}, khác bản trong Editor ở {2} mục.",
+                english: "{0} changed on disk at {1}; it differs from the editor copy in {2} items.");
+            table.Add(nameof(LiveOpsHubStrings.ShellDiskBannerReloadLineFormat),
+                vietnamese: "Tải lại: mất {0} thay đổi chưa lưu ({1}).",
+                english: "Reload: loses {0} unsaved changes ({1}).");
+            table.Add(nameof(LiveOpsHubStrings.ShellDiskBannerReloadLineWithoutItemsFormat),
+                vietnamese: "Tải lại: mất {0} thay đổi chưa lưu.",
+                english: "Reload: loses {0} unsaved changes.");
+            table.Add(nameof(LiveOpsHubStrings.ShellDiskBannerKeepLineFormat),
+                vietnamese: "Giữ bản trong Editor: lần lưu tới ghi đè {0} mục trên đĩa.",
+                english: "Keep the editor copy: the next save overwrites {0} items on disk.");
+            table.AddShared(nameof(LiveOpsHubStrings.ShellDiskBannerSentenceSeparator), " ");
+            table.AddShared(nameof(LiveOpsHubStrings.ShellDiskBannerItemSeparator), ", ");
             table.Add(nameof(LiveOpsHubStrings.ShellDiskBannerReloadButton),
                 vietnamese: "Tải lại",
                 english: "Reload");
@@ -282,6 +296,28 @@ namespace DreamTech.LiveOps.Editor
             table.Add(nameof(LiveOpsHubStrings.ShellDiskBannerReloadTooltipFormat),
                 vietnamese: "Lấy bản trên đĩa; {0} thay đổi chưa lưu sẽ mất.",
                 english: "Take the disk copy; {0} unsaved changes are lost.");
+
+            table.Add(nameof(LiveOpsHubStrings.ShellOverwriteDiskConfirmTitleFormat),
+                vietnamese: "Ghi đè {0} mục vừa đổi trên đĩa?",
+                english: "Overwrite {0} items that just changed on disk?");
+            table.Add(nameof(LiveOpsHubStrings.ShellOverwriteDiskConfirmBodyFormat),
+                vietnamese: "Bản trên đĩa của {0} bị thay bằng bản trong Editor: {1}. Người vừa sửa file mất phần đó; Hoàn tác của hub không lấy lại được bản trên đĩa.",
+                english: "The disk copy of {0} is replaced by the editor copy: {1}. Whoever just edited the file loses that work; the hub's Undo cannot bring the disk copy back.");
+            table.Add(nameof(LiveOpsHubStrings.ShellOverwriteDiskConfirmBodyWithoutItemsFormat),
+                vietnamese: "Bản trên đĩa của {0} bị thay bằng bản trong Editor. Người vừa sửa file mất phần đó; Hoàn tác của hub không lấy lại được bản trên đĩa.",
+                english: "The disk copy of {0} is replaced by the editor copy. Whoever just edited the file loses that work; the hub's Undo cannot bring the disk copy back.");
+            table.Add(nameof(LiveOpsHubStrings.ShellOverwriteDiskConfirmKeyHint),
+                vietnamese: "Enter / Esc: Không ghi đè",
+                english: "Enter / Esc: Do not overwrite");
+            table.Add(nameof(LiveOpsHubStrings.ShellOverwriteDiskConfirmDestructive),
+                vietnamese: "Ghi đè",
+                english: "Overwrite");
+            table.Add(nameof(LiveOpsHubStrings.ShellOverwriteDiskConfirmSafe),
+                vietnamese: "Không ghi đè",
+                english: "Do not overwrite");
+            table.Add(nameof(LiveOpsHubStrings.ShellDiskConflictLogFormat),
+                vietnamese: "LiveOps Hub: {0} vừa đổi trên đĩa trong lúc hub còn thay đổi chưa lưu — nháp vẫn giữ trong phiên, băng trên đầu thân đang hỏi giữ bản nào.",
+                english: "LiveOps Hub: {0} changed on disk while the hub still had unsaved changes — the draft is kept in the session; the banner above the body is asking which copy to keep.");
 
             // Phím tắt toàn hub (8.7)
             table.Add(nameof(LiveOpsHubStrings.ShellShortcutOpenPalette),
