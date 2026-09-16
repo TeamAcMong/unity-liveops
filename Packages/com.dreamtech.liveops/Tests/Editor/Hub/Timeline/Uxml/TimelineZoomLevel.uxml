@@ -1,0 +1,12 @@
+<UXML xmlns="UnityEngine.UIElements" xmlns:liveops="DreamTech.LiveOps.Editor">
+  <!-- Một file UXML đọc ở cả 2022.3 (UxmlFactory/UxmlTraits) và 6000.6 ([UxmlAttribute]) — SP-1. -->
+  <liveops:LiveOpsTimelineElement name="month" zoom-level="2" />
+  <liveops:LiveOpsTimelineElement name="day" zoom-level="0" />
+  <!-- Không ghi zoom-level: phải giữ mặc định 3 tuần (1), không phải default(int) = 0 = Ngày. -->
+  <liveops:LiveOpsTimelineElement name="defaults" />
+  <!-- Ngoài khoảng 0–2: kẹp về Tháng, không ném và không để enum lạ vào hình học. -->
+  <liveops:LiveOpsTimelineElement name="out-of-range" zoom-level="9" />
+  <!-- Làn và minimap không có thuộc tính riêng nhưng vẫn phải dựng được từ thẻ (presenter W4 có thể đặt trong UXML màn Lịch). -->
+  <liveops:LiveOpsTimelineLane name="lane" />
+  <liveops:LiveOpsTimelineMinimap name="minimap" />
+</UXML>
