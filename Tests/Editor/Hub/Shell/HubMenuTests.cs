@@ -25,6 +25,10 @@ namespace DreamTech.LiveOps.Editor.Tests
     [Category(LiveOpsHubTestCategories.UI)]
     public sealed class HubMenuTests
     {
+        private const string FirstCalendarFileName = "HubMenuFirst.asset";
+        private const string SecondCalendarFileName = "HubMenuSecond.asset";
+        private const string TestAssetLocatorKey = "DreamTech.LiveOps.Hub.Tests.HubMenuCalendarGuid";
+
         private LiveOpsHubWindowTestScope _scope;
 
         [TearDown]
@@ -167,6 +171,97 @@ namespace DreamTech.LiveOps.Editor.Tests
                 if (preview != null) preview.Close();
                 if (otherAsset != null) UnityEngine.Object.DestroyImmediate(otherAsset);
             }
+        }
+
+        /// <summary>
+        /// (mục 12 I-9) Project có nhiều hơn một asset lịch: HelpBox info ở ĐẦU thân Tổng quan nói rõ có mấy cái và hub đang mở
+        /// cái nào, kèm nút "Đổi…" [SD1 §1.3]. Model đã tính câu này từ W4 nhưng không ai vẽ.
+        /// </summary>
+        [UnityTest]
+        public IEnumerator Overview_MultipleAssetsHelpBox()
+        {
+            LiveOpsHubTestServices.CreateAssetFile(FirstCalendarFileName, LiveEventCalendarDocument.Empty);
+            LiveEventCalendarAsset second = LiveOpsHubTestServices.CreateAssetFile(SecondCalendarFileName, LiveEventCalendarDocument.Empty);
+            LiveOpsHubServices services = LiveOpsHubTestServices.Build(LiveOpsHubTestServices.CreateBuilder(LiveOpsHubTestServices.CreateClock())
+                .WithCalendarAsset(second)
+                .WithAssetLocator(new LiveOpsHubAssetLocator(TestAssetLocatorKey)));
+            LiveOpsHubWindow window = null;
+            try
+            {
+                Assert.Greater(services.Session.CalendarAssetCount, 1, "ca này cần project có nhiều hơn một asset lịch");
+                window = LiveOpsHubWindow.OpenWithServices(services, LiveOpsHubSections.Ids.Overview);
+                window.position = new Rect(0, 0, LiveOpsHubWindowTestScope.StandardWidth, LiveOpsHubWindowTestScope.StandardHeight);
+                yield return LiveOpsHubWindowTestScope.WaitFrames(3);
+
+                VisualElement notice = window.SectionBody.Q(OverviewSection.MultipleAssetsElementName);
+                Assert.IsNotNull(notice, "HelpBox nhiều asset phải nằm trong cây của màn");
+                Assert.IsFalse(notice.ClassListContains(LiveOpsHubClassNames.OverviewHidden), "có 2 asset thì HelpBox phải hiện");
+
+                Label text = notice.Q<Label>(OverviewSection.MultipleAssetsTextElementName);
+                StringAssert.Contains("LiveEventCalendarAsset", text.text);
+                StringAssert.Contains(services.Session.AssetFileName, text.text, "phải nói hub đang mở CÁI NÀO, không chỉ 'có nhiều cái'");
+                Assert.IsNotNull(notice.Q<Button>(OverviewSection.SwitchAssetButtonElementName), "phải có lối đổi sang asset khác");
+                Assert.IsNotNull(window.SectionBody.panel, "thân màn phải còn trong panel — HelpBox không được thay cả thân");
+            }
+            finally
+            {
+                if (window != null) window.Close();
+                LiveOpsHubTestServices.ReleaseAll();
+            }
+        }
+
+        /// <summary>Một asset: không có gì để nói, HelpBox biến mất hẳn thay vì thành một dòng rỗng chiếm chỗ.</summary>
+        [UnityTest]
+        public IEnumerator Overview_SingleAsset_NoHelpBox()
+        {
+            LiveOpsHubServices services = LiveOpsHubTestServices.ForScenario(LiveOpsHubTestServices.DesignSampleScenario);
+            LiveOpsHubWindow window = null;
+            try
+            {
+                window = LiveOpsHubWindow.OpenWithServices(services, LiveOpsHubSections.Ids.Overview);
+                window.position = new Rect(0, 0, LiveOpsHubWindowTestScope.StandardWidth, LiveOpsHubWindowTestScope.StandardHeight);
+                yield return LiveOpsHubWindowTestScope.WaitFrames(3);
+
+                VisualElement notice = window.SectionBody.Q(OverviewSection.MultipleAssetsElementName);
+                Assert.IsNotNull(notice);
+                Assert.IsTrue(notice.ClassListContains(LiveOpsHubClassNames.OverviewHidden));
+                Assert.AreEqual(DisplayStyle.None, notice.resolvedStyle.display, "ẩn thật, không chỉ chữ rỗng");
+            }
+            finally
+            {
+                if (window != null) window.Close();
+                LiveOpsHubTestServices.ReleaseAll();
+            }
+        }
+
+        /// <summary>
+        /// (Q-1, PD-8) Popover "Đổi key remote…": nút chính khoá kèm lý do IN THÀNH CHỮ khi key rỗng / có khoảng trắng / không
+        /// đổi gì (SP-3), và key hợp lệ đi vào một lệnh sửa có Undo.
+        /// </summary>
+        [Test]
+        public void RemoteKeyPopover_BlocksBadKeyWithWrittenReason()
+        {
+            List<string> applied = new List<string>();
+            OverviewRemoteKeyPopover popover = new OverviewRemoteKeyPopover(LiveEventCalendarDocument.DefaultRemoteConfigKey, applied.Add);
+            popover.BuildForTest();
+
+            Assert.AreEqual(LiveEventCalendarDocument.DefaultRemoteConfigKey, popover.KeyField.value, "ô mở ra đã có key đang dùng để sửa");
+            Assert.IsFalse(popover.ConfirmSlot.Button.enabledSelf, "chưa đổi gì thì không có gì để áp");
+            Assert.AreEqual(LiveOpsHubStrings.OverviewRemoteKeyUnchangedReason, popover.ConfirmSlot.ReasonLabel.text);
+
+            popover.KeyField.value = string.Empty;
+            Assert.IsFalse(popover.ConfirmSlot.Button.enabledSelf);
+            Assert.AreEqual(LiveOpsHubStrings.OverviewRemoteKeyEmptyReason, popover.ConfirmSlot.ReasonLabel.text,
+                "key rỗng = game không biết đọc lịch ở đâu, phải nói ra chứ không im lặng cho qua");
+
+            popover.KeyField.value = "liveops calendar v2";
+            Assert.IsFalse(popover.ConfirmSlot.Button.enabledSelf);
+            Assert.AreEqual(LiveOpsHubStrings.OverviewRemoteKeyWhitespaceReason, popover.ConfirmSlot.ReasonLabel.text);
+
+            popover.KeyField.value = "liveops_calendar_v2";
+            Assert.IsTrue(popover.ConfirmSlot.Button.enabledSelf);
+            Assert.AreEqual(string.Empty, popover.ConfirmSlot.ReasonLabel.text, "mở nút thì xoá lý do");
+            CollectionAssert.IsEmpty(applied, "chưa bấm thì chưa áp gì");
         }
 
         /// <summary>Ba sheet của gói khác đã vào nhóm bắt buộc — cờ là hợp đồng với probe CLI, không chỉ với cửa sổ.</summary>

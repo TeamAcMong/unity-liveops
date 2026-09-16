@@ -176,7 +176,26 @@ namespace DreamTech.LiveOps.Editor
         /// <summary>UXML của màn thiếu trên đĩa: câu đi vào card lỗi của khung, nêu đúng đường dẫn để sửa được.</summary>
         internal static string OverviewMissingLayoutFormat => LiveOpsHubStringCatalog.Text(nameof(OverviewMissingLayoutFormat));
 
-        /// <summary>(b) nhiều asset: câu của model; HelpBox + menu "Đổi…" là G-SHELLPOLISH (mục 12 I-9).</summary>
+        /// <summary>(b) nhiều asset: câu của model, in trong HelpBox info ở đầu thân [SD1 §1.3].</summary>
         internal static string OverviewMultipleAssetsNoticeFormat => LiveOpsHubStringCatalog.Text(nameof(OverviewMultipleAssetsNoticeFormat));
+
+        /// <summary>Nút mở menu liệt kê đường dẫn mọi asset lịch trong project [SD1 §1.3].</summary>
+        internal static string OverviewSwitchAssetButton => LiveOpsHubStringCatalog.Text(nameof(OverviewSwitchAssetButton));
+
+        /// <summary>Tooltip nút ⋮ của section header — menu này chỉ có việc ít dùng, nút chính vẫn đứng cuối bên phải ([FD §3.6]).</summary>
+        internal static string OverviewSectionMenuTooltip => LiveOpsHubStringCatalog.Text(nameof(OverviewSectionMenuTooltip));
+
+        // "Đổi key remote…" (Q-1, PD-8): key là field remoteConfigKey của asset nên đổi nó là một lệnh sửa có Undo.
+        internal static string OverviewRemoteKeyMenuItem => LiveOpsHubStringCatalog.Text(nameof(OverviewRemoteKeyMenuItem));
+        internal static string OverviewRemoteKeyPopoverTitle => LiveOpsHubStringCatalog.Text(nameof(OverviewRemoteKeyPopoverTitle));
+        internal static string OverviewRemoteKeyPopoverFieldLabel => LiveOpsHubStringCatalog.Text(nameof(OverviewRemoteKeyPopoverFieldLabel));
+        internal static string OverviewRemoteKeyPopoverConfirmButton => LiveOpsHubStringCatalog.Text(nameof(OverviewRemoteKeyPopoverConfirmButton));
+        internal static string OverviewRemoteKeyPopoverCancelButton => LiveOpsHubStringCatalog.Text(nameof(OverviewRemoteKeyPopoverCancelButton));
+        internal static string OverviewRemoteKeyEmptyReason => LiveOpsHubStringCatalog.Text(nameof(OverviewRemoteKeyEmptyReason));
+        internal static string OverviewRemoteKeyWhitespaceReason => LiveOpsHubStringCatalog.Text(nameof(OverviewRemoteKeyWhitespaceReason));
+        internal static string OverviewRemoteKeyUnchangedReason => LiveOpsHubStringCatalog.Text(nameof(OverviewRemoteKeyUnchangedReason));
+
+        /// <summary>Tên bước Undo = câu toast (PD-19) — người dùng đọc đúng thứ vừa xảy ra ở cả hai chỗ.</summary>
+        internal static string OverviewRemoteKeyUndoNameFormat => LiveOpsHubStringCatalog.Text(nameof(OverviewRemoteKeyUndoNameFormat));
     }
 }

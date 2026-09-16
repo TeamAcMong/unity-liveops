@@ -40,6 +40,10 @@ namespace DreamTech.LiveOps.Editor
         internal const string CreateAssetButtonElementName = "overview-create-asset";
         internal const string ImportJsonButtonElementName = "overview-import-json";
         internal const string SelectAssetButtonElementName = "overview-select-asset";
+        internal const string MultipleAssetsElementName = "overview-multiple-assets";
+        internal const string MultipleAssetsTextElementName = "overview-multiple-assets-text";
+        internal const string SwitchAssetButtonElementName = "overview-switch-asset";
+        internal const string SectionMenuButtonElementName = "overview-section-menu";
 
         internal const int DraftTabIndex = 0;
         internal const int PublishedTabIndex = 1;
@@ -47,6 +51,15 @@ namespace DreamTech.LiveOps.Editor
         /// <summary>Icon của nút "Kiểm lại tất cả" — 7.1 viết "[Refresh] Kiểm lại tất cả", cùng lối với "[Toolbar Plus] Thêm loại" của 7.2.</summary>
         private const string RecheckIconName = "Refresh";
         private const int RecheckIconSize = 12;
+
+        /// <summary>Icon của HelpBox info [SD1 §1.3] và của nút ⋮ — cùng lưới icon [FD §2.12].</summary>
+        private const string InfoIconName = "console.infoicon.sml";
+        private const string SectionMenuIconName = "_Menu";
+        private const int NoticeIconSize = 16;
+        private const int SectionMenuIconSize = 12;
+
+        /// <summary>Kiểu asset mà menu "Đổi…" liệt kê — chuỗi filter của <c>AssetDatabase.FindAssets</c>.</summary>
+        private const string CalendarAssetSearchFilter = "t:LiveEventCalendarAsset";
 
         // <see cref="BodyElementName"/> KHÔNG có trong danh sách: chính nó là root của view, mà Q() chỉ tìm con — probe 9.3
         // và HubWindowTests Q trên view nên để tên root vào đây sẽ luôn báo thiếu.
@@ -67,6 +80,8 @@ namespace DreamTech.LiveOps.Editor
         private Label _upcomingTitle;
         private Label _upcomingSubtitle;
         private LiveOpsTabStrip _upcomingTabs;
+        private VisualElement _multipleAssetsElement;
+        private Label _multipleAssetsText;
         private OverviewNeedsActionList _needsActionList;
         private OverviewPipelineFlow _pipelineFlow;
         private OverviewUpcomingTable _upcomingTable;
@@ -115,6 +130,9 @@ namespace DreamTech.LiveOps.Editor
             _upcomingTitle = root.Q<Label>(UpcomingTitleElementName);
             _upcomingSubtitle = root.Q<Label>(UpcomingSubtitleElementName);
             _upcomingTabs = root.Q<LiveOpsTabStrip>(UpcomingTabsElementName);
+            _multipleAssetsElement = root.Q(MultipleAssetsElementName);
+            _multipleAssetsText = root.Q<Label>(MultipleAssetsTextElementName);
+            BuildMultipleAssetsNotice();
 
             root.Q<Label>(NeedsActionTitleElementName).text = LiveOpsHubStrings.OverviewNeedsActionCardTitle;
             root.Q<Label>(FlowTitleElementName).text = LiveOpsHubStrings.OverviewFlowCardTitle;
@@ -166,7 +184,105 @@ namespace DreamTech.LiveOps.Editor
             };
             recheckLabel.AddToClassList(LiveOpsHubClassNames.OverviewRecheckAllLabel);
             recheck.Add(recheckLabel);
+
+            // Nút ⋮ đứng TRƯỚC nút chính: [FD §3.6] chốt "nút chính đứng cuối bên phải", việc ít dùng không được chen vào chỗ đó.
+            Button menuButton = new Button(ShowSectionMenu)
+            {
+                name = SectionMenuButtonElementName,
+                tooltip = LiveOpsHubStrings.OverviewSectionMenuTooltip,
+            };
+            menuButton.AddToClassList(LiveOpsHubClassNames.Button);
+            if (sheet != null) menuButton.styleSheets.Add(sheet);
+            menuButton.Add(LiveOpsHubIcons.CreateImage(SectionMenuIconName, SectionMenuIconSize));
+            container.Add(menuButton);
+
             container.Add(recheck);
+        }
+
+        // ============================================================================================================ (b) nhiều asset
+
+        /// <summary>Icon + nút "Đổi…" của HelpBox [SD1 §1.3] — UXML chỉ giữ khung và câu, icon theo skin nên phải dựng từ C#.</summary>
+        private void BuildMultipleAssetsNotice()
+        {
+            if (_multipleAssetsElement == null) return;
+            _multipleAssetsElement.Insert(0, LiveOpsHubIcons.CreateImage(InfoIconName, NoticeIconSize));
+            Button switchButton = new Button(ShowSwitchAssetMenu)
+            {
+                name = SwitchAssetButtonElementName,
+                text = LiveOpsHubStrings.OverviewSwitchAssetButton,
+            };
+            switchButton.AddToClassList(LiveOpsHubClassNames.Button);
+            _multipleAssetsElement.Add(switchButton);
+        }
+
+        private void RefreshMultipleAssetsNotice()
+        {
+            if (_multipleAssetsElement == null) return;
+            string notice = _model.MultipleAssetsNotice;
+            _multipleAssetsText.text = notice;
+            // Một asset thì không có gì để nói: HelpBox biến mất hẳn thay vì thành một dòng rỗng chiếm chỗ.
+            _multipleAssetsElement.EnableInClassList(LiveOpsHubClassNames.OverviewHidden, notice.Length == 0);
+        }
+
+        /// <summary>
+        /// Menu "Đổi…" liệt kê ĐƯỜNG DẪN từng asset lịch [SD1 §1.3] — tên file trùng nhau là chuyện thường, nên đường dẫn mới
+        /// phân biệt được. Hỏi AssetDatabase tại đây chứ không qua phiên: phiên chỉ đếm số asset (chữ ký đóng băng PD-35).
+        /// </summary>
+        private void ShowSwitchAssetMenu()
+        {
+            GenericMenu menu = new GenericMenu();
+            string currentPath = _services.Session.AssetPath;
+            string[] guids = AssetDatabase.FindAssets(CalendarAssetSearchFilter);
+            for (int index = 0; index < guids.Length; index++)
+            {
+                string path = AssetDatabase.GUIDToAssetPath(guids[index]);
+                if (string.IsNullOrEmpty(path)) continue;
+                string assetPath = path;
+                bool isCurrent = string.Equals(assetPath, currentPath, StringComparison.Ordinal);
+                menu.AddItem(new GUIContent(assetPath), isCurrent, () => SelectAssetAtPath(assetPath));
+            }
+            menu.ShowAsContext();
+        }
+
+        private void SelectAssetAtPath(string assetPath)
+        {
+            LiveEventCalendarAsset asset = AssetDatabase.LoadAssetAtPath<LiveEventCalendarAsset>(assetPath);
+            if (asset == null) return;
+            if (_services.Session.TrySelectAsset(asset)) Refresh();
+        }
+
+        // ============================================================================================================ menu ⋮ của màn
+
+        /// <summary>Menu ⋮ của section header (7.1): việc ít dùng, hôm nay đúng một mục "Đổi key remote…" (Q-1).</summary>
+        private void ShowSectionMenu()
+        {
+            GenericMenu menu = new GenericMenu();
+            GUIContent remoteKeyItem = new GUIContent(LiveOpsHubStrings.OverviewRemoteKeyMenuItem);
+            // Chưa có asset thì không có field remoteConfigKey nào để đổi — mục xám, không mở popover trỏ vào hư không.
+            if (_services.Session.Asset != null) menu.AddItem(remoteKeyItem, false, ShowRemoteKeyPopover);
+            else menu.AddDisabledItem(remoteKeyItem);
+            menu.ShowAsContext();
+        }
+
+        private void ShowRemoteKeyPopover()
+        {
+            Rect activator = _root != null ? _root.worldBound : new Rect();
+            LiveOpsPopoverContent.ShowSingle(activator,
+                new OverviewRemoteKeyPopover(_services.Session.Document.RemoteConfigKey, ApplyRemoteKey));
+        }
+
+        private void ApplyRemoteKey(string remoteConfigKey)
+        {
+            string undoName = string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.OverviewRemoteKeyUndoNameFormat, remoteConfigKey);
+            LiveOpsHubEditOutcome outcome = _services.Session.Apply(new SetRemoteConfigKeyEdit(remoteConfigKey), undoName);
+            if (!outcome.Applied)
+            {
+                _services.Bus.ShowToast(LiveOpsToastModel.Info(outcome.FailureText));
+                return;
+            }
+            _services.Bus.ShowToast(LiveOpsToastModel.ForEdit(undoName, outcome.UndoGroup));
+            _services.Bus.InvalidateHealth();
+            Refresh();
         }
 
         public string CaptureViewState()
@@ -253,9 +369,7 @@ namespace DreamTech.LiveOps.Editor
             _defaultBodyElement.EnableInClassList(LiveOpsHubClassNames.OverviewHidden, noAsset);
             if (noAsset) return;
 
-            // INTERIM(G-SHELLPOLISH): model đã tính _model.MultipleAssetsNotice nhưng bản này CHƯA vẽ HelpBox "Có 2
-            // LiveEventCalendarAsset…" + menu "Đổi…" / "Đổi key remote…" (mục 12 I-9) — không hiện, không nút disabled trỏ tới
-            // thứ chưa có; G-SHELLPOLISH (W5) nối câu đã có sẵn này vào HelpBox.
+            RefreshMultipleAssetsNotice();
             RebuildMetrics();
             _needsActionSubtitle.text = _model.BodyState == OverviewModel.BodyStateNoBlockers
                 ? LiveOpsHubStrings.OverviewNeedsActionCardNoBlockersSubtitle

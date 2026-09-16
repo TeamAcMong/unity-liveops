@@ -329,6 +329,40 @@ namespace DreamTech.LiveOps.Editor
             table.Add(nameof(LiveOpsHubStrings.OverviewMultipleAssetsNoticeFormat),
                 vietnamese: "Có {0} LiveEventCalendarAsset. Hub đang mở {1}.",
                 english: "There are {0} LiveEventCalendarAsset files. The hub has {1} open.");
+            table.Add(nameof(LiveOpsHubStrings.OverviewSwitchAssetButton),
+                vietnamese: "Đổi…",
+                english: "Switch…");
+            table.Add(nameof(LiveOpsHubStrings.OverviewSectionMenuTooltip),
+                vietnamese: "Việc ít dùng của màn Tổng quan",
+                english: "Less-used actions for the Overview screen");
+
+            table.Add(nameof(LiveOpsHubStrings.OverviewRemoteKeyMenuItem),
+                vietnamese: "Đổi key remote…",
+                english: "Change the remote key…");
+            table.Add(nameof(LiveOpsHubStrings.OverviewRemoteKeyPopoverTitle),
+                vietnamese: "Key remote config mà game đọc lịch",
+                english: "Remote config key the game reads the calendar from");
+            table.Add(nameof(LiveOpsHubStrings.OverviewRemoteKeyPopoverFieldLabel),
+                vietnamese: "Key",
+                english: "Key");
+            table.Add(nameof(LiveOpsHubStrings.OverviewRemoteKeyPopoverConfirmButton),
+                vietnamese: "Đổi key",
+                english: "Change key");
+            table.Add(nameof(LiveOpsHubStrings.OverviewRemoteKeyPopoverCancelButton),
+                vietnamese: "Giữ key cũ",
+                english: "Keep the old key");
+            table.Add(nameof(LiveOpsHubStrings.OverviewRemoteKeyEmptyReason),
+                vietnamese: "Key trống thì game không biết đọc lịch ở đâu",
+                english: "An empty key leaves the game with nowhere to read the calendar");
+            table.Add(nameof(LiveOpsHubStrings.OverviewRemoteKeyWhitespaceReason),
+                vietnamese: "Key không được có khoảng trắng",
+                english: "The key cannot contain whitespace");
+            table.Add(nameof(LiveOpsHubStrings.OverviewRemoteKeyUnchangedReason),
+                vietnamese: "Đang là key này rồi",
+                english: "This is already the current key");
+            table.Add(nameof(LiveOpsHubStrings.OverviewRemoteKeyUndoNameFormat),
+                vietnamese: "Đổi key remote thành {0}",
+                english: "Change the remote key to {0}");
         }
     }
 }
