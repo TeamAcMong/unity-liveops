@@ -1,0 +1,120 @@
+/*
+ * MarkPublishedWindow.uss — hộp Đánh dấu đã đăng (410×330), [SD2 §3.11], kế hoạch 7.6.
+ * Nạp sau theme + components vào gốc liveops-hub-root của CHÍNH cửa sổ hộp (panel riêng — sheet của cửa sổ hub không tới đây).
+ *
+ * Luật: thân padding 10px 12px; heading 12px đậm; đoạn thân 11px xuống dòng; dòng sha là hàng ngang (dấu + câu); nút
+ * "Copy JSON <sha mới>" thụt 14px cho thấy nó thuộc dòng sha ở trên; ô ghi chú cao 40px; hàng nút dính đáy nhờ
+ * margin-top auto để chỗ dư nằm TRÊN hàng nút. Không màu trần — trạng thái dùng class của components.
+ */
+
+.liveops-hub-root {
+    flex-grow: 1;
+    background-color: var(--unity-colors-window-background);
+}
+
+.liveops-hub-export-mark-window {
+    flex-grow: 1;
+    flex-direction: column;
+    padding: 10px 12px;
+}
+
+.liveops-hub-export-mark-heading {
+    font-size: 12px;
+    -unity-font-style: bold;
+    white-space: normal;
+    padding: 0;
+    margin: 0;
+}
+
+.liveops-hub-export-mark-body {
+    font-size: 11px;
+    white-space: normal;
+    padding: 0;
+    margin: 6px 0 0 0;
+}
+
+.liveops-hub-export-mark-sha-row {
+    flex-direction: row;
+    align-items: center;
+    margin: 8px 0 0 0;
+}
+
+.liveops-hub-export-mark-sha-text {
+    font-size: 11px;
+    white-space: normal;
+    flex-shrink: 1;
+    padding: 0;
+    margin: 0 0 0 6px;
+}
+
+.liveops-hub-export-mark-copy-row {
+    flex-direction: row;
+    align-items: center;
+    margin: 4px 0 0 14px;
+}
+
+.liveops-hub-export-mark-note-label {
+    font-size: 11px;
+    padding: 0;
+    margin: 8px 0 0 0;
+}
+
+.liveops-hub-export-mark-note-field {
+    height: 40px;
+    margin: 4px 0 0 0;
+}
+
+.liveops-hub-export-mark-button-row {
+    flex-direction: row;
+    align-items: center;
+    flex-shrink: 0;
+    margin-top: auto;
+    padding-top: 12px;
+}
+
+.liveops-hub-export-mark-missing {
+    flex-grow: 1;
+    flex-shrink: 1;
+    min-width: 0;
+    font-size: 10px;
+    opacity: 0.82;
+    padding: 0;
+    margin: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+.liveops-hub-export-hidden {
+    display: none;
+}
+
+/*
+ * Nút "Copy JSON <sha mới>": Button LÀ TextElement nên `text` của nút bị Image con vẽ đè — nút bỏ text, xếp Image rồi Label
+ * thành hàng ([FD §2.12]: icon margin-left −2, margin-right 4).
+ */
+.liveops-hub-export-icon-button {
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+}
+
+.liveops-hub-export-icon-button-icon {
+    margin-left: -2px;
+    margin-right: 4px;
+    flex-shrink: 0;
+}
+
+.liveops-hub-export-icon-button-label {
+    margin: 0;
+    padding: 0;
+}
+
+/*
+ * Câu "Còn thiếu…" in đúng MỘT chỗ (nhãn trái hàng nút, [SD2 §3.11]); slot của nút chính vẫn nhận câu để mang tooltip nhưng
+ * nhãn lý do của nó ẩn. Selector phải đủ ba class để thắng `.liveops-hub-button-slot--blocked > .liveops-hub-button-reason`
+ * của components.uss (cùng số class thì sheet nạp sau thắng, nhưng ba class không phụ thuộc thứ tự nạp).
+ */
+.liveops-hub-button-slot--blocked > .liveops-hub-button-reason.liveops-hub-export-reason-tooltip-only {
+    display: none;
+}
