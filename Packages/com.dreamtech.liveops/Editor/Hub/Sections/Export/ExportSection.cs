@@ -55,12 +55,12 @@ namespace DreamTech.LiveOps.Editor
         private const int HeaderIconSize = 16;
         private const string ClockPattern = "HH:mm";
 
-        // INTERIM(G-SHELLPOLISH): nút "Mở thư mục" của outcome (c′) chưa hiện — LiveOpsHubWindow.RefreshOutcomeView gọi
-        // LiveOpsOutcomeView.SetRecord(record) KHÔNG truyền nhãn nút nên view ẩn nút dù bản ghi có ActionId, và
-        // OnOutcomeActionInvoked chỉ biết điều hướng theo id màn. Bản ghi ở đây đã mang đủ dữ liệu (id + đường dẫn file); gói gỡ
-        // chỉ cần truyền nhãn nút và gọi ILiveOpsHubFileDialog.Reveal. Sổ nhánh tạm mục 12, I-11 — file cần sửa là
-        // ED/Hub/Shell/LiveOpsHubWindow.cs, thuộc quyền ghi của G-SHELLPOLISH (W5), không phải của G-EXPORT.
-        private const string RevealFileActionId = "reveal-file";
+        /// <summary>
+        /// Id nút của outcome (c′) "vừa lưu file"; đối số là đường dẫn file. Internal vì <c>LiveOpsHubWindow</c> đọc id này để
+        /// biết nhãn nút và để gọi <c>ILiveOpsHubFileDialog.Reveal</c> — khung là nơi duy nhất chạm tới port hệ điều hành,
+        /// màn chỉ dựng bản ghi (mục 12 I-11).
+        /// </summary>
+        internal const string RevealFileActionId = "reveal-file";
 
         private static readonly IReadOnlyList<string> ElementNames = Array.AsReadOnly(new[]
         {

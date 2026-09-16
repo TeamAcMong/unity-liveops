@@ -176,6 +176,9 @@ namespace DreamTech.LiveOps.Editor
         internal static string ShellOverwriteDiskConfirmDestructive => LiveOpsHubStringCatalog.Text(nameof(ShellOverwriteDiskConfirmDestructive));
         internal static string ShellOverwriteDiskConfirmSafe => LiveOpsHubStringCatalog.Text(nameof(ShellOverwriteDiskConfirmSafe));
 
+        /// <summary>Nhãn nút của outcome (c′) "vừa lưu file" — khung giữ câu vì khung là nơi gọi Reveal (mục 12 I-11).</summary>
+        internal static string ShellOutcomeRevealFileButton => LiveOpsHubStringCatalog.Text(nameof(ShellOutcomeRevealFileButton));
+
         /// <summary>Console giữ dấu vết lần file đổi ngoài — băng trả lời xong thì Console vẫn còn lịch sử để đối chiếu với git.</summary>
         internal static string ShellDiskConflictLogFormat => LiveOpsHubStringCatalog.Text(nameof(ShellDiskConflictLogFormat));
 
