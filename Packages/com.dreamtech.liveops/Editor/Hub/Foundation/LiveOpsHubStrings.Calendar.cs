@@ -34,6 +34,9 @@ namespace DreamTech.LiveOps.Editor
         // Nút chính của section header.
         internal static string CalendarAddEventButton => LiveOpsHubStringCatalog.Text(nameof(CalendarAddEventButton));
 
+        // Nạp UXML hỏng: câu này đi vào card lỗi của shell nên phải nêu đúng đường dẫn để sửa được ngay.
+        internal static string CalendarMissingLayoutMessageFormat => LiveOpsHubStringCatalog.Text(nameof(CalendarMissingLayoutMessageFormat));
+
         // Trạng thái chung "chưa có asset" (7.0): mọi màn trừ Tổng quan nói cùng câu và chỉ về đúng một chỗ tạo lịch.
         internal static string CalendarNoAssetEmptyText => LiveOpsHubStringCatalog.Text(nameof(CalendarNoAssetEmptyText));
         internal static string CalendarOpenOverviewButton => LiveOpsHubStringCatalog.Text(nameof(CalendarOpenOverviewButton));
