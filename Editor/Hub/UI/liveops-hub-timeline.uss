@@ -426,6 +426,13 @@
     border-color: var(--liveops-hub-color-focus);
 }
 
+/* Focus bàn phím phải thắng cả luật hai class của thanh đang chọn (0,2,0), nếu không khung "focus bàn phím" vẽ y hệt
+   khung "đã chọn" — đó là lý do h12-frame-04 từng trùng byte với h12-frame-03a (phiếu D-2 của cổng W4). */
+.liveops-hub-timeline--has-focus .liveops-hub-timeline-bar--focused {
+    border-color: var(--liveops-hub-color-focus);
+    border-width: 2px;
+}
+
 .liveops-hub-timeline-bar--dragging {
     border-color: var(--unity-colors-default-text);
 }

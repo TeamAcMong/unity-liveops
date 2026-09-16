@@ -181,6 +181,8 @@ namespace DreamTech.LiveOps.Editor.Tests
             Assert.AreEqual(LiveOpsTimelineBarSource.RecurringStrip, strip.Source);
             Assert.IsTrue(strip.IsStrip);
             Assert.AreEqual(42, strip.StripCount, "\"sky-race · 42 đợt · 20 giờ/ngày\"");
+            Assert.AreEqual(42 * 20, strip.StripActiveHours, 0.001, "42 đợt × 20 giờ chạy, khe nghỉ 4 giờ không tính");
+            Assert.AreEqual(20, strip.StripHoursPerDay, "vế nhịp của nhãn dải [SD1 §3.8 khung 11] — phiếu D-4 của cổng W4");
             Assert.AreEqual("sky-race-246…287", strip.EventId);
             Assert.AreEqual("sky-race#strip#246", strip.BarKey);
             Assert.AreEqual(Utc(9, 8), strip.StartUtc);

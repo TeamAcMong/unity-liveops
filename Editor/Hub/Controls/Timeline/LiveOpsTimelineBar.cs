@@ -123,13 +123,13 @@ namespace DreamTech.LiveOps.Editor
             SetDragPreview(false, false);
         }
 
-        /// <summary>Nhãn theo thuật toán barLabel [SD1 §3.5]; dải gom ghi "sky-race · 42 đợt" khi đủ chỗ, không thì để trống (tooltip nói).</summary>
+        /// <summary>Nhãn theo thuật toán barLabel [SD1 §3.5]; dải gom ghi "sky-race · 42 đợt · 20 giờ/ngày" khi đủ chỗ, không thì để trống (tooltip nói).</summary>
         internal static string LabelTextFor(LiveOpsTimelineBarModel model, float width)
         {
             if (model.IsStrip)
             {
                 string stripText = string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.TimelineStripLabelFormat, model.EventType,
-                    model.StripCount);
+                    model.StripCount, model.StripHoursPerDay);
                 float room = width - LiveOpsTimelineGeometry.LabelHorizontalPadding;
                 return stripText.Length * LiveOpsTimelineGeometry.LabelCharacterWidth <= room ? stripText : string.Empty;
             }

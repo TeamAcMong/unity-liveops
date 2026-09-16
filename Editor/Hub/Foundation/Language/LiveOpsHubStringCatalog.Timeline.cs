@@ -34,9 +34,10 @@ namespace DreamTech.LiveOps.Editor
                 english: "Click to bring the view to {0} ({1} UTC)");
 
             table.AddShared(nameof(LiveOpsHubStrings.TimelineRenamedLabelFormat), "{0} → {1}");
+            // {2} = nhịp chạy giờ/ngày — dải là một element thay nhiều thanh nên nhãn phải nói dải đặc hay thưa [SD1 §3.8 khung 11].
             table.Add(nameof(LiveOpsHubStrings.TimelineStripLabelFormat),
-                vietnamese: "{0} · {1} đợt",
-                english: "{0} · {1} events");
+                vietnamese: "{0} · {1} đợt · {2} giờ/ngày",
+                english: "{0} · {1} events · {2} h/day");
             table.Add(nameof(LiveOpsHubStrings.TimelineStripTooltipFormat),
                 vietnamese: "{0} · {1} đợt · bấm để zoom vào {2} → {3} UTC",
                 english: "{0} · {1} events · click to zoom into {2} → {3} UTC");
