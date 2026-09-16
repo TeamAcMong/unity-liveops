@@ -117,8 +117,20 @@ namespace DreamTech.LiveOps.Editor
             }
         }
 
+        /// <summary>Dựng card khi ĐÃ có bản so (đường mặc định) — xem quá tải bốn tham số cuối cho lần đăng đầu.</summary>
         public static ExportDiffViewModel Build(LiveEventCalendarDiffResult diff, LiveOpsChangeTextContext context, LiveOpsHubFormat format,
             LiveOpsHubCompareSource compareSource, string headerText, string emptyText, Func<LiveEventCalendarChange, bool> isReviewed)
+        {
+            return Build(diff, context, format, compareSource, headerText, emptyText, isReviewed, true);
+        }
+
+        /// <param name="hasBaseline">
+        /// Có bản so hay không. false = lần đăng đầu (g): card vẽ CÂU EMPTY, không vẽ danh sách. Diff lúc đó so với tài liệu
+        /// rỗng nên mọi mục đều là "thêm mới" — vẽ ra là nói dối rằng có một bản so để đối chiếu ([SD2 §3.8] mục Empty).
+        /// </param>
+        public static ExportDiffViewModel Build(LiveEventCalendarDiffResult diff, LiveOpsChangeTextContext context, LiveOpsHubFormat format,
+            LiveOpsHubCompareSource compareSource, string headerText, string emptyText, Func<LiveEventCalendarChange, bool> isReviewed,
+            bool hasBaseline)
         {
             if (format == null) throw new ArgumentNullException(nameof(format), LiveOpsHubStrings.ExportGateErrorFormatMissing);
 
@@ -129,7 +141,7 @@ namespace DreamTech.LiveOps.Editor
             int reviewedRequired = 0;
             int required = 0;
 
-            if (diff != null)
+            if (diff != null && hasBaseline)
             {
                 foreach (LiveEventCalendarConsequence consequence in GroupOrder)
                 {
@@ -167,8 +179,8 @@ namespace DreamTech.LiveOps.Editor
                     format.Integer(reviewable), format.Integer(reviewedRequired), format.Integer(required))
                 : string.Empty;
 
-            return new ExportDiffViewModel(headerText, meta, BuildChips(diff, format), groups, groups.Count == 0 ? emptyText : string.Empty,
-                hasToggles, reviewed, reviewable, reviewedRequired, required);
+            return new ExportDiffViewModel(headerText, meta, BuildChips(hasBaseline ? diff : null, format), groups,
+                groups.Count == 0 ? emptyText : string.Empty, hasToggles, reviewed, reviewable, reviewedRequired, required);
         }
 
         /// <summary>Chip đầu card: bốn số luôn hiện đủ, kể cả "Xoá 0" — người đọc cần biết số đó bằng 0, không phải đoán.</summary>

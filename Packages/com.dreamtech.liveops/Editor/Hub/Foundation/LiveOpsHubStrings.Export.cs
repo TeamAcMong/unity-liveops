@@ -142,6 +142,9 @@ namespace DreamTech.LiveOps.Editor
         /// <summary>"Còn thiếu: " + danh sách phần còn thiếu nối bằng ", " [SD2 §3.11] — lý do in THÀNH CHỮ cạnh nút (SP-3).</summary>
         internal static string ExportMarkMissingPrefix => LiveOpsHubStringCatalog.Text(nameof(ExportMarkMissingPrefix));
         internal static string ExportMarkMissingSeparator => LiveOpsHubStringCatalog.Text(nameof(ExportMarkMissingSeparator));
+
+        /// <summary>Dấu nối danh sách id mục trong hộp Khôi phục — khoá riêng, không mượn dấu nối của câu "Còn thiếu…".</summary>
+        internal static string ExportChangedItemSeparator => LiveOpsHubStringCatalog.Text(nameof(ExportChangedItemSeparator));
         internal static string ExportMarkMissingConfirm => LiveOpsHubStringCatalog.Text(nameof(ExportMarkMissingConfirm));
         internal static string ExportMarkMissingNote => LiveOpsHubStringCatalog.Text(nameof(ExportMarkMissingNote));
         internal static string ExportMarkMissingCopy => LiveOpsHubStringCatalog.Text(nameof(ExportMarkMissingCopy));

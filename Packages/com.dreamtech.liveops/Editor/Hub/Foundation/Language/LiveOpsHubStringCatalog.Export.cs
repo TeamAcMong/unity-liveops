@@ -289,6 +289,7 @@ namespace DreamTech.LiveOps.Editor
                 vietnamese: "Còn thiếu: ",
                 english: "Still missing: ");
             table.AddShared(nameof(LiveOpsHubStrings.ExportMarkMissingSeparator), ", ");
+            table.AddShared(nameof(LiveOpsHubStrings.ExportChangedItemSeparator), ", ");
             table.Add(nameof(LiveOpsHubStrings.ExportMarkMissingConfirm),
                 vietnamese: "xác nhận đã dán",
                 english: "the paste confirmation");

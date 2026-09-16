@@ -1,4 +1,5 @@
 using System;
+using System.Globalization;
 using DreamTech.LiveOps.Tests;
 using NUnit.Framework;
 
@@ -33,7 +34,12 @@ namespace DreamTech.LiveOps.Editor.Tests
             Assert.IsTrue(state.CanMark, "sha khớp + đã tick + có ghi chú thì nút Ghi dấu bật");
             Assert.AreEqual(string.Empty, state.MissingText, "đủ điều kiện thì không còn chữ 'Còn thiếu'");
             Assert.IsTrue(state.HeadingText.Contains(DraftShortSha), "heading nêu sha sắp ghi");
-            Assert.IsTrue(state.BodyText.Contains(AssetFileName), "thân nói rõ ghi vào file nào");
+            Assert.AreEqual(string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.ExportMarkBodyFormat, AssetFileName,
+                "13/9 09:04", LiveOpsHubTestServices.PublisherName, LiveOpsHubTestServices.PublisherSource, DraftShortSha, "1.612"),
+                state.BodyText,
+                "thân hộp in giờ và số byte TRẦN: khoá chữ đã mang sẵn ' UTC' và ' byte', truyền bản đã có đơn vị là in hai lần");
+            Assert.IsFalse(state.BodyText.Contains("UTC UTC"), "không lặp đơn vị giờ");
+            Assert.IsFalse(state.BodyText.Contains("byte byte"), "không lặp đơn vị byte");
             Assert.AreEqual(HealthState.Ok, state.ShaState);
             Assert.IsFalse(state.HasCopyButton, "biến thể đủ điều kiện không mời copy lại");
         }

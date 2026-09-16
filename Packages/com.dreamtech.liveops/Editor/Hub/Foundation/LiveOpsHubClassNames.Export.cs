@@ -26,6 +26,23 @@ namespace DreamTech.LiveOps.Editor
         /// <summary>Khối bị ẩn hoàn toàn (empty "chưa có asset" hoặc thân mặc định) — display:none, không chỉ trong suốt.</summary>
         internal const string ExportHidden = "liveops-hub-export-hidden";
 
+        /// <summary>
+        /// Nút có icon + chữ (Copy JSON, Lưu file…, Copy JSON &lt;sha&gt; của hộp): Button LÀ TextElement nên <c>text</c> của
+        /// nút bị Image con vẽ đè — ba class này xếp Image rồi Label thành hàng.
+        /// </summary>
+        internal const string ExportIconButton = "liveops-hub-export-icon-button";
+        internal const string ExportIconButtonIcon = "liveops-hub-export-icon-button-icon";
+        internal const string ExportIconButtonLabel = "liveops-hub-export-icon-button-label";
+
+        /// <summary>
+        /// Slot nút chỉ mang TOOLTIP, không in lý do thành chữ: [SD2 §3.2] in lý do cạnh ĐÚNG MỘT nút, hai nút còn lại chỉ có
+        /// tooltip — in cả ba làm chữ chồng lên nhau trên header.
+        /// </summary>
+        internal const string ExportReasonTooltipOnly = "liveops-hub-export-reason-tooltip-only";
+
+        /// <summary>Lý do cạnh nút ở mức "quiet" (không phải chặn) — (b) và (f) của [SD2 §3.2] là chữ quiet.</summary>
+        internal const string ExportReasonQuiet = "liveops-hub-export-reason-quiet";
+
         /// <summary>Metric cuối hàng: bỏ margin-right (USS không có <c>:last-child</c>, class bật từ C#).</summary>
         internal const string ExportMetricLast = "liveops-hub-export-metric--last";
         internal const string ExportMetricValueRow = "liveops-hub-export-metric-value-row";
@@ -93,5 +110,9 @@ namespace DreamTech.LiveOps.Editor
         internal const string ExportMarkNoteField = "liveops-hub-export-mark-note-field";
         internal const string ExportMarkButtonRow = "liveops-hub-export-mark-button-row";
         internal const string ExportMarkMissing = "liveops-hub-export-mark-missing";
+
+        /// <summary>Hàng dấu đã đối chiếu với bản remote [SD2 §3.9]: chấm Ok + " · đã đối chiếu 09:10".</summary>
+        internal const string ExportHistoryVerified = "liveops-hub-export-history-verified";
+        internal const string ExportHistoryVerifiedMark = "liveops-hub-export-history-verified-mark";
     }
 }

@@ -118,6 +118,26 @@ namespace DreamTech.LiveOps.Editor.Tests
             Assert.AreEqual(EmptyText, model.EmptyText, "câu 'không có gì mới' do cổng xuất viết, card chỉ hiện lại");
         }
 
+        /// <summary>(g) Lần đăng đầu: chưa có bản so nên card vẽ CÂU EMPTY, không vẽ 8 mục "thêm mới" [SD2 §3.8].</summary>
+        [Test]
+        public void FirstPublish_NoBaseline_UsesEmptySentenceInsteadOfEveryItem()
+        {
+            LiveEventCalendarDocument draft = LiveOpsDesignSample.DocumentWithoutPublishedStamp();
+            LiveEventCalendarDiffResult diff = LiveEventCalendarDiff.Compare(LiveEventCalendarDocument.Empty, draft, LiveOpsDesignSample.NowUtc);
+            Assert.Greater(diff.ChangeCount, 0, "so với tài liệu rỗng thì mọi mục đều là thay đổi — đúng thứ KHÔNG được vẽ ra");
+
+            ExportDiffViewModel model = ExportDiffViewModel.Build(diff, Context(LiveEventCalendarDocument.Empty, draft, diff), _format,
+                LiveOpsHubCompareSource.Published, HeaderText, EmptyText, null, false);
+
+            Assert.IsTrue(model.IsEmpty, "chưa có dấu đã đăng thì không có danh sách thay đổi");
+            Assert.AreEqual(0, model.RowCount);
+            Assert.AreEqual(EmptyText, model.EmptyText, "câu 'lần này sẽ là bản so đầu tiên' do cổng xuất viết");
+            foreach (string chip in model.ChipTexts)
+            {
+                Assert.IsTrue(chip.Contains("0"), "chip đếm về 0 khi chưa có bản so: " + chip);
+            }
+        }
+
         [Test]
         public void Build_NullFormat_Throws()
         {

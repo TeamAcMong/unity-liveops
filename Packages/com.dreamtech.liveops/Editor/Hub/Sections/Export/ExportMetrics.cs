@@ -50,9 +50,11 @@ namespace DreamTech.LiveOps.Editor
 
             Add(BuildMetric(LiveOpsHubStrings.ExportMetricShaCaption, json.ShortSha, string.Empty, string.Empty, json.Sha256Hex, true));
 
+            // Chưa đăng lần nào (g): KHÔNG đếm thay đổi. Diff lúc đó so với tài liệu rỗng nên mọi mục thành "Thêm", và tile
+            // sẽ nói "Thêm 8" ngay cạnh card diff vừa nói "chưa có dấu đã đăng nào" — hai câu chọi nhau trên cùng một màn.
             string compareValue = compareStamp == null ? LiveOpsHubStrings.ExportMetricCompareNone : StampTimeText(compareStamp);
             VisualElement compareTile = BuildMetric(LiveOpsHubStrings.ExportMetricCompareCaption, compareValue, string.Empty,
-                CompareFootText(diff), string.Empty, false);
+                CompareFootText(compareStamp == null ? null : diff), string.Empty, false);
             compareTile.AddToClassList(LiveOpsHubClassNames.ExportMetricLast);
             Add(compareTile);
         }
@@ -85,7 +87,9 @@ namespace DreamTech.LiveOps.Editor
 
         private ToolbarMenu BuildFormatMenu(LiveEventCalendarJsonFormat current)
         {
-            ToolbarMenu menu = new ToolbarMenu { name = FormatMenuElementName, text = FormatValueText(current) };
+            // Menu KHÔNG mang chữ: giá trị đã in ở dòng value của tile ("2" + "có recurring"), đặt thêm text vào ToolbarMenu là
+            // in con số hai lần trên cùng một tile [SD2 §3.5]. Menu chỉ còn mũi tên để bấm đổi định dạng.
+            ToolbarMenu menu = new ToolbarMenu { name = FormatMenuElementName };
             menu.menu.AppendAction(LiveOpsHubStrings.ExportMetricFormatChoice2,
                 action => RaiseFormatSelected(LiveEventCalendarJsonFormat.Version2),
                 action => current == LiveEventCalendarJsonFormat.Version2 ? DropdownMenuAction.Status.Checked : DropdownMenuAction.Status.Normal);

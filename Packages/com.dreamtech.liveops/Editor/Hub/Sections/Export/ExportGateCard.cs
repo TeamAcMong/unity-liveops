@@ -26,6 +26,9 @@ namespace DreamTech.LiveOps.Editor
         private readonly Label _compactText = new Label();
         private readonly Label _compactRemote = new Label();
 
+        private bool _canPasteRunningJson = true;
+        private string _pasteUnavailableReason = string.Empty;
+
         public ExportGateCard()
         {
             name = ElementName;
@@ -62,9 +65,22 @@ namespace DreamTech.LiveOps.Editor
         /// <summary>Số dòng đang vẽ (0 ở dạng gọn) — test đếm mà không phải đi vào cây con.</summary>
         internal int VisibleRowCount => _rows.childCount;
 
+        /// <summary>Dựng lại card khi mọi action của dòng cổng đều dùng được (test Logic của card).</summary>
         public void Bind(ExportGateState state)
         {
+            Bind(state, true, string.Empty);
+        }
+
+        /// <param name="canPasteRunningJson">
+        /// Action "Dán JSON đang chạy…" của dòng cổng 4 có dùng được không (<c>services.Actions</c>). false thì nút vẽ KHOÁ kèm
+        /// lý do — vẽ nút bật rồi để cú bấm rơi vào no-op là nói dối người dùng (mục 12 I-3).
+        /// </param>
+        /// <param name="pasteUnavailableReason">Lý do in cạnh nút khi action không dùng được; bắt buộc khi khoá.</param>
+        public void Bind(ExportGateState state, bool canPasteRunningJson, string pasteUnavailableReason)
+        {
             if (state == null) throw new ArgumentNullException(nameof(state), LiveOpsHubStrings.ExportGateErrorInputMissing);
+            _canPasteRunningJson = canPasteRunningJson;
+            _pasteUnavailableReason = pasteUnavailableReason ?? string.Empty;
 
             _meta.text = state.CardMetaText;
             _meta.EnableInClassList(LiveOpsHubClassNames.ExportHidden, state.CardMetaText.Length == 0);
@@ -129,7 +145,16 @@ namespace DreamTech.LiveOps.Editor
             {
                 Button action = new Button(() => OnRowActivated(row)) { text = row.ActionText };
                 action.AddToClassList(LiveOpsHubClassNames.Button);
-                element.Add(action);
+                if (row.Action == ExportGateRowAction.PasteRunningJson && !_canPasteRunningJson && _pasteUnavailableReason.Length > 0)
+                {
+                    LiveOpsButtonSlot slot = new LiveOpsButtonSlot(action);
+                    slot.SetEnabledWithReason(false, _pasteUnavailableReason);
+                    element.Add(slot);
+                }
+                else
+                {
+                    element.Add(action);
+                }
             }
             else if (row.Navigation != null)
             {

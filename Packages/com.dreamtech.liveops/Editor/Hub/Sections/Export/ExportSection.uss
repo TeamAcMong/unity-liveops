@@ -123,11 +123,55 @@
     flex-basis: 45%;
 }
 
+/* ---------------------------------------------------------------- Nút header có icon, lý do cạnh nút */
+
+/*
+ * Button LÀ TextElement: `Button.text` do chính nút vẽ trên cả hộp nội dung nên Image con CHỒNG lên chữ ("Co[icon] JSON").
+ * Nút bỏ text, xếp Image rồi Label thành hàng — [FD §2.12]: icon margin-left −2, margin-right 4, flex-shrink 0.
+ * Sheet này được nạp thẳng lên từng slot ở PopulateHeaderActions vì nút sống trong section header của shell (cây khác thân màn).
+ */
+.liveops-hub-export-icon-button {
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+}
+
+.liveops-hub-export-icon-button-icon {
+    margin-left: -2px;
+    margin-right: 4px;
+    flex-shrink: 0;
+}
+
+.liveops-hub-export-icon-button-label {
+    margin: 0;
+    padding: 0;
+}
+
+/* Lý do cạnh nút ở mức quiet — (b) "Còn thiếu cho Đánh dấu…" và (f) "Không có thay đổi để ghi" không phải chữ chặn. */
+.liveops-hub-button-reason.liveops-hub-export-reason-quiet {
+    color: var(--liveops-hub-color-quiet);
+}
+
+/* Nút không phải nút mang lý do: chỉ tooltip, không in chữ (ba chữ cạnh nhau trên header sẽ chồng lên nhau). */
+.liveops-hub-button-slot--blocked > .liveops-hub-button-reason.liveops-hub-export-reason-tooltip-only {
+    display: none;
+}
+
 /* ---------------------------------------------------------------- Card: tiêu đề, meta */
 
+/*
+ * Header card ở 1280 phải co được: tiêu đề và meta cắt bằng ellipsis, hàng chip KHÔNG co (chip thứ tư "Giữ 3" là số người
+ * đọc cần). Thiếu min-width:0 thì flex-shrink không có tác dụng trên phần tử có chữ, nên meta bị cắt giữa chữ và chip
+ * tràn ra ngoài card.
+ */
 .liveops-hub-export-card-title {
     -unity-font-style: bold;
     font-size: 11px;
+    flex-shrink: 1;
+    min-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
 }
 
 .liveops-hub-export-card-meta {
@@ -135,7 +179,10 @@
     opacity: 0.82;
     margin-left: var(--liveops-hub-space-6);
     flex-shrink: 1;
+    min-width: 0;
     overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
 }
 
 .liveops-hub-export-card-spacer {
@@ -164,7 +211,10 @@
     font-size: 11px;
     margin-left: var(--liveops-hub-space-8);
     flex-shrink: 1;
+    min-width: 0;
     overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
 }
 
 .liveops-hub-export-gate-row-meta {
@@ -172,7 +222,10 @@
     opacity: 0.82;
     margin-left: var(--liveops-hub-space-8);
     flex-shrink: 1;
+    min-width: 0;
     overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
 }
 
 .liveops-hub-export-gate-row-spacer {
@@ -234,6 +287,7 @@
 .liveops-hub-export-diff-chip-row {
     flex-direction: row;
     align-items: center;
+    flex-shrink: 0;
 }
 
 .liveops-hub-export-diff-group {
@@ -357,6 +411,17 @@
 
 .liveops-hub-export-history-cell--sha {
     width: 60px;
+    flex-shrink: 0;
+}
+
+.liveops-hub-export-history-verified {
+    font-size: 10px;
+    opacity: 0.7;
+    margin-left: var(--liveops-hub-space-4);
+}
+
+.liveops-hub-export-history-verified-mark {
+    margin-left: var(--liveops-hub-space-4);
     flex-shrink: 0;
 }
 
