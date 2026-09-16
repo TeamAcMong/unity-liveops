@@ -147,7 +147,6 @@ namespace DreamTech.LiveOps.Editor
         internal static string ExportMarkMissingCopy => LiveOpsHubStringCatalog.Text(nameof(ExportMarkMissingCopy));
 
         // Lỗi lập trình (ArgumentException) — không bao giờ do dữ liệu lịch hỏng.
-        internal static string ExportErrorSectionMissing => LiveOpsHubStringCatalog.Text(nameof(ExportErrorSectionMissing));
         internal static string ExportErrorServicesMissing => LiveOpsHubStringCatalog.Text(nameof(ExportErrorServicesMissing));
     }
 }

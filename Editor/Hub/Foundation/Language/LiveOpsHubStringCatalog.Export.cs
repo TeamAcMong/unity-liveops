@@ -299,9 +299,6 @@ namespace DreamTech.LiveOps.Editor
                 vietnamese: "copy bản mới",
                 english: "a copy of the new version");
 
-            table.Add(nameof(LiveOpsHubStrings.ExportErrorSectionMissing),
-                vietnamese: "Hộp Đánh dấu đã đăng cần màn Xuất JSON đang mở",
-                english: "The Mark as published dialog needs the Export JSON screen open");
             table.Add(nameof(LiveOpsHubStrings.ExportErrorServicesMissing),
                 vietnamese: "Màn Xuất JSON cần services của cửa sổ",
                 english: "The Export JSON screen needs the window services");
