@@ -20,6 +20,12 @@ namespace DreamTech.LiveOps.Editor.Tests
     [NUnit.Framework.Category(LiveOpsHubTestCategories.UI)]
     internal static partial class LiveOpsHubCaptureScenarios
     {
+        /// <summary>Bề rộng popover của hub ([FD §7]) — số đến từ USS của popover dán, không phải GetWindowSize.</summary>
+        private const float PastePopoverWidth = 320f;
+
+        /// <summary>Header cửa sổ hub cao 26 — giữ một mỏ neo của khung sườn trong ảnh có popover phủ lên.</summary>
+        private const float PasteHubHeaderHeight = 26f;
+
         /// <summary>
         /// Bản remote LỆCH: đúng bản đã đăng 11/9 16:20, sửa hai mục — hunt-0914 đổi configKey và lava-quest-2026-09b đổi giờ
         /// kết thúc. Hai mục là con số của câu thiết kế "Bản remote khác dấu 11/9 16:20: 2 đợt".
@@ -44,7 +50,27 @@ namespace DreamTech.LiveOps.Editor.Tests
                 OpenValidationRemoteDrift));
 
             scenarios.Add(new LiveOpsHubCaptureScenario(LiveOpsHubCaptureScenarioIds.H09fOverviewImportJson, StandardWidth, StandardHeight,
-                OpenOverviewImportPopover));
+                    OpenOverviewImportPopover)
+                .WithExpectedFrames(PasteImportPopoverFrames()));
+        }
+
+        /// <summary>
+        /// Ảnh h09f đo CHÍNH cái popover nó sinh ra để chụp (PD-36): bề rộng 320px của
+        /// <c>liveops-hub-paste</c> — thiếu dòng này thì ảnh chỉ chứng minh cái vỏ màn Tổng quan (đã có ở h09a).
+        /// <para>
+        /// KHÔNG lấy bảng khung mặc định (rail 196 / cột nội dung 1084): popover phủ lên đúng đường ranh rail ↔ nội dung,
+        /// làm phép dò cạnh của <c>measure-capture.py</c> ở skin TỐI đọc 194 / 1086 trong khi <c>worldBound</c> vẫn đúng
+        /// 196 / 1084 — giới hạn của công cụ, không phải lệch bố cục. Hai số đó đã khoá ở h09a và ở
+        /// <c>OverviewSectionTests</c>.
+        /// </para>
+        /// </summary>
+        private static LiveOpsHubCaptureExpectedFrame[] PasteImportPopoverFrames()
+        {
+            return new[]
+            {
+                new LiveOpsHubCaptureExpectedFrame(LiveOpsHubClassNames.Paste, PastePopoverWidth, 0f),
+                new LiveOpsHubCaptureExpectedFrame(LiveOpsHubClassNames.Header, 0f, PasteHubHeaderHeight),
+            };
         }
 
         /// <summary>
