@@ -114,6 +114,26 @@ namespace DreamTech.LiveOps.Editor
         internal static string ValidationProposalQuickCheckOverlapFormat => LiveOpsHubStringCatalog.Text(nameof(ValidationProposalQuickCheckOverlapFormat));
         internal static string ValidationProposalEnterHint => LiveOpsHubStringCatalog.Text(nameof(ValidationProposalEnterHint));
         internal static string ValidationProposalApplyFormat => LiveOpsHubStringCatalog.Text(nameof(ValidationProposalApplyFormat));
+
+        /// <summary>
+        /// Nút áp của hai cách sửa DỜI đợt ([SD2 §2.6] "Áp: dời hunt-0916-bonus"): nút nêu ĐỘNG TỪ của lựa chọn đang chọn, không
+        /// chỉ id — bấm "Áp: hunt-0916-bonus" thì người bấm không biết mình sắp dời hay sắp xoá. Cách sửa chưa được thiết kế đặt
+        /// tên động từ vẫn dùng khuôn trung tính <see cref="ValidationProposalApplyFormat"/>.
+        /// </summary>
+        internal static string ValidationProposalApplyShiftFormat => LiveOpsHubStringCatalog.Text(nameof(ValidationProposalApplyShiftFormat));
+
+        /// <summary>
+        /// Dòng 10px dưới mỗi lựa chọn ([SD2 §2.6] "bắt đầu 16/9 12:00 → 17/9 00:00 · dài 24 giờ"): giờ NGƯỜI ĐỌC hiểu, không
+        /// phải chuỗi ISO thô của <c>LiveEventCalendarRepair.BeforeText/AfterText</c> (core để thô có chủ đích — câu là việc của Editor).
+        /// </summary>
+        internal static string ValidationProposalOptionDetailFormat => LiveOpsHubStringCatalog.Text(nameof(ValidationProposalOptionDetailFormat));
+
+        /// <summary>
+        /// Câu hậu quả của popover ([SD2 §2.6] "Đợt sẽ xuất hiện với người chơi từ 17/9 00:00 UTC."): nói kết quả SAU KHI ÁP của
+        /// đúng lựa chọn đang chọn. Câu hậu quả của phát hiện (<c>LiveOpsFindingText.ConsequenceSentence</c>) nói chuyện khác —
+        /// chuyện đang xảy ra nếu KHÔNG sửa — nên không thay thế được và không đổi theo lựa chọn.
+        /// </summary>
+        internal static string ValidationProposalConsequenceFormat => LiveOpsHubStringCatalog.Text(nameof(ValidationProposalConsequenceFormat));
         internal static string ValidationProposalBackButton => LiveOpsHubStringCatalog.Text(nameof(ValidationProposalBackButton));
 
         /// <summary>Toast + tên Undo group sau khi Áp một đề xuất: nêu id và cách sửa đã chọn (luật toast chung [SD2 §2.6]).</summary>

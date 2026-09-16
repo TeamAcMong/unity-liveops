@@ -32,21 +32,24 @@ namespace DreamTech.LiveOps.Editor
         private readonly LiveEventCalendarFinding _finding;
         private readonly LiveOpsHubFormat _format;
         private readonly ILiveOpsHubLayoutLoader _layoutLoader;
-        private readonly Func<LiveEventCalendarRepair, string> _quickCheck;
+        private readonly Func<LiveEventCalendarRepair, int> _quickCheck;
         private readonly Action<LiveEventCalendarRepair> _apply;
         private readonly List<Label> _optionDetails = new List<Label>();
 
         private RadioButtonGroup _options;
+        private LiveOpsStateMark _quickCheckMark;
         private Label _quickCheckLabel;
         private Label _consequenceLabel;
         private int _selectedIndex;
 
         /// <summary>
-        /// <paramref name="quickCheck"/> trả câu kiểm nhanh của một cách sửa (màn chạy <c>CheckLane</c> trên nháp xem trước);
-        /// <paramref name="apply"/> áp cách sửa đã chọn. Popover không tự đụng phiên để test dựng được nó mà không cần asset.
+        /// <paramref name="quickCheck"/> trả SỐ vấn đề còn lại trên làn sau khi áp một cách sửa (màn chạy <c>CheckLane</c> trên
+        /// nháp xem trước; âm = không kiểm được) — số chứ không phải câu, vì popover còn phải đổi màu dấu theo kết quả và đọc
+        /// ngược câu để đoán màu là chỗ dễ nói dối nhất. <paramref name="apply"/> áp cách sửa đã chọn. Popover không tự đụng
+        /// phiên để test dựng được nó mà không cần asset.
         /// </summary>
         internal ProposalPopover(LiveEventCalendarFinding finding, LiveOpsHubFormat format, ILiveOpsHubLayoutLoader layoutLoader,
-            Func<LiveEventCalendarRepair, string> quickCheck, Action<LiveEventCalendarRepair> apply, int preselectedIndex)
+            Func<LiveEventCalendarRepair, int> quickCheck, Action<LiveEventCalendarRepair> apply, int preselectedIndex)
         {
             _finding = finding ?? throw new ArgumentNullException(nameof(finding));
             _format = format ?? throw new ArgumentNullException(nameof(format));
@@ -77,8 +80,16 @@ namespace DreamTech.LiveOps.Editor
                     LiveOpsHubStrings.ValidationMissingLayoutFormat, LiveOpsHubPaths.ProposalPopoverUxml));
             }
 
-            VisualElement root = layout.Instantiate();
+            // Bỏ vỏ TemplateContainer (cùng lý do với ValidationSection): vỏ không mang class nào nên nó không nhận bề rộng
+            // 320px của popover, và ảnh chụp ô 7 Hình 17 sẽ ra một dải chữ rộng bằng cả cửa sổ thay vì một popover.
+            VisualElement root = layout.Instantiate().Q(BodyElementName) ?? layout.Instantiate();
             root.name = BodyElementName;
+            // Cửa sổ popover là panel riêng chỉ nạp theme + components + feedback + motion (LiveOpsFeedbackStyleSheets.PopoverSheets),
+            // nên ValidationSection.uss KHÔNG tới đây — mà UXML của popover dùng đúng các class trong sheet đó (bề rộng 320,
+            // header đậm, dòng chi tiết 10px, footer một hàng). Thiếu sheet thì popover rơi về mặc định Unity: rộng bằng panel và
+            // hai nút xếp chồng. Gắn sheet ngay trên cây của popover là chỗ duy nhất biết mình cần sheet nào.
+            StyleSheet sheet = _layoutLoader.LoadStyleSheet(LiveOpsHubPaths.ValidationSectionUss);
+            if (sheet != null) root.styleSheets.Add(sheet);
 
             Label header = root.Q<Label>(HeaderElementName);
             if (header != null)
@@ -94,10 +105,9 @@ namespace DreamTech.LiveOps.Editor
             VisualElement quickCheckHost = root.Q(QuickCheckElementName);
             if (quickCheckHost != null)
             {
-                LiveOpsStateMark mark = new LiveOpsStateMark();
-                mark.SetHealth(HealthState.Ok);
-                mark.Size = LiveOpsStateMark.MarkSize.Small;
-                quickCheckHost.Add(mark);
+                _quickCheckMark = new LiveOpsStateMark();
+                _quickCheckMark.Size = LiveOpsStateMark.MarkSize.Small;
+                quickCheckHost.Add(_quickCheckMark);
                 _quickCheckLabel = new Label();
                 quickCheckHost.Add(_quickCheckLabel);
             }
@@ -109,11 +119,8 @@ namespace DreamTech.LiveOps.Editor
             if (hint != null) hint.text = LiveOpsHubStrings.ValidationProposalEnterHint;
 
             ApplyButton = root.Q<Button>(ApplyElementName);
-            if (ApplyButton != null)
-            {
-                ApplyButton.text = string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.ValidationProposalApplyFormat, _finding.TargetId);
-                ApplyButton.clicked += OnApplyClicked;
-            }
+            // Chữ nút áp do RefreshSelection đổ: nó phải nói động từ của lựa chọn ĐANG chọn, nên không gán một lần ở đây.
+            if (ApplyButton != null) ApplyButton.clicked += OnApplyClicked;
 
             BackButton = root.Q<Button>(BackElementName);
             if (BackButton != null)
@@ -166,8 +173,21 @@ namespace DreamTech.LiveOps.Editor
             }
         }
 
+        /// <summary>
+        /// Dòng 10px của một lựa chọn ([SD2 §2.6]: "bắt đầu 16/9 12:00 → 17/9 00:00 · dài 24 giờ"). Core trả
+        /// <c>BeforeText</c>/<c>AfterText</c> là chuỗi ISO thô có chủ đích (V-8: câu là việc của Editor) — in thẳng ra thì người
+        /// đọc phải tự dịch "2026-09-16T12:00:00Z" trong đầu. Cách sửa không có khung giờ mới (đổi tên, đặt lại chu kỳ) thì giá
+        /// trị thô CHÍNH LÀ thứ phải đọc, nên vẫn giữ nguyên nó.
+        /// </summary>
         private string DetailTextOf(LiveEventCalendarRepair repair)
         {
+            if (repair.NewStartUtc.HasValue && repair.NewEndUtc.HasValue && _finding.RangeStartUtc.HasValue)
+            {
+                return string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.ValidationProposalOptionDetailFormat,
+                    _format.ShortDateTime(_finding.RangeStartUtc.Value), _format.ShortDateTime(repair.NewStartUtc.Value),
+                    EventLengthOf(repair.NewEndUtc.Value - repair.NewStartUtc.Value));
+            }
+
             string before = LiveOpsFindingText.NoParse(repair.BeforeText);
             string after = LiveOpsFindingText.NoParse(repair.AfterText);
             if (before.Length == 0 && after.Length == 0) return string.Empty;
@@ -175,6 +195,17 @@ namespace DreamTech.LiveOps.Editor
         }
 
         private const string BeforeAfterArrow = " → ";
+
+        /// <summary>"24 giờ" khi độ dài chẵn giờ — cùng cách viết mà câu lựa chọn của <see cref="LiveOpsFindingText"/> dùng.</summary>
+        private string EventLengthOf(TimeSpan length)
+        {
+            if (length > TimeSpan.Zero && length.Ticks % TimeSpan.TicksPerHour == 0)
+            {
+                return string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.FindingHoursFormat,
+                    ((long)length.TotalHours).ToString(CultureInfo.InvariantCulture));
+            }
+            return _format.Duration(length, false);
+        }
 
         private void OnOptionChanged(ChangeEvent<int> changeEvent)
         {
@@ -186,11 +217,54 @@ namespace DreamTech.LiveOps.Editor
         {
             if (_selectedIndex < 0 || _selectedIndex >= _finding.Repairs.Count) return;
             LiveEventCalendarRepair repair = _finding.Repairs[_selectedIndex];
-            if (_quickCheckLabel != null)
+            RefreshQuickCheck(repair);
+            if (_consequenceLabel != null) _consequenceLabel.text = ConsequenceTextOf(repair);
+            if (ApplyButton != null) ApplyButton.text = ApplyTextOf(repair);
+        }
+
+        /// <summary>
+        /// Dấu + câu kiểm nhanh của lựa chọn đang chọn. Dấu PHẢI đi theo kết quả: gán Ok một lần lúc dựng thì câu "vẫn còn 2 vấn
+        /// đề" đứng cạnh một dấu xanh — người đọc tin dấu trước khi đọc câu ([SD2 §2.6] gắn dấu Ok với ca "không chồng").
+        /// </summary>
+        private void RefreshQuickCheck(LiveEventCalendarRepair repair)
+        {
+            int remaining = _quickCheck != null ? _quickCheck(repair) : 0;
+            if (_quickCheckMark != null)
             {
-                _quickCheckLabel.text = _quickCheck != null ? _quickCheck(repair) : LiveOpsHubStrings.ValidationProposalQuickCheckOk;
+                _quickCheckMark.SetHealth(remaining < 0 ? HealthState.NotMeasured : (remaining == 0 ? HealthState.Ok : HealthState.Warning));
             }
-            if (_consequenceLabel != null) _consequenceLabel.text = LiveOpsFindingText.ConsequenceSentence(_finding, _format);
+            if (_quickCheckLabel == null) return;
+            if (remaining < 0) _quickCheckLabel.text = string.Empty;
+            else if (remaining == 0) _quickCheckLabel.text = LiveOpsHubStrings.ValidationProposalQuickCheckOk;
+            else
+            {
+                _quickCheckLabel.text = string.Format(CultureInfo.InvariantCulture,
+                    LiveOpsHubStrings.ValidationProposalQuickCheckOverlapFormat, remaining);
+            }
+        }
+
+        /// <summary>
+        /// Câu hậu quả nói kết quả SAU KHI ÁP lựa chọn đang chọn ([SD2 §2.6]: "Đợt sẽ xuất hiện với người chơi từ 17/9 00:00
+        /// UTC."). Câu của phát hiện nói chuyện ngược lại — chuyện xảy ra nếu KHÔNG sửa — nên chỉ dùng nó khi cách sửa không có
+        /// giờ bắt đầu mới để nói.
+        /// </summary>
+        private string ConsequenceTextOf(LiveEventCalendarRepair repair)
+        {
+            if (!repair.NewStartUtc.HasValue) return LiveOpsFindingText.ConsequenceSentence(_finding, _format);
+            return string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.ValidationProposalConsequenceFormat,
+                _format.ShortDateTimeUtc(repair.NewStartUtc.Value));
+        }
+
+        /// <summary>
+        /// "Áp: dời hunt-0916-bonus" ([SD2 §2.6]) — nút nêu động từ của lựa chọn đang chọn. Thiết kế mới đặt tên động từ cho hai
+        /// cách DỜI đợt; cách sửa khác giữ khuôn trung tính "Áp: {id}" tới khi thiết kế đặt tên cho chúng.
+        /// </summary>
+        private string ApplyTextOf(LiveEventCalendarRepair repair)
+        {
+            bool isShift = string.Equals(repair.RepairId, LiveOpsFindingText.ShiftStartKeepEndRepairId, StringComparison.Ordinal)
+                || string.Equals(repair.RepairId, LiveOpsFindingText.ShiftWholeKeepDurationRepairId, StringComparison.Ordinal);
+            string format = isShift ? LiveOpsHubStrings.ValidationProposalApplyShiftFormat : LiveOpsHubStrings.ValidationProposalApplyFormat;
+            return string.Format(CultureInfo.InvariantCulture, format, _finding.TargetId);
         }
 
         private void OnKeyDown(KeyDownEvent keyDown)

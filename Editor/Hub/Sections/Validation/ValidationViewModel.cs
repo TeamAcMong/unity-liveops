@@ -203,8 +203,8 @@ namespace DreamTech.LiveOps.Editor
         private static readonly IReadOnlyList<ValidationRow> NoRows = Array.Empty<ValidationRow>();
 
         private ValidationViewModel(ValidationBodyState bodyState, IReadOnlyList<ValidationTab> tabs, IReadOnlyList<ValidationGroup> groups,
-            string staleNotice, string safeRepairButtonText, int safeRepairCount, string progressText, float progressRatio,
-            string summaryRightText, IReadOnlyList<string> summaryParts, int findingCount)
+            string staleNotice, string safeRepairButtonText, int safeRepairCount, string progressText, string progressRatioText,
+            float progressRatio, string summaryRightText, IReadOnlyList<string> summaryParts, int findingCount)
         {
             BodyState = bodyState;
             Tabs = tabs;
@@ -213,6 +213,7 @@ namespace DreamTech.LiveOps.Editor
             SafeRepairButtonText = safeRepairButtonText;
             SafeRepairCount = safeRepairCount;
             ProgressText = progressText;
+            ProgressRatioText = progressRatioText;
             ProgressRatio = progressRatio;
             SummaryRightText = summaryRightText;
             SummaryParts = summaryParts;
@@ -232,6 +233,10 @@ namespace DreamTech.LiveOps.Editor
         internal int SafeRepairCount { get; }
 
         internal string ProgressText { get; }
+
+        /// <summary>Nhãn "7 / 12" cạnh thanh tiến trình ([SD2 §2.8]) — thanh trơn không đọc được bằng số, chỉ bằng bề rộng.</summary>
+        internal string ProgressRatioText { get; }
+
         internal float ProgressRatio { get; }
 
         /// <summary>Câu phải của dải summary: "Kiểm lúc 08:46:58 UTC · 12 luật · 1 lỗi sửa nhanh an toàn được".</summary>
@@ -279,8 +284,8 @@ namespace DreamTech.LiveOps.Editor
 
             return new ValidationViewModel(bodyState, TabsOf(summary, findingCount, notMeasuredCount), groups, staleNotice,
                 string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.ValidationSafeRepairButtonFormat, safeRepairCount),
-                safeRepairCount, string.Empty, 0f, SummaryRightOf(report, format, safeRepairCount), SummaryPartsOf(summary, notMeasuredCount),
-                findingCount);
+                safeRepairCount, string.Empty, string.Empty, 0f, SummaryRightOf(report, safeRepairCount),
+                SummaryPartsOf(summary, notMeasuredCount), findingCount);
         }
 
         private static ValidationViewModel Running(LiveOpsHubCheckState check, LiveOpsHubFormat format)
@@ -288,9 +293,10 @@ namespace DreamTech.LiveOps.Editor
             int completed = check.CompletedRuleCount;
             int total = check.RuleCount;
             string progressText = string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.ValidationProgressFormat, completed, total);
+            string progressRatioText = string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.ValidationProgressRatioFormat, completed, total);
             return new ValidationViewModel(ValidationBodyState.Running, Array.Empty<ValidationTab>(), Array.Empty<ValidationGroup>(),
                 string.Empty, string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.ValidationSafeRepairButtonFormat, 0), 0,
-                progressText, total > 0 ? (float)completed / total : 0f, string.Empty, Array.Empty<string>(), 0);
+                progressText, progressRatioText, total > 0 ? (float)completed / total : 0f, string.Empty, Array.Empty<string>(), 0);
         }
 
         private static ValidationViewModel NeverChecked(LiveOpsHubCheckState check, LiveOpsHubFormat format)
@@ -301,7 +307,7 @@ namespace DreamTech.LiveOps.Editor
                 : string.Empty;
             return new ValidationViewModel(ValidationBodyState.NeverChecked, Array.Empty<ValidationTab>(), Array.Empty<ValidationGroup>(),
                 notice, string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.ValidationSafeRepairButtonFormat, 0), 0,
-                string.Empty, 0f, string.Empty, Array.Empty<string>(), 0);
+                string.Empty, string.Empty, 0f, string.Empty, Array.Empty<string>(), 0);
         }
 
         private static ValidationBodyState BodyStateOf(LiveOpsHubCheckState check, LiveEventCalendarCheckSummary summary, bool isStale)
@@ -314,17 +320,38 @@ namespace DreamTech.LiveOps.Editor
         private static string StaleNoticeOf(LiveOpsHubCheckState check, LiveOpsHubFormat format)
         {
             if (!check.IsStale || check.LastReport == null) return string.Empty;
-            string checkedAt = format.ShortDateTimeUtc(check.LastReport.CheckedAtUtc);
+            string checkedAt = ClockWithSeconds(check.LastReport.CheckedAtUtc);
             if (check.StaleReason == LiveOpsHubCheckStaleReason.MilestonePassed && check.PassedMilestoneUtc.HasValue)
             {
+                // Mốc là một điểm trên lịch (ngày + giờ), lần kiểm là một thời điểm trong phiên (giây) — hai thứ khác nhau nên
+                // hai cách viết khác nhau, đúng câu thiết kế "Đã qua mốc 14/9 00:00 UTC sau lần kiểm 08:46:30".
                 return string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.ValidationStaleMilestoneFormat,
                     format.ShortDateTimeUtc(check.PassedMilestoneUtc.Value), checkedAt);
             }
             if (check.StaleReason == LiveOpsHubCheckStaleReason.InterruptedByReload) return LiveOpsHubStrings.ValidationStaleInterruptedNotice;
             DateTime editedUtc = check.CalendarEditedUtc ?? check.LastReport.CheckedAtUtc;
             return string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.ValidationStaleEditedFormat,
-                format.ShortDateTimeUtc(editedUtc), checkedAt);
+                ClockWithSecondsUtc(editedUtc), checkedAt);
         }
+
+        /// <summary>
+        /// "08:46:50 UTC" — câu "kết quả cũ" và câu phải của dải summary BẮT BUỘC có giây ([SD2 §2.1] "Kiểm lúc 08:46:58 UTC",
+        /// [SD2 §2.8] "đã đổi lúc 08:46:50 UTC, sau lần kiểm 08:46:30"). Hai mốc của một câu thường cách nhau vài chục giây:
+        /// in bằng <see cref="LiveOpsHubFormat.ShortDateTimeUtc"/> (chỉ tới phút) sẽ ra hai mốc y hệt nhau và câu mất nghĩa.
+        /// Cùng khuôn giờ mà status bar dùng; hằng định dạng nằm ngay đây nên giây không rò sang chỗ khác của màn.
+        /// </summary>
+        private static string ClockWithSecondsUtc(DateTime utc)
+        {
+            return ClockWithSeconds(utc) + " " + LiveOpsHubStrings.UtcLabel;
+        }
+
+        /// <summary>"08:46:30" — bản không hậu tố, dùng cho vế thứ hai của câu (ngữ cảnh UTC đã nêu ở vế đầu).</summary>
+        private static string ClockWithSeconds(DateTime utc)
+        {
+            return utc.ToString(ClockWithSecondsPattern, CultureInfo.InvariantCulture);
+        }
+
+        private const string ClockWithSecondsPattern = "HH:mm:ss";
 
         private static IReadOnlyList<ValidationTab> TabsOf(LiveEventCalendarCheckSummary summary, int findingCount, int notMeasuredCount)
         {
@@ -358,10 +385,10 @@ namespace DreamTech.LiveOps.Editor
             };
         }
 
-        private static string SummaryRightOf(LiveEventCalendarCheckReport report, LiveOpsHubFormat format, int safeRepairCount)
+        private static string SummaryRightOf(LiveEventCalendarCheckReport report, int safeRepairCount)
         {
             return string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.ValidationSummaryRightFormat,
-                format.ShortDateTimeUtc(report.CheckedAtUtc), report.RuleResults.Count, safeRepairCount);
+                ClockWithSecondsUtc(report.CheckedAtUtc), report.RuleResults.Count, safeRepairCount);
         }
 
         private static int SafeRepairCountOf(LiveEventCalendarCheckReport report)
@@ -468,9 +495,12 @@ namespace DreamTech.LiveOps.Editor
             ValidationRowAction action = ActionOf(finding);
             string actionText = action == ValidationRowAction.None ? string.Empty : LiveOpsFindingText.PrimaryButtonText(finding);
             string linkText = LiveOpsFindingText.LinkText(finding);
-            if (action == ValidationRowAction.None && linkText.Length == 0)
+            if (action == ValidationRowAction.None && linkText.Length == 0
+                && finding.RepairKind != LiveEventCalendarRepairKind.Ignorable)
             {
                 // Hàng Quyết định… (W4 chỉ có link, I-7) và hàng luật 9 không lệnh sửa (CC-VALB-3): chữ nút chính LÀ link.
+                // KHÔNG áp cho "Bỏ qua cảnh báo…": W4 ẩn hẳn động từ đó (mục 12 I-7). Đổ chữ nút vào link sẽ ra một link mang
+                // chữ "Bỏ qua cảnh báo…" mà bấm vào lại nhảy sang màn Lịch — nói một đằng làm một nẻo.
                 linkText = LiveOpsFindingText.PrimaryButtonText(finding);
             }
 

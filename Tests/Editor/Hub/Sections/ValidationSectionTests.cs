@@ -145,6 +145,50 @@ namespace DreamTech.LiveOps.Editor.Tests
             LogAssert.NoUnexpectedReceived();
         }
 
+        [UnityTest]
+        public IEnumerator WideWindow_ShowsDetailPaneInsteadOfDrawer()
+        {
+            // [SD2 §2.1]: pane Chi tiết 300px ở cửa sổ đủ rộng; drawer chỉ khi CỬA SỔ dưới 1100. Thân màn luôn hẹp hơn cửa sổ
+            // đúng bằng rail + lề (1084 ở cửa sổ 1280), nên đo thân màn là cách chắc chắn giấu mất pane ở mọi cửa sổ.
+            LiveOpsHubServices services = LiveOpsHubTestServices.FromDesignSample();
+            yield return Open(services);
+
+            VisualElement detail = _scope.View.Q(LiveOpsHubPaths.ValidationElementNames.Detail);
+            Assert.IsFalse(detail.ClassListContains(LiveOpsHubClassNames.ValidationHidden), "cửa sổ 1280 phải thấy pane Chi tiết");
+            Assert.IsFalse(detail.ClassListContains(LiveOpsHubClassNames.ValidationDetailDrawer), "1280 không phải bề rộng medium");
+            LogAssert.NoUnexpectedReceived();
+        }
+
+        [UnityTest]
+        public IEnumerator RunningCheck_HidesEmptyBlock()
+        {
+            // Trạng thái đang kiểm chỉ có hộp 24px của [SD2 §2.8]; khối empty bật kèm sẽ để lại một nút rỗng màu xám giữa thân.
+            LiveOpsHubServices services = LiveOpsHubTestServices.ForScenario(LiveOpsHubTestServices.RunningCheckScenario);
+            yield return Open(services);
+
+            Assert.IsFalse(_scope.View.Q(LiveOpsHubPaths.ValidationElementNames.Progress)
+                .ClassListContains(LiveOpsHubClassNames.ValidationHidden), "đang kiểm phải thấy hộp tiến trình");
+            Assert.IsTrue(_scope.View.Q(LiveOpsHubPaths.ValidationElementNames.Empty)
+                .ClassListContains(LiveOpsHubClassNames.ValidationHidden), "đang kiểm KHÔNG dùng khối empty");
+            LogAssert.NoUnexpectedReceived();
+        }
+
+        [UnityTest]
+        public IEnumerator SearchField_ShowsTextOfRestoredFilter()
+        {
+            // 7.0/7.5: chữ tìm sống qua domain reload và điều hướng từ rail/palette nhét id luật vào bộ lọc. Không đổ ngược ra
+            // ô thì người dùng thấy danh sách đã lọc mà ô trống — không biết vì sao thiếu hàng.
+            LiveOpsHubServices services = LiveOpsHubTestServices.FromDesignSample();
+            yield return Open(services);
+
+            Section.ApplyNavigation(LiveOpsHubNavigation.To(LiveOpsHubSections.Ids.Validation).WithRule(LiveEventCalendarRuleIds.OverlapSameType));
+            yield return null;
+
+            TextField search = _scope.View.Q<TextField>(LiveOpsHubPaths.ValidationElementNames.Search);
+            Assert.AreEqual(LiveEventCalendarRuleIds.OverlapSameType, search.value, "ô tìm phải nói đúng bộ lọc đang chạy");
+            LogAssert.NoUnexpectedReceived();
+        }
+
         private ValidationSection Section => (ValidationSection)_scope.Section;
 
         private IEnumerator Open(LiveOpsHubServices services)

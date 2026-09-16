@@ -37,6 +37,15 @@ namespace DreamTech.LiveOps.Editor
 
             /// <summary>Pane Chi tiết 300px — sibling NGOÀI split để thành drawer ở <c>--medium</c> (7.5).</summary>
             internal const string Detail = "validation-detail";
+
+            /// <summary>
+            /// Sọc mức độ 3px của một hàng phát hiện ([SD2 §2.2]). Có TÊN vì lệnh chụp chỉ ghi số đo cho element có tên: số đo
+            /// của màn phải kiểm được trên ảnh, không chỉ số đo của vỏ hub (9.5).
+            /// </summary>
+            internal const string RowStripe = "validation-row-stripe";
+
+            /// <summary>Tiền tố tên card nhóm — <c>validation-group-ignored</c> là card 170px của [SD2 §2.1].</summary>
+            internal const string GroupCardPrefix = "validation-group-";
         }
 
         /// <summary>

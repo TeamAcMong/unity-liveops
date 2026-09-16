@@ -19,7 +19,7 @@ namespace DreamTech.LiveOps.Editor
             AddToClassList(LiveOpsHubClassNames.FindingRow);
             focusable = true;
 
-            VisualElement stripe = new VisualElement();
+            VisualElement stripe = new VisualElement { name = LiveOpsHubPaths.ValidationElementNames.RowStripe };
             stripe.AddToClassList(LiveOpsHubClassNames.ValidationRowStripe);
             stripe.AddToClassList(StripeClassOf(row.State));
             Add(stripe);
@@ -114,7 +114,12 @@ namespace DreamTech.LiveOps.Editor
         private void OnPointerDown(PointerDownEvent pointerEvent)
         {
             SelectionRequested?.Invoke(Row);
+            // Nhấp đúp = "Xem trong lịch" (mục 7.5 Tương tác): cùng đích với link phụ, nên phát cùng một sự kiện để chỉ có một
+            // chỗ quyết định đi đâu. Hàng không có link (Bỏ qua cảnh báo… ẩn ở W4) vẫn mở được đích bằng nhấp đúp.
+            if (pointerEvent.clickCount >= DoubleClickCount) LinkRequested?.Invoke(Row);
         }
+
+        private const int DoubleClickCount = 2;
 
         private static VisualElement BuildLeadingMark(HealthState state)
         {

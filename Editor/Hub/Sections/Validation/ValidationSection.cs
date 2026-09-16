@@ -29,6 +29,7 @@ namespace DreamTech.LiveOps.Editor
         internal const string EmptyActionElementName = "validation-empty-action";
         internal const string NoticeButtonElementName = "validation-notice-recheck";
         internal const string ShouldReviewNoteElementName = "validation-should-review-note";
+        internal const string ProgressRatioElementName = "validation-progress-ratio";
 
         /// <summary>
         /// Lý do tạm khi nút "Sửa các lỗi an toàn (n)…" có n &gt; 1: W4 chưa dựng card xem trước hàng loạt (mục 12 I-7).
@@ -50,10 +51,12 @@ namespace DreamTech.LiveOps.Editor
         private VisualElement _typeMenuHost;
         private ToolbarMenu _typeMenu;
         private TextField _search;
+        private Label _searchPlaceholder;
         private VisualElement _summary;
         private VisualElement _progress;
         private VisualElement _progressFill;
         private Label _progressLabel;
+        private Label _progressRatioLabel;
         private LiveOpsSpinner _spinner;
         private VisualElement _content;
         private ScrollView _groups;
@@ -212,6 +215,23 @@ namespace DreamTech.LiveOps.Editor
             if (_root != null) Refresh();
         }
 
+        /// <summary>
+        /// Chọn hàng của một đích (id đợt / id loại / id luật lặp) mà không cần toạ độ chuột — kịch bản chụp Hình 15 vẽ hàng
+        /// <c>hunt-0916-bonus</c> đang chọn kèm pane Chi tiết của nó. Trả false khi không có hàng nào của đích đó.
+        /// </summary>
+        internal bool TrySelectFinding(string targetId)
+        {
+            if (string.IsNullOrEmpty(targetId)) return false;
+            for (int index = 0; index < _visibleRows.Count; index++)
+            {
+                LiveEventCalendarFinding finding = _visibleRows[index].Row.Finding;
+                if (finding == null || !string.Equals(finding.TargetId, targetId, StringComparison.Ordinal)) continue;
+                SelectRow(_visibleRows[index].Row);
+                return true;
+            }
+            return false;
+        }
+
         public bool TryMoveToFinding(int direction)
         {
             if (_visibleRows.Count == 0) return false;
@@ -237,8 +257,8 @@ namespace DreamTech.LiveOps.Editor
             SetVisible(_toolbar, hasAsset && model.BodyState != ValidationBodyState.NeverChecked && model.BodyState != ValidationBodyState.Running);
             SetVisible(_summary, hasAsset && model.BodyState != ValidationBodyState.NeverChecked && model.BodyState != ValidationBodyState.Running);
             SetVisible(_progress, hasAsset && model.BodyState == ValidationBodyState.Running);
-            SetVisible(_content, hasAsset && HasGroups(model));
-            SetVisible(_empty, !hasAsset || !HasGroups(model));
+            SetVisible(_content, hasAsset && ShowsGroups(model));
+            SetVisible(_empty, !hasAsset || ShowsEmpty(model));
 
             if (!hasAsset)
             {
@@ -253,6 +273,7 @@ namespace DreamTech.LiveOps.Editor
             RefreshNotice(model.StaleNotice);
             RefreshTabs(model);
             RefreshTypeMenu();
+            RefreshSearch();
             RefreshSummary(model);
             RefreshProgress(model);
             RefreshGroups(model);
@@ -264,10 +285,24 @@ namespace DreamTech.LiveOps.Editor
             return new ValidationTextContext(Services.Session.Document, Services.Clock.UtcNow, Services.Session.AssetFileName);
         }
 
-        private static bool HasGroups(ValidationViewModel model)
+        /// <summary>
+        /// Thân card có được vẽ không. "Không còn lỗi" VẪN vẽ: ba card phát hiện rỗng tự biến mất, nhưng card "Chưa kiểm" và
+        /// hàng ngang hai card thu gọn phải ở lại ([SD2 §2.8]: "empty + hàng Chưa kiểm vẫn ở lại") — nếu không, người đọc mất
+        /// đúng chỗ nói "luật này KHÔNG tính là đã qua" và mất nút "Dán JSON đang chạy…".
+        /// </summary>
+        private static bool ShowsGroups(ValidationViewModel model)
         {
-            return model != null && model.BodyState != ValidationBodyState.NeverChecked && model.BodyState != ValidationBodyState.Running
-                && model.BodyState != ValidationBodyState.NoErrors;
+            return model != null && model.BodyState != ValidationBodyState.NeverChecked && model.BodyState != ValidationBodyState.Running;
+        }
+
+        /// <summary>
+        /// Khối <c>liveops-hub-empty</c> chỉ thuộc hai trạng thái có câu để nói ([SD2 §2.8]). Đang kiểm KHÔNG dùng nó: khối rỗng
+        /// mà vẫn bật thì nút của lần trước ở lại giữa thân màn với chữ rỗng — một ô xám không ai bấm được.
+        /// </summary>
+        private static bool ShowsEmpty(ValidationViewModel model)
+        {
+            return model != null
+                && (model.BodyState == ValidationBodyState.NeverChecked || model.BodyState == ValidationBodyState.NoErrors);
         }
 
         private void RefreshHeaderActions(ValidationViewModel model)
@@ -371,6 +406,7 @@ namespace DreamTech.LiveOps.Editor
                 else _spinner.Stop();
             }
             if (_progressLabel != null) _progressLabel.text = model.ProgressText;
+            if (_progressRatioLabel != null) _progressRatioLabel.text = model.ProgressRatioText;
             // ProgressBar tự làm: bề rộng phần đã chạy là % suy từ dữ liệu — đúng mục 5 của danh sách 10 chỗ.
             if (_progressFill != null) _progressFill.style.width = new Length(model.ProgressRatio * 100f, LengthUnit.Percent); // style-inline-allowed: 5
         }
@@ -580,7 +616,7 @@ namespace DreamTech.LiveOps.Editor
         {
             if (finding == null || finding.Repairs.Count == 0) return;
             ProposalPopover popover = new ProposalPopover(finding, Services.Format, Services.LayoutLoader,
-                repair => QuickCheckSentence(finding, repair), repair => ApplyProposal(finding, repair), repairIndex);
+                repair => QuickCheckRemainingCount(finding, repair), repair => ApplyProposal(finding, repair), repairIndex);
             LiveOpsPopoverContent.ShowSingle(ActivatorBoundsOf(RowOf(finding)), popover);
         }
 
@@ -602,12 +638,13 @@ namespace DreamTech.LiveOps.Editor
 
         /// <summary>
         /// Kiểm nhanh CHỈ làn của đợt đang sửa ([SD2 §2.6]) trên một nháp xem trước — không đụng lịch thật và không làm màn
-        /// Kiểm lịch chuyển sang Ok.
+        /// Kiểm lịch chuyển sang Ok. Trả SỐ vấn đề còn lại (âm = lệnh sửa không áp được lên nháp nên không kiểm được gì);
+        /// popover dựng câu và chọn màu dấu từ con số này.
         /// </summary>
-        private string QuickCheckSentence(LiveEventCalendarFinding finding, LiveEventCalendarRepair repair)
+        private int QuickCheckRemainingCount(LiveEventCalendarFinding finding, LiveEventCalendarRepair repair)
         {
             LiveEventCalendarDocument preview;
-            if (!LiveEventCalendarEdits.TryApply(Services.Session.Document, repair.Edit, out preview)) return string.Empty;
+            if (!LiveEventCalendarEdits.TryApply(Services.Session.Document, repair.Edit, out preview)) return NotMeasuredQuickCheck;
             string eventType = new ValidationTextContext(preview, Services.Clock.UtcNow, string.Empty).EventTypeOf(finding);
             LiveEventCalendarCheckReport report = Services.Session.CheckLane(eventType, preview);
             int remaining = 0;
@@ -615,10 +652,10 @@ namespace DreamTech.LiveOps.Editor
             {
                 if (!report.Findings[index].IsIgnored) remaining++;
             }
-            return remaining == 0
-                ? LiveOpsHubStrings.ValidationProposalQuickCheckOk
-                : string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.ValidationProposalQuickCheckOverlapFormat, remaining);
+            return remaining;
         }
+
+        private const int NotMeasuredQuickCheck = -1;
 
         private void SelectRow(ValidationRow row)
         {
@@ -667,17 +704,36 @@ namespace DreamTech.LiveOps.Editor
         private void BuildSearch()
         {
             if (_search == null) return;
+            // Icon search 10px bên trong ô ([SD2 §2.1]) — ô tìm không có nhãn nên icon là thứ duy nhất nói ô này để làm gì.
+            Image icon = LiveOpsHubIcons.CreateImage(SearchIconName, SearchIconSize);
+            icon.AddToClassList(LiveOpsHubClassNames.ValidationSearchIcon);
+            _search.Add(icon);
             // 2022.3 không có `placeholderText` ([API §12]): nhãn mờ là một Label phủ lên ô, ẩn khi có chữ.
-            Label placeholder = new Label(LiveOpsHubStrings.ValidationSearchPlaceholder);
-            placeholder.AddToClassList(LiveOpsHubClassNames.Placeholder);
-            _search.Add(placeholder);
-            placeholder.EnableInClassList(LiveOpsHubClassNames.PlaceholderHidden, _search.value.Length > 0);
+            _searchPlaceholder = new Label(LiveOpsHubStrings.ValidationSearchPlaceholder);
+            _searchPlaceholder.AddToClassList(LiveOpsHubClassNames.Placeholder);
+            _search.Add(_searchPlaceholder);
+            _searchPlaceholder.EnableInClassList(LiveOpsHubClassNames.PlaceholderHidden, _search.value.Length > 0);
             _search.RegisterValueChangedCallback(changeEvent =>
             {
-                placeholder.EnableInClassList(LiveOpsHubClassNames.PlaceholderHidden, changeEvent.newValue.Length > 0);
+                _searchPlaceholder.EnableInClassList(LiveOpsHubClassNames.PlaceholderHidden, changeEvent.newValue.Length > 0);
                 _filter = _filter.WithSearch(changeEvent.newValue);
                 Refresh();
             });
+        }
+
+        private const string SearchIconName = "Search Icon";
+        private const int SearchIconSize = 10;
+
+        /// <summary>
+        /// Ô tìm phải nói đúng bộ lọc đang chạy: chữ tìm sống trong trạng thái view (qua domain reload, 7.0) và điều hướng từ
+        /// rail/palette nhét id luật vào bộ lọc (7.5). Không đổ ngược ra ô thì người dùng thấy danh sách đã lọc mà ô trống.
+        /// <c>SetValueWithoutNotify</c> để không bắn lại vòng lọc → Refresh → gán giá trị.
+        /// </summary>
+        private void RefreshSearch()
+        {
+            if (_search == null) return;
+            if (!string.Equals(_search.value, _filter.SearchText, StringComparison.Ordinal)) _search.SetValueWithoutNotify(_filter.SearchText);
+            if (_searchPlaceholder != null) _searchPlaceholder.EnableInClassList(LiveOpsHubClassNames.PlaceholderHidden, _filter.SearchText.Length > 0);
         }
 
         private void BuildProgress()
@@ -686,6 +742,7 @@ namespace DreamTech.LiveOps.Editor
             _spinner = new LiveOpsSpinner();
             _progress.Add(_spinner);
             _progressLabel = new Label();
+            _progressLabel.AddToClassList(LiveOpsHubClassNames.ValidationProgressLabel);
             _progress.Add(_progressLabel);
             VisualElement track = new VisualElement();
             track.AddToClassList(LiveOpsHubClassNames.ValidationProgressTrack);
@@ -693,6 +750,10 @@ namespace DreamTech.LiveOps.Editor
             _progressFill.AddToClassList(LiveOpsHubClassNames.ValidationProgressFill);
             track.Add(_progressFill);
             _progress.Add(track);
+            // Thanh trơn chỉ đọc được bằng bề rộng; nhãn "7 / 12" là con số đọc được cạnh nó ([SD2 §2.8]).
+            _progressRatioLabel = new Label { name = ProgressRatioElementName };
+            _progressRatioLabel.AddToClassList(LiveOpsHubClassNames.ValidationProgressLabel);
+            _progress.Add(_progressRatioLabel);
         }
 
         private void BuildEmpty()
@@ -738,9 +799,27 @@ namespace DreamTech.LiveOps.Editor
 
         // -------------------------------------------------------------------------------------------------- drawer và vòng đời
 
+        /// <summary>
+        /// Drawer bật theo bề rộng CỬA SỔ, không theo bề rộng thân màn ([SD2 §2.1]: "dưới 1100px (<c>liveops-hub--medium</c>)").
+        /// Thân màn luôn hẹp hơn cửa sổ đúng bằng rail 196px + lề, nên đo chính nó thì ở cửa sổ 1280 (thân 1084) màn cũng tưởng
+        /// mình đang hẹp và giấu luôn pane Chi tiết 300px. <see cref="LiveOpsHubBreakpoints"/> đã gắn class trên root hub — đọc
+        /// lại class đó là cách duy nhất khớp với USS của khung.
+        /// </summary>
         private bool IsDrawerWidth()
         {
+            VisualElement hubRoot = FindHubRoot();
+            if (hubRoot != null) return hubRoot.ClassListContains(LiveOpsHubClassNames.Medium);
+            // Không nằm trong khung hub (test dựng section trần): bề rộng thân là số đo duy nhất còn lại.
             return _root != null && _root.resolvedStyle.width > 0f && _root.resolvedStyle.width < LiveOpsHubBreakpoints.MediumBelowWidth;
+        }
+
+        private VisualElement FindHubRoot()
+        {
+            for (VisualElement element = _root; element != null; element = element.parent)
+            {
+                if (element.ClassListContains(LiveOpsHubClassNames.Root)) return element;
+            }
+            return null;
         }
 
         private void OpenDrawer()

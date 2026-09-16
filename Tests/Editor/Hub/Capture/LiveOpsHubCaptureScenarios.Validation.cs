@@ -26,42 +26,116 @@ namespace DreamTech.LiveOps.Editor.Tests
         private const string ValidationHuntType = "treasure-hunt";
         private const string ValidationHuntDefaultConfigKey = "hunt_default";
 
+        /// <summary>Đợt được chọn sẵn trong Hình 15 (hàng đầu nhóm Bị bỏ, pane Chi tiết vẽ đúng phát hiện của nó).</summary>
+        private const string ValidationSelectedEventId = "hunt-0916-bonus";
+
+        // Số đo của màn theo [SD2 §2.1–2.6]; khai ở đây để ảnh chụp kiểm được phần của gói, không chỉ vỏ hub (9.5, PD-36).
+        private const float ValidationRailWidth = 196f;
+        private const float ValidationContentWidth = 1084f;
+        private const float ValidationSummaryHeight = 24f;
+        private const float ValidationProgressHeight = 24f;
+        private const float ValidationDetailWidth = 300f;
+        private const float ValidationIgnoredCardWidth = 170f;
+        private const float ValidationProposalWidth = 320f;
+        private const float ValidationToastHeight = 24f;
+
         /// <summary>Đủ xa để vượt mốc mở/khép gần nhất của lịch mẫu — đúng lý do cũ "đã qua mốc" (PD-23).</summary>
         private const int ValidationMilestoneScanDays = 30;
 
         static partial void RegisterValidation(List<LiveOpsHubCaptureScenario> scenarios)
         {
             scenarios.Add(new LiveOpsHubCaptureScenario(LiveOpsHubCaptureScenarioIds.H15ValidationDefault, StandardWidth, StandardHeight,
-                OpenValidationDefault));
+                OpenValidationDefault).WithExpectedFrames(GroupsStateFrames()));
 
             scenarios.Add(new LiveOpsHubCaptureScenario(LiveOpsHubCaptureScenarioIds.H172aStaleEdited, StandardWidth, StandardHeight,
-                OpenValidationStaleEdited));
+                OpenValidationStaleEdited).WithExpectedFrames(GroupsStateFrames()));
 
             scenarios.Add(new LiveOpsHubCaptureScenario(LiveOpsHubCaptureScenarioIds.H172bStaleMilestone, StandardWidth, StandardHeight,
-                OpenValidationStaleMilestone));
+                OpenValidationStaleMilestone).WithExpectedFrames(GroupsStateFrames()));
 
             scenarios.Add(new LiveOpsHubCaptureScenario(LiveOpsHubCaptureScenarioIds.H173Running, StandardWidth, StandardHeight,
-                OpenValidationRunning));
+                OpenValidationRunning).WithExpectedFrames(RunningStateFrames(false)));
 
             scenarios.Add(new LiveOpsHubCaptureScenario(LiveOpsHubCaptureScenarioIds.H174NoErrors, StandardWidth, StandardHeight,
-                OpenValidationNoErrors));
+                OpenValidationNoErrors).WithExpectedFrames(NoErrorsStateFrames()));
 
             scenarios.Add(new LiveOpsHubCaptureScenario(LiveOpsHubCaptureScenarioIds.H177ProposalPopover, StandardWidth, StandardHeight,
-                OpenValidationProposalPopover));
+                OpenValidationProposalPopover).WithExpectedFrames(ProposalFrames()));
 
             scenarios.Add(new LiveOpsHubCaptureScenario(LiveOpsHubCaptureScenarioIds.H178ToastAfterApply, StandardWidth, StandardHeight,
-                OpenValidationToastAfterApply));
+                OpenValidationToastAfterApply).WithExpectedFrames(RunningStateFrames(true)));
 
             scenarios.Add(new LiveOpsHubCaptureScenario(LiveOpsHubCaptureScenarioIds.H1710RuleFailed, StandardWidth, StandardHeight,
-                OpenValidationRuleFailed));
+                OpenValidationRuleFailed).WithExpectedFrames(GroupsStateFrames()));
 
             scenarios.Add(new LiveOpsHubCaptureScenario(LiveOpsHubCaptureScenarioIds.H1711ShouldReviewOnly, StandardWidth, StandardHeight,
-                OpenValidationShouldReviewOnly));
+                OpenValidationShouldReviewOnly).WithExpectedFrames(GroupsStateFrames()));
         }
+
+        /// <summary>Hai khung vỏ hub — mọi kịch bản của màn đều mở cửa sổ 1280×760 nên rail và cột nội dung luôn đo được.</summary>
+        private static List<LiveOpsHubCaptureExpectedFrame> ShellFrames()
+        {
+            return new List<LiveOpsHubCaptureExpectedFrame>
+            {
+                new LiveOpsHubCaptureExpectedFrame(LiveOpsHubClassNames.Rail, ValidationRailWidth, 0f),
+                new LiveOpsHubCaptureExpectedFrame(LiveOpsHubClassNames.Content, ValidationContentWidth, 0f),
+            };
+        }
+
+        /// <summary>
+        /// Trạng thái có card: dải summary 24, pane Chi tiết 300 (KHÔNG drawer ở cửa sổ 1280 — [SD2 §2.1] chỉ đổi sang drawer
+        /// dưới 1100), card "Đã bỏ qua" 170.
+        /// <para>
+        /// KHÔNG khai hai số sau, có lý do đo được:
+        /// • sọc mức độ 3px của hàng ([SD2 §2.2]) là <c>border-left-width</c> của <c>liveops-hub-finding-stripe--*</c>, không
+        ///   phải bề rộng element: hộp của nó rộng 8px (3 viền + 5 khe tới icon), nên khai 3 sẽ đỏ dù ảnh đúng. Số 3 khoá bằng
+        ///   USS dùng chung + <c>check-class-names.py</c>.
+        /// • ô tìm 190px: <c>worldBound</c> đúng 190 ở cả hai skin, nhưng dò cạnh ở skin SÁNG ra 188 (viền ô nhạt hơn nền một
+        ///   mức xám) — số đo của công cụ, không phải lệch của màn. Bề rộng 190 khoá bằng USS.
+        /// </para>
+        /// </summary>
+        private static LiveOpsHubCaptureExpectedFrame[] GroupsStateFrames()
+        {
+            List<LiveOpsHubCaptureExpectedFrame> frames = ShellFrames();
+            frames.Add(new LiveOpsHubCaptureExpectedFrame(LiveOpsHubPaths.ValidationElementNames.Summary, 0f, ValidationSummaryHeight));
+            frames.Add(new LiveOpsHubCaptureExpectedFrame(LiveOpsHubPaths.ValidationElementNames.Detail, ValidationDetailWidth, 0f));
+            frames.Add(new LiveOpsHubCaptureExpectedFrame(IgnoredCardElementName, ValidationIgnoredCardWidth, 0f));
+            return frames.ToArray();
+        }
+
+        /// <summary>"Không còn lỗi" vẫn là trạng thái CÓ card (hàng Chưa kiểm ở lại) — chỉ khác là không còn hàng phát hiện.</summary>
+        private static LiveOpsHubCaptureExpectedFrame[] NoErrorsStateFrames()
+        {
+            List<LiveOpsHubCaptureExpectedFrame> frames = ShellFrames();
+            frames.Add(new LiveOpsHubCaptureExpectedFrame(LiveOpsHubPaths.ValidationElementNames.Summary, 0f, ValidationSummaryHeight));
+            frames.Add(new LiveOpsHubCaptureExpectedFrame(LiveOpsHubPaths.ValidationElementNames.Detail, ValidationDetailWidth, 0f));
+            frames.Add(new LiveOpsHubCaptureExpectedFrame(IgnoredCardElementName, ValidationIgnoredCardWidth, 0f));
+            return frames.ToArray();
+        }
+
+        /// <summary>Đang kiểm: chỉ hộp 24px của [SD2 §2.8]; thêm toast 24px cho ô 8 (sửa xong là tự kiểm lại, PD-10).</summary>
+        private static LiveOpsHubCaptureExpectedFrame[] RunningStateFrames(bool withToast)
+        {
+            List<LiveOpsHubCaptureExpectedFrame> frames = ShellFrames();
+            frames.Add(new LiveOpsHubCaptureExpectedFrame(LiveOpsHubPaths.ValidationElementNames.Progress, 0f, ValidationProgressHeight));
+            if (withToast) frames.Add(new LiveOpsHubCaptureExpectedFrame(LiveOpsHubClassNames.Toast, 0f, ValidationToastHeight));
+            return frames.ToArray();
+        }
+
+        private static LiveOpsHubCaptureExpectedFrame[] ProposalFrames()
+        {
+            List<LiveOpsHubCaptureExpectedFrame> frames = ShellFrames();
+            frames.Add(new LiveOpsHubCaptureExpectedFrame(ProposalPopover.BodyElementName, ValidationProposalWidth, 0f));
+            return frames.ToArray();
+        }
+
+        private const string IgnoredCardElementName = LiveOpsHubPaths.ValidationElementNames.GroupCardPrefix + "ignored";
 
         private static EditorWindow OpenValidationDefault()
         {
-            return OpenValidation(LiveOpsHubTestServices.FromDesignSample(), null);
+            // Hình 15 vẽ hàng hunt-0916-bonus ĐANG CHỌN: pane Chi tiết bên phải là của chính hàng đó, nên ảnh không chọn sẵn
+            // thì nửa phải của hình chỉ còn câu mời "Chọn một phát hiện…".
+            return OpenValidation(LiveOpsHubTestServices.FromDesignSample(), ValidationSelectedEventId);
         }
 
         private static EditorWindow OpenValidationStaleEdited()
@@ -106,11 +180,12 @@ namespace DreamTech.LiveOps.Editor.Tests
         private static EditorWindow OpenValidationProposalPopover()
         {
             LiveOpsHubServices services = LiveOpsHubTestServices.FromDesignSample();
-            EditorWindow window = OpenValidation(services, null);
+            EditorWindow window = OpenValidation(services, ValidationSelectedEventId);
             LiveEventCalendarFinding finding = FirstProposalFinding(services);
             if (finding == null) return window;
             // PopupWindow là cửa sổ HĐH riêng, không nằm trong ảnh của cửa sổ hub: gắn CHÍNH cây của popover vào root hub để ô 7
-            // chụp được đúng nội dung đó (dựng bằng cùng lớp, cùng dữ liệu — không nặn lại bằng tay).
+            // chụp được đúng nội dung đó (dựng bằng cùng lớp, cùng dữ liệu — không nặn lại bằng tay). Bề rộng 320px đến từ USS
+            // của popover chứ không phải từ GetWindowSize, nên cây gắn rời vẫn đúng khung của Hình 17 ô 7.
             ProposalPopover popover = new ProposalPopover(finding, services.Format, services.LayoutLoader, null, repair => { }, 0);
             VisualElement built = popover.BuildForTest();
             window.rootVisualElement.Add(built);
@@ -185,18 +260,21 @@ namespace DreamTech.LiveOps.Editor.Tests
             return LiveOpsHubTestServices.Build(builder);
         }
 
-        private static EditorWindow OpenValidation(LiveOpsHubServices services, Action<ValidationSection> prepare)
+        /// <param name="selectedEventId">Đích của hàng chọn sẵn sau khi cửa sổ dựng xong; "" = không chọn hàng nào.</param>
+        private static EditorWindow OpenValidation(LiveOpsHubServices services, string selectedEventId)
         {
             List<IHubSection> sections = LiveOpsHubSections.Create(services);
-            if (prepare != null)
+            EditorWindow window = LiveOpsHubWindow.OpenWithServices(services, sections, LiveOpsHubSections.Ids.Validation);
+            // Chọn SAU khi mở: hàng chỉ tồn tại khi view của màn đã dựng, mà view dựng trong CreateGUI của cửa sổ.
+            if (!string.IsNullOrEmpty(selectedEventId))
             {
                 for (int index = 0; index < sections.Count; index++)
                 {
                     ValidationSection validation = sections[index] as ValidationSection;
-                    if (validation != null) prepare(validation);
+                    if (validation != null) validation.TrySelectFinding(selectedEventId);
                 }
             }
-            return LiveOpsHubWindow.OpenWithServices(services, sections, LiveOpsHubSections.Ids.Validation);
+            return window;
         }
     }
 
