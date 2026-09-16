@@ -82,6 +82,23 @@ namespace DreamTech.LiveOps.Editor
             RegisterFindings(table);
             RegisterExportGate(table);
             RegisterPreview(table);
+            // Vùng của W4/W5/W6: móc khai sẵn để gói màn CHỈ thêm file vùng của mình, không phải sửa file
+            // trung tâm này (V-5 — hằng dùng chung không thành nút nghẽn quyền ghi). Hàm partial chưa có
+            // thân thì trình biên dịch xoá luôn lời gọi, nên vùng chưa làm không tốn gì.
+            RegisterOverview(table);
+            RegisterEventTypes(table);
+            RegisterCalendar(table);
+            RegisterCalendarDepth(table);
+            RegisterRecurring(table);
+            RegisterRecurringJson(table);
+            RegisterValidation(table);
+            RegisterValidationDepth(table);
+            RegisterExport(table);
+            RegisterPaste(table);
+            RegisterInspector(table);
+            RegisterShortcutHelp(table);
+            RegisterShellPolish(table);
+            RegisterOptTimeline(table);
             return table;
         }
 
@@ -105,5 +122,19 @@ namespace DreamTech.LiveOps.Editor
         static partial void RegisterFindings(LiveOpsHubStringTable table);
         static partial void RegisterExportGate(LiveOpsHubStringTable table);
         static partial void RegisterPreview(LiveOpsHubStringTable table);
+        static partial void RegisterOverview(LiveOpsHubStringTable table);
+        static partial void RegisterEventTypes(LiveOpsHubStringTable table);
+        static partial void RegisterCalendar(LiveOpsHubStringTable table);
+        static partial void RegisterCalendarDepth(LiveOpsHubStringTable table);
+        static partial void RegisterRecurring(LiveOpsHubStringTable table);
+        static partial void RegisterRecurringJson(LiveOpsHubStringTable table);
+        static partial void RegisterValidation(LiveOpsHubStringTable table);
+        static partial void RegisterValidationDepth(LiveOpsHubStringTable table);
+        static partial void RegisterExport(LiveOpsHubStringTable table);
+        static partial void RegisterPaste(LiveOpsHubStringTable table);
+        static partial void RegisterInspector(LiveOpsHubStringTable table);
+        static partial void RegisterShortcutHelp(LiveOpsHubStringTable table);
+        static partial void RegisterShellPolish(LiveOpsHubStringTable table);
+        static partial void RegisterOptTimeline(LiveOpsHubStringTable table);
     }
 }
