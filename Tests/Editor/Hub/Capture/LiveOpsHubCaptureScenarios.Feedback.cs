@@ -102,6 +102,9 @@ namespace DreamTech.LiveOps.Editor.Tests
             VisualElement root = FindAncestorWithClass(body, LiveOpsHubClassNames.Root);
             if (content == null || root == null) return;
             root.AddToClassList(LiveOpsHubClassNames.NoMotion);
+            // Từ W4 cửa sổ tự dựng toast của mình (G-HOSTUI) — để nguyên thì khung có HAI element `hub-toast`, cái đầu đang ẩn,
+            // và công cụ đo đọc nhầm cái ẩn (cao 0). Kịch bản này cần đồng hồ đứng yên nên gỡ toast thật rồi gắn toast của mình.
+            content.Q<LiveOpsToast>()?.RemoveFromHierarchy();
 
             // Thao tác thật trên asset bộ nhớ: group mang đúng câu toast, còn trên đỉnh → Hoàn tác bật như sau một lần kéo.
             LiveOpsHubUndoTracker tracker = new LiveOpsHubUndoTracker();
