@@ -102,9 +102,9 @@ file	Packages/com.dreamtech.liveops/Editor/Hub/Controls/LiveOpsStateMark.cs	G-HU
 file	Packages/com.dreamtech.liveops/Editor/Hub/Controls/LiveOpsTabStrip.cs	G-CONTROLS	G-CONTROLS tạo
 file	Packages/com.dreamtech.liveops/Editor/Hub/Controls/LiveOpsTableSorting.cs	G-CONTROLS	G-CONTROLS tạo
 file	Packages/com.dreamtech.liveops/Editor/Hub/Controls/LiveOpsUtcDateTimeField.cs	G-CONTROLS	G-CONTROLS tạo
-file	Packages/com.dreamtech.liveops/Editor/Hub/Controls/Timeline/LiveOpsTimelineBar.cs	G-TIMELINE-VIEW,G-OPT-TIMELINE	G-TIMELINE-VIEW tạo; G-OPT-TIMELINE sửa
+file	Packages/com.dreamtech.liveops/Editor/Hub/Controls/Timeline/LiveOpsTimelineBar.cs	G-TIMELINE-VIEW,G-OPT-TIMELINE,G-FIX-W4-1	G-TIMELINE-VIEW tạo; G-OPT-TIMELINE sửa; G-FIX-W4-1 thêm vế nhịp vào nhãn dải (phiếu D-4 của cổng W4)
 file	Packages/com.dreamtech.liveops/Editor/Hub/Controls/Timeline/LiveOpsTimelineDragController.cs	G-TIMELINE-VIEW,G-OPT-TIMELINE	G-TIMELINE-VIEW tạo; G-OPT-TIMELINE sửa
-file	Packages/com.dreamtech.liveops/Editor/Hub/Controls/Timeline/LiveOpsTimelineElement.cs	G-TIMELINE-VIEW,G-OPT-TIMELINE	G-TIMELINE-VIEW tạo; G-OPT-TIMELINE sửa
+file	Packages/com.dreamtech.liveops/Editor/Hub/Controls/Timeline/LiveOpsTimelineElement.cs	G-TIMELINE-VIEW,G-OPT-TIMELINE,G-FIX-W4-2	G-TIMELINE-VIEW tạo; G-OPT-TIMELINE sửa; G-FIX-W4-2 uỷ quyền câu hỏi phím đơn sang LiveOpsHubShortcuts (CC-HOSTUI-4)
 file	Packages/com.dreamtech.liveops/Editor/Hub/Controls/Timeline/LiveOpsTimelineGeometry.cs	G-TIMELINE-MODEL,G-OPT-TIMELINE	G-TIMELINE-MODEL tạo; G-OPT-TIMELINE sửa
 file	Packages/com.dreamtech.liveops/Editor/Hub/Controls/Timeline/LiveOpsTimelineHintLine.cs	G-TIMELINE-VIEW,G-OPT-TIMELINE	G-TIMELINE-VIEW tạo; G-OPT-TIMELINE sửa
 file	Packages/com.dreamtech.liveops/Editor/Hub/Controls/Timeline/LiveOpsTimelineInput.cs	G-TIMELINE-MODEL,G-OPT-TIMELINE	G-TIMELINE-MODEL tạo; G-OPT-TIMELINE sửa
@@ -112,8 +112,8 @@ file	Packages/com.dreamtech.liveops/Editor/Hub/Controls/Timeline/LiveOpsTimeline
 file	Packages/com.dreamtech.liveops/Editor/Hub/Controls/Timeline/LiveOpsTimelineLane.cs	G-TIMELINE-VIEW,G-OPT-TIMELINE	G-TIMELINE-VIEW tạo; G-OPT-TIMELINE sửa
 file	Packages/com.dreamtech.liveops/Editor/Hub/Controls/Timeline/LiveOpsTimelineLegend.cs	G-TIMELINE-VIEW,G-OPT-TIMELINE	G-TIMELINE-VIEW tạo; G-OPT-TIMELINE sửa
 file	Packages/com.dreamtech.liveops/Editor/Hub/Controls/Timeline/LiveOpsTimelineMinimap.cs	G-TIMELINE-VIEW,G-OPT-TIMELINE	G-TIMELINE-VIEW tạo; G-OPT-TIMELINE sửa
-file	Packages/com.dreamtech.liveops/Editor/Hub/Controls/Timeline/LiveOpsTimelineModel.cs	G-TIMELINE-MODEL,G-OPT-TIMELINE	G-TIMELINE-MODEL tạo; G-OPT-TIMELINE sửa
-file	Packages/com.dreamtech.liveops/Editor/Hub/Controls/Timeline/LiveOpsTimelineRuler.cs	G-TIMELINE-VIEW,G-OPT-TIMELINE	G-TIMELINE-VIEW tạo; G-OPT-TIMELINE sửa
+file	Packages/com.dreamtech.liveops/Editor/Hub/Controls/Timeline/LiveOpsTimelineModel.cs	G-TIMELINE-MODEL,G-OPT-TIMELINE,G-FIX-W4-1	G-TIMELINE-MODEL tạo; G-OPT-TIMELINE sửa; G-FIX-W4-1 thêm StripActiveHours/StripHoursPerDay (phiếu D-4)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Controls/Timeline/LiveOpsTimelineRuler.cs	G-TIMELINE-VIEW,G-OPT-TIMELINE,G-FIX-W4-1	G-TIMELINE-VIEW tạo; G-OPT-TIMELINE sửa; G-FIX-W4-1 bỏ nhãn tầng 1 chồng chữ (phiếu D-2)
 file	Packages/com.dreamtech.liveops/Editor/Hub/Controls/Timeline/LiveOpsTimelineVertexBudget.cs	G-TIMELINE-MODEL,G-OPT-TIMELINE	G-TIMELINE-MODEL tạo; G-OPT-TIMELINE sửa
 file	Packages/com.dreamtech.liveops/Editor/Hub/Dialogs/LiveOpsConfirmContent.cs	G-FEEDBACK	G-FEEDBACK tạo
 file	Packages/com.dreamtech.liveops/Editor/Hub/Dialogs/LiveOpsConfirmRequest.cs	G-HUBKIT	G-HUBKIT tạo
@@ -132,7 +132,7 @@ file	Packages/com.dreamtech.liveops/Editor/Hub/Feedback/LiveOpsHubUndoTracker.cs
 file	Packages/com.dreamtech.liveops/Editor/Hub/Feedback/LiveOpsOutcomeRecord.cs	G-HUBKIT	G-HUBKIT tạo
 file	Packages/com.dreamtech.liveops/Editor/Hub/Feedback/LiveOpsOutcomeView.cs	G-FEEDBACK	G-FEEDBACK tạo
 file	Packages/com.dreamtech.liveops/Editor/Hub/Feedback/LiveOpsToast.cs	G-FEEDBACK	G-FEEDBACK tạo
-file	Packages/com.dreamtech.liveops/Editor/Hub/Feedback/LiveOpsToastModel.cs	G-HUBKIT	G-HUBKIT tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Feedback/LiveOpsToastModel.cs	G-HUBKIT,G-FIX-W4-2	G-HUBKIT tạo; G-FIX-W4-2 thêm tên bước ngắn sau Hoàn tác (phiếu D-5)
 file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/Language/LiveOpsHubLanguage.cs	G-I18N	G-I18N tạo — dịch vụ ngôn ngữ (khoá EditorPrefs LiveOpsHub.Language)
 file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/Language/LiveOpsHubLanguageId.cs	G-I18N	G-I18N tạo — enum ngôn ngữ
 file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/Language/LiveOpsHubLanguageScope.cs	G-I18N	G-I18N tạo — scope ghim ngôn ngữ cho test + lệnh chụp
@@ -194,7 +194,7 @@ file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubPaths.Timeli
 file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubPaths.Validation.cs	G-VALIDATION	G-VALIDATION vùng Validation
 file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubPaths.ValidationDepth.cs	G-VALIDATION-DEPTH	G-VALIDATION-DEPTH vùng ValidationDepth
 file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubPaths.cs	G-SKELETON	G-SKELETON tạo
-file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubStrings.Calendar.cs	G-CALENDAR	G-CALENDAR vùng Calendar
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubStrings.Calendar.cs	G-CALENDAR,G-FIX-W4-2	G-CALENDAR vùng Calendar; G-FIX-W4-2 thêm CalendarMoveUndoStepFormat (phiếu D-5)
 file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubStrings.CalendarDepth.cs	G-CALENDAR-DEPTH	G-CALENDAR-DEPTH vùng CalendarDepth
 file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubStrings.Controls.cs	G-CONTROLS,G-I18N	G-CONTROLS vùng Controls; G-I18N sửa (ngôn ngữ, W3.5)
 file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubStrings.EventTypes.cs	G-EVENTTYPES	G-EVENTTYPES vùng EventTypes
@@ -243,7 +243,7 @@ file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Calendar/CalendarListPan
 file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Calendar/CalendarSection.cs	G-SHELL,G-SESSION,G-CALENDAR,G-CALENDAR-DEPTH	G-SHELL tạo; G-SESSION sửa; G-CALENDAR sửa; G-CALENDAR-DEPTH sửa
 file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Calendar/CalendarSection.uss	G-CALENDAR,G-CALENDAR-DEPTH	G-CALENDAR tạo; G-CALENDAR-DEPTH sửa
 file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Calendar/CalendarSection.uxml	G-CALENDAR,G-CALENDAR-DEPTH	G-CALENDAR tạo; G-CALENDAR-DEPTH sửa
-file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Calendar/CalendarTimelinePresenter.cs	G-CALENDAR,G-CALENDAR-DEPTH,G-OPT-TIMELINE	G-CALENDAR tạo; G-CALENDAR-DEPTH sửa; G-OPT-TIMELINE sửa
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Calendar/CalendarTimelinePresenter.cs	G-CALENDAR,G-CALENDAR-DEPTH,G-OPT-TIMELINE,G-FIX-W4-2	G-CALENDAR tạo; G-CALENDAR-DEPTH sửa; G-OPT-TIMELINE sửa; G-FIX-W4-2 truyền tên bước cho toast dời (phiếu D-5)
 file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Calendar/CalendarToolbar.cs	G-CALENDAR,G-CALENDAR-DEPTH	G-CALENDAR tạo; G-CALENDAR-DEPTH sửa
 file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/EventTypes/AddEventTypePopover.cs	G-EVENTTYPES	G-EVENTTYPES tạo
 file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/EventTypes/EventTypeInspector.cs	G-EVENTTYPES	G-EVENTTYPES tạo
@@ -342,7 +342,7 @@ file	Packages/com.dreamtech.liveops/Editor/Hub/Shell/LiveOpsHubShortcuts.cs	G-HO
 file	Packages/com.dreamtech.liveops/Editor/Hub/Shell/LiveOpsHubSkin.cs	G-SHELL	G-SHELL tạo
 file	Packages/com.dreamtech.liveops/Editor/Hub/Shell/LiveOpsHubStatusBar.cs	G-SHELL,G-HOSTUI	G-SHELL tạo; G-HOSTUI sửa
 file	Packages/com.dreamtech.liveops/Editor/Hub/Shell/LiveOpsHubStatusBarModel.cs	G-HOSTUI	G-HOSTUI tạo
-file	Packages/com.dreamtech.liveops/Editor/Hub/Shell/LiveOpsHubWindow.cs	G-SHELL,G-SESSION,G-I18N,G-HOSTUI,G-SHELLPOLISH,G-OPT-SHORTCUTHELP	G-SHELL tạo; G-SESSION sửa; G-HOSTUI sửa; G-SHELLPOLISH sửa; G-OPT-SHORTCUTHELP sửa; G-I18N sửa (ngôn ngữ, W3.5)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Shell/LiveOpsHubWindow.cs	G-SHELL,G-SESSION,G-I18N,G-HOSTUI,G-SHELLPOLISH,G-OPT-SHORTCUTHELP,G-FIX-W4-2	G-SHELL tạo; G-SESSION sửa; G-HOSTUI sửa; G-SHELLPOLISH sửa; G-OPT-SHORTCUTHELP sửa; G-I18N sửa (ngôn ngữ, W3.5); G-FIX-W4-2 nghe ContentClassRequested (phiếu D-6, PD-21)
 file	Packages/com.dreamtech.liveops/Editor/Hub/Shell/LiveOpsHubWindowState.cs	G-SHELL	G-SHELL tạo
 file	Packages/com.dreamtech.liveops/Editor/Hub/UI/LiveOpsHub.uxml	G-SHELL,G-I18N,G-HOSTUI,G-SHELLPOLISH	G-SHELL tạo; G-HOSTUI sửa; G-SHELLPOLISH sửa; G-I18N sửa (ngôn ngữ, W3.5)
 file	Packages/com.dreamtech.liveops/Editor/Hub/UI/liveops-hub-components.uss	G-HUBBASE	G-HUBBASE tạo
@@ -351,7 +351,7 @@ file	Packages/com.dreamtech.liveops/Editor/Hub/UI/liveops-hub-feedback.uss	G-FEE
 file	Packages/com.dreamtech.liveops/Editor/Hub/UI/liveops-hub-motion.uss	G-HUBBASE	G-HUBBASE tạo
 file	Packages/com.dreamtech.liveops/Editor/Hub/UI/liveops-hub-shell.uss	G-SHELL,G-I18N,G-HOSTUI,G-SHELLPOLISH	G-SHELL tạo; G-HOSTUI sửa; G-SHELLPOLISH sửa; G-I18N sửa (ngôn ngữ, W3.5)
 file	Packages/com.dreamtech.liveops/Editor/Hub/UI/liveops-hub-theme.uss	G-HUBBASE	G-HUBBASE tạo
-file	Packages/com.dreamtech.liveops/Editor/Hub/UI/liveops-hub-timeline.uss	G-TIMELINE-VIEW,G-OPT-TIMELINE	G-TIMELINE-VIEW tạo; G-OPT-TIMELINE sửa
+file	Packages/com.dreamtech.liveops/Editor/Hub/UI/liveops-hub-timeline.uss	G-TIMELINE-VIEW,G-OPT-TIMELINE,G-FIX-W4-1	G-TIMELINE-VIEW tạo; G-OPT-TIMELINE sửa; G-FIX-W4-1 nâng độ ưu tiên viền focus bàn phím (phiếu D-1)
 file	Packages/com.dreamtech.liveops/README.md	G-DOCS	G-DOCS tạo
 file	Packages/com.dreamtech.liveops/Runtime/Core/Calendar/Compilation/LiveEventCalendarCompilation.cs	G-CORE	G-CORE tạo
 file	Packages/com.dreamtech.liveops/Runtime/Core/Calendar/Compilation/LiveEventCalendarCompiler.cs	G-CORE	G-CORE tạo
@@ -541,9 +541,9 @@ file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Services/PublishStateTests.
 file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Services/RemoteSnapshotTests.cs	G-SESSION	G-SESSION tạo
 file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Services/SectionBusTests.cs	G-HUBKIT	G-HUBKIT tạo
 file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Services/TestAdaptersTests.cs	G-HUBKIT,G-FIX-W1-2,G-PASTE	G-HUBKIT tạo; G-FIX-W1-2 thêm test ReadBackDocument (C-1); G-PASTE được bỏ hai test Interim_* cùng tham chiếu action tạm (C-3, V-20)
-file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Services/ToastModelTests.cs	G-HUBKIT	G-HUBKIT tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Services/ToastModelTests.cs	G-HUBKIT,G-FIX-W4-2	G-HUBKIT tạo; G-FIX-W4-2 thêm test tên bước sau Hoàn tác (phiếu D-5)
 file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Shell/HubDiskConflictTests.cs	G-SHELLPOLISH	G-SHELLPOLISH tạo
-file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Shell/HubHostIntegrationTests.cs	G-HOSTUI	G-HOSTUI tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Shell/HubHostIntegrationTests.cs	G-HOSTUI,G-FIX-W4-2	G-HOSTUI tạo; G-FIX-W4-2 thêm test lớp nội dung của bus (phiếu D-6)
 file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Shell/HubLayoutTests.cs	G-SHELL	G-SHELL tạo; NarrowRail_Is36px KHÔNG ở đây — sang HubNarrowTests (V-21 CC-SHELL-2)
 file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Shell/HubMenuTests.cs	G-SHELLPOLISH	G-SHELLPOLISH tạo
 file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Shell/HubNarrowTests.cs	G-SHELLPOLISH	G-SHELLPOLISH tạo; gồm NarrowRail_Is36px chuyển từ HubLayoutTests (V-21 CC-SHELL-2)
@@ -560,8 +560,8 @@ file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Support/LiveOpsHubTestCateg
 file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Support/LiveOpsHubTestServices.cs	G-SESSION	G-SESSION tạo
 file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Support/LiveOpsHubWindowTestScope.cs	G-SHELL	G-SHELL tạo
 file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Timeline/TimelineGeometryTests.cs	G-TIMELINE-MODEL	G-TIMELINE-MODEL tạo
-file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Timeline/TimelineInteractionTests.cs	G-TIMELINE-VIEW	G-TIMELINE-VIEW tạo
-file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Timeline/TimelineModelTests.cs	G-TIMELINE-MODEL	G-TIMELINE-MODEL tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Timeline/TimelineInteractionTests.cs	G-TIMELINE-VIEW,G-FIX-W4-1	G-TIMELINE-VIEW tạo; G-FIX-W4-1 sửa test nhãn tầng 1 (phiếu D-2)
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Timeline/TimelineModelTests.cs	G-TIMELINE-MODEL,G-FIX-W4-1	G-TIMELINE-MODEL tạo; G-FIX-W4-1 thêm assert nhịp dải (phiếu D-4)
 file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Timeline/TimelineMultiSelectTests.cs	G-OPT-TIMELINE	G-OPT-TIMELINE tạo
 file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Timeline/TimelineSkinTokenTests.cs	G-TIMELINE-VIEW	G-TIMELINE-VIEW tạo; lane + minimap của SelfDrawnElements_ResolveTokens_BothSkinClasses (V-21 D-3)
 file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Timeline/TimelineUxmlTests.cs	G-TIMELINE-VIEW	G-TIMELINE-VIEW tạo
@@ -600,7 +600,7 @@ file	tools/liveops-hub/lint-samples/**	G-TOOLS,G-I18N	G-TOOLS tạo — bộ m�
 file	tools/liveops-hub/make-temp-project-2022.sh	G-TOOLS	G-TOOLS tạo
 file	tools/liveops-hub/make-worktree.sh	G-TOOLS	G-TOOLS tạo
 file	tools/liveops-hub/measure-capture.py	G-TOOLS	G-TOOLS tạo
-file	tools/liveops-hub/ownership.tsv	G-TOOLS,G-FIX-W2-1,G-I18N,G-HOSTUI,G-INSPECTOR	G-TOOLS tạo; G-FIX-W2-1 ghi V-21 (phụ thuộc cùng đợt W2, quyền ghi D-3/CC-SHELL-1/2/5/CC-VALB-1/5); G-I18N sửa (ngôn ngữ, W3.5); G-HOSTUI ghi ngoại lệ quyền ghi liveops-hub-feedback.uss (H-2 của soát 16/9); G-INSPECTOR thêm một dòng file USS của chính thư mục mình (vá review F-4, tự duyệt theo uỷ quyền user 15/9)
+file	tools/liveops-hub/ownership.tsv	G-TOOLS,G-FIX-W2-1,G-I18N,G-HOSTUI,G-INSPECTOR,G-FIX-W4-1,G-FIX-W4-2	G-TOOLS tạo; G-FIX-W2-1 ghi V-21 (phụ thuộc cùng đợt W2, quyền ghi D-3/CC-SHELL-1/2/5/CC-VALB-1/5); G-I18N sửa (ngôn ngữ, W3.5); G-HOSTUI ghi ngoại lệ quyền ghi liveops-hub-feedback.uss (H-2 của soát 16/9); G-INSPECTOR thêm một dòng file USS của chính thư mục mình (vá review F-4, tự duyệt theo uỷ quyền user 15/9); G-FIX-W4-1/G-FIX-W4-2 ghi quyền sửa của hai gói sửa ở cổng W4 (phiếu D-1…D-6, CC-HOSTUI-4)
 file	tools/liveops-hub/run-editmode.sh	G-TOOLS	G-TOOLS tạo
 file	tools/liveops-hub/run-playmode.sh	G-TOOLS	G-TOOLS tạo
 file	tools/liveops-hub/unity-slot.sh	G-TOOLS	G-TOOLS tạo
