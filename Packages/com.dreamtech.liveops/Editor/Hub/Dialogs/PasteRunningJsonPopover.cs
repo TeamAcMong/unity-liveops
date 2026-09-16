@@ -64,13 +64,27 @@ namespace DreamTech.LiveOps.Editor
     /// </summary>
     internal sealed class PasteRunningJsonPopover : LiveOpsPopoverContent
     {
-        /// <summary>320px theo khuôn popover của hub ([FD §7]); cao đủ cho ô dán 96px + dòng trạng thái + hàng nút.</summary>
-        private static readonly Vector2 WindowSize = new Vector2(320f, 264f);
+        /// <summary>
+        /// 320px theo khuôn popover của hub ([FD §7]). Chiều cao 280: đo trên cây thật thì nội dung cao nhất (chế độ
+        /// dán, có nhóm lựa chọn) là 257; 23px còn lại là chỗ cho bản tiếng Anh làm dòng trạng thái hoặc nhãn Toggle xuống
+        /// thêm một dòng. Chỗ thừa dồn xuống hàng nút (margin-top: auto) chứ không làm ô dán phình ra — ô dán luôn đúng
+        /// 96px nên ảnh chụp đo lại được số đó.
+        /// <para>
+        /// Số 264 của lượt trước chưa từng được đo với nội dung thật (soát W5 P-3) và ô dán lúc đó cao "theo nội dung" nên
+        /// hàng nút rơi khỏi cửa sổ ngay khi dán một bản đang chạy thật; test
+        /// <c>Layout_LongJsonPasted_ButtonsStayInsidePopoverWindow</c> giờ khoá cả hai số.
+        /// </para>
+        /// </summary>
+        private static readonly Vector2 WindowSize = new Vector2(320f, 280f);
+
+        /// <summary>Sheet riêng của popover dán — bốn sheet chung do <c>LiveOpsPopoverContent</c> nạp ở gốc.</summary>
+        private static readonly string[] PopoverOwnSheets = { LiveOpsHubPaths.PasteRunningJsonPopoverUss };
 
         private readonly PasteRunningJsonMode _mode;
         private readonly string _remoteConfigKey;
         private readonly ILiveOpsHubJsonReadBack _jsonReadBack;
         private readonly ILiveOpsHubLayoutLoader _layoutLoader;
+        private readonly LiveOpsHubFormat _format;
         private readonly Func<LiveEventCalendarDocument, int> _countUndeclaredEventTypes;
         private readonly Action<PasteRunningJsonSubmission> _submit;
 
@@ -83,17 +97,22 @@ namespace DreamTech.LiveOps.Editor
         private LiveEventCalendarDocument _readDocument;
         private int _readFormatVersion;
 
+        /// <param name="format">
+        /// Dòng "Đọc được: …" in số bằng đúng bộ định dạng của hub — hai chỗ đếm cùng một thứ (dòng này và câu outcome sau khi
+        /// nhập) mà in "1000" với "1.000" thì người dùng tưởng là hai con số khác nhau.
+        /// </param>
         /// <param name="countUndeclaredEventTypes">
         /// Đếm loại có trong bản dán mà asset đang mở chưa khai báo — luồng biết định nghĩa loại, popover thì không.
         /// </param>
         internal PasteRunningJsonPopover(PasteRunningJsonMode mode, string remoteConfigKey, ILiveOpsHubJsonReadBack jsonReadBack,
-            ILiveOpsHubLayoutLoader layoutLoader, Func<LiveEventCalendarDocument, int> countUndeclaredEventTypes,
-            Action<PasteRunningJsonSubmission> submit)
+            ILiveOpsHubLayoutLoader layoutLoader, LiveOpsHubFormat format,
+            Func<LiveEventCalendarDocument, int> countUndeclaredEventTypes, Action<PasteRunningJsonSubmission> submit)
         {
             _mode = mode;
             _remoteConfigKey = string.IsNullOrEmpty(remoteConfigKey) ? LiveEventCalendarDocument.DefaultRemoteConfigKey : remoteConfigKey;
             _jsonReadBack = jsonReadBack ?? throw new ArgumentNullException(nameof(jsonReadBack));
             _layoutLoader = layoutLoader ?? throw new ArgumentNullException(nameof(layoutLoader));
+            _format = format ?? throw new ArgumentNullException(nameof(format));
             _countUndeclaredEventTypes = countUndeclaredEventTypes;
             _submit = submit;
         }
@@ -145,8 +164,9 @@ namespace DreamTech.LiveOps.Editor
             // Bỏ vỏ TemplateContainer (cùng lý do với ProposalPopover): vỏ không mang class nên nó không nhận bề rộng 320px.
             VisualElement root = layout.Instantiate().Q(LiveOpsHubPaths.PasteElementNames.Body) ?? layout.Instantiate();
             root.name = LiveOpsHubPaths.PasteElementNames.Body;
-            StyleSheet sheet = _layoutLoader.LoadStyleSheet(LiveOpsHubPaths.PasteRunningJsonPopoverUss);
-            if (sheet != null) root.styleSheets.Add(sheet);
+            // Thiếu sheet riêng thì popover vẫn mở nhưng mất 320px, mất ô 96px, mất hàng nút dính phải — bỏ qua im lặng là một
+            // bố cục sai không ai biết vì sao. Dùng lại đúng bộ cảnh báo một-lần-mỗi-đường-dẫn của cửa sổ riêng (lớp gốc).
+            LiveOpsFeedbackStyleSheets.AddStyleSheets(root, PopoverOwnSheets, _layoutLoader);
 
             bool isImport = _mode == PasteRunningJsonMode.ImportIntoNewAsset;
 
@@ -182,12 +202,15 @@ namespace DreamTech.LiveOps.Editor
             }
 
             _stampToggle = root.Q<Toggle>(LiveOpsHubPaths.PasteElementNames.StampToggle);
-            if (_stampToggle != null)
-            {
-                _stampToggle.text = LiveOpsHubStrings.PasteStampToggleLabel;
-                _stampToggle.SetValueWithoutNotify(true);
-                _stampToggle.EnableInClassList(LiveOpsHubClassNames.PasteHidden, !isImport);
-            }
+            // Mặc định BẬT: người dùng vừa nói "đây là thứ đang chạy", không ghi dấu là vứt lời đó (V-14 bước 4).
+            if (_stampToggle != null) _stampToggle.SetValueWithoutNotify(true);
+
+            Label stampLabel = root.Q<Label>(LiveOpsHubPaths.PasteElementNames.StampLabel);
+            if (stampLabel != null) stampLabel.text = LiveOpsHubStrings.PasteStampToggleLabel;
+
+            // Ẩn CẢ HÀNG chứ không riêng ô tích — ẩn mỗi ô tích thì câu ở lại một mình trong chế độ dán.
+            VisualElement stampLine = root.Q(LiveOpsHubPaths.PasteElementNames.StampLine);
+            if (stampLine != null) stampLine.EnableInClassList(LiveOpsHubClassNames.PasteHidden, !isImport);
 
             CancelButton = root.Q<Button>(LiveOpsHubPaths.PasteElementNames.Cancel);
             if (CancelButton != null)
@@ -257,13 +280,14 @@ namespace DreamTech.LiveOps.Editor
         private string ReadableSummary(LiveEventCalendarDocument document)
         {
             int undeclaredTypeCount = _countUndeclaredEventTypes == null ? 0 : _countUndeclaredEventTypes(document);
+            string ruleCountText = _format.Integer(document.RecurringRules.Count);
+            string eventCountText = _format.Integer(document.FixedEvents.Count);
             if (undeclaredTypeCount <= 0)
             {
-                return string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.PasteReadableFormat,
-                    document.RecurringRules.Count, document.FixedEvents.Count);
+                return string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.PasteReadableFormat, ruleCountText, eventCountText);
             }
             return string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.PasteReadableWithUnknownTypesFormat,
-                document.RecurringRules.Count, document.FixedEvents.Count, undeclaredTypeCount);
+                ruleCountText, eventCountText, _format.Integer(undeclaredTypeCount));
         }
 
         private void SetStatus(string text, bool isError)

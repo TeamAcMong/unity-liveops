@@ -1,11 +1,15 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Text.RegularExpressions;
 using DreamTech.LiveOps.Tests;
 using DreamTech.LiveOps.Unity;
 using NUnit.Framework;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.TestTools;
+using UnityEngine.UIElements;
 
 namespace DreamTech.LiveOps.Editor.Tests
 {
@@ -56,11 +60,28 @@ namespace DreamTech.LiveOps.Editor.Tests
         private const int BrokenJsonErrorLine = 2;
         private const int BrokenJsonErrorColumn = 15;
 
+        /// <summary>Fixture không luật lặp, không đợt — ca "không còn loại chưa khai báo" của outcome sau khi nhập.</summary>
+        private const string EmptyRunningJson = "{\n  \"version\": 2,\n  \"recurring\": [],\n  \"events\": []\n}";
+
+        /// <summary>Ô dán cao 96px — cùng số với <c>.liveops-hub-paste-input-scroll</c> trong USS của popover.</summary>
+        private const float PasteInputScrollHeight = 96f;
+
+        /// <summary>Đường dẫn nằm ngoài project — ca mà <c>TryCreateAsset</c> không bao giờ chạm tới.</summary>
+        private const string OutsideProjectPath = "/Users/ai-do/Desktop/Main.asset";
+
         private readonly List<string> _createdAssetPaths = new List<string>();
+
+        /// <summary>Cửa sổ chứa cây popover của test bố cục — đóng ở TearDown dù test đỏ giữa chừng.</summary>
+        private EditorWindow _layoutWindow;
 
         [TearDown]
         public void TearDown()
         {
+            if (_layoutWindow != null)
+            {
+                _layoutWindow.Close();
+                _layoutWindow = null;
+            }
             foreach (string assetPath in _createdAssetPaths)
             {
                 string guid = AssetDatabase.AssetPathToGUID(assetPath);
@@ -256,6 +277,8 @@ namespace DreamTech.LiveOps.Editor.Tests
 
             Assert.AreEqual(1, fileDialog.SaveFileCalls.Count);
             Assert.IsNull(services.Session.Asset, "huỷ hộp lưu thì phiên vẫn là phiên chưa có lịch");
+            // Huỷ là người dùng tự quyết định: KHÔNG được hiện hộp báo nào — đây là vế còn lại của cặp với ca ngoài project.
+            LogAssert.NoUnexpectedReceived();
         }
 
         /// <summary>(V-14 bước 2) JSON hỏng: KHÔNG mở hộp lưu, KHÔNG tạo asset — gate đứng trước mọi tác dụng phụ.</summary>
@@ -345,6 +368,148 @@ namespace DreamTech.LiveOps.Editor.Tests
             Assert.IsNotNull(AssetDatabase.LoadAssetAtPath<LiveEventCalendarAsset>(assetPath), "file asset vẫn còn trên đĩa");
         }
 
+        // --------------------------------------------------------------------------- lệch của luật lặp (soát W5 P-10)
+
+        /// <summary>
+        /// Luật chỉ có trong nháp thì thay nháp là XOÁ nó, không phải "đổi" nó: hộp cấp 1 tồn tại để nói thứ sẽ mất (bảng 7.0),
+        /// mà "đổi luật sky-race" đọc như một việc lành. Kiểm cả hai vế cùng lúc: weekly-pass có ở hai bên nhưng khác nội
+        /// dung nên vẫn là "đổi" — một test gộp hai vế mới chứng minh được là chúng KHÁC nhau.
+        /// </summary>
+        [Test]
+        public void ReplaceConfirm_RuleOnlyInDraft_SaysDeletedNotChanged()
+        {
+            LiveOpsHubServices services = DesignSampleServices();
+            LiveOpsHubPasteRunningJsonAction action = (LiveOpsHubPasteRunningJsonAction)services.Actions;
+            LiveEventCalendarDocumentParseResult parsed = services.JsonReadBack.ReadBackDocument(RunningJsonWithTwoTypes);
+            Assume.That(parsed.IsReadable, Is.True, "fixture của test phải đọc được");
+
+            string body = action.BuildReplaceConfirmRequest(parsed.Document).Body;
+
+            StringAssert.Contains(RuleClause(LiveOpsHubStrings.PasteReplaceConfirmRulesRemovedFormat, "sky-race"), body,
+                "sky-race chỉ có trong nháp — thay nháp là nó biến mất, hộp phải nói đúng chữ xoá");
+            StringAssert.DoesNotContain(RuleClause(LiveOpsHubStrings.PasteReplaceConfirmRulesFormat, "sky-race"), body,
+                "gọi một luật sắp mất là 'đổi luật' là nói nhẹ đi đúng cái nguy hiểm nhất");
+            StringAssert.Contains(RuleClause(LiveOpsHubStrings.PasteReplaceConfirmRulesFormat, "weekly-pass"), body,
+                "weekly-pass còn ở cả hai bên nhưng khác nội dung — vẫn là vế 'đổi'");
+        }
+
+        // --------------------------------------------------------------------------- ngoài project (soát W5 P-5)
+
+        /// <summary>
+        /// Bấm Huỷ và chọn nơi lưu NGOÀI project là hai nhánh khác nhau: huỷ trả chuỗi rỗng (im lặng đúng), ngoài project
+        /// trả <c>null</c> để luồng còn biết mà báo. Trả cùng một giá trị cho hai ca là cách làm một nhánh hỏng thành vô hình.
+        /// </summary>
+        [Test]
+        public void ProjectRelativeAssetPath_OutsideProject_IsNullAndCancelIsEmpty()
+        {
+            Assert.AreEqual(string.Empty, LiveOpsHubPasteRunningJsonAction.ProjectRelativeAssetPathOf(string.Empty),
+                "huỷ hộp lưu = không chọn gì, không phải một đường dẫn hỏng");
+            Assert.IsNull(LiveOpsHubPasteRunningJsonAction.ProjectRelativeAssetPathOf(OutsideProjectPath),
+                "ngoài project phải phân biệt được với huỷ thì luồng mới in được lý do thành chữ (SPIKE-B SP-3)");
+            Assert.AreEqual("Assets/LiveOps/Calendars/Main.asset",
+                LiveOpsHubPasteRunningJsonAction.ProjectRelativeAssetPathOf("Assets/LiveOps/Calendars/Main.asset"),
+                "đường dẫn dự án (adapter Manual của test) vẫn đi thẳng");
+        }
+
+        /// <summary>
+        /// (V-14 bước 3) Chọn nơi lưu ngoài project: KHÔNG tạo asset, KHÔNG đụng phiên — và hộp lưu đã được hỏi đúng một lần
+        /// (gate đọc-được đã qua). Chỗ khác huỷ — câu báo — khoá bằng test ngay trên.
+        /// </summary>
+        [Test]
+        public void ImportWithoutAsset_PathOutsideProject_NothingCreated()
+        {
+            ManualLiveOpsHubFileDialog fileDialog = new ManualLiveOpsHubFileDialog(OutsideProjectPath);
+            LiveOpsHubServices services = NoAssetServices(fileDialog);
+
+            // Batchmode không vẽ được hộp nên Unity ghi chính nội dung hộp ra log: đây là cách DUY NHẤT chứng minh người dùng
+            // ĐƯỢC BÁO chứ không phải luồng tắt im lặng — và báo đúng lý do "nằm ngoài project" (SPIKE-B SP-3).
+            LogAssert.Expect(LogType.Assert, new Regex(Regex.Escape(string.Format(CultureInfo.InvariantCulture,
+                LiveOpsHubStrings.PasteImportOutsideProjectFormat, OutsideProjectPath))));
+
+            PasteAndConfirm(services, RunningJsonWithTwoTypes, PasteRunningJsonChoice.CompareOnly, PasteRunningJsonMode.ImportIntoNewAsset);
+
+            Assert.AreEqual(1, fileDialog.SaveFileCalls.Count, "đọc được thì vẫn hỏi nơi lưu");
+            Assert.IsNull(services.Session.Asset, "ngoài project thì Unity không nạp được asset — không tạo file chết");
+        }
+
+        // --------------------------------------------------------------------------- outcome sau khi nhập (soát W5 P-4)
+
+        /// <summary>
+        /// (V-14 bước 5) Outcome của lần nhập còn loại chưa khai báo mang <c>ActionId</c> = id màn Loại event — đó là thứ duy nhất
+        /// luồng nói được về nút "Mở Loại event" (khung điều hướng theo id). Khoá lại vì nếu không thì đây là code chết:
+        /// <c>LiveOpsHubWindow.OutcomeActionLabelOf</c> hiện chưa biết nhãn của id màn nên nút bị ẩn (nợ đã ghi ở w5/deviations.md).
+        /// </summary>
+        [Test]
+        public void ImportWithoutAsset_TypesLeftUndeclared_OutcomeActionOpensEventTypes()
+        {
+            ManualLiveOpsHubFileDialog fileDialog = new ManualLiveOpsHubFileDialog(ImportAssetPath("OutcomeAction"));
+            LiveOpsHubServices services = NoAssetServices(fileDialog);
+            List<LiveOpsOutcomeRecord> outcomes = new List<LiveOpsOutcomeRecord>();
+            services.Bus.OutcomeRequested += outcome => outcomes.Add(outcome);
+
+            PasteAndConfirm(services, RunningJsonWithTwoTypes, PasteRunningJsonChoice.CompareOnly, PasteRunningJsonMode.ImportIntoNewAsset);
+
+            Assert.AreEqual(1, outcomes.Count, "một lần nhập là đúng một outcome");
+            Assert.AreEqual(LiveOpsHubSections.Ids.EventTypes, outcomes[0].ActionId,
+                "còn loại chưa khai báo thì việc tiếp theo là mở màn Loại event");
+        }
+
+        /// <summary>Mọi loại đã khai báo thì không có việc tiếp theo — <c>ActionId</c> rỗng, khung không vẽ nút nào.</summary>
+        [Test]
+        public void ReplaceDraft_OutcomeOfImportOnly_NoActionIdWhenTypesDeclared()
+        {
+            ManualLiveOpsHubFileDialog fileDialog = new ManualLiveOpsHubFileDialog(ImportAssetPath("OutcomeNoAction"));
+            LiveOpsHubServices services = NoAssetServices(fileDialog);
+            List<LiveOpsOutcomeRecord> outcomes = new List<LiveOpsOutcomeRecord>();
+            services.Bus.OutcomeRequested += outcome => outcomes.Add(outcome);
+
+            PasteAndConfirm(services, EmptyRunningJson, PasteRunningJsonChoice.CompareOnly, PasteRunningJsonMode.ImportIntoNewAsset);
+
+            Assert.AreEqual(1, outcomes.Count);
+            Assert.AreEqual(string.Empty, outcomes[0].ActionId,
+                "không còn loại lạ thì không được mời người dùng sang màn khác — nút phải biến mất");
+        }
+
+        // --------------------------------------------------------------------------- bố cục popover (soát W5 P-1/P-3)
+
+        /// <summary>
+        /// Dán bản đang chạy THẬT (dài hơn ô 96px rất nhiều): hai nút và dòng trạng thái phải còn NẰM TRONG cửa sổ popover.
+        /// <para>
+        /// Số 264 của lượt trước chưa từng được kiểm với nội dung thật, mà ô dán lại cao "theo nội dung" — ảnh h09f của lượt đó
+        /// cho thấy cây nở quá 550px và hàng nút rơi khỏi khung (soát W5 P-3). Test dựng ĐÚNG khuôn <c>GetWindowSize()</c> mà
+        /// <c>PopupWindow</c> dùng, nên nó khoá cả hai số: chiều cao cửa sổ và chiều cao ô dán.
+        /// </para>
+        /// </summary>
+        [UnityTest]
+        [Category(LiveOpsHubTestCategories.UI)]
+        public IEnumerator Layout_LongJsonPasted_ButtonsStayInsidePopoverWindow()
+        {
+            LiveOpsHubServices services = DesignSampleServices();
+            LiveOpsHubPasteRunningJsonAction action = (LiveOpsHubPasteRunningJsonAction)services.Actions;
+            PasteRunningJsonPopover popover = action.CreatePopover(PasteRunningJsonMode.PasteIntoOpenCalendar);
+            Vector2 popoverSize = popover.GetWindowSize();
+            _layoutWindow = ScriptableObject.CreateInstance<EditorWindow>();
+            _layoutWindow.position = new Rect(120f, 120f, popoverSize.x, popoverSize.y);
+            _layoutWindow.ShowUtility();
+            VisualElement host = _layoutWindow.rootVisualElement;
+            host.style.width = popoverSize.x;
+            host.style.height = popoverSize.y;
+            host.Add(popover.BuildForTest());
+            popover.PasteForTest(LiveOpsDesignSample.PublishedSnapshotJson);
+
+            yield return WaitForLayout(popover.ConfirmButton);
+
+            Assert.AreEqual(PasteInputScrollHeight, InputScrollOf(host).worldBound.height, 1f,
+                "ô dán phải đứng ở 96px của thiết kế dù bản dán dài bao nhiêu");
+            Assert.LessOrEqual(popover.ConfirmButton.worldBound.yMax, popoverSize.y,
+                "nút chính bị đẩy khỏi cửa sổ = người dùng không còn cách nào dán");
+            Assert.LessOrEqual(popover.CancelButton.worldBound.yMax, popoverSize.y, "nút Huỷ cũng phải bấm được");
+            Assert.LessOrEqual(popover.StatusLabel.worldBound.yMax, popoverSize.y,
+                "dòng 'Đọc được: …' là câu phải đọc TRƯỚC khi bấm, không được nằm ngoài khung");
+            Assert.LessOrEqual(popover.InputField.worldBound.width, InputScrollOf(host).worldBound.width + 1f,
+                "dòng JSON dài phải XUỐNG DÒNG trong ô (white-space: normal), không được nở ngang rồi bị cắt cụt ở mép");
+        }
+
         // ------------------------------------------------------------------------------------------------ hỗ trợ
 
         private LiveOpsHubServices DesignSampleServices(ILiveOpsHubConfirmationPresenter presenter = null)
@@ -415,6 +580,37 @@ namespace DreamTech.LiveOps.Editor.Tests
                 }
             }
             return null;
+        }
+
+        /// <summary>Ghép lại một vế luật từ catalog — test không được khoá theo ngôn ngữ đang chọn.</summary>
+        private static string RuleClause(string clauseFormat, string ruleType)
+        {
+            return string.Format(CultureInfo.InvariantCulture, clauseFormat, ruleType);
+        }
+
+        private static VisualElement InputScrollOf(VisualElement host)
+        {
+            VisualElement scroll = host.Q(LiveOpsHubPaths.PasteElementNames.InputScroll);
+            Assert.IsNotNull(scroll, "cây popover phải có khung cuộn của ô dán");
+            return scroll;
+        }
+
+        /// <summary>
+        /// Chờ layout theo CẢ số khung lẫn giờ thật (V-23): batch chạy 60 khung trong ~60 ms nên chỉ đếm khung là đỏ giả
+        /// trên máy bận.
+        /// </summary>
+        private static IEnumerator WaitForLayout(VisualElement element)
+        {
+            double deadline = EditorApplication.timeSinceStartup + 5d;
+            int frames = 0;
+            while (float.IsNaN(element.worldBound.width) || element.worldBound.width <= 0f)
+            {
+                if (++frames > 60 && EditorApplication.timeSinceStartup > deadline)
+                {
+                    Assert.Fail("cây popover không ra layout sau 60 khung và 5 giây");
+                }
+                yield return null;
+            }
         }
 
         /// <summary>null khi nháp không còn đợt mang id đó — dùng để chứng minh cả "giữ key" lẫn "bị xoá".</summary>

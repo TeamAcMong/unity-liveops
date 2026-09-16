@@ -22,10 +22,18 @@ namespace DreamTech.LiveOps.Editor
             internal const string Header = "paste-running-json-header";
             internal const string InputLabel = "paste-running-json-input-label";
             internal const string Input = "paste-running-json-input";
+
+            /// <summary>Khung cuộn của ô dán — có TÊN để test bố cục và lệnh chụp đo được chính 96px của thiết kế.</summary>
+            internal const string InputScroll = "paste-running-json-input-scroll";
             internal const string Status = "paste-running-json-status";
             internal const string RemoteKeyLine = "paste-running-json-remote-key";
             internal const string Mode = "paste-running-json-mode";
             internal const string StampToggle = "paste-running-json-stamp";
+
+            /// <summary>Hàng chứa ô tích + câu — ẨN CẢ HÀNG ở chế độ dán, ẩn mỗi ô tích thì câu ở lại một mình.</summary>
+            internal const string StampLine = "paste-running-json-stamp-line";
+
+            internal const string StampLabel = "paste-running-json-stamp-label";
             internal const string Footer = "paste-running-json-footer";
             internal const string Cancel = "paste-running-json-cancel";
 
