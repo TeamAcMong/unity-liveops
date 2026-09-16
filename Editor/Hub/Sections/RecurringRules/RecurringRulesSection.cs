@@ -78,8 +78,12 @@ namespace DreamTech.LiveOps.Editor
             _form.DecideInValidationRequested += OnDecideInValidationRequested;
             _form.AddMoreOccurrencesRequested += OnAddMoreOccurrencesRequested;
             _form.CopyJsonRequested += OnCopyJsonRequested;
+            _form.ApplyJsonRequested += OnApplyJsonRequested;
             _form.DeleteRequested += OnDeleteRequested;
             _form.JsonFoldout.RegisterValueChangedCallback(changeEvent => _jsonFoldoutOpen = changeEvent.newValue);
+            // Foldout JSON đọc lại bằng ĐÚNG adapter của phiên (V-16): kịch bản chụp và test thay adapter thì ô JSON phải
+            // thấy cùng một kết quả với cổng Xuất và luồng Dán, không đi một parser riêng.
+            _form.JsonFoldout.JsonReadBack = Services.JsonReadBack;
         }
 
         /// <summary>Services của cửa sổ (G-SESSION) — phiên lịch, đồng hồ, clipboard, hộp xác nhận, bus.</summary>
@@ -489,6 +493,24 @@ namespace DreamTech.LiveOps.Editor
             _form.Occurrences.ShowComputing(true);
             if (_occurrenceDebounce != null) _occurrenceDebounce.Pause();
             _occurrenceDebounce = _form.schedule.Execute(Refresh).StartingIn(OccurrenceDebounceMilliseconds);
+        }
+
+        /// <summary>
+        /// "Áp" trong foldout JSON. Một object JSON đổi được CẢ mốc sinh id LẪN thời gian chạy trong một lần, nên hỏi policy
+        /// hai thao tác rồi giữ mức nặng hơn — y như áp "Mẫu". Suy thao tác theo một ô duy nhất thì JSON chỉ rút ngắn đợt
+        /// đang chạy sẽ lọt qua không hộp nào (bảng 7.0 cấm), còn JSON đổi tiền tố lại bị hỏi nhẹ hơn mức phải hỏi.
+        /// </summary>
+        internal void OnApplyJsonRequested(RecurringLiveEventRule candidate)
+        {
+            if (candidate == null) return;
+            RecurringLiveEventRule written;
+            if (!TryGetWrittenRule(candidate.EventType, out written)) return;
+            if (IsSameAsWritten(written, candidate)) return;
+            RecurringPrefixDraft identityDraft = BuildDraft(RecurringRuleFields.Anchor,
+                LiveOpsEditOperation.ChangeRecurringIdentity, candidate);
+            RecurringPrefixDraft activeHoursDraft = BuildDraft(RecurringRuleFields.ActiveHours,
+                LiveOpsEditOperation.ChangeRecurringActiveHours, candidate);
+            CommitOrHoldDraft(candidate, HeavierDraft(identityDraft, activeHoursDraft));
         }
 
         private void OnCopyJsonRequested()

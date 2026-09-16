@@ -14,6 +14,10 @@ namespace DreamTech.LiveOps.Editor
     /// Field dùng <c>isDelayed</c> nên chỉ commit khi Enter hoặc rời ô: gõ từng ký tự mà đã hỏi "có đổi id đợt đang chạy
     /// không" thì hộp xác nhận bật lên giữa lúc đang gõ.
     /// </para>
+    /// <para>
+    /// (Q-W4-4) Khi một trong bốn ô sửa được đang giữ nháp thì ba ô còn lại bị khoá kèm lý do in thành chữ — nháp chỉ sống
+    /// ở một ô, nên mở cả bốn là mời người dùng đánh mất thứ mình vừa gõ.
+    /// </para>
     /// </summary>
     internal sealed class RecurringRuleForm : VisualElement
     {
@@ -35,9 +39,6 @@ namespace DreamTech.LiveOps.Editor
         internal const string AfterWriteRevertElementName = "recurring-after-write-revert";
         internal const string AfterWriteLinkElementName = "recurring-after-write-link";
         internal const string AnchorNoticeElementName = "recurring-anchor-notice";
-        internal const string JsonFoldoutElementName = "recurring-json-foldout";
-        internal const string JsonTextElementName = "recurring-json-text";
-        internal const string JsonCopyElementName = "recurring-json-copy";
         internal const string DeleteElementName = "recurring-delete";
 
         private readonly RecurringRuleSentence _sentence = new RecurringRuleSentence { name = SentenceElementName };
@@ -60,8 +61,7 @@ namespace DreamTech.LiveOps.Editor
         private readonly HelpBox _afterWriteHelpBox;
         private readonly Button _afterWriteRevertButton;
         private readonly HelpBox _anchorNotice;
-        private readonly Foldout _jsonFoldout;
-        private readonly Label _jsonText;
+        private readonly RecurringRuleJsonFoldout _jsonFoldout = new RecurringRuleJsonFoldout();
 
         private RecurringRuleModel _model = RecurringRuleModel.Empty(string.Empty);
         private RecurringPrefixDraft _draft = RecurringPrefixDraft.None;
@@ -146,22 +146,8 @@ namespace DreamTech.LiveOps.Editor
             _occurrences.AddMoreRequested += RaiseAddMoreOccurrences;
             Add(_occurrences);
 
-            _jsonFoldout = new Foldout { name = JsonFoldoutElementName, text = LiveOpsHubStrings.RecurringJsonFoldoutLabel, value = false };
-            _jsonFoldout.AddToClassList(LiveOpsHubClassNames.RecurringJson);
-            _jsonText = new Label { name = JsonTextElementName };
-            _jsonText.AddToClassList(LiveOpsHubClassNames.Mono);
-            _jsonFoldout.Add(_jsonText);
-            // INTERIM(G-RECURRING-JSON): W4 chỉ đọc + Copy (mục 12 I-6) — W5 thay Label này bằng ô sửa được và nút "Áp".
-            Label jsonNote = new Label(LiveOpsHubStrings.RecurringJsonReadOnlyNote);
-            jsonNote.AddToClassList(LiveOpsHubClassNames.Caption);
-            _jsonFoldout.Add(jsonNote);
-            VisualElement jsonActions = new VisualElement();
-            jsonActions.AddToClassList(LiveOpsHubClassNames.RecurringJsonActions);
-            Button copyButton = new Button(RaiseCopyJson) { name = JsonCopyElementName, text = LiveOpsHubStrings.RecurringJsonCopyButton };
-            copyButton.AddToClassList(LiveOpsHubClassNames.Button);
-            copyButton.AddToClassList(LiveOpsHubClassNames.ButtonFirst);
-            jsonActions.Add(copyButton);
-            _jsonFoldout.Add(jsonActions);
+            _jsonFoldout.CopyRequested += RaiseCopyJson;
+            _jsonFoldout.ApplyRequested += RaiseApplyJson;
             Add(_jsonFoldout);
 
             Button deleteButton = new Button(RaiseDelete) { name = DeleteElementName, text = LiveOpsHubStrings.RecurringDeleteRuleButton };
@@ -183,6 +169,9 @@ namespace DreamTech.LiveOps.Editor
         public event Action DecideInValidationRequested;
         public event Action AddMoreOccurrencesRequested;
         public event Action CopyJsonRequested;
+
+        /// <summary>Bấm "Áp" trong foldout JSON với một luật đọc được — cùng đích với <see cref="ValueChangeRequested"/>.</summary>
+        public event Action<RecurringLiveEventRule> ApplyJsonRequested;
         public event Action DeleteRequested;
 
         internal RecurringNextOccurrencesTable Occurrences => _occurrences;
@@ -192,7 +181,7 @@ namespace DreamTech.LiveOps.Editor
         internal IntegerField ActiveField => _activeField;
         internal LiveOpsUtcDateTimeField AnchorField => _anchorField;
         internal DropdownField PresetField => _presetField;
-        internal Foldout JsonFoldout => _jsonFoldout;
+        internal RecurringRuleJsonFoldout JsonFoldout => _jsonFoldout;
         internal VisualElement DraftBlock => _draftBlock;
         internal VisualElement AfterWriteBlock => _afterWriteBlock;
 
@@ -246,7 +235,7 @@ namespace DreamTech.LiveOps.Editor
             BindDraftBlock();
             BindAfterWriteBlock();
 
-            _jsonText.text = jsonText ?? string.Empty;
+            _jsonFoldout.Bind(_model.EventType, jsonText);
             _occurrences.SetRows(_model.NextOccurrences, occurrencesSubtitle, atOccurrenceLimit, _model.OccurrencesEmptyReason);
         }
 
@@ -284,13 +273,15 @@ namespace DreamTech.LiveOps.Editor
                 MarkDrafting(string.Empty);
                 return;
             }
-            FieldSlot slot;
-            if (!_slots.TryGetValue(_draft.FieldName, out slot)) slot = SlotOf(RecurringRuleFields.IdPrefix);
+            // Nháp của một ô lạ (thao tác mới quên khai hằng) vẫn phải hiện ở đâu đó: treo vào ô Tiền tố id và khoá theo
+            // CHÍNH ô đó, không theo tên lạ — nếu không, ba ô kia khoá mà không ô nào mở để đi tiếp.
+            string draftFieldName = _slots.ContainsKey(_draft.FieldName) ? _draft.FieldName : RecurringRuleFields.IdPrefix;
+            FieldSlot slot = SlotOf(draftFieldName);
             slot.NoticeHost.Add(_draftBlock);
             _draftNotice.text = _draft.CellNotice;
             _draftHelpBox.text = _draft.ConsequenceText;
             _draftWriteButton.text = _draft.WriteButtonText;
-            MarkDrafting(_draft.FieldName);
+            MarkDrafting(draftFieldName);
         }
 
         private void BindAfterWriteBlock()
@@ -304,12 +295,29 @@ namespace DreamTech.LiveOps.Editor
                 LiveOpsHubStrings.RecurringRevertPrefixButtonFormat, _revertPrefix);
         }
 
+        /// <summary>
+        /// (Q-W4-4, user duyệt 16/9) Ô đang giữ nháp được viền warning; BA ô còn lại bị KHOÁ tới khi nháp được ghi hoặc huỷ,
+        /// kèm lý do in THÀNH CHỮ ngay cạnh ô (SPIKE-B SP-3 — tooltip chỉ phụ, không test nào assert tooltip).
+        /// <para>
+        /// Vì sao khoá: nháp sống ở ĐÚNG MỘT ô (<see cref="RecurringPrefixDraft"/>), nên gõ tiếp vào ô thứ hai sẽ thay nháp
+        /// cũ bằng nháp mới và cái vừa gõ ở ô thứ nhất biến mất không dấu vết — người dùng tưởng cả hai đang chờ ghi.
+        /// </para>
+        /// </summary>
         private void MarkDrafting(string fieldName)
         {
+            bool hasDraft = fieldName.Length > 0;
+            string draftingLabelText = hasDraft ? SlotOf(fieldName).Label.text : string.Empty;
             foreach (KeyValuePair<string, FieldSlot> pair in _slots)
             {
-                bool isDrafting = fieldName.Length > 0 && string.Equals(pair.Key, fieldName, StringComparison.Ordinal);
+                bool isDrafting = hasDraft && string.Equals(pair.Key, fieldName, StringComparison.Ordinal);
                 pair.Value.Input.EnableInClassList(LiveOpsHubClassNames.RecurringFieldDrafting, isDrafting);
+                bool isLocked = hasDraft && !isDrafting;
+                pair.Value.Input.SetEnabled(!isLocked);
+                pair.Value.LockReason.text = isLocked
+                    ? string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.RecurringFieldLockedByDraftFormat, draftingLabelText)
+                    : string.Empty;
+                pair.Value.LockReason.tooltip = pair.Value.LockReason.text;
+                pair.Value.LockReason.EnableInClassList(LiveOpsHubClassNames.RecurringHidden, !isLocked);
             }
         }
 
@@ -359,13 +367,19 @@ namespace DreamTech.LiveOps.Editor
 
             VisualElement noticeHost = new VisualElement();
             group.Add(noticeHost);
+            // Lý do khoá đứng TRƯỚC dòng lỗi: khi ô vừa khoá vừa lỗi, câu "vì sao không gõ được" phải đọc trước câu lỗi cũ.
+            Label lockReason = new Label();
+            lockReason.AddToClassList(LiveOpsHubClassNames.RecurringFieldLockReason);
+            lockReason.AddToClassList(LiveOpsHubClassNames.TextBlocked);
+            lockReason.AddToClassList(LiveOpsHubClassNames.RecurringHidden);
+            noticeHost.Add(lockReason);
             Label error = new Label();
             error.AddToClassList(LiveOpsHubClassNames.TextBlocked);
             noticeHost.Add(error);
             Add(group);
 
             if (!registerSlot) return;
-            _slots[fieldName] = new FieldSlot(group, row, noticeHost, label, input, suffix, error);
+            _slots[fieldName] = new FieldSlot(group, row, noticeHost, label, input, suffix, error, lockReason);
         }
 
         private FieldSlot SlotOf(string fieldName)
@@ -464,6 +478,11 @@ namespace DreamTech.LiveOps.Editor
             if (CopyJsonRequested != null) CopyJsonRequested();
         }
 
+        private void RaiseApplyJson(RecurringLiveEventRule candidate)
+        {
+            if (ApplyJsonRequested != null) ApplyJsonRequested(candidate);
+        }
+
         private void RaiseDelete()
         {
             if (DeleteRequested != null) DeleteRequested();
@@ -473,7 +492,7 @@ namespace DreamTech.LiveOps.Editor
         private sealed class FieldSlot
         {
             internal FieldSlot(VisualElement group, VisualElement row, VisualElement noticeHost, Label label, VisualElement input,
-                Label suffix, Label error)
+                Label suffix, Label error, Label lockReason)
             {
                 Group = group;
                 Row = row;
@@ -482,6 +501,7 @@ namespace DreamTech.LiveOps.Editor
                 Input = input;
                 Suffix = suffix;
                 Error = error;
+                LockReason = lockReason;
             }
 
             public VisualElement Group { get; }
@@ -491,6 +511,9 @@ namespace DreamTech.LiveOps.Editor
             public VisualElement Input { get; }
             public Label Suffix { get; }
             public Label Error { get; }
+
+            /// <summary>Lý do ô đang bị khoá, in thành chữ (Q-W4-4 + SPIKE-B SP-3); rỗng và ẩn khi ô mở.</summary>
+            public Label LockReason { get; }
         }
     }
 }
