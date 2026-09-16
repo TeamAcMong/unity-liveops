@@ -168,7 +168,7 @@ file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubClassNames.T
 file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubClassNames.Validation.cs	G-VALIDATION	G-VALIDATION vùng Validation
 file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubClassNames.ValidationDepth.cs	G-VALIDATION-DEPTH	G-VALIDATION-DEPTH vùng ValidationDepth
 file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubClassNames.cs	G-SKELETON	G-SKELETON tạo
-file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubFormat.cs	G-HUBBASE	G-HUBBASE tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubFormat.cs	G-HUBBASE,G-CALENDAR-DEPTH	G-HUBBASE tạo; G-CALENDAR-DEPTH thêm LiveOpsHubFormat.DayMonthText (dạng tĩnh "14/9") để control tự vẽ không ghép ngày/tháng bằng tay — lệch kỹ thuật tự duyệt theo uỷ quyền user 15/9 (chỉ THÊM thành viên, không đổi chữ ký cũ)
 file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubIcons.cs	G-HUBBASE	G-HUBBASE tạo
 file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubKeyLabels.cs	G-HUBBASE	G-HUBBASE tạo
 file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubPaths.Calendar.cs	G-CALENDAR	G-CALENDAR vùng Calendar
@@ -345,7 +345,7 @@ file	Packages/com.dreamtech.liveops/Editor/Hub/Shell/LiveOpsHubStatusBarModel.cs
 file	Packages/com.dreamtech.liveops/Editor/Hub/Shell/LiveOpsHubWindow.cs	G-SHELL,G-SESSION,G-I18N,G-HOSTUI,G-SHELLPOLISH,G-OPT-SHORTCUTHELP,G-FIX-W4-2	G-SHELL tạo; G-SESSION sửa; G-HOSTUI sửa; G-SHELLPOLISH sửa; G-OPT-SHORTCUTHELP sửa; G-I18N sửa (ngôn ngữ, W3.5); G-FIX-W4-2 nghe ContentClassRequested (phiếu D-6, PD-21)
 file	Packages/com.dreamtech.liveops/Editor/Hub/Shell/LiveOpsHubWindowState.cs	G-SHELL	G-SHELL tạo
 file	Packages/com.dreamtech.liveops/Editor/Hub/UI/LiveOpsHub.uxml	G-SHELL,G-I18N,G-HOSTUI,G-SHELLPOLISH	G-SHELL tạo; G-HOSTUI sửa; G-SHELLPOLISH sửa; G-I18N sửa (ngôn ngữ, W3.5)
-file	Packages/com.dreamtech.liveops/Editor/Hub/UI/liveops-hub-components.uss	G-HUBBASE	G-HUBBASE tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/UI/liveops-hub-components.uss	G-HUBBASE,G-CALENDAR-DEPTH	G-HUBBASE tạo; G-CALENDAR-DEPTH dời luật bề rộng 280px của class DÙNG CHUNG .liveops-hub-inspector từ CalendarSection.uss sang đây (sheet màn Lịch chỉ nạp khi màn Lịch dựng) — lệch kỹ thuật tự duyệt theo uỷ quyền user 15/9
 file	Packages/com.dreamtech.liveops/Editor/Hub/UI/liveops-hub-controls.uss	G-CONTROLS,G-SHELLPOLISH	G-CONTROLS tạo; G-SHELLPOLISH sửa (V-34 nợ SP-3: class nhãn lý do cạnh tab)
 file	Packages/com.dreamtech.liveops/Editor/Hub/UI/liveops-hub-feedback.uss	G-FEEDBACK,G-HOSTUI	G-FEEDBACK tạo; G-HOSTUI sửa CHỈ khối .liveops-hub-palette (CC-HOSTUI-1 + L-6 của soát 16/9: căn giữa ngang) — palette chỉ được gắn vào cửa sổ thật ở G-HOSTUI (W4) nên W2 không có ảnh nào lộ lỗi; ngoại lệ tự duyệt theo uỷ quyền user 15/9, ghi ở contract-changes-G-HOSTUI.md
 file	Packages/com.dreamtech.liveops/Editor/Hub/UI/liveops-hub-motion.uss	G-HUBBASE	G-HUBBASE tạo
@@ -440,12 +440,12 @@ file	Packages/com.dreamtech.liveops/Tests/Editor/Calendar/Validation/UtcTimeForm
 file	Packages/com.dreamtech.liveops/Tests/Editor/Calendar/Validation/ValidationInvariantFuzzTests.cs	G-ROUNDTRIP	G-ROUNDTRIP tạo
 file	Packages/com.dreamtech.liveops/Tests/Editor/DreamTech.LiveOps.Tests.asmdef	G-CORE	G-CORE tạo
 file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Capture/CaptureCoverageTests.cs	G-ACCEPT	G-ACCEPT tạo
-file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Capture/LiveOpsHubCaptureCommand.cs	G-SHELL,G-I18N	G-SHELL tạo; G-I18N sửa (ngôn ngữ, W3.5)
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Capture/LiveOpsHubCaptureCommand.cs	G-SHELL,G-I18N,G-CALENDAR-DEPTH	G-SHELL tạo; G-I18N sửa (ngôn ngữ, W3.5); G-CALENDAR-DEPTH gọi việc dọn của kịch bản sau khi chụp (WithCleanup) — lượt chụp không có TearDown nên kịch bản nào tạo file trên đĩa buộc phải xoá TRƯỚC khi chụp; lệch kỹ thuật tự duyệt theo uỷ quyền user 15/9 (chỉ THÊM một lời gọi, không đổi chữ ký cũ)
 file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Capture/LiveOpsHubCaptureDeferrals.cs	G-ACCEPT	G-ACCEPT tạo
-file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Capture/LiveOpsHubCaptureScenario.cs	G-SHELL,G-I18N	G-SHELL tạo; G-I18N sửa (ngôn ngữ, W3.5)
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Capture/LiveOpsHubCaptureScenario.cs	G-SHELL,G-I18N,G-CALENDAR-DEPTH	G-SHELL tạo; G-I18N sửa (ngôn ngữ, W3.5); G-CALENDAR-DEPTH thêm WithCleanup/Cleanup (tuỳ chọn, mặc định null) — lệch kỹ thuật tự duyệt theo uỷ quyền user 15/9
 file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Capture/LiveOpsHubCaptureScenarioIds.Fix*.cs	G-FIX-W*	G-FIX-W* V-5 id kịch bản mới của gói sửa
 file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Capture/LiveOpsHubCaptureScenarioIds.cs	G-SKELETON,G-I18N	G-SKELETON tạo; G-I18N sửa (ngôn ngữ, W3.5)
-file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Capture/LiveOpsHubCaptureScenarios.Calendar.cs	G-CALENDAR	G-CALENDAR vùng Calendar
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Capture/LiveOpsHubCaptureScenarios.Calendar.cs	G-CALENDAR,G-CALENDAR-DEPTH	G-CALENDAR vùng Calendar; G-CALENDAR-DEPTH đổi MỘT tư thế sang SetCursor(giờ, "star-tournament", true) để ảnh h12-frame-13 hiện microcopy làn trống của nợ D-3(b) — lệch kỹ thuật tự duyệt theo uỷ quyền user 15/9; không gói W5 nào khác đụng file này
 file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Capture/LiveOpsHubCaptureScenarios.CalendarDepth.cs	G-CALENDAR-DEPTH	G-CALENDAR-DEPTH vùng CalendarDepth
 file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Capture/LiveOpsHubCaptureScenarios.Controls.cs	G-CONTROLS,G-SHELLPOLISH	G-CONTROLS vùng Controls; G-SHELLPOLISH sửa (V-34 nợ SP-3: h03a + hc-controls-gallery có sẵn tab khoá nên ẢNH SẼ ĐỔI — lệch có chủ đích, ghi w5/deviations.md)
 file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Capture/LiveOpsHubCaptureScenarios.EventTypes.cs	G-EVENTTYPES	G-EVENTTYPES vùng EventTypes

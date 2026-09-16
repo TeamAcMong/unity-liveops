@@ -78,12 +78,23 @@ namespace DreamTech.LiveOps.Editor
         /// <summary>Tooltip nút đóng drawer — nêu luôn phím, vì Esc là đường nhanh hơn với tay đang ở bàn phím [SD1 §3.9].</summary>
         internal static string CalendarDepthDrawerCloseTooltip => LiveOpsHubStringCatalog.Text(nameof(CalendarDepthDrawerCloseTooltip));
 
+        // Menu ⋮ của toolbar ở cửa sổ hẹp (8.8): tooltip của nút và mục bật lại dải chú giải.
+        internal static string CalendarDepthOverflowMenuTooltip => LiveOpsHubStringCatalog.Text(nameof(CalendarDepthOverflowMenuTooltip));
+        internal static string CalendarDepthLegendToggle => LiveOpsHubStringCatalog.Text(nameof(CalendarDepthLegendToggle));
+
         // ----- Menu chuột phải [FD §3.9] -----
 
         internal static string CalendarDepthMenuEditInInspector => LiveOpsHubStringCatalog.Text(nameof(CalendarDepthMenuEditInInspector));
 
         /// <summary>"Nhân bản sang 24/9 00:00 (+7 ngày)…" — menu nêu ĐÍCH cụ thể, không để người dùng đoán offset.</summary>
         internal static string CalendarDepthMenuDuplicateFormat => LiveOpsHubStringCatalog.Text(nameof(CalendarDepthMenuDuplicateFormat));
+
+        // Nhãn "Nhân bản" của nhánh KHOÁ: khuôn có {0}/{1} không dùng lại được ở đây vì không có đích để điền — in khuôn ra màn
+        // hình là in đúng dấu ngoặc nhọn cho người dùng đọc.
+        internal static string CalendarDepthMenuDuplicateDisabled => LiveOpsHubStringCatalog.Text(nameof(CalendarDepthMenuDuplicateDisabled));
+
+        // Vì sao không nhân bản được: giờ bắt đầu của đợt không đọc được (vd "2026-10-3"), nên không tính được đích.
+        internal static string CalendarDepthMenuDuplicateUnreadableStartReason => LiveOpsHubStringCatalog.Text(nameof(CalendarDepthMenuDuplicateUnreadableStartReason));
 
         internal static string CalendarDepthMenuFrame => LiveOpsHubStringCatalog.Text(nameof(CalendarDepthMenuFrame));
         internal static string CalendarDepthMenuMoveStart => LiveOpsHubStringCatalog.Text(nameof(CalendarDepthMenuMoveStart));
@@ -132,5 +143,13 @@ namespace DreamTech.LiveOps.Editor
         /// <summary>(V-12) Đưa làn KHÔNG đổi JSON/sha — toast nói đúng "đưa làn", không nói "sửa lịch".</summary>
         internal static string CalendarDepthMoveLaneUpToastFormat => LiveOpsHubStringCatalog.Text(nameof(CalendarDepthMoveLaneUpToastFormat));
         internal static string CalendarDepthMoveLaneDownToastFormat => LiveOpsHubStringCatalog.Text(nameof(CalendarDepthMoveLaneDownToastFormat));
+    
+        // ----- Tên bước Undo của ba lệnh chiều sâu (phiếu D-5) -----
+        // Toast sau ⌘Z in "Đã hoàn tác: " + TÊN BƯỚC. Câu toast của lệnh bắt đầu bằng "Đã …", nên nếu dùng lại câu toast làm
+        // tên bước thì người dùng đọc "Đã hoàn tác: Đã dán …" — hai lần "Đã". Bốn khuôn dưới là dạng động từ nguyên thể.
+        internal static string CalendarDepthPasteUndoStepFormat => LiveOpsHubStringCatalog.Text(nameof(CalendarDepthPasteUndoStepFormat));
+        internal static string CalendarDepthMoveLaneUndoStepFormat => LiveOpsHubStringCatalog.Text(nameof(CalendarDepthMoveLaneUndoStepFormat));
+        internal static string CalendarDepthRevertUndoStepFormat => LiveOpsHubStringCatalog.Text(nameof(CalendarDepthRevertUndoStepFormat));
+        internal static string CalendarDepthTakeFromDiskUndoStepFormat => LiveOpsHubStringCatalog.Text(nameof(CalendarDepthTakeFromDiskUndoStepFormat));
     }
 }

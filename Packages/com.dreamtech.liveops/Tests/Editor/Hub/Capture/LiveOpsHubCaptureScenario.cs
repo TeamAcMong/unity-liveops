@@ -38,6 +38,9 @@ namespace DreamTech.LiveOps.Editor.Tests
         public Func<EditorWindow> OpenWindow { get; }
         public Func<EditorWindow, VisualElement> CaptureTarget { get; }
 
+        /// <summary>Việc dọn sau khi chụp xong (xoá asset tạm…); null = không có gì để dọn.</summary>
+        public Action Cleanup { get; private set; }
+
         /// <summary>Số khung mong đợi riêng của kịch bản (ghi đè bảng mặc định của measure-capture.py); rỗng = bảng mặc định.</summary>
         public IReadOnlyList<LiveOpsHubCaptureExpectedFrame> ExpectedFrames { get; private set; }
 
@@ -65,6 +68,17 @@ namespace DreamTech.LiveOps.Editor.Tests
         public LiveOpsHubCaptureScenario WithLanguage(LiveOpsHubLanguageId language)
         {
             Language = language;
+            return this;
+        }
+
+        /// <summary>
+        /// Việc dọn chạy SAU khi ảnh đã chụp và cửa sổ đã đóng — chỗ duy nhất kịch bản xoá được thứ nó tạo ra trên đĩa. Lượt chụp
+        /// không có <c>TearDown</c> của NUnit, nên trước đây kịch bản phải xoá NGAY lúc dựng trạng thái, và mọi thứ phụ thuộc vào
+        /// file đó (xung đột đĩa) có thể chết trong lúc chờ layout mà không ai thấy.
+        /// </summary>
+        public LiveOpsHubCaptureScenario WithCleanup(Action cleanup)
+        {
+            Cleanup = cleanup;
             return this;
         }
     }

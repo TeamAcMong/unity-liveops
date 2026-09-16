@@ -38,6 +38,48 @@ namespace DreamTech.LiveOps.Editor.Tests
             StringAssert.Contains("7 ngày", duplicate.Text);
         }
 
+        /// <summary>
+        /// Nhánh KHOÁ của "Nhân bản" (giờ bắt đầu không đọc được, vd lava-quest-2026-10 với "2026-10-3"): nhãn không được là cái
+        /// khuôn "{0}/{1}" và phải nói lý do thành chữ (SPIKE-B SP-3). Nhánh này chưa từng có test — đúng chỗ lỗi lọt qua W5.
+        /// </summary>
+        [Test]
+        public void FixedBarMenu_DuplicateDisabled_SaysWhyWithoutFormatHolders()
+        {
+            CalendarMenuContext context = FullContext();
+            context.CanDuplicate = false;
+
+            CalendarMenuItem duplicate = ItemOf(CalendarContextMenus.ForFixedBar(context), CalendarMenuItemId.Duplicate);
+
+            Assert.IsFalse(duplicate.IsEnabled);
+            StringAssert.DoesNotContain("{0}", duplicate.Text, "nhãn mục khoá không được in chỗ giữ chỗ của khuôn");
+            StringAssert.DoesNotContain("{1}", duplicate.Text);
+            StringAssert.Contains(LiveOpsHubStrings.CalendarDepthMenuDuplicateUnreadableStartReason, duplicate.Text,
+                "mục khoá luôn nói VÌ SAO thành chữ");
+        }
+
+        /// <summary>
+        /// <see cref="UnityEditor.GenericMenu"/> coi '/' là dấu PHÂN CẤP, mà mọi nhãn có ngày giờ của hub đều mang '/' ("24/9
+        /// 00:00"). Không né thì hai mục quan trọng nhất của [FD §3.9] bị bẻ thành menu con và biến mất khỏi tầng một. Test đi qua
+        /// đúng đường dựng menu THẬT (<c>PopulateGenericMenu</c>) chứ không chỉ đọc danh sách dữ liệu.
+        /// </summary>
+        [Test]
+        public void GenericMenu_LabelsKeepDatesOnOneLevel()
+        {
+            IReadOnlyList<CalendarMenuItem> items = CalendarContextMenus.ForFixedBar(FullContext());
+            StringAssert.Contains("/", ItemOf(items, CalendarMenuItemId.Duplicate).Text,
+                "nhãn gốc VẪN viết ngày kiểu 24/9 — dạng ngày giờ của cả hub [SD1 §3.13]");
+
+            UnityEditor.GenericMenu menu = new UnityEditor.GenericMenu();
+            CalendarContextMenus.PopulateGenericMenu(menu, items, _ => { });
+
+            Assert.AreEqual(items.Count, menu.GetItemCount(), "mỗi mục dữ liệu đúng MỘT mục menu, không mục nào bị bẻ đôi");
+            for (int index = 0; index < items.Count; index++)
+            {
+                StringAssert.DoesNotContain("/", CalendarContextMenus.EscapeMenuLabel(items[index].Text),
+                    "nhãn đẩy vào GenericMenu không được còn dấu phân cấp: " + items[index].Text);
+            }
+        }
+
         [Test]
         public void RecurringBarMenu_HasDisabledReasonAndNoSimulation()
         {
@@ -46,8 +88,10 @@ namespace DreamTech.LiveOps.Editor.Tests
             CollectionAssert.AreEqual(new[]
             {
                 CalendarMenuItemId.OpenRule, CalendarMenuItemId.Frame, CalendarMenuItemId.CopyId,
-                CalendarMenuItemId.RecurringReadOnly,
-            }, IdsOf(items), "thanh sinh từ luật: ba mục dùng được + một mục nói vì sao không sửa được (PD-1: không có Mô phỏng)");
+                CalendarMenuItemId.None, CalendarMenuItemId.RecurringReadOnly,
+            }, IdsOf(items), "thanh sinh từ luật: ba mục dùng được, mục ngăn cách, rồi mục nói vì sao không sửa được"
+                + " ([SD1 §3.8] Hình 12 khung 10; PD-1: không có Mô phỏng)");
+            Assert.IsTrue(items[3].IsSeparator, "mục thứ tư là dấu ngăn cách, không phải một lệnh");
             Assert.IsFalse(ItemOf(items, CalendarMenuItemId.RecurringReadOnly).IsEnabled);
             StringAssert.Contains(LaneTypeId, ItemOf(items, CalendarMenuItemId.OpenRule).Text);
         }

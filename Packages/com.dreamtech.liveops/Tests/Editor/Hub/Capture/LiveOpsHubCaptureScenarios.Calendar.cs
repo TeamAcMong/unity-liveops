@@ -472,7 +472,9 @@ namespace DreamTech.LiveOps.Editor.Tests
                 CalendarFrameStarTournamentLaneTypeId)) return;
             // Con trỏ đang ở TRONG làn trống — đúng tình huống mà [SD1 §3.8 khung 13] mô tả ("nhấp đúp chỗ trống để thêm đợt").
             // Không có tư thế này thì khung 13 trùng từng byte với khung 1 và không chứng minh được trạng thái nào cả.
-            timeline.SetCursor(CalendarFrameCursorUtc);
+            // (nợ D-3(b)) Phải nói RÕ làn nào và "đang ở chỗ trống": tư thế một tham số chỉ đặt vạch giờ, dòng gợi ý vẫn nói về
+            // đợt đã chọn nên microcopy "nhấp đúp chỗ trống để thêm đợt" không bao giờ lọt vào ảnh.
+            timeline.SetCursor(CalendarFrameCursorUtc, CalendarFrameStarTournamentLaneTypeId, true);
         }
 
         /// <summary>

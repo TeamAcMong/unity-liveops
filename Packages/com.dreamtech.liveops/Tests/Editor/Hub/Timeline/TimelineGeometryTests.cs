@@ -294,6 +294,25 @@ namespace DreamTech.LiveOps.Editor.Tests
                 "Tắt bắt lưới: giờ xem trước không bị kéo về mốc tròn nào");
         }
 
+        /// <summary>
+        /// (nợ W4 D-3(c), phần còn thiếu) Bước bắt lưới phải đi tới CẢ giờ-tại-con-trỏ và bước nhích bàn phím, không chỉ cử chỉ
+        /// kéo: giờ con trỏ là thứ đi vào nhãn menu "Thêm đợt bắt đầu … UTC…" và vào lệnh Dán, còn ← → là đường sửa bằng bàn phím.
+        /// Trước bản vá, chọn "Bắt lưới: 1 ngày" xong nhấn → vẫn nhích đúng 15 phút.
+        /// </summary>
+        [Test]
+        public void EffectiveStepFor_IsSharedByCursorAndKeyboardPaths()
+        {
+            LiveOpsTimelineDragController automatic = new LiveOpsTimelineDragController();
+            LiveOpsTimelineDragController daily = new LiveOpsTimelineDragController { SnapStep = TimeSpan.FromDays(1) };
+            LiveOpsTimelineDragController off = new LiveOpsTimelineDragController { SnapStep = TimeSpan.Zero };
+            const double dayZoomPixelsPerHour = 60d;
+
+            Assert.AreEqual(LiveOpsTimelineGeometry.AutoSnapStep(dayZoomPixelsPerHour), automatic.EffectiveStepFor(dayZoomPixelsPerHour),
+                "Tự động = bước theo zoom, đúng thứ hai đường kia vẫn dùng khi người dùng chưa chọn gì");
+            Assert.AreEqual(TimeSpan.FromDays(1), daily.EffectiveStepFor(dayZoomPixelsPerHour), "chọn 1 ngày thì mọi đường bắt 1 ngày");
+            Assert.AreEqual(TimeSpan.Zero, off.EffectiveStepFor(dayZoomPixelsPerHour), "Tắt = không bắt lưới; nơi gọi tự quyết cách xử");
+        }
+
         private static LiveOpsTimelineLaneModel LaneOf(LiveOpsTimelineModel model, string typeId)
         {
             for (int index = 0; index < model.Lanes.Count; index++)
