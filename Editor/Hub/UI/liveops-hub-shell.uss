@@ -39,6 +39,89 @@
     margin: 0;
 }
 
+/* Ô "Đi tới màn…" — trông như ô nhập (viền + nền default-background) nhưng không nhận chữ; bấm mở palette [FD §3.3]. */
+.liveops-hub-goto {
+    flex-direction: row;
+    align-items: center;
+    height: 18px;
+    margin-left: 12px;
+    padding: 0 6px;
+    border-width: 1px;
+    border-color: var(--unity-colors-window-border);
+    border-radius: 3px;
+    background-color: var(--unity-colors-default-background);
+}
+
+.liveops-hub-goto-label {
+    font-size: 11px;
+    opacity: 0.7;
+    padding: 0;
+    margin: 0;
+}
+
+.liveops-hub-goto-key {
+    font-size: 9px;
+    opacity: 0.7;
+    padding: 0;
+    margin-left: 8px;
+}
+
+/* Khoảng giãn đẩy hai chip về phía phải; menu ngôn ngữ vẫn dùng margin-left: auto để nằm sau cùng. */
+.liveops-hub-header-spacer {
+    flex-grow: 1;
+    flex-shrink: 1;
+}
+
+/* Chip header 18px — [FD §3.3]. Chip rỗng vẫn giữ trong cây (ẩn từng phần bằng --hidden) để bố cục không nhảy. */
+.liveops-hub-chip {
+    flex-direction: row;
+    align-items: center;
+    height: 18px;
+    margin-left: 6px;
+    padding: 0 6px;
+    border-width: 1px;
+    border-color: var(--unity-colors-window-border);
+    border-radius: 3px;
+    background-color: var(--unity-colors-default-background);
+}
+
+.liveops-hub-chip-key {
+    font-size: 10px;
+    opacity: 0.7;
+    padding: 0;
+    margin-right: 4px;
+}
+
+.liveops-hub-chip-text {
+    font-size: 11px;
+    padding: 0;
+    margin: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 240px;
+}
+
+.liveops-hub-chip-divider {
+    width: 1px;
+    height: 12px;
+    margin: 0 4px;
+    background-color: var(--unity-colors-window-border);
+}
+
+/* display: none chứ không visibility: hidden — phần rỗng của chip không được chiếm chỗ (chip co lại quanh phần còn lại). */
+.liveops-hub-chip--hidden {
+    display: none;
+}
+
+.liveops-hub-chip--clickable {
+    color: var(--liveops-hub-color-link);
+}
+
+/* --compact (< 720): ẩn khoá chip, giữ nguyên phần chữ [FD §3.3]. */
+.liveops-hub--compact .liveops-hub-chip-key {
+    display: none;
+}
+
 /* Menu ngôn ngữ đẩy về mép phải header bằng margin-left: auto — USS không có grid nên đây là cách đẩy duy nhất. */
 .liveops-hub-language-menu {
     margin-left: auto;
@@ -466,4 +549,39 @@
     margin: 0;
     padding: 0;
     white-space: normal;
+}
+
+/* ---------------------------------------------------------------- Chỗ cắm outcome + băng đĩa (G-HOSTUI, W4) */
+
+/* Host rỗng không chiếm chỗ: outcome tự có margin-top 8 khi hiện (liveops-hub-feedback.uss). */
+.liveops-hub-outcome-host {
+    flex-shrink: 0;
+    flex-direction: column;
+    padding: 0 10px;
+}
+
+/* Băng "tệp đã đổi trên đĩa" (4.3): dựng trong hub-shell-notes cùng khuôn với note đang biên dịch, thêm hàng nút. */
+.liveops-hub-disk-banner {
+    flex-direction: column;
+    align-items: stretch;
+}
+
+.liveops-hub-disk-banner-text {
+    font-size: 11px;
+    white-space: normal;
+    padding: 0;
+    margin: 0;
+}
+
+.liveops-hub-disk-banner-actions {
+    flex-direction: row;
+    align-items: center;
+    margin-top: 6px;
+}
+
+.liveops-hub-disk-banner-actions > Button {
+    height: 18px;
+    min-width: 54px;
+    margin-left: 0;
+    margin-right: 6px;
 }

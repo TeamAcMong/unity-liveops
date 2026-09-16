@@ -35,6 +35,17 @@ namespace DreamTech.LiveOps.Editor
 
         internal const string CompilingNoteElementName = "hub-compiling-note";
 
+        /// <summary>Nhịp hỏi phút hiện tại cho giờ UTC ở status bar; chữ chỉ dựng lại khi phút đổi (8.3).</summary>
+        internal const long StatusClockPollMilliseconds = 1000;
+
+        /// <summary>⌘S của Unity sau khi hub đã lưu lịch (8.7) — chuỗi menu, không phải shortcut id.</summary>
+        internal const string SaveMenuPath = "File/Save";
+
+        internal const string DiskBannerElementName = "hub-disk-banner";
+        internal const string DiskBannerReloadElementName = "hub-disk-banner-reload";
+        internal const string DiskBannerDiffElementName = "hub-disk-banner-diff";
+        internal const string DiskBannerKeepElementName = "hub-disk-banner-keep";
+
         [SerializeField] private LiveOpsHubWindowState windowState = new LiveOpsHubWindowState();
 
         // Tiêm bởi OpenForTest trước Show (CreateGUI chạy trong Show). Không serialize: sau domain reload cửa sổ dựng lại bằng
@@ -69,10 +80,19 @@ namespace DreamTech.LiveOps.Editor
         [NonSerialized] private VisualElement _notes;
         [NonSerialized] private VisualElement _body;
         [NonSerialized] private VisualElement _compilingNote;
+        [NonSerialized] private VisualElement _diskBanner;
+        [NonSerialized] private VisualElement _outcomeHost;
+        [NonSerialized] private LiveOpsHubPalette _palette;
+        [NonSerialized] private LiveOpsHoverCardHost _hoverCardHost;
+        [NonSerialized] private LiveOpsHubUndoTracker _undoTracker;
+        [NonSerialized] private LiveOpsToast _toast;
+        [NonSerialized] private LiveOpsOutcomeView _outcomeView;
         [NonSerialized] private IHubSection _currentSection;
         [NonSerialized] private Action _detachBreakpoints;
         [NonSerialized] private double _nextHealthRefreshSeconds;
         [NonSerialized] private bool _isUpdateRegistered;
+        [NonSerialized] private int _lastStatusMinute = -1;
+        [NonSerialized] private Action _saveMenuCommandForTest;
 
         IReadOnlyList<IHubSection> IHubHost.Sections => _sections;
 
@@ -212,6 +232,8 @@ namespace DreamTech.LiveOps.Editor
         {
             // Dự phòng khi probe skin chưa bắn (8.8): OnFocus chạy khi người dùng quay lại cửa sổ sau khi đổi Theme.
             _skin?.ApplyFromEditorSkin();
+            // SP-8b: người dùng quay lại Unity sau khi sửa file ngoài — so hash ngay, không chờ auto refresh.
+            CheckDiskOnFocus();
         }
 
         /// <summary>
@@ -272,7 +294,9 @@ namespace DreamTech.LiveOps.Editor
             _statusBar = new LiveOpsHubStatusBar(_hubRoot);
             _notes = _hubRoot.Q(LiveOpsHubPaths.ShellElementNames.ShellNotes);
             _body = _hubRoot.Q(LiveOpsHubPaths.ShellElementNames.SectionBody);
+            _outcomeHost = _hubRoot.Q(LiveOpsHubPaths.ShellElementNames.OutcomeHost);
             _rail = new LiveOpsHubRail(_hubRoot, Navigate);
+            BuildHeaderInteractions();
 
             // (5)
             _sections.Clear();
@@ -291,6 +315,10 @@ namespace DreamTech.LiveOps.Editor
                 if (section is IHubHostAware hostAware) hostAware.Bind(this);
             }
 
+            // (7) palette + hover card trên root clone; toast và outcome là con cuối cột nội dung. Dựng TRƯỚC khi hiện màn để
+            // màn đầu tiên đã có chỗ bắn toast/outcome (bus nối ở bước 8).
+            BuildFeedbackHosts();
+
             // (6)
             RefreshHealth();
             ShowSection(ResolveInitialSectionId());
@@ -304,9 +332,240 @@ namespace DreamTech.LiveOps.Editor
             _isUpdateRegistered = true;
             _nextHealthRefreshSeconds = EditorApplication.timeSinceStartup + HealthRefreshIntervalSeconds;
 
+            // (9) outcome đã lưu qua domain reload hiện lại ngay; băng đĩa dựng lại nếu phiên còn xung đột.
+            RefreshOutcomeView();
+            UpdateDiskBanner();
+            RefreshStatusBar();
+
             // (10)
             UpdateCompilingNote();
             _notes.schedule.Execute(UpdateCompilingNote).Every(CompilationPollMilliseconds);
+            // Giờ ở status bar chỉ đổi mỗi phút: nhịp 1 giây nhưng chỉ dựng lại chữ khi phút đổi (8.3).
+            _statusBar.Element.schedule.Execute(RefreshStatusBarOnMinuteChange).Every(StatusClockPollMilliseconds);
+        }
+
+        // ------------------------------------------------------------------------------------------------------------ header
+
+        /// <summary>
+        /// Nối bấm cho ô "Đi tới màn…" và hai chip. Bấm bằng <c>PointerDownEvent</c> (không <c>Clickable</c>): ba chỗ này là chữ,
+        /// không phải nút — gắn manipulator sẽ kéo theo trạng thái nhấn/giữ của Button mà thiết kế không có.
+        /// </summary>
+        private void BuildHeaderInteractions()
+        {
+            _header.SetGoToKeyLabel(LiveOpsHubKeyLabels.For(LiveOpsHubShortcuts.OpenPaletteId));
+            _header.GoTo.RegisterCallback<PointerDownEvent>(pointerEvent =>
+            {
+                pointerEvent.StopPropagation();
+                OpenPalette();
+            });
+            _header.AssetChip.RegisterCallback<PointerDownEvent>(pointerEvent =>
+            {
+                pointerEvent.StopPropagation();
+                PingCalendarAssetOrOpenOverview();
+            });
+            _header.DraftLeftLabel.RegisterCallback<PointerDownEvent>(pointerEvent =>
+            {
+                // Nửa trái chỉ là nút Lưu ở dạng (a); dạng khác nó là chữ trạng thái nên bấm không được làm gì.
+                if (_services == null || !_services.Session.HasUnsavedChanges) return;
+                pointerEvent.StopPropagation();
+                SaveChanges();
+            });
+            _header.DraftRightLabel.RegisterCallback<PointerDownEvent>(pointerEvent =>
+            {
+                if (_header.DraftRightLabel.text.Length == 0) return;
+                pointerEvent.StopPropagation();
+                Navigate(LiveOpsHubSections.Ids.Export);
+            });
+        }
+
+        /// <summary>Có asset thì chọn nó trong Project; chưa có thì chip là lối vào Tổng quan để tạo lịch (7.1).</summary>
+        private void PingCalendarAssetOrOpenOverview()
+        {
+            LiveEventCalendarAsset asset = _services != null ? _services.Session.Asset : null;
+            if (asset == null)
+            {
+                Navigate(LiveOpsHubSections.Ids.Overview);
+                return;
+            }
+            EditorGUIUtility.PingObject(asset);
+        }
+
+        // ------------------------------------------------------------------------------------------------------------ phản hồi
+
+        /// <summary>
+        /// Palette, hover card, toast, outcome (8.1 bước 7). Toast và outcome là con cuối cột nội dung nên chúng nổi trên thân màn
+        /// mà không cần z-index (USS không có); palette/scrim nằm trên root clone để phủ cả rail.
+        /// </summary>
+        private void BuildFeedbackHosts()
+        {
+            _palette = new LiveOpsHubPalette(_hubRoot, BuildPaletteEntries, OpenPaletteEntry);
+            _hoverCardHost = new LiveOpsHoverCardHost(_hubRoot);
+
+            _undoTracker = new LiveOpsHubUndoTracker();
+            _toast = new LiveOpsToast(_undoTracker);
+            // Thao tác cuối hiện lại ở status bar sau khi toast tắt: nghe Undo/Redo của Editor để chữ "(⌘Z)" mất đúng lúc.
+            _undoTracker.UndoRedoPerformed += RefreshStatusBar;
+
+            _outcomeView = new LiveOpsOutcomeView();
+            _outcomeView.ActionInvoked += OnOutcomeActionInvoked;
+            _outcomeHost.Add(_outcomeView);
+
+            VisualElement content = _hubRoot.Q(LiveOpsHubPaths.ShellElementNames.Content);
+            content.Add(_toast);
+        }
+
+        /// <summary>Mục của palette: 6 màn + id luật của lần kiểm gần nhất ([FD §3.8]). Không bao giờ có lệnh.</summary>
+        private IReadOnlyList<LiveOpsPaletteMatcher.Entry> BuildPaletteEntries()
+        {
+            List<LiveOpsPaletteMatcher.Entry> entries = new List<LiveOpsPaletteMatcher.Entry>();
+            foreach (IHubSection section in _sections)
+            {
+                SectionHealth health = HealthOf(section);
+                entries.Add(new LiveOpsPaletteMatcher.Entry(section.Title, PipelineStages.CaptionOf(section.Stage), section.Subtitle,
+                    string.Empty, section.Id, health, health.Reason));
+            }
+
+            LiveOpsHubCheckState check = _services != null ? _services.Session.Check : null;
+            LiveEventCalendarCheckReport report = check != null ? check.LastReport : null;
+            if (report == null) return entries;
+
+            IHubSection validation = FindSection(LiveOpsHubSections.Ids.Validation);
+            if (validation == null) return entries;
+            SectionHealth validationHealth = HealthOf(validation);
+            foreach (LiveEventCalendarRuleResult result in report.RuleResults)
+            {
+                // Gõ "overlap" dẫn tới Kiểm lịch đã lọc đúng luật đó — id luật là thứ người dùng nhớ, không phải tên màn.
+                entries.Add(new LiveOpsPaletteMatcher.Entry(validation.Title, PipelineStages.CaptionOf(validation.Stage), string.Empty,
+                    result.RuleId, validation.Id, validationHealth, string.Empty));
+            }
+            return entries;
+        }
+
+        private void OpenPaletteEntry(LiveOpsPaletteMatcher.Entry entry)
+        {
+            if (entry == null) return;
+            LiveOpsHubNavigation navigation = LiveOpsHubNavigation.To(entry.SectionId);
+            if (entry.IsRule) navigation = navigation.WithRule(entry.RuleId);
+            Navigate(navigation);
+        }
+
+        private void OnToastRequested(LiveOpsToastModel toast)
+        {
+            _toast?.Show(toast);
+            RefreshStatusBar();
+        }
+
+        /// <summary>Outcome nằm trong trạng thái cửa sổ (sống qua domain reload); view chỉ đọc lại từ đó.</summary>
+        private void RefreshOutcomeView()
+        {
+            if (_outcomeView == null) return;
+            if (windowState.LastOutcome == null) _outcomeView.ClearRecord();
+            else _outcomeView.SetRecord(windowState.LastOutcome);
+        }
+
+        /// <summary>Nút trên outcome là một hành động của MÀN đang mở (vd "Mở Xuất JSON") — khung chỉ chuyển tiếp.</summary>
+        private void OnOutcomeActionInvoked(string actionId, string actionArgument)
+        {
+            if (string.IsNullOrEmpty(actionId)) return;
+            if (FindSection(actionId) != null) Navigate(actionId);
+        }
+
+        // ------------------------------------------------------------------------------------------------------------ status bar
+
+        private void RefreshStatusBarOnMinuteChange()
+        {
+            if (_services == null || _statusBar == null) return;
+            int minute = _services.Clock.UtcNow.Minute;
+            if (minute == _lastStatusMinute) return;
+            RefreshStatusBar();
+        }
+
+        internal void RefreshStatusBar()
+        {
+            if (_statusBar == null) return;
+            if (_services == null)
+            {
+                _statusBar.Clear();
+                return;
+            }
+            LiveOpsHubCalendarSession session = _services.Session;
+            DateTime nowUtc = _services.Clock.UtcNow;
+            _lastStatusMinute = nowUtc.Minute;
+            bool hasRecentAction = _undoTracker != null && _undoTracker.LastActionGroup != LiveOpsToastModel.NoUndoGroup;
+            LiveOpsHubStatusBarModel model = LiveOpsHubStatusBarModel.Build(session.Check,
+                hasRecentAction ? _undoTracker.LastActionText : string.Empty,
+                hasRecentAction && _undoTracker.IsGroupOnTop(_undoTracker.LastActionGroup),
+                nowUtc, session.Publish.ActiveStamp, _services.Format, LiveOpsHubKeyLabels.Undo);
+            _statusBar.SetLeft(model.LeftMark, model.LeftText, string.Empty);
+            _statusBar.SetRight(model.RightText, model.RightTooltip);
+        }
+
+        // ------------------------------------------------------------------------------------------------------------ băng đĩa
+
+        /// <summary>
+        /// Băng "tệp đã đổi trên đĩa" (4.3, SPIKE-B SP-8b): hiện khi phiên báo có xung đột, biến mất khi người dùng đã chọn. Hub
+        /// KHÔNG BAO GIỜ tự đè nháp — ba nút là ba quyết định, không có nút nào chạy ngầm.
+        /// </summary>
+        private void UpdateDiskBanner()
+        {
+            if (_notes == null || _services == null) return;
+            LiveOpsHubDiskConflict conflict = _services.Session.DiskConflict;
+            if (conflict == null)
+            {
+                _diskBanner?.RemoveFromHierarchy();
+                _diskBanner = null;
+                return;
+            }
+            if (_diskBanner != null) _diskBanner.RemoveFromHierarchy();
+
+            _diskBanner = new VisualElement { name = DiskBannerElementName };
+            _diskBanner.AddToClassList(LiveOpsHubClassNames.Note);
+            _diskBanner.AddToClassList(LiveOpsHubClassNames.DiskBanner);
+
+            Label text = new Label(string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.ShellDiskBannerFormat,
+                _services.Session.AssetFileName, _services.Format.ShortDateTimeUtc(conflict.DetectedUtc)));
+            text.AddToClassList(LiveOpsHubClassNames.DiskBannerText);
+            _diskBanner.Add(text);
+
+            VisualElement actions = new VisualElement();
+            actions.AddToClassList(LiveOpsHubClassNames.DiskBannerActions);
+            Button reload = new Button(ReloadFromDisk) { name = DiskBannerReloadElementName, text = LiveOpsHubStrings.ShellDiskBannerReloadButton };
+            reload.tooltip = string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.ShellDiskBannerReloadTooltipFormat,
+                conflict.LostIfReload.ChangeCount);
+            actions.Add(reload);
+            actions.Add(new Button(() => Navigate(LiveOpsHubNavigation.To(LiveOpsHubSections.Ids.Export).WithCompareSource(LiveOpsHubCompareSource.Disk)))
+            {
+                name = DiskBannerDiffElementName,
+                text = LiveOpsHubStrings.ShellDiskBannerDiffButton,
+            });
+            actions.Add(new Button(KeepEditorVersion) { name = DiskBannerKeepElementName, text = LiveOpsHubStrings.ShellDiskBannerKeepButton });
+            _diskBanner.Add(actions);
+            _notes.Add(_diskBanner);
+        }
+
+        private void ReloadFromDisk()
+        {
+            _services?.Session.ReloadFromDisk();
+            UpdateDiskBanner();
+        }
+
+        private void KeepEditorVersion()
+        {
+            _services?.Session.KeepEditorVersion();
+            UpdateDiskBanner();
+        }
+
+        /// <summary>
+        /// Đường so hash thứ hai của SP-8b: cửa sổ lấy lại focus. <c>AssetPostprocessor</c> là đường chính nhưng nó chỉ bắn khi Unity
+        /// tự import; người dùng có thể đổi file rồi quay lại Unity với auto refresh tắt. Phiên tự so hash và bỏ qua khi hash trùng,
+        /// nên gọi mỗi lần focus không tốn gì và không bao giờ đè nháp.
+        /// </summary>
+        private void CheckDiskOnFocus()
+        {
+            if (_services == null) return;
+            string assetPath = _services.Session.AssetPath;
+            if (assetPath.Length == 0) return;
+            _services.Session.HandleAssetsChanged(new[] { assetPath }, null, null, null);
         }
 
         // ------------------------------------------------------------------------------------------------------------ IHubHost
@@ -393,8 +652,15 @@ namespace DreamTech.LiveOps.Editor
 
         public void AddItemsToMenu(GenericMenu menu)
         {
-            // INTERIM(G-SHELLPOLISH): menu ⋮ mới có "Tắt chuyển động"; "Kiểm lại tất cả (F5)" cần phiên kiểm (G-HOSTUI), "Mở tài liệu"
-            // và "Hiện dữ liệu mẫu" thêm ở G-SHELLPOLISH (mục 12 I-8) — không thêm mục disabled trỏ tới thứ chưa có.
+            // INTERIM(G-SHELLPOLISH): menu ⋮ mới có "Kiểm lại tất cả (F5)" và "Tắt chuyển động"; "Mở tài liệu LiveOps" và "Hiện dữ
+            // liệu mẫu" thêm ở G-SHELLPOLISH (mục 12 I-8) — không thêm mục disabled trỏ tới thứ chưa có.
+            string checkKeyLabel = LiveOpsHubKeyLabels.For(LiveOpsHubShortcuts.CheckAllId);
+            string checkAllText = checkKeyLabel.Length == 0
+                ? LiveOpsHubStrings.ShellCheckAllMenuWithoutKey
+                : string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.ShellCheckAllMenuFormat, checkKeyLabel);
+            if (_services != null && _services.Session.Asset != null) menu.AddItem(new GUIContent(checkAllText), false, StartCheckFromShortcut);
+            else menu.AddDisabledItem(new GUIContent(checkAllText));
+
             bool reduceMotion = EditorPrefs.GetBool(ReduceMotionPreferenceKey, false);
             menu.AddItem(new GUIContent(LiveOpsHubStrings.ShellReduceMotionMenu), reduceMotion, () =>
             {
@@ -404,9 +670,81 @@ namespace DreamTech.LiveOps.Editor
             });
         }
 
+        // ------------------------------------------------------------------------------------------------------------ phím tắt
+
+        /// <summary>⌘K: palette đóng thì mở; đang mở thì đóng và nhường ⌘K lại cho Unity Search (8.7).</summary>
+        internal void TogglePaletteOrUnitySearch()
+        {
+            _palette?.ToggleOrSearch();
+        }
+
+        /// <summary>Mở palette (ô "Đi tới màn…", và đường mở duy nhất của test) — không bao giờ đóng, khác với ⌘K.</summary>
+        internal void OpenPalette()
+        {
+            _palette?.Open();
+        }
+
+        /// <summary>
+        /// ⌘S: lưu lịch rồi chuyển tiếp ⌘S của Unity (<c>File/Save</c>) — người dùng bấm ⌘S mong lưu CẢ scene đang mở, không chỉ
+        /// asset lịch. Lưu lịch hỏng thì không chuyển tiếp: <c>SaveChanges</c> đã bắn outcome nói lý do, chạy tiếp sẽ che nó đi.
+        /// </summary>
+        internal void SaveFromShortcut()
+        {
+            if (_services == null) return;
+            if (!_services.Session.HasUnsavedChanges && _services.Session.Asset == null) return;
+            SaveChanges();
+            if (hasUnsavedChanges) return;
+            if (_saveMenuCommandForTest != null) _saveMenuCommandForTest();
+            else EditorApplication.ExecuteMenuItem(SaveMenuPath);
+        }
+
+        /// <summary>
+        /// Thay lệnh "File/Save" của Unity cho test. Cần seam vì <c>ExecuteMenuItem("File/Save")</c> mở hộp lưu scene trong
+        /// batchmode (log assert của Unity làm đỏ mọi test chạy cùng lượt) — cùng cách <see cref="LiveOpsHubPalette"/> thay
+        /// đường mở Unity Search. null = chạy lệnh thật.
+        /// </summary>
+        internal void SetSaveMenuCommandForTest(Action command)
+        {
+            _saveMenuCommandForTest = command;
+        }
+
+        /// <summary>F5: chạy lại Kiểm lịch và bỏ cache health để rail/status đọc số mới ngay nhịp sau.</summary>
+        internal void StartCheckFromShortcut()
+        {
+            if (_services == null || _services.Session.Asset == null) return;
+            _services.Session.StartCheck();
+            InvalidateAndRefreshHealth();
+        }
+
+        /// <summary>F8 / ⇧F8: màn hiện tại có danh sách phát hiện thì đi trong đó; không thì mở Kiểm lịch (8.7).</summary>
+        /// <param name="direction">+1 = kế tiếp, −1 = trước đó.</param>
+        internal void MoveToFinding(int direction)
+        {
+            if (_currentSection is IHubSectionFindings findings && !_failedSectionIds.Contains(_currentSection.Id)
+                && findings.TryMoveToFinding(direction))
+            {
+                return;
+            }
+            Navigate(LiveOpsHubSections.Ids.Validation);
+        }
+
+        /// <summary>⌘1…⌘6: theo VỊ TRÍ trong registry ([FD §3.1]); vị trí ngoài danh sách thì không làm gì.</summary>
+        internal void GoToSectionAt(int index)
+        {
+            if (index < 0 || index >= _sections.Count) return;
+            Navigate(_sections[index].Id);
+        }
+
         // ------------------------------------------------------------------------------------------------------------ cho test
 
         internal VisualElement HubRoot => _hubRoot;
+        internal LiveOpsHubHeader Header => _header;
+        internal LiveOpsHubPalette Palette => _palette;
+        internal LiveOpsToast Toast => _toast;
+        internal LiveOpsOutcomeView OutcomeView => _outcomeView;
+        internal LiveOpsHoverCardHost HoverCardHost => _hoverCardHost;
+        internal LiveOpsHubUndoTracker UndoTracker => _undoTracker;
+        internal VisualElement DiskBanner => _diskBanner;
         internal LiveOpsHubRail Rail => _rail;
         internal LiveOpsHubSectionHeader SectionHeader => _sectionHeader;
         internal LiveOpsHubStatusBar StatusBar => _statusBar;
@@ -453,6 +791,7 @@ namespace DreamTech.LiveOps.Editor
             LiveEventCalendarCheckSummary summary = check != null && check.LastReport != null ? check.LastReport.Summary : null;
             _rail.Build(LiveOpsHubRailModel.Build(_sections, healths, summary, check != null && check.IsStale));
             _rail.SetActiveSection(ActiveSectionId);
+            RefreshStatusBar();
         }
 
         internal SectionHealth HealthOf(IHubSection section)
@@ -651,6 +990,7 @@ namespace DreamTech.LiveOps.Editor
             session.DiskChangeDetected += OnSessionDiskChangeDetected;
             LiveOpsHubSectionBus bus = _services.Bus;
             bus.NavigationRequested += Navigate;
+            bus.ToastRequested += OnToastRequested;
             bus.HealthInvalidated += OnHealthInvalidated;
             bus.OutcomeRequested += OnOutcomeRequested;
             bus.OutcomeCleared += OnOutcomeCleared;
@@ -666,6 +1006,7 @@ namespace DreamTech.LiveOps.Editor
             session.DiskChangeDetected -= OnSessionDiskChangeDetected;
             LiveOpsHubSectionBus bus = _services.Bus;
             bus.NavigationRequested -= Navigate;
+            bus.ToastRequested -= OnToastRequested;
             bus.HealthInvalidated -= OnHealthInvalidated;
             bus.OutcomeRequested -= OnOutcomeRequested;
             bus.OutcomeCleared -= OnOutcomeCleared;
@@ -684,6 +1025,7 @@ namespace DreamTech.LiveOps.Editor
         private void OnSessionDocumentChanged()
         {
             UpdateUnsavedState();
+            UpdateDiskBanner();
             InvalidateAndRefreshHealth();
         }
 
@@ -694,8 +1036,9 @@ namespace DreamTech.LiveOps.Editor
 
         private void OnSessionDiskChangeDetected()
         {
-            // INTERIM(G-SHELLPOLISH): chưa có băng "asset đổi trên đĩa" (mục 12 I-8) — chỉ log; phiên vẫn giữ bản chụp nháp nên không mất việc.
+            // Hub không tự đè nháp (SP-8b): băng hỏi người dùng giữ bản nào. Log giữ nguyên để lịch sử Console còn dấu vết lần đổi.
             Debug.LogWarning(string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.InterimDiskConflictLog, _services.Session.AssetFileName));
+            UpdateDiskBanner();
             InvalidateAndRefreshHealth();
         }
 
@@ -706,13 +1049,15 @@ namespace DreamTech.LiveOps.Editor
 
         private void OnOutcomeRequested(LiveOpsOutcomeRecord outcome)
         {
-            // Outcome sống trong trạng thái cửa sổ (qua domain reload); view outcome của G-HOSTUI đọc từ đây.
+            // Outcome sống trong trạng thái cửa sổ (qua domain reload); view chỉ đọc lại từ đó, không giữ bản sao riêng.
             windowState.LastOutcome = outcome;
+            RefreshOutcomeView();
         }
 
         private void OnOutcomeCleared()
         {
             windowState.LastOutcome = null;
+            RefreshOutcomeView();
         }
 
         private void InvalidateAndRefreshHealth()
@@ -721,44 +1066,19 @@ namespace DreamTech.LiveOps.Editor
             RefreshHealth();
         }
 
-        /// <summary>Tab có * khi và chỉ khi phiên còn thay đổi chưa lưu (8.3); câu hỏi nêu tên asset, số thay đổi và id ngắn.</summary>
+        /// <summary>
+        /// Đổ hai chip header và đồng bộ cờ "*" của tab (8.3). Một nguồn duy nhất — <see cref="LiveOpsHubHeaderChipModel"/> — quyết
+        /// cả dạng chip lẫn <c>hasUnsavedChanges</c>, nên không bao giờ có cảnh tab sạch mà chip nói "Chưa lưu".
+        /// </summary>
         internal void UpdateUnsavedState()
         {
             LiveOpsHubCalendarSession session = _services != null ? _services.Session : null;
-            bool hasUnsaved = session != null && session.HasUnsavedChanges;
-            if (hasUnsaved) saveChangesMessage = BuildSaveChangesMessage(session);
-            if (hasUnsavedChanges != hasUnsaved) hasUnsavedChanges = hasUnsaved;
-        }
-
-        private static string BuildSaveChangesMessage(LiveOpsHubCalendarSession session)
-        {
-            const int MaximumListedIds = 3;
-            LiveEventCalendarDiffResult diff = session.UnsavedDiff;
-
-            // PD-22: "chưa lưu" rộng hơn diff hậu quả (dấu đã đăng, cảnh báo đã bỏ qua, thứ tự mục). Diff rỗng thì KHÔNG có con số thật
-            // để nêu — câu hỏi nói đúng cái nó biết thay vì bịa "1 thay đổi".
-            if (diff.ChangeCount == 0)
-            {
-                return string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.ServicesSaveChangesMessageNoCountFormat, session.AssetFileName);
-            }
-
-            // "… và N mục khác" đếm theo MỤC (id duy nhất), không theo số thay đổi: hai thay đổi trên cùng một đợt không phải hai mục.
-            List<string> distinctItemIds = new List<string>();
-            foreach (LiveEventCalendarChange change in diff.Changes)
-            {
-                if (!string.IsNullOrEmpty(change.ItemId) && !distinctItemIds.Contains(change.ItemId)) distinctItemIds.Add(change.ItemId);
-            }
-            int listedCount = Math.Min(distinctItemIds.Count, MaximumListedIds);
-            string list = listedCount == 0
-                ? LiveOpsHubStrings.ServicesSaveChangesDocumentFields
-                : string.Join(LiveOpsHubStrings.ServicesHealthItemSeparator, distinctItemIds.GetRange(0, listedCount).ToArray());
-            if (distinctItemIds.Count > listedCount)
-            {
-                list = string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.ServicesSaveChangesMoreFormat, list,
-                    distinctItemIds.Count - listedCount);
-            }
-            return string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.ServicesSaveChangesMessageFormat, session.AssetFileName,
-                diff.ChangeCount, list);
+            LiveOpsHubFormat format = _services != null ? _services.Format : new LiveOpsHubFormat(TimeSpan.Zero);
+            LiveOpsHubHeaderChipModel chips = LiveOpsHubHeaderChipModel.Build(session, format,
+                LiveOpsHubKeyLabels.For(LiveOpsHubShortcuts.SaveCalendarId));
+            _header?.SetChips(chips);
+            if (chips.HasUnsavedChanges) saveChangesMessage = chips.SaveChangesMessage;
+            if (hasUnsavedChanges != chips.HasUnsavedChanges) hasUnsavedChanges = chips.HasUnsavedChanges;
         }
 
         private void OnSkinChanged()
@@ -787,6 +1107,23 @@ namespace DreamTech.LiveOps.Editor
             _detachBreakpoints = null;
             _rail?.Dispose();
             _rail = null;
+            if (_undoTracker != null)
+            {
+                // Tracker nghe Undo.undoRedoPerformed (event tĩnh sống lâu hơn cửa sổ): không Dispose là rò handler qua mỗi CreateGUI.
+                _undoTracker.UndoRedoPerformed -= RefreshStatusBar;
+                _undoTracker.Dispose();
+                _undoTracker = null;
+            }
+            if (_outcomeView != null)
+            {
+                _outcomeView.ActionInvoked -= OnOutcomeActionInvoked;
+                _outcomeView = null;
+            }
+            _toast = null;
+            _palette = null;
+            _hoverCardHost = null;
+            _outcomeHost = null;
+            _diskBanner = null;
             _compilingNote = null;
             _hubRoot = null;
         }
