@@ -182,7 +182,7 @@ namespace DreamTech.LiveOps.Editor.Tests
 
             Assert.AreEqual(LiveOpsHubCompareSource.Remote, session.Publish.ActiveCompareSource);
             Assert.IsFalse(Section.DiffModel.HasReviewToggles, "'Đã xem' luôn so với dấu đã đăng");
-            Assert.AreEqual(0, _scope.View.Query<Toggle>().ToList().Count, "card diff không vẽ Toggle nào khi so với bản remote");
+            Assert.AreEqual(0, Section.DiffCard.Query<Toggle>().ToList().Count, "card diff không vẽ Toggle nào khi so với bản remote");
             Assert.IsTrue(Section.DiffCard.TitleLabel.text.StartsWith(RemoteHeaderPrefix(), StringComparison.Ordinal),
                 "header nói rõ đang so với bản remote đã dán");
             Assert.IsFalse(Section.DiffCard.BackToPublishedChip.ClassListContains(LiveOpsHubClassNames.ExportHidden),
