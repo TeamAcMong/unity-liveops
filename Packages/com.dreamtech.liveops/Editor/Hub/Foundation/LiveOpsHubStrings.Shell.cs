@@ -77,5 +77,71 @@ namespace DreamTech.LiveOps.Editor
 
         // Điều hướng
         internal static string ShellUnknownSectionWarningFormat => LiveOpsHubStringCatalog.Text(nameof(ShellUnknownSectionWarningFormat));
+
+        // Header 26 px — ô "Đi tới màn…" và hai chip ([FD §3.3], G-HOSTUI W4)
+        internal static string ShellGoToPlaceholder => LiveOpsHubStringCatalog.Text(nameof(ShellGoToPlaceholder));
+        internal static string ShellGoToTooltip => LiveOpsHubStringCatalog.Text(nameof(ShellGoToTooltip));
+
+        /// <summary>Khoá con 10 px của chip trái — luôn đi kèm tên file, không bao giờ đứng một mình.</summary>
+        internal static string ShellChipCalendarKey => LiveOpsHubStringCatalog.Text(nameof(ShellChipCalendarKey));
+
+        internal static string ShellChipNoCalendar => LiveOpsHubStringCatalog.Text(nameof(ShellChipNoCalendar));
+        internal static string ShellChipNoCalendarDraft => LiveOpsHubStringCatalog.Text(nameof(ShellChipNoCalendarDraft));
+        internal static string ShellChipNoCalendarTooltip => LiveOpsHubStringCatalog.Text(nameof(ShellChipNoCalendarTooltip));
+        internal static string ShellChipAssetTooltipFormat => LiveOpsHubStringCatalog.Text(nameof(ShellChipAssetTooltipFormat));
+
+        /// <summary>Dạng (a) — không có dấu trạng thái vì tab đã mang "*" ([FD §3.3]).</summary>
+        internal static string ShellChipUnsaved => LiveOpsHubStringCatalog.Text(nameof(ShellChipUnsaved));
+
+        internal static string ShellChipUnsavedWithKeyFormat => LiveOpsHubStringCatalog.Text(nameof(ShellChipUnsavedWithKeyFormat));
+        internal static string ShellChipUnsavedTooltip => LiveOpsHubStringCatalog.Text(nameof(ShellChipUnsavedTooltip));
+        internal static string ShellChipPublishedDiffFormat => LiveOpsHubStringCatalog.Text(nameof(ShellChipPublishedDiffFormat));
+        internal static string ShellChipPublishedDiffTooltip => LiveOpsHubStringCatalog.Text(nameof(ShellChipPublishedDiffTooltip));
+        internal static string ShellChipDiffersFromPublishedFormat => LiveOpsHubStringCatalog.Text(nameof(ShellChipDiffersFromPublishedFormat));
+        internal static string ShellChipNeverPublished => LiveOpsHubStringCatalog.Text(nameof(ShellChipNeverPublished));
+        internal static string ShellChipMatchesPublishedFormat => LiveOpsHubStringCatalog.Text(nameof(ShellChipMatchesPublishedFormat));
+        internal static string ShellChipMatchesPublishedWithoutTime => LiveOpsHubStringCatalog.Text(nameof(ShellChipMatchesPublishedWithoutTime));
+
+        // Status bar 20 px ([FD §3.4], G-HOSTUI W4)
+        internal static string ShellStatusCheckedFormat => LiveOpsHubStringCatalog.Text(nameof(ShellStatusCheckedFormat));
+        internal static string ShellStatusCheckingFormat => LiveOpsHubStringCatalog.Text(nameof(ShellStatusCheckingFormat));
+        internal static string ShellStatusNeverChecked => LiveOpsHubStringCatalog.Text(nameof(ShellStatusNeverChecked));
+
+        /// <summary>
+        /// Chưa có asset lịch: câu này thay cho "Chưa kiểm lần nào — F5 để kiểm". Không có asset thì F5
+        /// (<c>StartCheckFromShortcut</c>) không làm gì và mục "Kiểm lại tất cả (F5)" của menu ⋮ đã disabled — mời bấm một phím
+        /// không làm gì là hai bề mặt nói hai điều khác nhau về cùng một phím (L-1 của soát 16/9, câu lấy từ 7.0).
+        /// </summary>
+        internal static string ShellStatusNoCalendarAsset => LiveOpsHubStringCatalog.Text(nameof(ShellStatusNoCalendarAsset));
+        internal static string ShellStatusStaleEditedFormat => LiveOpsHubStringCatalog.Text(nameof(ShellStatusStaleEditedFormat));
+        internal static string ShellStatusStaleMilestoneFormat => LiveOpsHubStringCatalog.Text(nameof(ShellStatusStaleMilestoneFormat));
+        internal static string ShellStatusStaleInterrupted => LiveOpsHubStringCatalog.Text(nameof(ShellStatusStaleInterrupted));
+
+        /// <summary>"(⌘Z)" chỉ còn khi bước Undo đó vẫn trên đỉnh — xem <see cref="LiveOpsHubStatusBarModel"/>.</summary>
+        internal static string ShellStatusRecentActionWithKeyFormat => LiveOpsHubStringCatalog.Text(nameof(ShellStatusRecentActionWithKeyFormat));
+
+        internal static string ShellStatusRecentActionFormat => LiveOpsHubStringCatalog.Text(nameof(ShellStatusRecentActionFormat));
+        internal static string ShellStatusPublishedFormat => LiveOpsHubStringCatalog.Text(nameof(ShellStatusPublishedFormat));
+        internal static string ShellStatusShaFormat => LiveOpsHubStringCatalog.Text(nameof(ShellStatusShaFormat));
+        internal static string ShellStatusDeviceTimeFormat => LiveOpsHubStringCatalog.Text(nameof(ShellStatusDeviceTimeFormat));
+
+        // Menu ⋮ (8.3) — mục "Kiểm lại tất cả (F5)" chỉ có khi cửa sổ đã có phiên lịch.
+        internal static string ShellCheckAllMenuFormat => LiveOpsHubStringCatalog.Text(nameof(ShellCheckAllMenuFormat));
+        internal static string ShellCheckAllMenuWithoutKey => LiveOpsHubStringCatalog.Text(nameof(ShellCheckAllMenuWithoutKey));
+
+        // Băng "tệp đã đổi trên đĩa" (4.3, SPIKE-B SP-8b) — hub KHÔNG BAO GIỜ tự đè nháp; ba nút là ba quyết định của người dùng.
+        internal static string ShellDiskBannerFormat => LiveOpsHubStringCatalog.Text(nameof(ShellDiskBannerFormat));
+        internal static string ShellDiskBannerReloadButton => LiveOpsHubStringCatalog.Text(nameof(ShellDiskBannerReloadButton));
+        internal static string ShellDiskBannerDiffButton => LiveOpsHubStringCatalog.Text(nameof(ShellDiskBannerDiffButton));
+        internal static string ShellDiskBannerKeepButton => LiveOpsHubStringCatalog.Text(nameof(ShellDiskBannerKeepButton));
+        internal static string ShellDiskBannerReloadTooltipFormat => LiveOpsHubStringCatalog.Text(nameof(ShellDiskBannerReloadTooltipFormat));
+
+        // Phím tắt toàn hub (8.7) — displayName tiếng Việt trong Edit → Shortcuts (PD-15).
+        internal static string ShellShortcutOpenPalette => LiveOpsHubStringCatalog.Text(nameof(ShellShortcutOpenPalette));
+        internal static string ShellShortcutSaveCalendar => LiveOpsHubStringCatalog.Text(nameof(ShellShortcutSaveCalendar));
+        internal static string ShellShortcutCheckAll => LiveOpsHubStringCatalog.Text(nameof(ShellShortcutCheckAll));
+        internal static string ShellShortcutNextFinding => LiveOpsHubStringCatalog.Text(nameof(ShellShortcutNextFinding));
+        internal static string ShellShortcutPreviousFinding => LiveOpsHubStringCatalog.Text(nameof(ShellShortcutPreviousFinding));
+        internal static string ShellShortcutGoToSectionFormat => LiveOpsHubStringCatalog.Text(nameof(ShellShortcutGoToSectionFormat));
     }
 }

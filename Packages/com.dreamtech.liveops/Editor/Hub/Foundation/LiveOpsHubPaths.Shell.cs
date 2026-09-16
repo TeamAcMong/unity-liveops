@@ -16,6 +16,20 @@ namespace DreamTech.LiveOps.Editor
             internal const string Root = "hub-root";
             internal const string Header = "hub-header";
             internal const string HeaderTitle = "hub-header-title";
+
+            // Header của G-HOSTUI (W4): ô "Đi tới màn…" + hai chip.
+            internal const string HeaderGoTo = "hub-header-goto";
+            internal const string HeaderGoToLabel = "hub-header-goto-label";
+            internal const string HeaderGoToKey = "hub-header-goto-key";
+            internal const string HeaderSpacer = "hub-header-spacer";
+            internal const string HeaderAssetChip = "hub-header-asset-chip";
+            internal const string HeaderAssetChipKey = "hub-header-asset-chip-key";
+            internal const string HeaderAssetChipText = "hub-header-asset-chip-text";
+            internal const string HeaderDraftChip = "hub-header-draft-chip";
+            internal const string HeaderDraftChipLeft = "hub-header-draft-chip-left";
+            internal const string HeaderDraftChipDivider = "hub-header-draft-chip-divider";
+            internal const string HeaderDraftChipRight = "hub-header-draft-chip-right";
+
             internal const string Main = "hub-main";
             internal const string Rail = "hub-rail";
             internal const string RailCaption = "hub-rail-caption";
@@ -28,6 +42,10 @@ namespace DreamTech.LiveOps.Editor
             internal const string SectionActions = "hub-section-actions";
             internal const string ShellNotes = "hub-shell-notes";
             internal const string SectionBody = "hub-section-body";
+
+            /// <summary>Chỗ cắm view outcome (8.1 bước 7) — con cuối cột nội dung, dưới thân màn.</summary>
+            internal const string OutcomeHost = "hub-outcome-host";
+
             internal const string StatusBar = "hub-status";
             internal const string StatusLeft = "hub-status-left";
             internal const string StatusLeftText = "hub-status-left-text";
@@ -40,8 +58,12 @@ namespace DreamTech.LiveOps.Editor
             ShellElementNames.Root, ShellElementNames.Header, ShellElementNames.HeaderTitle, ShellElementNames.Main, ShellElementNames.Rail,
             ShellElementNames.RailCaption, ShellElementNames.RailScroll, ShellElementNames.RailBlockerHost, ShellElementNames.Content,
             ShellElementNames.SectionHeader, ShellElementNames.SectionTitle, ShellElementNames.SectionSubtitle, ShellElementNames.SectionActions,
-            ShellElementNames.ShellNotes, ShellElementNames.SectionBody, ShellElementNames.StatusBar, ShellElementNames.StatusLeft,
-            ShellElementNames.StatusLeftText, ShellElementNames.StatusRight,
+            ShellElementNames.ShellNotes, ShellElementNames.SectionBody, ShellElementNames.OutcomeHost, ShellElementNames.StatusBar,
+            ShellElementNames.StatusLeft, ShellElementNames.StatusLeftText, ShellElementNames.StatusRight,
+            ShellElementNames.HeaderGoTo, ShellElementNames.HeaderGoToLabel, ShellElementNames.HeaderGoToKey, ShellElementNames.HeaderSpacer,
+            ShellElementNames.HeaderAssetChip, ShellElementNames.HeaderAssetChipKey, ShellElementNames.HeaderAssetChipText,
+            ShellElementNames.HeaderDraftChip, ShellElementNames.HeaderDraftChipLeft, ShellElementNames.HeaderDraftChipDivider,
+            ShellElementNames.HeaderDraftChipRight,
         });
 
         /// <summary>
