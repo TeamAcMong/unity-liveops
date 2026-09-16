@@ -25,6 +25,7 @@ namespace DreamTech.LiveOps.Editor
         internal const string EmptyElementName = "recurring-empty";
         internal const string EmptyTitleElementName = "recurring-empty-title";
         internal const string EmptyBodyElementName = "recurring-empty-body";
+        internal const string EmptyActionElementName = "recurring-empty-action";
         internal const string AddPopoverElementName = "recurring-add";
         internal const string AddTypeElementName = "recurring-add-type";
         internal const string AddPresetElementName = "recurring-add-preset";
@@ -37,7 +38,7 @@ namespace DreamTech.LiveOps.Editor
 
         private static readonly IReadOnlyList<string> ElementNames = Array.AsReadOnly(new[]
         {
-            BodyElementName, ListElementName, FormHostElementName, EmptyElementName, AddPopoverElementName,
+            BodyElementName, ListElementName, FormHostElementName, EmptyElementName, EmptyActionElementName, AddPopoverElementName,
             RecurringRuleForm.SentenceElementName, RecurringRuleForm.PrefixFieldElementName, RecurringRuleForm.AnchorFieldElementName,
             RecurringRuleForm.PeriodFieldElementName, RecurringRuleForm.ActiveFieldElementName, RecurringRuleForm.CycleBarElementName,
             RecurringNextOccurrencesTable.ElementName,
@@ -51,6 +52,7 @@ namespace DreamTech.LiveOps.Editor
         private VisualElement _empty;
         private Label _emptyTitle;
         private Label _emptyBody;
+        private Button _emptyAction;
         private VisualElement _addPopover;
         private DropdownField _addTypeField;
         private DropdownField _addPresetField;
@@ -65,6 +67,19 @@ namespace DreamTech.LiveOps.Editor
         public RecurringRulesSection(LiveOpsHubServices services)
         {
             Services = services ?? throw new ArgumentNullException(nameof(services));
+            // Nối MỘT LẦN ở đây, không trong CreateView: khung gọi CreateView mỗi lần mở lại màn, mà _list/_form sống suốt
+            // đời section — nối lại mỗi lượt thì vào-ra-vào ba lần là "Thêm 5" cộng 15 và Copy JSON bắn ba toast.
+            _list.SelectionChanged += OnListSelectionChanged;
+            _form.ValueChangeRequested += RequestFieldChange;
+            _form.PresetSelected += OnPresetSelected;
+            _form.DraftCancelRequested += OnDraftCancelRequested;
+            _form.DraftWriteRequested += OnDraftWriteRequested;
+            _form.RevertPrefixRequested += OnRevertPrefixRequested;
+            _form.DecideInValidationRequested += OnDecideInValidationRequested;
+            _form.AddMoreOccurrencesRequested += OnAddMoreOccurrencesRequested;
+            _form.CopyJsonRequested += OnCopyJsonRequested;
+            _form.DeleteRequested += OnDeleteRequested;
+            _form.JsonFoldout.RegisterValueChangedCallback(changeEvent => _jsonFoldoutOpen = changeEvent.newValue);
         }
 
         /// <summary>Services của cửa sổ (G-SESSION) — phiên lịch, đồng hồ, clipboard, hộp xác nhận, bus.</summary>
@@ -109,20 +124,10 @@ namespace DreamTech.LiveOps.Editor
             _empty = _root.Q(EmptyElementName);
             _emptyTitle = _root.Q<Label>(EmptyTitleElementName);
             _emptyBody = _root.Q<Label>(EmptyBodyElementName);
+            _emptyAction = _root.Q<Button>(EmptyActionElementName);
+            if (_emptyAction != null) _emptyAction.clicked += OnEmptyActionClicked;
             _addPopover = _root.Q(AddPopoverElementName);
             BuildAddPopover();
-
-            _list.SelectionChanged += OnListSelectionChanged;
-            _form.ValueChangeRequested += RequestFieldChange;
-            _form.PresetSelected += OnPresetSelected;
-            _form.DraftCancelRequested += OnDraftCancelRequested;
-            _form.DraftWriteRequested += OnDraftWriteRequested;
-            _form.RevertPrefixRequested += OnRevertPrefixRequested;
-            _form.DecideInValidationRequested += OnDecideInValidationRequested;
-            _form.AddMoreOccurrencesRequested += OnAddMoreOccurrencesRequested;
-            _form.CopyJsonRequested += OnCopyJsonRequested;
-            _form.DeleteRequested += OnDeleteRequested;
-            _form.JsonFoldout.RegisterValueChangedCallback(changeEvent => _jsonFoldoutOpen = changeEvent.newValue);
 
             Services.Session.DocumentChanged += Refresh;
             Services.Session.CheckChanged += Refresh;
@@ -233,6 +238,11 @@ namespace DreamTech.LiveOps.Editor
             _empty.EnableInClassList(LiveOpsHubClassNames.RecurringHidden, !isEmpty);
             _emptyTitle.text = hasAsset ? LiveOpsHubStrings.RecurringEmptyTitle : LiveOpsHubStrings.RecurringNoAssetTitle;
             _emptyBody.text = hasAsset ? LiveOpsHubStrings.RecurringEmptyBody : LiveOpsHubStrings.RecurringNoAssetBody;
+            // Trống phải có chỗ đi tiếp (mục 7): có lịch thì mở popover "Thêm luật", chưa có lịch thì sang Tổng quan tạo lịch.
+            if (_emptyAction != null)
+            {
+                _emptyAction.text = hasAsset ? LiveOpsHubStrings.RecurringAddRuleButton : LiveOpsHubStrings.RecurringNoAssetActionButton;
+            }
 
             _form.SetPresetNames(PresetNames());
             RecurringRuleModel model = RecurringRuleModel.Build(session, _selectedEventType, _draft, _occurrenceCount, Services.Format);
@@ -332,25 +342,88 @@ namespace DreamTech.LiveOps.Editor
             SelectRule(eventType);
         }
 
+        private void OnEmptyActionClicked()
+        {
+            if (Services.Session.Asset != null)
+            {
+                ToggleAddPopover();
+                return;
+            }
+            Services.Bus.Navigate(LiveOpsHubNavigation.To(LiveOpsHubSections.Ids.Overview));
+        }
+
         /// <summary>
         /// Một field vừa commit (hoặc mẫu vừa áp): quyết theo policy rồi ghi thẳng hay giữ nháp tại ô. Là lối vào DUY NHẤT
         /// của mọi thay đổi trên form, nên test và kịch bản chụp dựng trạng thái nháp qua đúng đường người dùng đi.
         /// </summary>
         internal void RequestFieldChange(string fieldName, RecurringLiveEventRule candidate)
         {
-            LiveOpsHubCalendarSession session = Services.Session;
             RecurringLiveEventRule written;
-            if (session.Document == null || !session.Document.TryGetRecurringRule(candidate.EventType, out written)) return;
-            if (string.Equals(written.CanonicalText, candidate.CanonicalText, StringComparison.Ordinal))
-            {
-                _draft = RecurringPrefixDraft.None;
-                Refresh();
-                return;
-            }
+            if (!TryGetWrittenRule(candidate.EventType, out written)) return;
+            if (IsSameAsWritten(written, candidate)) return;
+            CommitOrHoldDraft(candidate, BuildDraft(fieldName, OperationOfField(fieldName), candidate));
+        }
 
-            RecurringPrefixDraft candidateDraft = RecurringPrefixDraft.For(session.Document,
-                session.Publish != null ? session.Publish.ActiveBaseline : null, session.Clock.UtcNow, session.AssetFileName,
-                fieldName, candidate, Services.Format);
+        /// <summary>Ô nào quyết định id của lần lặp (tiền tố, neo, chu kỳ) và ô nào chỉ quyết định giờ khép (bảng 7.0).</summary>
+        private static LiveOpsEditOperation OperationOfField(string fieldName)
+        {
+            return string.Equals(fieldName, RecurringRuleFields.ActiveHours, StringComparison.Ordinal)
+                ? LiveOpsEditOperation.ChangeRecurringActiveHours
+                : LiveOpsEditOperation.ChangeRecurringIdentity;
+        }
+
+        private void OnPresetSelected(int presetIndex)
+        {
+            IReadOnlyList<LiveOpsRulePresetLibrary.Preset> presets = LiveOpsRulePresets.Resolve();
+            if (presetIndex < 0 || presetIndex >= presets.Count) return;
+            RecurringLiveEventRule written;
+            if (!TryGetWrittenRule(_selectedEventType, out written)) return;
+            LiveOpsRulePresetLibrary.Preset preset = presets[presetIndex];
+            // Mẫu chỉ áp nhịp (neo, chu kỳ, thời gian chạy) — tiền tố và loại là danh tính, mẫu không đụng tới.
+            RecurringLiveEventRule candidate = written.WithAnchor(preset.AnchorUtcText)
+                .WithPeriodHours(preset.PeriodHours)
+                .WithActiveHours(preset.ActiveHours);
+            if (IsSameAsWritten(written, candidate)) return;
+            // Một mẫu đổi CẢ mốc sinh id LẪN thời gian chạy, nên hỏi policy hai lần rồi giữ mức nặng hơn: mẫu giữ nguyên id
+            // mà rút ngắn đợt đang chạy vẫn phải qua hộp cấp 1 (7.0), chứ không được ghi thẳng chỉ vì id không đổi.
+            RecurringPrefixDraft identityDraft = BuildDraft(RecurringRuleFields.Anchor,
+                LiveOpsEditOperation.ChangeRecurringIdentity, candidate);
+            RecurringPrefixDraft activeHoursDraft = BuildDraft(RecurringRuleFields.ActiveHours,
+                LiveOpsEditOperation.ChangeRecurringActiveHours, candidate);
+            CommitOrHoldDraft(candidate, HeavierDraft(identityDraft, activeHoursDraft));
+        }
+
+        private bool TryGetWrittenRule(string eventType, out RecurringLiveEventRule written)
+        {
+            written = null;
+            LiveEventCalendarDocument document = Services.Session.Document;
+            return document != null && document.TryGetRecurringRule(eventType, out written);
+        }
+
+        /// <summary>Giá trị vừa commit trùng cái đang ghi (gõ lại đúng chữ cũ): bỏ nháp, vẽ lại, không ghi và không hỏi.</summary>
+        private bool IsSameAsWritten(RecurringLiveEventRule written, RecurringLiveEventRule candidate)
+        {
+            if (!string.Equals(written.CanonicalText, candidate.CanonicalText, StringComparison.Ordinal)) return false;
+            _draft = RecurringPrefixDraft.None;
+            Refresh();
+            return true;
+        }
+
+        private RecurringPrefixDraft BuildDraft(string fieldName, LiveOpsEditOperation operation, RecurringLiveEventRule candidate)
+        {
+            LiveOpsHubCalendarSession session = Services.Session;
+            return RecurringPrefixDraft.For(session.Document, session.Publish != null ? session.Publish.ActiveBaseline : null,
+                session.Clock.UtcNow, session.AssetFileName, fieldName, operation, candidate, Services.Format);
+        }
+
+        /// <summary>Mức nặng hơn thắng (<see cref="LiveOpsConfirmRequirement"/> tăng dần theo mức nguy hiểm).</summary>
+        private static RecurringPrefixDraft HeavierDraft(RecurringPrefixDraft first, RecurringPrefixDraft second)
+        {
+            return second.Requirement > first.Requirement ? second : first;
+        }
+
+        private void CommitOrHoldDraft(RecurringLiveEventRule candidate, RecurringPrefixDraft candidateDraft)
+        {
             if (candidateDraft.NeedsConfirmation)
             {
                 // Bước 1: giữ nháp tại ô. Main.asset chưa đổi nên Lịch, Kiểm lịch và Xuất JSON vẫn thấy giá trị cũ.
@@ -362,21 +435,6 @@ namespace DreamTech.LiveOps.Editor
             WriteRule(candidate, candidateDraft.HasDraft
                 ? candidateDraft.ToastText
                 : string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.RecurringWriteToastFormat, candidate.EventType));
-        }
-
-        private void OnPresetSelected(int presetIndex)
-        {
-            IReadOnlyList<LiveOpsRulePresetLibrary.Preset> presets = LiveOpsRulePresets.Resolve();
-            if (presetIndex < 0 || presetIndex >= presets.Count) return;
-            LiveEventCalendarDocument document = Services.Session.Document;
-            RecurringLiveEventRule written;
-            if (document == null || !document.TryGetRecurringRule(_selectedEventType, out written)) return;
-            LiveOpsRulePresetLibrary.Preset preset = presets[presetIndex];
-            // Mẫu chỉ áp nhịp (neo, chu kỳ, thời gian chạy) — tiền tố và loại là danh tính, mẫu không đụng tới.
-            RecurringLiveEventRule candidate = written.WithAnchor(preset.AnchorUtcText)
-                .WithPeriodHours(preset.PeriodHours)
-                .WithActiveHours(preset.ActiveHours);
-            RequestFieldChange(RecurringRuleFields.Anchor, candidate);
         }
 
         private void OnDraftCancelRequested()
@@ -587,6 +645,8 @@ namespace DreamTech.LiveOps.Editor
         {
             Services.Session.DocumentChanged -= Refresh;
             Services.Session.CheckChanged -= Refresh;
+            if (_emptyAction != null) _emptyAction.clicked -= OnEmptyActionClicked;
+            _emptyAction = null;
             if (_occurrenceDebounce != null) _occurrenceDebounce.Pause();
             _root = null;
         }

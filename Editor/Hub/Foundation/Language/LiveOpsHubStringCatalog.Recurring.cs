@@ -29,11 +29,14 @@ namespace DreamTech.LiveOps.Editor
                 vietnamese: "Đợt lặp sinh ra từ neo, chu kỳ và tiền tố; loại có luật thì không kéo được trên Lịch.",
                 english: "Recurring occurrences come from the anchor, the cycle and the prefix; a type with a rule cannot be dragged on the Calendar.");
             table.Add(nameof(LiveOpsHubStrings.RecurringNoAssetTitle),
-                vietnamese: "Chưa có lịch nào đang mở",
-                english: "No calendar is open");
+                vietnamese: "Chưa có lịch LiveOps trong project",
+                english: "No LiveOps calendar in this project");
             table.Add(nameof(LiveOpsHubStrings.RecurringNoAssetBody),
                 vietnamese: "Luật lặp nằm trong một LiveEventCalendarAsset — mở hoặc tạo lịch ở Tổng quan trước.",
                 english: "Recurring rules live inside a LiveEventCalendarAsset — open or create one in Overview first.");
+            table.Add(nameof(LiveOpsHubStrings.RecurringNoAssetActionButton),
+                vietnamese: "Mở Tổng quan để tạo lịch",
+                english: "Open Overview to create a calendar");
             table.Add(nameof(LiveOpsHubStrings.RecurringMissingLayoutFormat),
                 vietnamese: "Thiếu bố cục màn Luật lặp: {0}",
                 english: "The Recurring rules layout is missing: {0}");
@@ -157,6 +160,9 @@ namespace DreamTech.LiveOps.Editor
             table.Add(nameof(LiveOpsHubStrings.RecurringOccurrenceLimitNoteFormat),
                 vietnamese: "Đã hiện tối đa {0} đợt",
                 english: "Showing the maximum of {0} occurrences");
+            table.Add(nameof(LiveOpsHubStrings.RecurringOccurrencesEmptyReason),
+                vietnamese: "Không đợt nào sinh ra: luật đang lỗi ở trên nên game bỏ hẳn luật này — sửa ô lỗi rồi bảng mới có đợt.",
+                english: "No occurrence is generated: the rule above is invalid so the game drops it entirely — fix the field in error and the table fills in.");
 
             table.Add(nameof(LiveOpsHubStrings.RecurringDraftNoticeFormat),
                 vietnamese: "Nháp tại ô này, chưa ghi vào {0}: Lịch, Kiểm lịch và Xuất JSON vẫn thấy {1}",
@@ -167,6 +173,9 @@ namespace DreamTech.LiveOps.Editor
             table.Add(nameof(LiveOpsHubStrings.RecurringIdentityConsequenceFormat),
                 vietnamese: "{0} đang chạy tới {1} sẽ mang id {2}; người chơi có điểm bắt đầu lại từ 0.",
                 english: "{0}, running until {1}, takes the id {2}; players with progress start again from 0.");
+            table.Add(nameof(LiveOpsHubStrings.RecurringNoReplacementConsequenceFormat),
+                vietnamese: "{0} đang chạy tới {1} sẽ biến mất khỏi lịch: luật mới không có đợt nào chạy lúc này; người chơi có điểm bắt đầu lại từ 0.",
+                english: "{0}, running until {1}, disappears from the calendar: the new rule has no occurrence running right now; players with progress start again from 0.");
             table.Add(nameof(LiveOpsHubStrings.RecurringActiveHoursConsequenceFormat),
                 vietnamese: "{0} đang chạy sẽ khép lúc {1} thay vì {2}; người chơi còn dở mất phần thời gian còn lại.",
                 english: "{0} is running and will close at {1} instead of {2}; players in the middle lose the remaining time.");
@@ -189,6 +198,9 @@ namespace DreamTech.LiveOps.Editor
             table.Add(nameof(LiveOpsHubStrings.RecurringConfirmPrefixBodyFormat),
                 vietnamese: "{0} → {1}. Đợt đang chạy tới {2}. Người chơi đã có điểm ở {0} sẽ bắt đầu lại từ 0 ở {1}.",
                 english: "{0} → {1}. The occurrence runs until {2}. Players who already have progress in {0} start again from 0 in {1}.");
+            table.Add(nameof(LiveOpsHubStrings.RecurringConfirmNoReplacementBodyFormat),
+                vietnamese: "{0} đang chạy tới {1} sẽ biến mất khỏi lịch: luật mới không có đợt nào chạy lúc này. Người chơi đã có điểm ở {0} bắt đầu lại từ 0.",
+                english: "{0}, running until {1}, disappears from the calendar: the new rule has no occurrence running right now. Players who already have progress in {0} start again from 0.");
             table.Add(nameof(LiveOpsHubStrings.RecurringConfirmPrefixDestructive),
                 vietnamese: "Đổi tiền tố",
                 english: "Change the prefix");

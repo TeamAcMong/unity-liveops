@@ -59,10 +59,15 @@ namespace DreamTech.LiveOps.Editor
         /// <param name="draftDocument">Nháp TRƯỚC khi sửa — "đang chạy" luôn tính trên bản trước khi sửa (PD-24).</param>
         /// <param name="publishedBaseline">Bản so đã đăng; null = chưa có dấu đã đăng.</param>
         /// <param name="assetFileName">Tên file lịch để câu "chưa ghi vào Main.asset" nói đúng file người dùng đang mở.</param>
-        /// <param name="fieldName">Một hằng <see cref="RecurringRuleFields"/> — ô nào đang giữ nháp.</param>
+        /// <param name="fieldName">Một hằng <see cref="RecurringRuleFields"/> — ô nào đang giữ nháp (chỗ treo khối cảnh báo).</param>
+        /// <param name="operation">
+        /// Thao tác để hỏi policy. Truyền vào chứ KHÔNG suy từ <paramref name="fieldName"/>: một thay đổi có thể vừa dời mốc
+        /// sinh id vừa đổi thời gian chạy (áp "Mẫu"), lúc đó nơi gọi phải hỏi cả hai thao tác rồi giữ mức nặng hơn.
+        /// </param>
         /// <param name="draftRule">Luật SAU khi áp giá trị vừa gõ.</param>
         public static RecurringPrefixDraft For(LiveEventCalendarDocument draftDocument, LiveEventCalendarDocument publishedBaseline,
-            DateTime nowUtc, string assetFileName, string fieldName, RecurringLiveEventRule draftRule, LiveOpsHubFormat format)
+            DateTime nowUtc, string assetFileName, string fieldName, LiveOpsEditOperation operation, RecurringLiveEventRule draftRule,
+            LiveOpsHubFormat format)
         {
             if (draftDocument == null) throw new ArgumentNullException(nameof(draftDocument));
             if (draftRule == null) throw new ArgumentNullException(nameof(draftRule));
@@ -74,15 +79,27 @@ namespace DreamTech.LiveOps.Editor
             LiveEventCalendarDocument documentAfter;
             if (!LiveEventCalendarEdits.TryApply(draftDocument, new SetRecurringRuleEdit(draftRule), out documentAfter)) return None;
 
-            LiveOpsEditOperation operation = string.Equals(fieldName, RecurringRuleFields.ActiveHours, StringComparison.Ordinal)
-                ? LiveOpsEditOperation.ChangeRecurringActiveHours
-                : LiveOpsEditOperation.ChangeRecurringIdentity;
             LiveOpsConfirmDecision decision = LiveOpsConfirmationPolicy.Decide(operation, draftDocument, documentAfter,
                 publishedBaseline, nowUtc, draftRule.EventType);
 
-            LiveEventInstance newRunning;
-            RecurringOccurrences.TryGetOccurrenceAt(draftRule, nowUtc, out newRunning);
+            LiveEventInstance newRunning = FindOccurrenceAfterChange(draftRule, decision, nowUtc);
             return new RecurringPrefixDraft(fieldName ?? string.Empty, draftRule, writtenRule, decision, newRunning, assetFileName, format);
+        }
+
+        /// <summary>
+        /// Lần lặp mà đợt đang chạy TRỞ THÀNH sau khi ghi. Tìm theo đúng cách policy tìm (<c>TryFindOccurrenceById</c>): trước
+        /// hết lấy lần lặp đang chạy ở luật mới, không có thì lấy lần lặp CÙNG CHU KỲ (không lọc giai đoạn) khi nó vẫn mang id
+        /// người chơi đang giữ — đó chính là ca rút ngắn làm đợt khép trước <paramref name="nowUtc"/>, ca mà hộp cấp 1 phải nêu
+        /// được giờ khép mới. Không khớp id thì trả null: lúc đó đợt cũ biến mất mà không ai thay chỗ, và câu riêng lo phần đó.
+        /// </summary>
+        private static LiveEventInstance FindOccurrenceAfterChange(RecurringLiveEventRule draftRule, LiveOpsConfirmDecision decision,
+            DateTime nowUtc)
+        {
+            LiveEventInstance running;
+            if (RecurringOccurrences.TryGetOccurrenceAt(draftRule, nowUtc, out running)) return running;
+            LiveEventInstance sameCycle;
+            if (!RecurringOccurrences.TryGetOccurrenceOfCycleAt(draftRule, nowUtc, out sameCycle)) return null;
+            return string.Equals(sameCycle.EventId, decision.RunningEventId, StringComparison.Ordinal) ? sameCycle : null;
         }
 
         public bool HasDraft => DraftRule != null;
@@ -114,6 +131,9 @@ namespace DreamTech.LiveOps.Editor
         public DateTime? RunningEndUtc { get; }
         public DateTime? NewRunningEndUtc { get; }
 
+        /// <summary>Có một lần lặp thay chỗ đợt đang chạy sau khi ghi; false = đợt cũ biến mất mà không ai thế vào.</summary>
+        public bool HasReplacement => NewRunningEventId.Length > 0;
+
         /// <summary>Dòng phụ ngay dưới ô: nói rõ nháp chỉ ở đây, các màn khác vẫn thấy giá trị cũ ([SD1 §4.2]).</summary>
         public string CellNotice
         {
@@ -131,6 +151,12 @@ namespace DreamTech.LiveOps.Editor
             get
             {
                 if (!NeedsConfirmation) return string.Empty;
+                if (!HasReplacement)
+                {
+                    // Không đợt nào thay chỗ: "sẽ thành ___" với chỗ trống là câu nói dối bằng khoảng lặng — nói thẳng đợt biến mất.
+                    return WithPlayerCountCaveat(string.Format(CultureInfo.InvariantCulture,
+                        LiveOpsHubStrings.RecurringNoReplacementConsequenceFormat, RunningEventId, OldEndText()));
+                }
                 if (string.Equals(FieldName, RecurringRuleFields.ActiveHours, StringComparison.Ordinal))
                 {
                     return WithPlayerCountCaveat(string.Format(CultureInfo.InvariantCulture,
@@ -173,6 +199,7 @@ namespace DreamTech.LiveOps.Editor
         public LiveOpsConfirmRequest BuildConfirmRequest()
         {
             if (!NeedsConfirmation) throw new InvalidOperationException(LiveOpsHubStrings.RecurringErrorNoConfirmationNeeded);
+            if (!HasReplacement) return BuildNoReplacementRequest();
             if (Requirement == LiveOpsConfirmRequirement.Level1)
             {
                 return new LiveOpsConfirmRequest.Builder()
@@ -201,10 +228,41 @@ namespace DreamTech.LiveOps.Editor
         }
 
         /// <summary>
+        /// Hộp của ca "đợt đang chạy biến mất, không ai thay chỗ". Giữ nguyên cấp do policy quyết (cấp 1 khi chỉ là rút ngắn,
+        /// cấp 2 khi id không còn) — chỉ thân câu đổi, vì mức nguy hiểm không do câu chữ quyết.
+        /// </summary>
+        private LiveOpsConfirmRequest BuildNoReplacementRequest()
+        {
+            string body = WithPlayerCountCaveat(string.Format(CultureInfo.InvariantCulture,
+                LiveOpsHubStrings.RecurringConfirmNoReplacementBodyFormat, RunningEventId, OldEndText()));
+            if (Requirement == LiveOpsConfirmRequirement.Level1)
+            {
+                return new LiveOpsConfirmRequest.Builder()
+                    .WithLevel(LiveOpsConfirmLevel.Level1)
+                    .WithTitle(LiveOpsHubStrings.RecurringConfirmActiveTitle)
+                    .WithBody(body)
+                    .WithHelpBoxWarning()
+                    .WithKeyHint(LiveOpsHubStrings.RecurringConfirmActiveKeyHint)
+                    .WithButtons(LiveOpsHubStrings.RecurringConfirmActiveDestructive, LiveOpsHubStrings.KitConfirmKeepLabel)
+                    .Build();
+            }
+            bool isPrefixField = string.Equals(FieldName, RecurringRuleFields.IdPrefix, StringComparison.Ordinal);
+            return new LiveOpsConfirmRequest.Builder()
+                .WithTitle(isPrefixField ? LiveOpsHubStrings.RecurringConfirmPrefixTitle : LiveOpsHubStrings.RecurringConfirmIdentityTitle)
+                .WithBody(body)
+                .WithHelpBoxWarning()
+                .WithKeyHint(LiveOpsHubStrings.RecurringConfirmPrefixKeyHint)
+                .WithButtons(isPrefixField ? LiveOpsHubStrings.RecurringConfirmPrefixDestructive : LiveOpsHubStrings.RecurringConfirmIdentityDestructive,
+                    LiveOpsHubStrings.RecurringConfirmPrefixSafe)
+                .WithTypeToConfirm(_decision.TypeToConfirmText)
+                .Build();
+        }
+
+        /// <summary>
         /// Nối hai câu dùng chung của hub (PD-17): hub KHÔNG biết số người chơi toàn cục, và bản này chưa đọc dữ liệu thử.
         /// Nói thẳng chỗ mình không biết còn hơn để người đọc tự suy ra một con số không có thật.
         /// </summary>
-        private static string WithPlayerCountCaveat(string sentence)
+        internal static string WithPlayerCountCaveat(string sentence)
         {
             return sentence + " " + LiveOpsHubStrings.KitUnknownPlayerCountSentence + " " + LiveOpsHubStrings.KitNoTestDataSentence;
         }

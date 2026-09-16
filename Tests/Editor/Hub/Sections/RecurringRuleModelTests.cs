@@ -46,6 +46,49 @@ namespace DreamTech.LiveOps.Editor.Tests
             Assert.AreEqual(0, model.NextOccurrences.Count,
                 "game bỏ hẳn luật chạy lâu hơn chu kỳ, nên bảng không được vẽ ra những đợt sẽ không bao giờ chạy");
             Assert.AreEqual(string.Empty, model.FieldErrorText(RecurringRuleFields.PeriodHours), "chu kỳ 24 giờ tự nó không sai");
+            Assert.AreEqual(LiveOpsHubStrings.RecurringOccurrencesEmptyReason, model.OccurrencesEmptyReason,
+                "bảng 0 đợt phải nói VÌ SAO — không thì nó đọc như một kết quả đạt (mục 7)");
+        }
+
+        [Test]
+        public void OccurrencesEmptyReason_EmptyWhenRuleIsValid()
+        {
+            LiveOpsHubCalendarSession session = OpenSession(DocumentWith(WeeklyPassType, "pass-", WeekHours, WeekHours));
+            RecurringRuleModel model = Build(session, WeeklyPassType);
+
+            Assert.AreEqual(RecurringRuleModel.DefaultOccurrenceCount, model.NextOccurrences.Count);
+            Assert.AreEqual(string.Empty, model.OccurrencesEmptyReason, "luật chạy được thì không có gì để giải thích");
+        }
+
+        /// <summary>
+        /// Chữ phụ ô Neo ([SD1 §4.1]): thứ trong tuần + giờ MÁY. Lệch múi giờ lấy từ format của phiên (+7 ở dữ liệu mẫu),
+        /// nên neo 00:00 UTC hiện 07:00 — in 00:00 rồi gắn nhãn "giờ máy" là nói sai số liệu.
+        /// </summary>
+        [Test]
+        public void AnchorDeviceLine_HasDayOfWeekAndDeviceClock()
+        {
+            LiveOpsHubCalendarSession session = OpenSession(DocumentWith(WeeklyPassType, "pass-", WeekHours, WeekHours));
+            RecurringRuleModel model = Build(session, WeeklyPassType);
+
+            LiveOpsHubFormat format = FormatOf();
+            DateTime anchorUtc;
+            Assert.IsTrue(model.Rule.TryGetAnchorUtc(out anchorUtc));
+            Assert.IsTrue(model.AnchorDeviceLine.StartsWith(format.DayOfWeek(anchorUtc), StringComparison.Ordinal),
+                "thứ trong tuần đứng đầu");
+            StringAssert.Contains(format.DeviceTimeLine(anchorUtc), model.AnchorDeviceLine, "và giờ máy theo lệch của phiên");
+            Assert.AreNotEqual(new LiveOpsHubFormat(TimeSpan.Zero).DeviceTimeLine(anchorUtc), model.AnchorDeviceLine,
+                "lệch 0 là giá trị mặc định của ô — nếu trùng nghĩa là chữ phụ vẫn in giờ UTC dưới nhãn 'giờ máy'");
+        }
+
+        [Test]
+        public void AnchorDeviceLine_EmptyWhenAnchorUnreadable()
+        {
+            LiveEventCalendarDocument broken = new LiveEventCalendarDocumentBuilder()
+                .WithEventType(new LiveEventTypeDefinition(WeeklyPassType, "Pass tuần", 1, false, string.Empty))
+                .WithRecurringRule(new RecurringLiveEventRule(WeeklyPassType, "hôm nào đó", "pass-", WeekHours, WeekHours, string.Empty))
+                .Build();
+            Assert.AreEqual(string.Empty, Build(OpenSession(broken), WeeklyPassType).AnchorDeviceLine,
+                "neo không đọc được thì không bịa ra giờ máy");
         }
 
         [Test]
@@ -152,6 +195,9 @@ namespace DreamTech.LiveOps.Editor.Tests
             StringAssert.Contains("weekly-pass-35", model.AfterWriteNotice, "câu ở lại nói id người chơi đang giữ");
             StringAssert.Contains("pass-35", model.AfterWriteNotice, "và id mới sẽ thay nó");
             Assert.AreEqual("weekly-pass-", model.AfterWriteRevertPrefix, "nút Hoàn về trỏ đúng tiền tố của bản đã đăng");
+            // HelpBox ở lại cũng đụng đợt đang chạy nên mang đủ hai mệnh đề PD-17 như câu nháp và thân hộp (mục 7.0).
+            StringAssert.Contains(LiveOpsHubStrings.KitUnknownPlayerCountSentence, model.AfterWriteNotice);
+            StringAssert.Contains(LiveOpsHubStrings.KitNoTestDataSentence, model.AfterWriteNotice);
         }
 
         [Test]

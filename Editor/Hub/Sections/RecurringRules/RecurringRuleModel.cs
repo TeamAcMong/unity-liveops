@@ -104,7 +104,8 @@ namespace DreamTech.LiveOps.Editor
 
         private RecurringRuleModel(string eventType, RecurringLiveEventRule rule, RecurringLiveEventRule writtenRule, int colorSlot,
             IReadOnlyList<RecurringSentenceToken> sentenceTokens, string cycleText, IReadOnlyList<RecurringOccurrenceRow> nextOccurrences,
-            int presetIndex, Dictionary<string, string> fieldErrors, string anchorNotice, string afterWriteNotice, string afterWriteRevertPrefix)
+            int presetIndex, Dictionary<string, string> fieldErrors, string anchorNotice, string anchorDeviceLine, string afterWriteNotice,
+            string afterWriteRevertPrefix)
         {
             EventType = eventType ?? string.Empty;
             Rule = rule;
@@ -116,6 +117,7 @@ namespace DreamTech.LiveOps.Editor
             PresetIndex = presetIndex;
             _fieldErrors = fieldErrors;
             AnchorNotice = anchorNotice ?? string.Empty;
+            AnchorDeviceLine = anchorDeviceLine ?? string.Empty;
             AfterWriteNotice = afterWriteNotice ?? string.Empty;
             AfterWriteRevertPrefix = afterWriteRevertPrefix ?? string.Empty;
         }
@@ -158,9 +160,10 @@ namespace DreamTech.LiveOps.Editor
             IReadOnlyList<RecurringOccurrenceRow> occurrences = BuildOccurrences(rule, baseline, eventType, nowUtc, occurrenceCount, format);
             int presetIndex = LiveOpsRulePresets.IndexMatching(rule, LiveOpsRulePresets.Resolve());
             string anchorNotice = BuildAnchorNotice(rule);
+            string anchorDeviceLine = BuildAnchorDeviceLine(rule, format);
 
             return new RecurringRuleModel(eventType, rule, writtenRule, colorSlot, tokens, cycleText, occurrences, presetIndex,
-                fieldErrors, anchorNotice, afterWriteNotice, afterWriteRevertPrefix);
+                fieldErrors, anchorNotice, anchorDeviceLine, afterWriteNotice, afterWriteRevertPrefix);
         }
 
         /// <summary>Model của "chưa chọn luật nào" — view dùng để hiện trạng thái trống mà không phải kiểm null ở từng chỗ.</summary>
@@ -168,7 +171,7 @@ namespace DreamTech.LiveOps.Editor
         {
             return new RecurringRuleModel(eventType, null, null, 0, Array.Empty<RecurringSentenceToken>(), string.Empty,
                 Array.Empty<RecurringOccurrenceRow>(), LiveOpsRulePresets.CustomIndex, new Dictionary<string, string>(StringComparer.Ordinal),
-                string.Empty, string.Empty, string.Empty);
+                string.Empty, string.Empty, string.Empty, string.Empty);
         }
 
         public string EventType { get; }
@@ -189,6 +192,24 @@ namespace DreamTech.LiveOps.Editor
         public int PresetIndex { get; }
 
         public string AnchorNotice { get; }
+
+        /// <summary>
+        /// Chữ phụ của ô Neo: "thứ Hai · 07:00 5/1 giờ máy" ([SD1 §4.1]). Thứ trong tuần đứng trước vì neo tuần là thứ người
+        /// vận hành nghĩ theo ("thứ Hai"), còn giờ máy là thứ họ đối chiếu với đồng hồ trước mặt. "" khi neo không đọc được.
+        /// </summary>
+        public string AnchorDeviceLine { get; }
+
+        /// <summary>
+        /// Vì sao bảng "đợt kế tiếp" trống. Luật lỗi = game bỏ hẳn luật, nên 0 đợt là HẬU QUẢ chứ không phải kết quả đạt
+        /// (mục 7: "trống = vì sao · trống không phải đạt"). "" khi bảng trống vì lý do khác hoặc không trống.
+        /// </summary>
+        public string OccurrencesEmptyReason
+        {
+            get
+            {
+                return HasRule && !IsValid && NextOccurrences.Count == 0 ? LiveOpsHubStrings.RecurringOccurrencesEmptyReason : string.Empty;
+            }
+        }
 
         /// <summary>HelpBox ở lại dưới ô tiền tố tới khi lần lặp cũ khép (mục 7.4); "" khi không còn hậu quả nào.</summary>
         public string AfterWriteNotice { get; }
@@ -290,6 +311,14 @@ namespace DreamTech.LiveOps.Editor
                 activeText, HoursText(rule.PeriodHours - rule.ActiveHours, format));
         }
 
+        private static string BuildAnchorDeviceLine(RecurringLiveEventRule rule, LiveOpsHubFormat format)
+        {
+            DateTime anchorUtc;
+            if (!rule.TryGetAnchorUtc(out anchorUtc)) return string.Empty;
+            return string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.RecurringAnchorDeviceLineFormat,
+                format.DayOfWeek(anchorUtc), format.DeviceTimeLine(anchorUtc));
+        }
+
         private static string BuildAnchorNotice(RecurringLiveEventRule rule)
         {
             DateTime anchorUtc;
@@ -362,8 +391,10 @@ namespace DreamTech.LiveOps.Editor
             if (string.Equals(published.EventId, current.EventId, StringComparison.Ordinal)) return string.Empty;
 
             revertPrefix = baselineRule.EffectiveIdPrefix;
-            return string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.RecurringAfterWriteNoticeFormat,
-                published.EventId, format.ShortDateTimeUtc(published.EndUtc), current.EventId);
+            // Câu ở lại là HelpBox đụng đợt đang chạy nên phải mang cả hai mệnh đề của PD-17 như câu nháp và câu hộp (mục 7.0).
+            return RecurringPrefixDraft.WithPlayerCountCaveat(string.Format(CultureInfo.InvariantCulture,
+                LiveOpsHubStrings.RecurringAfterWriteNoticeFormat, published.EventId, format.ShortDateTimeUtc(published.EndUtc),
+                current.EventId));
         }
     }
 
@@ -405,6 +436,28 @@ namespace DreamTech.LiveOps.Editor
             LiveEventInstance candidate = calendar.GetOccurrence(calendar.OccurrenceIndexAt(utc));
             if (candidate.PhaseAt(utc) != LiveEventPhase.Active) return false;
             occurrence = candidate;
+            return true;
+        }
+
+        /// <summary>
+        /// Lần lặp của CHU KỲ đang bao <paramref name="utc"/> — kể cả khi nó đã khép trước đó (đang ở khoảng nghỉ). Khác
+        /// <see cref="TryGetOccurrenceAt"/> ở đúng chỗ đó: rút ngắn thời gian chạy làm đợt khép trước "lúc này", và câu hộp
+        /// vẫn phải nêu được giờ khép mới của chính đợt ấy.
+        /// </summary>
+        public static bool TryGetOccurrenceOfCycleAt(RecurringLiveEventRule rule, DateTime utc, out LiveEventInstance occurrence)
+        {
+            occurrence = null;
+            RecurringLiveEventCalendar calendar;
+            if (!TryBuildCalendar(rule, out calendar)) return false;
+            try
+            {
+                occurrence = calendar.GetOccurrence(calendar.OccurrenceIndexAt(utc));
+            }
+            catch (ArgumentOutOfRangeException)
+            {
+                // Chu kỳ khổng lồ đẩy lần lặp ra ngoài khoảng DateTime — cùng nghĩa "không tính được", không ném lên view.
+                return false;
+            }
             return true;
         }
 
