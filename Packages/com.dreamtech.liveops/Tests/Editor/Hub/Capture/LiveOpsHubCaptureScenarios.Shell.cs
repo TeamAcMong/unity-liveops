@@ -84,7 +84,13 @@ namespace DreamTech.LiveOps.Editor.Tests
             scenarios.Add(new LiveOpsHubCaptureScenario(LiveOpsHubCaptureScenarioIds.H03bComponentsShell, StandardWidth, StandardHeight,
                     () => OpenShellComponentsTable(), window => window.rootVisualElement.Q(ShellComponentsTableElementName))
                 .WithMinimumSettleFrames(PseudoStateSettleFrames)
-                .WithExpectedFrames(new LiveOpsHubCaptureExpectedFrame(ShellComponentsTableElementName, ShellComponentsWidth, ShellComponentsHeight)));
+                .WithExpectedFrames(
+                    new LiveOpsHubCaptureExpectedFrame(ShellComponentsTableElementName, ShellComponentsWidth, ShellComponentsHeight),
+                    // Khung ngoài 1080×300 không chặn được ô chip nào bị co/mất chữ, nên đo từng ô của hàng Chip (L-7).
+                    new LiveOpsHubCaptureExpectedFrame(ChipCellNeutralName, ChipCellWidth, 0f),
+                    new LiveOpsHubCaptureExpectedFrame(ChipCellHoverName, ChipCellWidth, 0f),
+                    new LiveOpsHubCaptureExpectedFrame(ChipCellUnsavedName, ChipCellWidth, 0f),
+                    new LiveOpsHubCaptureExpectedFrame(ChipCellNeverPublishedName, ChipCellWidth, 0f)));
 
             // Ba trạng thái palette ([FD §3.8]). Chụp cả cửa sổ chứ không riêng panel: scrim phủ CẢ rail là điểm của hình.
             scenarios.Add(new LiveOpsHubCaptureScenario(LiveOpsHubCaptureScenarioIds.H06aPaletteEmpty, StandardWidth, StandardHeight,
@@ -226,18 +232,32 @@ namespace DreamTech.LiveOps.Editor.Tests
         {
             VisualElement row = CreateComponentRow(ShellRowHeight, true);
             row.Add(CreateComponentCell(CreateCaption("Chip"), ShellCaptionWidth));
-            row.Add(CreateCaptionedCell("trung tính", CreateChip(ChipAssetKey, ChipAssetName, string.Empty, false, forced), ChipCellWidth));
-            row.Add(CreateCaptionedCell("hover", CreateChip(ChipAssetKey, ChipAssetName, string.Empty, true, forced), ChipCellWidth));
-            row.Add(CreateCaptionedCell("nháp (a)", CreateChip(string.Empty, ChipUnsavedLeft, ChipUnsavedRight, false, forced), ChipCellWidth));
-            row.Add(CreateCaptionedCell("nháp (c)", CreateChip(string.Empty, LiveOpsHubStrings.ShellChipNeverPublished, string.Empty, false, forced), ChipCellWidth));
+            row.Add(CreateCaptionedCell("trung tính", CreateChip(ChipAssetKey, ChipAssetName, string.Empty, false, false, false, forced),
+                ChipCellWidth, ChipCellNeutralName));
+            row.Add(CreateCaptionedCell("hover", CreateChip(ChipAssetKey, ChipAssetName, string.Empty, false, false, true, forced),
+                ChipCellWidth, ChipCellHoverName));
+            // (a) in đậm, (c) mang vòng RỖNG trước chữ — đúng hai chi tiết của [FD §3.3] mà header thật đổ (M-1, L-2).
+            row.Add(CreateCaptionedCell("nháp (a)", CreateChip(string.Empty, ChipUnsavedLeft, ChipUnsavedRight, false, true, false, forced),
+                ChipCellWidth, ChipCellUnsavedName));
+            row.Add(CreateCaptionedCell("nháp (c)", CreateChip(string.Empty, LiveOpsHubStrings.ShellChipNeverPublished, string.Empty,
+                true, false, false, forced), ChipCellWidth, ChipCellNeverPublishedName));
             return row;
         }
 
-        private static VisualElement CreateChip(string key, string leftText, string rightText, bool hovered,
+        /// <param name="hasMark">Dạng (c) của [FD §3.3] mở đầu bằng một vòng RỖNG — cùng dấu mà header thật chèn.</param>
+        /// <param name="isStrong">Dạng (a) in đậm — chip duy nhất mời làm một việc.</param>
+        private static VisualElement CreateChip(string key, string leftText, string rightText, bool hasMark, bool isStrong, bool hovered,
             List<(VisualElement Element, string States)> forced)
         {
             VisualElement chip = new VisualElement();
             chip.AddToClassList(LiveOpsHubClassNames.Chip);
+            if (hasMark)
+            {
+                LiveOpsStateMark mark = new LiveOpsStateMark { Size = LiveOpsStateMark.MarkSize.Small };
+                mark.AddToClassList(LiveOpsHubClassNames.ChipMark);
+                mark.SetHealth(HealthState.NotMeasured);
+                chip.Add(mark);
+            }
             if (key.Length > 0)
             {
                 Label keyLabel = new Label(key);
@@ -246,6 +266,7 @@ namespace DreamTech.LiveOps.Editor.Tests
             }
             Label left = new Label(leftText);
             left.AddToClassList(LiveOpsHubClassNames.ChipText);
+            if (isStrong) left.AddToClassList(LiveOpsHubClassNames.ChipTextStrong);
             chip.Add(left);
             if (rightText.Length > 0)
             {
@@ -346,7 +367,14 @@ namespace DreamTech.LiveOps.Editor.Tests
         /// <param name="width">Hàng chip chỉ có 4 ô nên ô rộng hơn — chip nháp (a) hai phần dài hơn một hàng rail, cắt là mất chữ.</param>
         private static VisualElement CreateCaptionedCell(string stateCaption, VisualElement content, float width)
         {
+            return CreateCaptionedCell(stateCaption, content, width, string.Empty);
+        }
+
+        /// <param name="elementName">"" = ô không cần đo riêng; có tên thì measure-capture.py đo được bề rộng của chính ô đó.</param>
+        private static VisualElement CreateCaptionedCell(string stateCaption, VisualElement content, float width, string elementName)
+        {
             VisualElement cell = new VisualElement();
+            if (elementName.Length > 0) cell.name = elementName;
             cell.style.width = width;
             cell.style.flexShrink = 0;
             cell.style.flexDirection = FlexDirection.Column;
@@ -365,6 +393,11 @@ namespace DreamTech.LiveOps.Editor.Tests
         private const float ShellCaptionWidth = 110f;
         private const float ShellCellWidth = 180f;
         private const float ChipCellWidth = 236f;
+        // Tên ô của hàng Chip: measure-capture.py đo từng ô, không chỉ khung ngoài 1080×300 (L-7).
+        private const string ChipCellNeutralName = "capture-chip-cell-neutral";
+        private const string ChipCellHoverName = "capture-chip-cell-hover";
+        private const string ChipCellUnsavedName = "capture-chip-cell-draft-a";
+        private const string ChipCellNeverPublishedName = "capture-chip-cell-draft-c";
         private const float ShellCellPadding = 8f;
         private const float ShellRowHeight = 44f;
         private const string ChipAssetKey = "Lịch";

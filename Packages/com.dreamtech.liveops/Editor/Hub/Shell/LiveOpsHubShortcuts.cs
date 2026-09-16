@@ -125,15 +125,23 @@ namespace DreamTech.LiveOps.Editor
         }
 
         /// <summary>
-        /// Phím đơn có được phép ở element không (SP-7b): mọi handler <c>KeyDownEvent</c> của hub hỏi câu này trước. Focus đang ở ô
-        /// nhập chữ SỬA ĐƯỢC thì phím đơn là ký tự người dùng gõ, không phải lệnh.
+        /// Phím đơn có được phép ở element không (SP-7b): đây là câu hỏi DÙNG CHUNG mà mọi handler <c>KeyDownEvent</c> phím đơn
+        /// của hub nên hỏi trước. Focus đang ở ô nhập chữ SỬA ĐƯỢC thì phím đơn là ký tự người dùng gõ, không phải lệnh.
+        /// <para>
+        /// Trạng thái hôm nay (ghi đúng, không nói quá): handler phím đơn DUY NHẤT đang chạy là
+        /// <c>LiveOpsTimelineElement.OnKeyDown</c> / <c>OnNavigationMove</c>, và nó vẫn dùng bản <c>IsInsideTextField</c> RIÊNG —
+        /// bản đó chỉ xét <c>TextField</c>, không xét <c>ITextEdition.isReadOnly</c>, nên lỏng hơn hàm này. File
+        /// <c>LiveOpsTimelineElement.cs</c> thuộc quyền ghi G-TIMELINE-VIEW (<c>ownership.tsv</c>), G-HOSTUI không sửa được;
+        /// việc gộp hai bản đã ghi vào <c>contract-changes-G-HOSTUI.md</c> cho cổng W4. Khi gộp xong, câu "duy nhất một chỗ hỏi"
+        /// mới đúng cả về chữ lẫn về code.
+        /// </para>
         /// </summary>
         /// <param name="target">Element nhận sự kiện (<c>evt.target</c>).</param>
         internal static bool IsSingleKeyCommandAllowed(UnityEngine.UIElements.VisualElement target)
         {
             if (target == null) return true;
             // `is TextField` phải xét RIÊNG: ô nhập chính nó là đích của sự kiện, và GetFirstAncestorOfType không phải bản Unity
-            // nào cũng tính chính nó là tổ tiên (LiveOpsTimelineElement.IsInsideTextField đã vấp đúng chỗ này).
+            // nào cũng tính chính nó là tổ tiên.
             if (target is UnityEngine.UIElements.TextField) return false;
             if (target.GetFirstAncestorOfType<UnityEngine.UIElements.TextField>() != null) return false;
             // TextElement sửa được (ô chữ con của TextField ở 6000.6) — vẫn là chỗ người dùng gõ, không phải chỗ nhận lệnh.

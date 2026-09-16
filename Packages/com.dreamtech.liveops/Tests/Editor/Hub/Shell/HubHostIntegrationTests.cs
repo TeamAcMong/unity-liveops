@@ -28,6 +28,8 @@ namespace DreamTech.LiveOps.Editor.Tests
         private const string MovedEndUtc = "2026-09-23T12:00:00Z";
         private const string DiskEditMarkerComment = "# sửa tay ngoài Unity";
         private const double LayoutTimeoutSeconds = 5.0;
+        private const int SectionCountP1 = 6;
+        private const string RecentActionPrefix = " · Vừa làm: ";
 
         private LiveOpsHubWindow _window;
 
@@ -59,6 +61,45 @@ namespace DreamTech.LiveOps.Editor.Tests
             Assert.AreSame(_window.Toast, content[content.childCount - 1], "toast là con CUỐI — USS không có z-index, thứ tự con quyết định lớp trên");
         }
 
+        /// <summary>
+        /// H-1: câu " · Vừa làm: … (⌘Z)" của status bar (8.3, [FD §3.4]). Toast là đường duy nhất câu đó tới được status bar —
+        /// phiên mở group Undo thẳng qua <c>Undo.IncrementCurrentGroup</c>, không qua <c>LiveOpsHubUndoTracker.BeginGroup</c>,
+        /// nên đọc <c>LastActionText</c> của tracker thì câu không bao giờ hiện.
+        /// </summary>
+        [UnityTest]
+        public IEnumerator BusToastWithUndo_ShowsRecentActionInStatusBar()
+        {
+            LiveOpsHubServices services = LiveOpsHubTestServices.ForScenario(LiveOpsHubTestServices.DesignSampleScenario);
+            yield return OpenWindow(services);
+            Assert.IsFalse(_window.StatusBar.LeftLabel.text.Contains(RecentActionPrefix),
+                "chưa làm gì thì status bar không nói 'Vừa làm'");
+
+            const string message = "Đã dời kết thúc lava-quest-2026-09b 19/9 → 20/9 00:00 UTC";
+            LiveOpsHubEditOutcome outcome = services.Session.Apply(new SetRemoteConfigKeyEdit("liveops_calendar_v2"), message);
+            services.Bus.ShowToast(LiveOpsToastModel.ForEdit(message, outcome.UndoGroup));
+            yield return null;
+
+            StringAssert.Contains(RecentActionPrefix + message, _window.StatusBar.LeftLabel.text,
+                "toast có Hoàn tác phải để lại câu 'Vừa làm' trên status bar — toast tắt sau 6 giây, câu này là thứ ở lại");
+            Assert.AreEqual(message, _window.WindowState.RecentActionText,
+                "câu nằm trong trạng thái cửa sổ đã serialize nên sống qua domain reload");
+            Assert.AreEqual(outcome.UndoGroup, _window.WindowState.RecentActionUndoGroup);
+        }
+
+        /// <summary>Toast không có nút Hoàn tác (thông báo thuần) không phải là "thao tác vừa làm" — không được chiếm câu đó.</summary>
+        [UnityTest]
+        public IEnumerator BusInfoToast_DoesNotClaimRecentAction()
+        {
+            LiveOpsHubServices services = LiveOpsHubTestServices.ForScenario(LiveOpsHubTestServices.DesignSampleScenario);
+            yield return OpenWindow(services);
+
+            services.Bus.ShowToast(LiveOpsToastModel.Info("Đã copy 1.612 byte vào clipboard"));
+            yield return null;
+
+            Assert.IsFalse(_window.StatusBar.LeftLabel.text.Contains(RecentActionPrefix));
+            Assert.AreEqual(string.Empty, _window.WindowState.RecentActionText);
+        }
+
         [UnityTest]
         public IEnumerator BusOutcome_ShownAndSurvivesInWindowState()
         {
@@ -88,18 +129,33 @@ namespace DreamTech.LiveOps.Editor.Tests
             _window.OpenPalette();
             yield return null;
 
-            Assert.GreaterOrEqual(_window.Palette.Matches.Count, LiveOpsHubSections.Ids.Overview.Length > 0 ? 6 : 6,
-                "palette mở trống liệt kê đủ 6 màn P1");
+            Assert.GreaterOrEqual(_window.Palette.Matches.Count, SectionCountP1, "palette mở trống liệt kê đủ 6 màn P1");
 
             // Gõ id luật: palette dẫn tới Kiểm lịch ĐÃ LỌC luật đó — id luật là thứ người dùng nhớ, không phải tên màn ([FD §3.8]).
             _window.Palette.ApplyQuery(LiveEventCalendarRuleIds.OverlapSameType);
             LiveOpsPaletteMatcher.Entry ruleEntry = null;
-            foreach (LiveOpsPaletteMatcher.Match match in _window.Palette.Matches)
+            int ruleIndex = -1;
+            for (int index = 0; index < _window.Palette.Matches.Count; index++)
             {
-                if (match.Entry.IsRule) { ruleEntry = match.Entry; break; }
+                if (!_window.Palette.Matches[index].Entry.IsRule) continue;
+                ruleEntry = _window.Palette.Matches[index].Entry;
+                ruleIndex = index;
+                break;
             }
             Assert.IsNotNull(ruleEntry, "gõ id luật phải ra hàng id luật — palette là đường đi tới, không phải chỉ danh sách màn");
             Assert.AreEqual(LiveOpsHubSections.Ids.Validation, ruleEntry.SectionId);
+
+            // Phần "Opening…Navigates" của tên test: chọn đúng hàng đó rồi Enter như người dùng, và khẳng định cửa sổ đã sang
+            // Kiểm lịch ĐÃ LỌC luật — trước đây test dừng ở "có hàng id luật" nên đường mở mục chưa có ai canh.
+            _window.Palette.MoveSelection(ruleIndex - _window.Palette.SelectedIndex);
+            Assert.AreEqual(ruleIndex, _window.Palette.SelectedIndex);
+            _window.Palette.HandleKey(KeyCode.Return);
+            yield return null;
+
+            Assert.IsFalse(_window.Palette.IsOpen, "mở một mục thì palette đóng lại");
+            Assert.AreEqual(LiveOpsHubSections.Ids.Validation, _window.ActiveSectionId);
+            Assert.AreEqual(LiveEventCalendarRuleIds.OverlapSameType, _window.LastNavigation.RuleId,
+                "id luật phải đi theo điều hướng — không thì người dùng tới màn Kiểm lịch chưa lọc gì");
         }
 
         // ------------------------------------------------------------------------------------------------ chip · status bar
@@ -121,21 +177,32 @@ namespace DreamTech.LiveOps.Editor.Tests
             LiveOpsHubServices services = LiveOpsHubTestServices.ForScenario(LiveOpsHubTestServices.DesignSampleScenario);
             yield return OpenWindow(services);
 
-            LiveOpsHubStatusBarModel expected = LiveOpsHubStatusBarModel.Build(services.Session.Check, string.Empty, false,
-                services.Clock.UtcNow, services.Session.Publish.ActiveStamp, services.Format, LiveOpsHubKeyLabels.Undo);
+            // Chưa thao tác gì nên phần "Vừa làm" rỗng ở CẢ hai vế — ca có thao tác nằm ở
+            // BusToastWithUndo_ShowsRecentActionInStatusBar, không gộp vào đây để test này không "đúng" nhờ hai bên cùng rỗng.
+            Assert.AreEqual(string.Empty, _window.WindowState.RecentActionText);
+            LiveOpsHubStatusBarModel expected = LiveOpsHubStatusBarModel.Build(services.Session.Check, services.Session.Asset != null,
+                string.Empty, false, services.Clock.UtcNow, services.Session.Publish.ActiveStamp, services.Format,
+                LiveOpsHubKeyLabels.Undo);
             Assert.AreEqual(expected.LeftText, _window.StatusBar.LeftLabel.text, "status bar đọc CHÍNH phiên của cửa sổ");
             Assert.AreEqual(expected.RightText, _window.StatusBar.RightLabel.text);
             Assert.AreEqual(expected.RightTooltip, _window.StatusBar.RightLabel.tooltip, "tooltip giờ máy để không ai đọc nhầm giờ UTC");
         }
 
+        /// <summary>
+        /// Chưa có asset: status bar nói "chưa có lịch" chứ KHÔNG mời bấm F5 — <c>StartCheckFromShortcut</c> return ngay khi
+        /// <c>Session.Asset == null</c> và mục "Kiểm lại tất cả (F5)" của menu ⋮ đang disabled, nên câu mời F5 là hai bề mặt
+        /// nói hai điều khác nhau về cùng một phím (L-5 của soát 16/9).
+        /// </summary>
         [UnityTest]
         public IEnumerator StatusBar_NoAsset_StaysEmptyWithoutMark()
         {
             yield return OpenWindow(LiveOpsHubTestServices.ForScenario(LiveOpsHubTestServices.NoAssetScenario));
 
-            Assert.AreEqual(LiveOpsHubStrings.ShellStatusNeverChecked, _window.StatusBar.LeftLabel.text);
+            Assert.AreEqual(LiveOpsHubStrings.ShellStatusNoCalendarAsset, _window.StatusBar.LeftLabel.text);
+            Assert.AreNotEqual(LiveOpsHubStrings.ShellStatusNeverChecked, _window.StatusBar.LeftLabel.text,
+                "không có asset thì F5 không chạy được lần kiểm nào — status bar không được mời bấm");
             Assert.IsTrue(_window.StatusBar.LeftMark.ClassListContains(LiveOpsHubClassNames.StatusMarkHidden),
-                "chưa kiểm thì dấu ẩn — một dấu không kèm lý do sẽ bị đọc thành trạng thái thật");
+                "chưa có kết quả kiểm thì dấu ẩn — một dấu không kèm lý do sẽ bị đọc thành trạng thái thật");
         }
 
         // ------------------------------------------------------------------------------------------------ SP-3 lý do in thành chữ

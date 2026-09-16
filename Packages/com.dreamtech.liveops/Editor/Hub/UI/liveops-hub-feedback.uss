@@ -180,16 +180,18 @@
     display: none;
 }
 
-/* Panel 440px, max 92%, cách đỉnh 60px, căn giữa ngang bằng left 50% + translate -220px (nửa width) — Yoga không
-   căn giữa element position:absolute bằng margin:auto (CC-HOSTUI-1, sửa ở cổng gói G-HOSTUI vì không gói nào khác
-   chạm palette trong cửa sổ thật trước W4). */
+/* Panel 440px cố định, cách đỉnh 60px, căn giữa ngang bằng left 50% + translate -220px (nửa width) — Yoga không căn
+   giữa element position:absolute bằng margin:auto (CC-HOSTUI-1, sửa ở cổng gói G-HOSTUI vì không gói nào khác chạm
+   palette trong cửa sổ thật trước W4).
+   KHÔNG có max-width: -220px là nửa của 440 CỐ ĐỊNH, nên hễ max-width cắt bớt bề rộng là panel lệch trái đúng bằng
+   phần bị cắt (L-6). Cửa sổ hub có minSize 620×420 nên 440px luôn vừa; muốn co theo cửa sổ thì phải bọc panel trong
+   một hàng justify-content: center phủ cửa sổ, không phải thêm max-width. */
 .liveops-hub-palette {
     position: absolute;
     top: 60px;
     left: 50%;
     translate: -220px 0;
     width: 440px;
-    max-width: 92%;
     padding: 8px;
     border-width: 1px;
     border-radius: 4px;

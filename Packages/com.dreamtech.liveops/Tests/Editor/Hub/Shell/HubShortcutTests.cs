@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Reflection;
 using DreamTech.LiveOps.Tests;
 using NUnit.Framework;
 using UnityEditor;
@@ -50,6 +51,11 @@ namespace DreamTech.LiveOps.Editor.Tests
 
         // ------------------------------------------------------------------------------------------------ hợp đồng đăng ký
 
+        /// <summary>
+        /// Hai nửa: (1) mọi id của bảng 8.7 có trong <see cref="ShortcutManager"/> và có phím mặc định; (2) phần "window context"
+        /// của tên test — <c>GetAvailableShortcutIds</c> trả danh sách KHÔNG phân biệt context, nên context đọc thẳng từ thuộc
+        /// tính <c>[Shortcut]</c> (M-5). Không có nửa (2) thì tên test hứa một điều không chỗ nào khẳng định.
+        /// </summary>
         [Test]
         public void HubShortcuts_RegisteredInWindowContext()
         {
@@ -63,6 +69,42 @@ namespace DreamTech.LiveOps.Editor.Tests
             }
             Assert.AreEqual(5 + LiveOpsHubShortcuts.GoToSectionCount, LiveOpsHubShortcuts.AllShortcutIds.Count,
                 "bảng 8.7 có 5 lệnh + 6 mục đi tới màn");
+
+            int declaredCount = 0;
+            const BindingFlags methodFlags = BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic;
+            foreach (MethodInfo method in typeof(LiveOpsHubShortcuts).GetMethods(methodFlags))
+            {
+                foreach (object attribute in method.GetCustomAttributes(typeof(ShortcutAttribute), false))
+                {
+                    declaredCount++;
+                    Assert.IsTrue(DeclaresContext(attribute, typeof(LiveOpsHubWindow)),
+                        "[Shortcut] trên " + method.Name + " không khai context LiveOpsHubWindow — phím tắt của hub sẽ bắn cả khi "
+                        + "cửa sổ khác đang có focus");
+                }
+            }
+            Assert.AreEqual(LiveOpsHubShortcuts.AllShortcutIds.Count, declaredCount,
+                "mỗi id của bảng 8.7 phải có đúng một [Shortcut] khai context cửa sổ hub");
+        }
+
+        /// <summary>
+        /// Context của <c>[Shortcut]</c> là thành viên internal của UnityEditor và tên có thể đổi giữa các bản, nên dò bằng
+        /// reflection: thuộc tính hoặc field kiểu <see cref="Type"/> nào mang đúng kiểu cửa sổ là đủ để khẳng định "context cửa sổ".
+        /// </summary>
+        private static bool DeclaresContext(object shortcutAttribute, Type expectedContext)
+        {
+            Type attributeType = shortcutAttribute.GetType();
+            const BindingFlags memberFlags = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic;
+            foreach (PropertyInfo property in attributeType.GetProperties(memberFlags))
+            {
+                if (property.PropertyType != typeof(Type) || property.GetIndexParameters().Length > 0) continue;
+                if (ReferenceEquals(property.GetValue(shortcutAttribute), expectedContext)) return true;
+            }
+            foreach (FieldInfo field in attributeType.GetFields(memberFlags))
+            {
+                if (field.FieldType != typeof(Type)) continue;
+                if (ReferenceEquals(field.GetValue(shortcutAttribute), expectedContext)) return true;
+            }
+            return false;
         }
 
         [Test]
@@ -113,6 +155,16 @@ namespace DreamTech.LiveOps.Editor.Tests
             Assert.IsNotEmpty(_window.Palette.Matches, "palette mở trống vẫn liệt kê 6 màn");
         }
 
+        /// <summary>
+        /// Ca người dùng thật: focus ở ô tìm của palette, gõ "t" rồi Backspace.
+        /// <para>
+        /// Test này khẳng định ĐÚNG hai điều: palette không đóng / không điều hướng khi gõ, và
+        /// <see cref="LiveOpsHubShortcuts.IsSingleKeyCommandAllowed"/> trả false ở ô nhập chữ. Nó KHÔNG phải bản bảo vệ chống
+        /// "T thành phím tắt toàn cục": <c>target.SendEvent</c> đi thẳng vào panel UITK, không qua <see cref="ShortcutManager"/>
+        /// (Editor điều phối shortcut ở tầng cửa sổ, TRƯỚC panel), nên test vẫn xanh kể cả khi T bị đăng ký là phím đơn. Bản bảo
+        /// vệ thật cho việc đó là <see cref="SingleKeyT_NotRegisteredInShortcutManager"/> — nó duyệt registry thật (M-5).
+        /// </para>
+        /// </summary>
         [UnityTest]
         public IEnumerator FocusedTextField_SendT_And_Backspace_NothingRuns()
         {

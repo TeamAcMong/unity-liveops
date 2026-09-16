@@ -220,6 +220,9 @@ namespace DreamTech.LiveOps.Editor
             table.Add(nameof(LiveOpsHubStrings.ShellStatusNeverChecked),
                 vietnamese: "Chưa kiểm lần nào — F5 để kiểm",
                 english: "Never checked — press F5 to check");
+            table.Add(nameof(LiveOpsHubStrings.ShellStatusNoCalendarAsset),
+                vietnamese: "Chưa có lịch LiveOps trong project",
+                english: "No LiveOps calendar in this project");
             table.Add(nameof(LiveOpsHubStrings.ShellStatusStaleEditedFormat),
                 vietnamese: "Lịch đã đổi lúc {0} UTC, sau lần kiểm {1} — F5 để kiểm lại",
                 english: "Calendar changed at {0} UTC, after the {1} check — press F5 to check again");
