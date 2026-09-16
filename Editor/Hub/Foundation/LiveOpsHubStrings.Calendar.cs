@@ -34,6 +34,10 @@ namespace DreamTech.LiveOps.Editor
         // Nút chính của section header.
         internal static string CalendarAddEventButton => LiveOpsHubStringCatalog.Text(nameof(CalendarAddEventButton));
 
+        // Trạng thái chung "chưa có asset" (7.0): mọi màn trừ Tổng quan nói cùng câu và chỉ về đúng một chỗ tạo lịch.
+        internal static string CalendarNoAssetEmptyText => LiveOpsHubStringCatalog.Text(nameof(CalendarNoAssetEmptyText));
+        internal static string CalendarOpenOverviewButton => LiveOpsHubStringCatalog.Text(nameof(CalendarOpenOverviewButton));
+
         // Inspector (a) chưa chọn [SD1 §3.10]: nói làm gì để có nội dung, kèm tóm tắt để pane không rỗng vô nghĩa.
         internal static string CalendarInspectorEmptyText => LiveOpsHubStringCatalog.Text(nameof(CalendarInspectorEmptyText));
         internal static string CalendarInspectorSummaryFormat => LiveOpsHubStringCatalog.Text(nameof(CalendarInspectorSummaryFormat));

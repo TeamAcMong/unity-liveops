@@ -65,6 +65,13 @@ namespace DreamTech.LiveOps.Editor
                 vietnamese: "Thêm đợt",
                 english: "Add event");
 
+            table.Add(nameof(LiveOpsHubStrings.CalendarNoAssetEmptyText),
+                vietnamese: "Chưa có lịch LiveOps trong project",
+                english: "No LiveOps calendar in this project yet");
+            table.Add(nameof(LiveOpsHubStrings.CalendarOpenOverviewButton),
+                vietnamese: "Mở Tổng quan để tạo lịch",
+                english: "Open Overview to create a calendar");
+
             table.Add(nameof(LiveOpsHubStrings.CalendarInspectorEmptyText),
                 vietnamese: "Chọn một đợt trên trục để xem và sửa.",
                 english: "Select an event on the axis to view and edit it.");
