@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Popover "Đề xuất…" ([SD2 §2.6]) — PopupWindow 320px riêng, dùng lại ở inspector Lịch (G-CALENDAR-DEPTH) nên bố cục nằm ở
+  UXML chứ không nặn bằng C#. Nhóm lựa chọn là RadioButtonGroup: mỗi lựa chọn ghi rõ TRƯỚC → SAU, và "Áp" chỉ chạy khi click.
+  Không câu chữ nào trong file này — mọi label do C# đổ từ LiveOpsHubStrings (lint chặn chữ hiển thị trong UXML).
+-->
+<ui:UXML xmlns:ui="UnityEngine.UIElements">
+    <ui:VisualElement name="proposal-body" class="liveops-hub-validation-proposal">
+        <ui:Label name="proposal-header" class="liveops-hub-validation-proposal-header" />
+        <ui:RadioButtonGroup name="proposal-options" />
+        <ui:VisualElement name="proposal-quick-check" class="liveops-hub-validation-proposal-quick-check" />
+        <ui:Label name="proposal-consequence" class="liveops-hub-validation-proposal-consequence" />
+        <ui:VisualElement name="proposal-footer" class="liveops-hub-validation-proposal-footer">
+            <ui:Label name="proposal-hint" class="liveops-hub-validation-proposal-hint" />
+            <ui:Button name="proposal-apply" class="liveops-hub-button" />
+            <ui:Button name="proposal-back" class="liveops-hub-button liveops-hub-button--primary" />
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>
