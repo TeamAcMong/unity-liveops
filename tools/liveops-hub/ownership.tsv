@@ -148,7 +148,7 @@ file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/Language/LiveOpsHubStr
 file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/Language/LiveOpsHubStringCatalog.Shell.cs	G-I18N,G-HOSTUI,G-SHELLPOLISH	G-I18N tạo; sau đó chủ vùng Shell
 file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/Language/LiveOpsHubStringCatalog.Timeline.cs	G-I18N,G-TIMELINE-VIEW,G-OPT-TIMELINE	G-I18N tạo; sau đó chủ vùng Timeline
 file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/Language/LiveOpsHubStringCatalog.TimelineModel.cs	G-I18N,G-TIMELINE-MODEL	G-I18N tạo; sau đó chủ vùng TimelineModel
-file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/Language/LiveOpsHubStringCatalog.cs	G-I18N	G-I18N tạo — catalog + khai báo Register<Vùng> cho MỌI vùng
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/Language/LiveOpsHubStringCatalog.cs	G-I18N	G-I18N tạo — catalog + khai báo Register<Vùng> cho MỌI vùng (24 vùng, kể cả W4/W5/W6 chưa làm: gói màn chỉ thêm file vùng của mình, KHÔNG sửa file này — V-29)
 file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/Language/LiveOpsHubStringTable.cs	G-I18N	G-I18N tạo — bảng chữ một vùng, hai ngôn ngữ
 file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubClassNames.Calendar.cs	G-CALENDAR	G-CALENDAR vùng Calendar
 file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubClassNames.CalendarDepth.cs	G-CALENDAR-DEPTH	G-CALENDAR-DEPTH vùng CalendarDepth
