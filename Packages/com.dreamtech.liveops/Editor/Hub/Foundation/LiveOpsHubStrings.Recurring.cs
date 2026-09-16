@@ -155,13 +155,35 @@ namespace DreamTech.LiveOps.Editor
         internal static string RecurringAddConfirmButton => LiveOpsHubStringCatalog.Text(nameof(RecurringAddConfirmButton));
         internal static string RecurringAddCancelButton => LiveOpsHubStringCatalog.Text(nameof(RecurringAddCancelButton));
 
-        // Foldout JSON: W4 chỉ đọc + Copy; G-RECURRING-JSON (W5) làm sửa được.
+        // Foldout JSON SỬA ĐƯỢC (mục 7.4, G-RECURRING-JSON W5): ô nhập mono + nút "Áp" + dòng lỗi có dòng/ký tự.
         internal static string RecurringJsonFoldoutLabel => LiveOpsHubStringCatalog.Text(nameof(RecurringJsonFoldoutLabel));
         internal static string RecurringJsonCopyButton => LiveOpsHubStringCatalog.Text(nameof(RecurringJsonCopyButton));
         internal static string RecurringJsonCopiedToastFormat => LiveOpsHubStringCatalog.Text(nameof(RecurringJsonCopiedToastFormat));
+        internal static string RecurringJsonApplyButton => LiveOpsHubStringCatalog.Text(nameof(RecurringJsonApplyButton));
 
-        // INTERIM(G-RECURRING-JSON): câu nói foldout chưa sửa được ở bản W4 — G-RECURRING-JSON gỡ cùng ô sửa (mục 12 I-6).
-        internal static string RecurringJsonReadOnlyNote => LiveOpsHubStringCatalog.Text(nameof(RecurringJsonReadOnlyNote));
+        /// <summary>
+        /// Lý do "Áp" đang khoá khi chưa ai sửa gì. Nút khoá bắt buộc có lý do (<see cref="DisabledReasonRequired"/>) và
+        /// SPIKE-B SP-3 bắt in lý do THÀNH CHỮ cạnh nút — <c>LiveOpsButtonSlot</c> lo chỗ in.
+        /// </summary>
+        internal static string RecurringJsonUnchangedReason => LiveOpsHubStringCatalog.Text(nameof(RecurringJsonUnchangedReason));
+
+        /// <summary>
+        /// Cú pháp đúng nhưng parser CỦA GAME vẫn không đọc được (vd gốc không phải object): in nguyên văn câu của parser
+        /// thay vì diễn giải lại — người sửa cần đúng câu mà game sẽ gặp.
+        /// </summary>
+        internal static string RecurringJsonUnreadableFormat => LiveOpsHubStringCatalog.Text(nameof(RecurringJsonUnreadableFormat));
+
+        /// <summary>Ô này nhận đúng MỘT object luật lặp: dán cả mảng <c>recurring</c> vào đây là nhầm chỗ, nói thẳng ra.</summary>
+        internal static string RecurringJsonNotOneRuleReason => LiveOpsHubStringCatalog.Text(nameof(RecurringJsonNotOneRuleReason));
+
+        /// <summary>Đổi <c>"type"</c> trong JSON = luật khác hẳn — cùng lý do ô "Loại event" bị khoá sau khi tạo (mục 7.4).</summary>
+        internal static string RecurringJsonTypeLockedFormat => LiveOpsHubStringCatalog.Text(nameof(RecurringJsonTypeLockedFormat));
+
+        /// <summary>
+        /// (Q-W4-4, user duyệt 16/9) Ba ô còn lại bị khoá trong lúc ô thứ tư giữ nháp chưa ghi. Lý do in THÀNH CHỮ cạnh ô,
+        /// không phải tooltip (SPIKE-B SP-3); <c>{0}</c> là nhãn của chính ô đang giữ nháp để người đọc biết đi sửa ở đâu.
+        /// </summary>
+        internal static string RecurringFieldLockedByDraftFormat => LiveOpsHubStringCatalog.Text(nameof(RecurringFieldLockedByDraftFormat));
 
         // Tên mẫu dựng sẵn (LiveOpsRulePresets.BuiltIn) — người dùng đọc trong dropdown Mẫu.
         internal static string RecurringPresetWeeklyMonday => LiveOpsHubStringCatalog.Text(nameof(RecurringPresetWeeklyMonday));
