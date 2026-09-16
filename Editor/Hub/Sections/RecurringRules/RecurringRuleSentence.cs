@@ -1,0 +1,80 @@
+using System;
+using System.Collections.Generic;
+using UnityEngine.UIElements;
+
+namespace DreamTech.LiveOps.Editor
+{
+    /// <summary>
+    /// Câu đọc được của luật ([SD1 §4.1]): "Mỗi [7 ngày], neo từ [thứ Hai 5/1/2026 00:00 UTC], mỗi đợt chạy [7 ngày],
+    /// id = [pass-] + số thứ tự." Bốn giá trị là token bấm được — bấm token thì focus đúng field, nên người đọc câu trước rồi
+    /// mới đi vào ô cần sửa, thay vì dò nhãn.
+    /// <para>
+    /// Token của field đang focus mang class <c>--highlighted</c>; token đang gây hậu quả "người chơi mất tiến độ" mang
+    /// <c>--warning</c>. Hai class tách nhau vì một token có thể vừa focus vừa warning.
+    /// </para>
+    /// </summary>
+    internal sealed class RecurringRuleSentence : VisualElement
+    {
+        private readonly List<Button> _tokenButtons = new List<Button>();
+        private readonly List<string> _tokenFields = new List<string>();
+
+        internal RecurringRuleSentence()
+        {
+            AddToClassList(LiveOpsHubClassNames.RuleSentence);
+        }
+
+        /// <summary>Người dùng bấm một token — tham số là tên field (<see cref="RecurringRuleFields"/>).</summary>
+        public event Action<string> TokenClicked;
+
+        public int TokenCount => _tokenButtons.Count;
+
+        public void SetTokens(IReadOnlyList<RecurringSentenceToken> tokens)
+        {
+            Clear();
+            _tokenButtons.Clear();
+            _tokenFields.Clear();
+            if (tokens == null) return;
+
+            for (int index = 0; index < tokens.Count; index++)
+            {
+                RecurringSentenceToken token = tokens[index];
+                if (!token.IsToken)
+                {
+                    Add(new Label(token.Text));
+                    continue;
+                }
+                string fieldName = token.FieldName;
+                Button button = new Button(() => RaiseTokenClicked(fieldName)) { name = TokenElementName(fieldName), text = token.Text };
+                button.AddToClassList(LiveOpsHubClassNames.RuleToken);
+                button.EnableInClassList(LiveOpsHubClassNames.Mono, token.IsMono);
+                button.EnableInClassList(LiveOpsHubClassNames.RuleTokenWarning, token.State == RecurringTokenState.Warning);
+                button.EnableInClassList(LiveOpsHubClassNames.RuleTokenHighlighted, token.State == RecurringTokenState.Highlighted);
+                Add(button);
+                _tokenButtons.Add(button);
+                _tokenFields.Add(fieldName);
+            }
+        }
+
+        /// <summary>Viền token của field đang focus; "" gỡ hết viền.</summary>
+        public void SetFocusedField(string fieldName)
+        {
+            for (int index = 0; index < _tokenButtons.Count; index++)
+            {
+                _tokenButtons[index].EnableInClassList(LiveOpsHubClassNames.RuleTokenHighlighted,
+                    fieldName != null && string.Equals(_tokenFields[index], fieldName, StringComparison.Ordinal));
+            }
+        }
+
+        internal static string TokenElementName(string fieldName)
+        {
+            return TokenElementPrefix + fieldName;
+        }
+
+        internal const string TokenElementPrefix = "recurring-token-";
+
+        private void RaiseTokenClicked(string fieldName)
+        {
+            if (TokenClicked != null) TokenClicked(fieldName);
+        }
+    }
+}
