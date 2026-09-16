@@ -207,7 +207,8 @@ def check_wave_dependencies(table):
     errors = []
     for package in table.package_order:
         wave = table.packages[package]["wave"]
-        wave_number = int(wave[1:])
+        # Đợt có thể lẻ (W3.5 = gói G-I18N chen giữa W3 và W4) nên đọc bằng float, không int.
+        wave_number = float(wave[1:])
         for dependency in table.packages[package]["dependencies"]:
             if re.match(r"^W\d+$", dependency):
                 dependency_wave = dependency
@@ -216,7 +217,7 @@ def check_wave_dependencies(table):
                 if dependency_wave is None:
                     errors.append("%s phụ thuộc '%s' không có trong bảng" % (package, dependency))
                     continue
-            if int(dependency_wave[1:]) >= wave_number:
+            if float(dependency_wave[1:]) >= wave_number:
                 errors.append("%s (%s) phụ thuộc %s (%s) — phải ở đợt trước" % (package, wave, dependency, dependency_wave))
     if errors:
         for error in errors:
