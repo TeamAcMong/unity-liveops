@@ -440,9 +440,10 @@
 }
 
 /* Đã ghim mở: rail về đúng 196 px dù cửa sổ vẫn hẹp — người dùng chọn thấy đủ chữ và chịu mất chỗ của cột nội dung.
-   Bốn luật dưới CÙNG specificity với bốn luật --narrow ở trên (hai class) nên thắng nhờ ĐỨNG SAU; viết rời (không ghép
-   .liveops-hub--narrow.liveops-hub--rail-pinned-open) để mỗi class còn một selector của riêng mình. Cửa sổ rộng thì bốn
-   luật này không đổi gì: rail vốn đã 196 và ba phần kia vốn đã hiện. */
+   Năm luật dưới CÙNG specificity với sáu luật --narrow ở trên (hai class) nên thắng nhờ ĐỨNG SAU; viết rời (không ghép
+   .liveops-hub--narrow.liveops-hub--rail-pinned-open) để mỗi class còn một selector của riêng mình. Cửa sổ rộng thì năm
+   luật này không đổi gì: rail vốn đã 196, ba phần kia (caption, scroll, ô chặn) vốn đã hiện và hình rail thu gọn vốn đã ẩn.
+   Luật --narrow thứ sáu là nút ‹› ghim: nút chỉ hiện ở cửa sổ hẹp nên ghim mở KHÔNG được ẩn nó — bấm xong còn phải bấm lại. */
 .liveops-hub--rail-pinned-open .liveops-hub-rail {
     width: 196px;
 }

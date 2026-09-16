@@ -67,8 +67,8 @@ namespace DreamTech.LiveOps.Editor.Tests
         }
 
         /// <summary>
-        /// (V-13) "Xem khác biệt" chỉ phát sự kiện điều hướng mang nguồn Disk — pane So với là việc của màn Xuất JSON, băng
-        /// không tự vẽ diff nào.
+        /// (V-13) "Xem khác biệt" chỉ phát sự kiện điều hướng mang nguồn Disk — pane "So với" là việc của màn LỊCH (bảng V-13
+        /// cho nguồn Disk đúng một chỗ vẽ), băng không tự vẽ diff nào.
         /// </summary>
         [UnityTest]
         public IEnumerator DiskBanner_ViewDifferences_NavigatesCalendarCompareDisk()
@@ -92,7 +92,8 @@ namespace DreamTech.LiveOps.Editor.Tests
             }
 
             Assert.IsNotNull(navigation, "bấm 'Xem khác biệt' phải phát điều hướng qua bus");
-            Assert.AreEqual(LiveOpsHubSections.Ids.Export, navigation.SectionId);
+            Assert.AreEqual(LiveOpsHubSections.Ids.Calendar, navigation.SectionId,
+                "nguồn Disk chỉ có pane So với ở màn Lịch — màn Xuất JSON không xử lý nguồn này (V-13)");
             Assert.AreEqual(LiveOpsHubCompareSource.Disk, navigation.CompareSource, "nguồn so là bản TRÊN ĐĨA, không phải bản đã đăng");
             LogAssert.NoUnexpectedReceived();
         }
@@ -177,6 +178,29 @@ namespace DreamTech.LiveOps.Editor.Tests
 
             StringAssert.Contains("Main.asset", sentences);
             Assert.IsFalse(sentences.Contains("()"), "không được in cặp ngoặc rỗng: " + sentences);
+        }
+
+        /// <summary>
+        /// Câu của băng phải đọc ĐÚNG NHƯ Hình 28 khung 4: "…3 mục (hunt-0914, lava-quest-2026-10, luật weekly-pass). Tải lại:
+        /// mất 1 thay đổi chưa lưu (Dời lava-quest-2026-09b)."
+        /// <para>
+        /// Ba điều test này gác: (a) thứ tự mục theo TÊN chứ không theo thứ tự duyệt tài liệu — cùng một xung đột phải luôn
+        /// đọc ra một câu; (b) luật lặp có tiền tố "luật" nên id luật không lẫn với id đợt; (c) thay đổi chưa lưu nói bằng
+        /// ĐỘNG TỪ, vì "(lava-quest-2026-09b)" trần bắt người dùng tự nhớ mình đã làm gì với nó.
+        /// </para>
+        /// </summary>
+        [Test]
+        public void DiskBannerSentences_MatchDesignFigure()
+        {
+            LiveOpsHubDiskConflict conflict = LiveOpsHubCaptureScenarios.DesignFigureDiskConflict();
+
+            string sentences = LiveOpsHubDiskConflictBanner.BuildSentences(conflict,
+                LiveOpsHubCaptureScenarios.DiskConflictSampleAssetFileName, new LiveOpsHubFormat(TimeSpan.Zero));
+
+            StringAssert.Contains("(hunt-0914, lava-quest-2026-10, luật weekly-pass)", sentences,
+                "thứ tự và tên mục phải bám Hình 28 khung 4: " + sentences);
+            StringAssert.Contains("(Dời lava-quest-2026-09b)", sentences,
+                "thay đổi chưa lưu phải có động từ như hình: " + sentences);
         }
 
         private static LiveOpsHubServices CreateFileBackedServices(ScriptedLiveOpsHubConfirmationPresenter confirmation = null)

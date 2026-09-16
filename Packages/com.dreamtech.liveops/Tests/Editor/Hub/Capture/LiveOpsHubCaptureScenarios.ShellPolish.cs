@@ -55,7 +55,7 @@ namespace DreamTech.LiveOps.Editor.Tests
 
             // Hình 13 chụp ở 820: rail phải là 36 px (I-8), không phải 196 — đó là toàn bộ lý do G-CALENDAR-DEPTH đợi gói này.
             scenarios.Add(new LiveOpsHubCaptureScenario(LiveOpsHubCaptureScenarioIds.HsShellNarrow820, NarrowCaptureWidth, NarrowCaptureHeight,
-                    OpenShellWithSession)
+                    OpenShellWithUnpinnedRail)
                 .WithExpectedFrames(
                     new LiveOpsHubCaptureExpectedFrame(LiveOpsHubClassNames.Rail, NarrowRailWidth, 0f),
                     new LiveOpsHubCaptureExpectedFrame(LiveOpsHubClassNames.Header, 0f, 26f),
@@ -63,12 +63,35 @@ namespace DreamTech.LiveOps.Editor.Tests
                     new LiveOpsHubCaptureExpectedFrame(LiveOpsHubClassNames.Content, NarrowCaptureWidth - NarrowRailWidth, 0f)));
 
             scenarios.Add(new LiveOpsHubCaptureScenario(LiveOpsHubCaptureScenarioIds.HsShellCompact700, CompactCaptureWidth, CompactCaptureHeight,
-                    OpenShellWithSession)
+                    OpenShellWithUnpinnedRail)
                 .WithExpectedFrames(
                     new LiveOpsHubCaptureExpectedFrame(LiveOpsHubClassNames.Rail, NarrowRailWidth, 0f),
                     new LiveOpsHubCaptureExpectedFrame(LiveOpsHubClassNames.Header, 0f, 26f),
                     new LiveOpsHubCaptureExpectedFrame(LiveOpsHubClassNames.Status, 0f, 20f),
                     new LiveOpsHubCaptureExpectedFrame(LiveOpsHubClassNames.Content, CompactCaptureWidth - NarrowRailWidth, 0f)));
+        }
+
+        /// <summary>
+        /// Khung hẹp với rail 36 px. <see cref="LiveOpsHubRail"/> đọc EditorPrefs <c>LiveOpsHub.RailPinnedOpen</c> của MÁY một
+        /// lần lúc dựng, nên máy nào đang ghim rail mở sẽ chụp ra rail 196 px và hai ảnh này không tái lập được. Kịch bản hạ
+        /// khoá xuống false ngay trước khi mở rồi TRẢ LẠI đúng trạng thái cũ (có/không có khoá) — cùng khuôn nhớ‑trả của
+        /// <c>HubNarrowTests.SetUp/TearDown</c> và của <c>UserSkin</c> trong <c>capture.sh</c>. Trả ngay sau khi mở là đủ:
+        /// rail chỉ đọc khoá ở constructor.
+        /// </summary>
+        internal static EditorWindow OpenShellWithUnpinnedRail()
+        {
+            bool hadPreference = EditorPrefs.HasKey(LiveOpsHubRail.PinnedOpenPreferenceKey);
+            bool preferenceBefore = EditorPrefs.GetBool(LiveOpsHubRail.PinnedOpenPreferenceKey, false);
+            EditorPrefs.SetBool(LiveOpsHubRail.PinnedOpenPreferenceKey, false);
+            try
+            {
+                return OpenShellWithSession();
+            }
+            finally
+            {
+                if (hadPreference) EditorPrefs.SetBool(LiveOpsHubRail.PinnedOpenPreferenceKey, preferenceBefore);
+                else EditorPrefs.DeleteKey(LiveOpsHubRail.PinnedOpenPreferenceKey);
+            }
         }
 
         /// <summary>
@@ -105,14 +128,25 @@ namespace DreamTech.LiveOps.Editor.Tests
             LiveOpsHubWindow window = LiveOpsHubWindow.OpenWithServices(services, LiveOpsHubSections.Ids.Overview);
             window.HubRoot?.AddToClassList(LiveOpsHubClassNames.NoMotion);
 
-            LiveEventCalendarDocument editorDocument = LiveOpsDesignSample.Document;
-            LiveOpsHubDiskConflict conflict = new LiveOpsHubDiskConflict(LiveOpsDesignSample.NowUtc,
-                BuildDiskDocument(editorDocument), editorDocument, BuildSavedDocument(editorDocument));
-            LiveOpsHubDiskConflictBanner banner = LiveOpsHubDiskConflictBanner.Create(conflict, DiskConflictAssetFileName, services.Format,
-                () => { }, () => { }, () => { });
+            LiveOpsHubDiskConflictBanner banner = LiveOpsHubDiskConflictBanner.Create(DesignFigureDiskConflict(), DiskConflictAssetFileName,
+                services.Format, () => { }, () => { }, () => { });
             window.ShellNotes?.Add(banner.Element);
             return window;
         }
+
+        /// <summary>
+        /// Xung đột đĩa ĐÚNG các con số của Hình 28 khung 4 (3 mục khác nhau, 1 thay đổi chưa lưu). Dùng chung cho ảnh h28d,
+        /// hộp h28e và test câu chữ của băng — ba chỗ phải nói về CÙNG một xung đột thì mới soát ảnh bằng test được.
+        /// </summary>
+        internal static LiveOpsHubDiskConflict DesignFigureDiskConflict()
+        {
+            LiveEventCalendarDocument editorDocument = LiveOpsDesignSample.Document;
+            return new LiveOpsHubDiskConflict(LiveOpsDesignSample.NowUtc, BuildDiskDocument(editorDocument), editorDocument,
+                BuildSavedDocument(editorDocument));
+        }
+
+        /// <summary>Tên file asset của ảnh/hộp khung 4 — test câu chữ dùng lại đúng tên này.</summary>
+        internal static string DiskConflictSampleAssetFileName => DiskConflictAssetFileName;
 
         /// <summary>Bản trên đĩa: hunt-0914 và lava-quest-2026-10 đổi giờ, luật weekly-pass đổi thời gian chạy — ba mục.</summary>
         private static LiveEventCalendarDocument BuildDiskDocument(LiveEventCalendarDocument editorDocument)
@@ -153,9 +187,7 @@ namespace DreamTech.LiveOps.Editor.Tests
         /// <summary>Hộp cấp 1 của ⌘S sau khi chọn "Giữ bản trong Editor" — cùng câu mà <c>LiveOpsHubWindow</c> dựng.</summary>
         internal static LiveOpsConfirmRequest ConfirmOverwriteDiskSampleRequest()
         {
-            LiveEventCalendarDocument editorDocument = LiveOpsDesignSample.Document;
-            LiveOpsHubDiskConflict conflict = new LiveOpsHubDiskConflict(LiveOpsDesignSample.NowUtc,
-                BuildDiskDocument(editorDocument), editorDocument, BuildSavedDocument(editorDocument));
+            LiveOpsHubDiskConflict conflict = DesignFigureDiskConflict();
             LiveOpsHubFormat format = new LiveOpsHubFormat(TimeSpan.Zero);
             string itemList = LiveOpsHubDiskConflictBanner.ItemListOf(conflict.DiskVersusEditor);
             return new LiveOpsConfirmRequest.Builder()

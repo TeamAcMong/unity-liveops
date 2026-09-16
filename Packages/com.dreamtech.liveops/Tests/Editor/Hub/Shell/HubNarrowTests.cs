@@ -69,6 +69,38 @@ namespace DreamTech.LiveOps.Editor.Tests
             LogAssert.NoUnexpectedReceived();
         }
 
+        /// <summary>
+        /// Hai ảnh hẹp của 9.5 (<c>hs-shell-narrow-820</c>, <c>hs-shell-compact-700</c>) phải tái lập được trên MỌI máy. Rail
+        /// đọc EditorPrefs <c>LiveOpsHub.RailPinnedOpen</c> của máy một lần lúc dựng, nên máy của người đang ghim rail mở sẽ
+        /// chụp ra rail 196 px — ảnh khác, số đo trượt, và không ai biết vì sao. Kịch bản chụp phải hạ khoá xuống rồi TRẢ
+        /// LẠI đúng như <c>capture.sh</c> làm với <c>UserSkin</c>.
+        /// </summary>
+        [UnityTest]
+        public IEnumerator NarrowCaptureScenario_IgnoresMachinePinnedRailPreference()
+        {
+            EditorPrefs.SetBool(LiveOpsHubRail.PinnedOpenPreferenceKey, true);
+            EditorWindow window = LiveOpsHubCaptureScenarios.OpenShellWithUnpinnedRail();
+            try
+            {
+                window.position = new Rect(window.position.x, window.position.y, NarrowWidth, NarrowHeight);
+                yield return null;
+                yield return null;
+                yield return null;
+
+                LiveOpsHubWindow hub = (LiveOpsHubWindow)window;
+                Assert.IsFalse(hub.HubRoot.ClassListContains(LiveOpsHubClassNames.RailPinnedOpen),
+                    "kịch bản chụp phải mở cửa sổ với rail KHÔNG ghim, dù máy đang ghim");
+                Assert.IsFalse(hub.Rail.IsPinnedOpen);
+                Assert.IsTrue(EditorPrefs.GetBool(LiveOpsHubRail.PinnedOpenPreferenceKey, false),
+                    "và phải trả lại đúng lựa chọn của máy sau khi mở xong");
+            }
+            finally
+            {
+                window.Close();
+            }
+            LogAssert.NoUnexpectedReceived();
+        }
+
         /// <summary>Cửa sổ rộng: hình dạng 36 px dựng sẵn nhưng không vẽ — đổi bề rộng không được dựng lại rail.</summary>
         [UnityTest]
         public IEnumerator WideWindow_NarrowShapeExistsButHidden()

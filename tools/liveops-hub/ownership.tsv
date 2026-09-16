@@ -586,7 +586,7 @@ file	Packages/packages-lock.json	G-TOOLS	G-TOOLS Unity sinh lại khi PKG/packag
 file	tools/liveops-hub/PROPOSED_CLAUDE_MD.md	G-TOOLS,G-DOCS	G-TOOLS tạo; G-DOCS sửa
 file	tools/liveops-hub/README.md	G-TOOLS	G-TOOLS tạo
 file	tools/liveops-hub/capture.sh	G-TOOLS	G-TOOLS tạo
-file	tools/liveops-hub/check-class-names.py	G-TOOLS	G-TOOLS tạo
+file	tools/liveops-hub/check-class-names.py	G-TOOLS,G-SHELLPOLISH	G-TOOLS tạo; G-SHELLPOLISH sửa regex selector (bỏ lookbehind nuốt vế sau của selector ghép .a.b — --strict báo nhầm 11 hằng là không có selector; tự duyệt theo uỷ quyền user 15/9, mục "tools")
 file	tools/liveops-hub/check-interim.sh	G-TOOLS	G-TOOLS tạo
 file	tools/liveops-hub/check-meta.sh	G-TOOLS	G-TOOLS tạo
 file	tools/liveops-hub/check-ownership.py	G-TOOLS,G-I18N	G-TOOLS tạo; G-I18N sửa (ngôn ngữ, W3.5)

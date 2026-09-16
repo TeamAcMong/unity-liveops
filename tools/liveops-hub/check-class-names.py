@@ -131,7 +131,11 @@ def main():
                     for block in re.finditer(r"([^{}]*)\{", text):
                         selector = block.group(1)
                         line_number = text[:block.start()].count("\n") + 1 + (len(selector) - len(selector.lstrip("\n")))
-                        for match in re.finditer(r"(?<![-\w])\.(liveops-hub[\w-]*)", selector):
+                        # Không có lookbehind "(?<![-\w])": trong một selector, dấu chấm đứng NGAY SAU ký tự chữ chỉ có một
+                        # nghĩa là selector ghép (".liveops-hub-palette.liveops-hub-palette--visible", "Label.liveops-hub-x").
+                        # Lookbehind cũ nuốt mất vế sau của mọi selector ghép, nên --strict báo nhầm 11 hằng là "không có
+                        # selector nào" dù chúng có luật thật.
+                        for match in re.finditer(r"\.(liveops-hub[\w-]*)", selector):
                             literal_count += 1
                             used_in_selectors.add(match.group(1))
                             if match.group(1) not in known_values:

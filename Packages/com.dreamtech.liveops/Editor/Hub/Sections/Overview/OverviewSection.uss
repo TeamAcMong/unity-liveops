@@ -292,3 +292,29 @@
 .liveops-hub-overview-hidden {
     display: none;
 }
+
+/* ---------------------------------------------------------------- Cửa sổ hẹp (< 900 px) [FD §4.2] */
+
+/*
+ * [FD §4.2] cho --narrow đúng một dòng ở màn này: "Metric tile 2×2". Bốn tile flex 1 1 132 xếp một hàng thì ở 820 px chúng
+ * co dưới bề rộng đọc được; cho hàng xuống dòng và mỗi tile chiếm nửa hàng là ra đúng 2×2.
+ */
+/*
+ * flex-shrink:0 đi kèm: `.liveops-hub-overview-default` có flex-grow:1 nên khi thân cao hơn cửa sổ, flexbox co từng con
+ * xuống dưới chiều cao nội dung — chữ vẫn vẽ nguyên và tràn RA NGOÀI hộp, đè lên card dưới (ảnh hs-shell-narrow-820 và
+ * hs-shell-compact-700 của W5). Khoá co lại thì phần dư bị CẮT ở đáy: cắt còn đọc được, đè thì không. Cửa sổ ≥ 900 px
+ * không đổi gì vì ở đó thân vốn đã vừa.
+ */
+.liveops-hub--narrow .liveops-hub-overview-metric-row {
+    flex-wrap: wrap;
+    flex-shrink: 0;
+}
+
+.liveops-hub--narrow .liveops-hub-overview-metric-row .liveops-hub-metric {
+    flex-basis: 45%;
+    margin-bottom: var(--liveops-hub-space-6);
+}
+
+.liveops-hub--narrow .liveops-hub-overview-default > .liveops-hub-card {
+    flex-shrink: 0;
+}
