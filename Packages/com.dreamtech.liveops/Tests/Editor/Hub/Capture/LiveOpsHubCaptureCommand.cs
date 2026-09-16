@@ -219,6 +219,8 @@ namespace DreamTech.LiveOps.Editor.Tests
             private int _scenarioIndex = -1;
             private EditorWindow _window;
             private int _frames;
+            // Ghim ngôn ngữ quanh từng kịch bản: mở TRƯỚC khi dựng cửa sổ (chữ đọc lúc dựng), đóng sau khi đóng cửa sổ.
+            private LiveOpsHubLanguageScope _languageScope;
 
             public CaptureRun(CaptureOptions options, List<LiveOpsHubCaptureScenario> scenarios)
             {
@@ -244,6 +246,7 @@ namespace DreamTech.LiveOps.Editor.Tests
                     return;
                 }
                 _frames = 0;
+                _languageScope = LiveOpsHubLanguage.Override(Current.Language);
                 try
                 {
                     _window = Current.OpenWindow();
@@ -394,6 +397,7 @@ namespace DreamTech.LiveOps.Editor.Tests
                 json.Append("{\n");
                 AppendProperty(json, "scenario", Current.Id, true);
                 AppendProperty(json, "skin", _options.Skin, true);
+                AppendProperty(json, "language", Current.Language.ToString(), true);
                 AppendProperty(json, "unityVersion", Application.unityVersion, true);
                 json.Append("  \"pixelsPerPoint\": ").Append(Number(pixelsPerPoint)).Append(",\n");
                 json.Append("  \"window\": {\"width\": ").Append(Number(crop.width / pixelsPerPoint)).Append(", \"height\": ")
@@ -520,6 +524,11 @@ namespace DreamTech.LiveOps.Editor.Tests
 
             private void CloseWindow()
             {
+                if (_languageScope != null)
+                {
+                    _languageScope.Dispose();
+                    _languageScope = null;
+                }
                 if (_window != null)
                 {
                     try
