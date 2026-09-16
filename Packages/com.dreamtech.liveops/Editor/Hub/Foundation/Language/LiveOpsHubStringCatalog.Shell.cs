@@ -93,6 +93,13 @@ namespace DreamTech.LiveOps.Editor
             table.Add(nameof(LiveOpsHubStrings.ShellRailBlockerStaleDetailFormat),
                 vietnamese: "Kết quả cũ có {0} đợt bị bỏ — F5 để kiểm lại.",
                 english: "The stale result had {0} events dropped — press F5 to check again.");
+            table.Add(nameof(LiveOpsHubStrings.ShellRailPinTooltip),
+                vietnamese: "Ghim mở rail",
+                english: "Pin the rail open");
+            // Hai khuôn dưới chỉ là dấu nối giữa hai câu đã dịch — AddShared để không đẻ ra hai bản y hệt nhau.
+            table.AddShared(nameof(LiveOpsHubStrings.ShellRailNarrowMenuItemFormat), "{0} — {1}");
+            table.AddShared(nameof(LiveOpsHubStrings.ShellRailNarrowBlockerTooltipFormat), "{0}: {1}");
+
             table.Add(nameof(LiveOpsHubStrings.ShellRailHealthCountMismatchFormat),
                 vietnamese: "Rail nhận {0} health cho {1} màn — mỗi màn đúng một health theo cùng thứ tự registry.",
                 english: "The rail got {0} health values for {1} sections — one health per section, in registry order.");
