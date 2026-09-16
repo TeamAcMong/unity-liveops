@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using DreamTech.LiveOps.Unity;
+using UnityEngine;
 using UnityEngine.UIElements;
 
 namespace DreamTech.LiveOps.Editor
@@ -99,6 +100,43 @@ namespace DreamTech.LiveOps.Editor
             if (request == null) throw new ArgumentNullException(nameof(request));
             _requests.Add(request);
             return _results.Count > 0 ? _results.Dequeue() : LiveOpsConfirmResult.Safe;
+        }
+    }
+
+    /// <summary>
+    /// Action giả cho test và kịch bản chụp: dựng được CẢ HAI phía của hợp đồng SP-3 — nút mở (lý do "") và nút khoá kèm lý
+    /// do in thành chữ. Cần một adapter riêng vì luồng thật (<c>LiveOpsHubPasteRunningJsonAction</c>) luôn bật, mà màn vẫn
+    /// phải vẽ đúng khi một bản dev nào đó khoá luồng này.
+    /// </summary>
+    public sealed class ManualLiveOpsHubActions : ILiveOpsHubActions
+    {
+        private readonly List<Rect> _pasteCalls = new List<Rect>();
+        private readonly List<Rect> _importCalls = new List<Rect>();
+
+        /// <param name="unavailableReason">"" = luồng dùng được; khác rỗng = khoá cả hai nút với chính câu này.</param>
+        public ManualLiveOpsHubActions(string unavailableReason = "")
+        {
+            UnavailableReason = unavailableReason ?? string.Empty;
+        }
+
+        public string UnavailableReason { get; set; }
+
+        public IReadOnlyList<Rect> PasteCalls => _pasteCalls.ToArray();
+        public IReadOnlyList<Rect> ImportCalls => _importCalls.ToArray();
+
+        public bool CanPasteRunningJson => UnavailableReason.Length == 0;
+        public string PasteRunningJsonUnavailableReason => UnavailableReason;
+        public bool CanImportRunningJson => UnavailableReason.Length == 0;
+        public string ImportRunningJsonUnavailableReason => UnavailableReason;
+
+        public void PasteRunningJson(Rect activatorWorldBound)
+        {
+            _pasteCalls.Add(activatorWorldBound);
+        }
+
+        public void ImportRunningJsonIntoNewAsset(Rect activatorWorldBound)
+        {
+            _importCalls.Add(activatorWorldBound);
         }
     }
 
