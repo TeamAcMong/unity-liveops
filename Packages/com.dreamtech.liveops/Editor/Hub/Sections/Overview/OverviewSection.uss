@@ -1,0 +1,274 @@
+/*
+ * Màn Tổng quan (Hình 4/5). Số đo bám hình: thân padding 10 · cột dọc cách nhau 8 · metric flex 1 1 132 cách nhau 6 ·
+ * hàng việc cần làm cột khoá 96px + nút 150px · thân flow cao 48 padding 0 12 · bảng 7 ngày cột 170/250/140/130/giãn.
+ * Mọi màu đi qua token của liveops-hub-theme.uss (hai skin); USS không có gap/:last-child nên khoảng cách dùng margin và
+ * class `--last` bật từ C#.
+ */
+
+.liveops-hub-overview-page {
+    flex-grow: 1;
+    padding: var(--liveops-hub-space-10);
+}
+
+.liveops-hub-overview-default {
+    flex-grow: 1;
+}
+
+.liveops-hub-overview-metric-row {
+    flex-direction: row;
+    align-items: stretch;
+    margin-bottom: var(--liveops-hub-space-8);
+}
+
+.liveops-hub-overview-metric--last {
+    margin-right: 0;
+}
+
+.liveops-hub-overview-metric-value-row {
+    flex-direction: row;
+    align-items: flex-end;
+    min-height: 22px;
+}
+
+.liveops-hub-overview-metric-foot-row {
+    flex-direction: row;
+    align-items: center;
+}
+
+.liveops-hub-overview-card-title {
+    -unity-font-style: bold;
+    font-size: 11px;
+}
+
+.liveops-hub-overview-card-subtitle {
+    font-size: 10px;
+    opacity: 0.7;
+    margin-left: var(--liveops-hub-space-6);
+    flex-shrink: 1;
+    overflow: hidden;
+}
+
+.liveops-hub-overview-card-spacer {
+    flex-grow: 1;
+}
+
+.liveops-hub-overview-card-body {
+    padding-top: var(--liveops-hub-space-2);
+    padding-bottom: var(--liveops-hub-space-2);
+}
+
+/*
+ * Nút header "[Refresh] Kiểm lại tất cả" (7.1). Button mặc định căn giữa chữ của chính nó; ở đây chữ là Label con nên nút
+ * phải tự xếp hàng ngang, nếu không icon và chữ chồng lên nhau.
+ */
+.liveops-hub-overview-recheck-all {
+    flex-direction: row;
+    align-items: center;
+}
+
+.liveops-hub-overview-recheck-all-label {
+    margin-left: var(--liveops-hub-space-4);
+}
+
+/* ---------------------------------------------------------------- Việc cần làm trước khi đăng */
+
+.liveops-hub-overview-need-row {
+    min-height: 34px;
+    padding-right: var(--liveops-hub-space-8);
+}
+
+.liveops-hub-overview-need-text {
+    flex-grow: 1;
+    flex-shrink: 1;
+    overflow: hidden;
+}
+
+.liveops-hub-overview-need-title {
+    font-size: 11px;
+}
+
+.liveops-hub-overview-need-detail {
+    font-size: 10px;
+    opacity: 0.7;
+}
+
+/* Cột 96px căn phải: trạng thái CỔNG, tách khỏi mức của phát hiện (dấu Blocked 7px riêng). */
+.liveops-hub-overview-need-blocks {
+    width: 96px;
+    flex-shrink: 0;
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-end;
+    font-size: 10px;
+}
+
+/*
+ * Slot của nút = [lý do khoá][nút]. Nút giữ ĐÚNG 150px của Hình 4; lý do co lại và cắt khi hàng chật, nên mép phải của slot
+ * không bao giờ vượt mép card (trước đây slot cố định 150px còn lý do đẩy nút ra ngoài cửa sổ, chữ nút bị cắt cụt).
+ * Bộ chọn hai class vì .liveops-hub-button-slot (liveops-hub-components.uss) đặt flex-shrink:0 ở cùng mức riêng một class.
+ */
+.liveops-hub-button-slot.liveops-hub-overview-need-button {
+    min-width: 150px;
+    flex-shrink: 1;
+    margin-left: var(--liveops-hub-space-8);
+}
+
+.liveops-hub-overview-need-button > .liveops-hub-button-reason {
+    flex-shrink: 1;
+    overflow: hidden;
+}
+
+/* Nút lấp đúng bề rộng cột của Hình 4 — chữ nút dài ngắn khác nhau không được làm cột nút răng cưa. */
+.liveops-hub-overview-need-button > .liveops-hub-button {
+    width: 150px;
+    flex-shrink: 0;
+    margin-left: 0;
+}
+
+/* ---------------------------------------------------------------- Đường đi của lịch */
+
+/* flex-shrink 0: thân flow là số đo của Hình 4 (48px) — cột dọc chật không được bóp nó xuống 46. */
+.liveops-hub-overview-flow {
+    flex-direction: row;
+    align-items: center;
+    flex-shrink: 0;
+    height: 48px;
+    padding-left: var(--liveops-hub-space-12);
+    padding-right: var(--liveops-hub-space-12);
+}
+
+.liveops-hub-overview-flow-node {
+    flex-grow: 1;
+    flex-shrink: 1;
+    align-items: center;
+    justify-content: center;
+}
+
+.liveops-hub-overview-flow-caption {
+    font-size: 10px;
+    -unity-font-style: bold;
+    letter-spacing: 0.5px;
+    margin-top: var(--liveops-hub-space-4);
+}
+
+.liveops-hub-overview-flow-note {
+    font-size: 10px;
+    opacity: 0.85;
+}
+
+.liveops-hub-overview-flow-connector {
+    height: 2px;
+    flex-grow: 1;
+    flex-shrink: 1;
+    margin-left: var(--liveops-hub-space-6);
+    margin-right: var(--liveops-hub-space-6);
+    background-color: var(--unity-colors-default-text);
+    opacity: 0.35;
+}
+
+/* Sau tầng cổng chặn đầu tiên: đường nối gần như tắt hẳn — mắt thấy lịch dừng ở đâu mà không phải đọc chữ. */
+.liveops-hub-overview-flow-connector--dead {
+    opacity: 0.12;
+}
+
+/* ---------------------------------------------------------------- 7 ngày tới */
+
+.liveops-hub-overview-upcoming-table {
+    flex-direction: column;
+}
+
+.liveops-hub-overview-upcoming-head-row {
+    flex-direction: row;
+    align-items: center;
+    min-height: 20px;
+    padding-left: var(--liveops-hub-space-8);
+    padding-right: var(--liveops-hub-space-8);
+    border-bottom-width: 1px;
+    border-bottom-color: var(--unity-colors-window-border);
+}
+
+.liveops-hub-overview-upcoming-row {
+    flex-direction: row;
+    align-items: center;
+    min-height: 26px;
+    padding-left: var(--liveops-hub-space-8);
+    padding-right: var(--liveops-hub-space-8);
+}
+
+.liveops-hub-overview-upcoming-cell {
+    flex-direction: row;
+    align-items: center;
+    flex-shrink: 0;
+    overflow: hidden;
+    padding-right: var(--liveops-hub-space-6);
+}
+
+.liveops-hub-overview-upcoming-cell--time {
+    width: 170px;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: center;
+}
+
+.liveops-hub-overview-upcoming-cell--event {
+    width: 250px;
+}
+
+.liveops-hub-overview-upcoming-cell--type {
+    width: 140px;
+}
+
+.liveops-hub-overview-upcoming-cell--kind {
+    width: 130px;
+}
+
+.liveops-hub-overview-upcoming-cell--note {
+    flex-grow: 1;
+    flex-shrink: 1;
+    width: auto;
+}
+
+.liveops-hub-overview-upcoming-relative {
+    font-size: 10px;
+    opacity: 0.7;
+}
+
+/* ---------------------------------------------------------------- Empty (a): ba bước */
+
+.liveops-hub-overview-step-list {
+    margin-top: var(--liveops-hub-space-10);
+}
+
+.liveops-hub-overview-step-row {
+    flex-direction: row;
+    align-items: center;
+    margin-bottom: var(--liveops-hub-space-6);
+}
+
+/* Số dùng MÀU CHỮ, không màu nền: bước chưa làm không được trông như đã đạt [SD1 §1.2]. */
+.liveops-hub-overview-step-marker {
+    width: 18px;
+    height: 18px;
+    border-width: 1.5px;
+    border-color: var(--liveops-hub-color-quiet);
+    border-radius: 9px;
+    font-size: 10px;
+    -unity-font-style: bold;
+    -unity-text-align: middle-center;
+    flex-shrink: 0;
+}
+
+.liveops-hub-overview-step-label {
+    margin-left: var(--liveops-hub-space-8);
+}
+
+.liveops-hub-overview-empty-actions {
+    flex-direction: row;
+    align-items: center;
+    margin-top: var(--liveops-hub-space-10);
+}
+
+/* Khối bị ẩn: display none để không chiếm chỗ (empty (a) và thân mặc định thay nhau, không bao giờ cùng hiện). */
+.liveops-hub-overview-hidden {
+    display: none;
+}
