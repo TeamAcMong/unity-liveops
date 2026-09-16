@@ -1,0 +1,77 @@
+using UnityEngine.UIElements;
+
+namespace DreamTech.LiveOps.Editor
+{
+    /// <summary>
+    /// Chú giải dưới minimap [SD1 §3.6]: 8 mục giải mã mọi ký hiệu đang có trên trục (thanh nổi, thanh phẳng, nhạt, gạch chéo đỏ, vuông
+    /// góc phải, gạch ngang + tag, dấu ở mép, "Không đặt được"). Mẫu 18×10 dựng bằng class của chính thanh/vùng chồng để chú giải đổi
+    /// màu cùng skin với thứ nó giải thích; flex-wrap xuống hai dòng khi thiếu chỗ. Cửa sổ hẹp ẩn dải này (chú giải vào menu ⋮, W5).
+    /// </summary>
+    internal sealed class LiveOpsTimelineLegend : VisualElement
+    {
+        internal const int ItemCount = 8;
+        private const string LoopIconName = "preAudioLoopOff";
+        private const int LoopIconSize = 10;
+
+        public LiveOpsTimelineLegend()
+        {
+            AddToClassList(LiveOpsHubClassNames.TimelineLegend);
+            pickingMode = PickingMode.Ignore;
+
+            AddItem(Sample(LiveOpsHubClassNames.TimelineLegendSampleFixed), LiveOpsHubStrings.TimelineLegendFixed);
+
+            VisualElement recurring = Sample(LiveOpsHubClassNames.TimelineLegendSampleRecurring);
+            Image loopIcon = LiveOpsHubIcons.CreateImage(LoopIconName, LoopIconSize);
+            AddItem(recurring, LiveOpsHubStrings.TimelineLegendRecurring, loopIcon);
+
+            AddItem(Sample(LiveOpsHubClassNames.TimelineLegendSampleEnded), LiveOpsHubStrings.TimelineLegendEnded);
+            AddItem(Sample(LiveOpsHubClassNames.TimelineLegendSampleOverlap), LiveOpsHubStrings.TimelineLegendOverlap);
+
+            VisualElement changed = Sample(LiveOpsHubClassNames.TimelineLegendSampleFixed);
+            changed.Add(SamplePart(LiveOpsHubClassNames.TimelineBarChangedSquare));
+            AddItem(changed, LiveOpsHubStrings.TimelineLegendChanged);
+
+            VisualElement dropped = Sample(LiveOpsHubClassNames.TimelineLegendSampleFixed);
+            dropped.Add(SamplePart(LiveOpsHubClassNames.TimelineBarStrike));
+            AddItem(dropped, LiveOpsHubStrings.TimelineLegendDropped);
+
+            VisualElement clipped = Sample(LiveOpsHubClassNames.TimelineLegendSampleFixed);
+            VisualElement clipMarker = SamplePart(LiveOpsHubClassNames.TimelineBarClipStart);
+            clipMarker.Add(SamplePart(LiveOpsHubClassNames.TimelineBarClipShape));
+            clipped.Add(clipMarker);
+            AddItem(clipped, LiveOpsHubStrings.TimelineLegendClipped);
+
+            LiveOpsStateMark mark = new LiveOpsStateMark { Kind = LiveOpsStateMark.MarkKind.Health, Size = LiveOpsStateMark.MarkSize.Small };
+            mark.SetHealth(HealthState.Blocked);
+            mark.AddToClassList(LiveOpsHubClassNames.TimelineLegendSampleMark);
+            AddItem(mark, LiveOpsHubStrings.TimelineLegendUnplaceable);
+        }
+
+        private void AddItem(VisualElement sample, string text, VisualElement icon = null)
+        {
+            VisualElement item = new VisualElement { pickingMode = PickingMode.Ignore };
+            item.AddToClassList(LiveOpsHubClassNames.TimelineLegendItem);
+            item.Add(sample);
+            if (icon != null) item.Add(icon);
+            Label label = new Label(text) { pickingMode = PickingMode.Ignore };
+            label.AddToClassList(LiveOpsHubClassNames.TimelineLegendText);
+            item.Add(label);
+            Add(item);
+        }
+
+        private static VisualElement Sample(string variantClassName)
+        {
+            VisualElement sample = new VisualElement { pickingMode = PickingMode.Ignore };
+            sample.AddToClassList(LiveOpsHubClassNames.TimelineLegendSample);
+            sample.AddToClassList(variantClassName);
+            return sample;
+        }
+
+        private static VisualElement SamplePart(string className)
+        {
+            VisualElement part = new VisualElement { pickingMode = PickingMode.Ignore };
+            part.AddToClassList(className);
+            return part;
+        }
+    }
+}
