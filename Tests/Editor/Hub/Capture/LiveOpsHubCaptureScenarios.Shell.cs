@@ -36,6 +36,15 @@ namespace DreamTech.LiveOps.Editor.Tests
 
             scenarios.Add(new LiveOpsHubCaptureScenario(LiveOpsHubCaptureScenarioIds.H28cCompiling, StandardWidth, StandardHeight,
                 () => LiveOpsHubWindow.OpenForTest(LiveOpsHubSections.Create(), new ManualLiveOpsHubCompilationState(true), null, LiveOpsHubSections.Ids.Calendar)));
+
+            // G-I18N (W3.5): mẫu tiếng Anh, ngoài ma trận 9.5 — dựng lại đúng hai kịch bản trên (khung sườn + card lỗi có
+            // chữ finding) nhưng ghim English, để cổng gói có ảnh thật đối chiếu catalog không chỉ đọc code.
+            scenarios.Add(new LiveOpsHubCaptureScenario(LiveOpsHubCaptureScenarioIds.HsShellSkeletonEnglish, StandardWidth, StandardHeight,
+                () => LiveOpsHubWindow.OpenForTest(LiveOpsHubSections.Create(), new ManualLiveOpsHubCompilationState(false), null, LiveOpsHubSections.Ids.Overview))
+                .WithLanguage(LiveOpsHubLanguageId.English));
+
+            scenarios.Add(new LiveOpsHubCaptureScenario(LiveOpsHubCaptureScenarioIds.H28aFailureSectionEnglish, StandardWidth, StandardHeight, OpenFailureSection)
+                .WithLanguage(LiveOpsHubLanguageId.English));
         }
 
         /// <summary>

@@ -118,5 +118,10 @@ namespace DreamTech.LiveOps.Editor.Tests
         internal const string H19LCompareRemote = "h19-l-compare-remote";
         internal const string H28fCalendarCompareDisk = "h28f-calendar-compare-disk";
         internal const string HoShortcutHelp = "ho-shortcut-help";
+
+        // G-I18N (W3.5): mẫu tiếng Anh — không thuộc ma trận 9.5 gốc (chữ tiếng Việt), chỉ chụp để soát bản dịch
+        // không làm vỡ layout (chuỗi tiếng Anh dài/ngắn khác tiếng Việt). Không đổi id nào ở trên.
+        internal const string HsShellSkeletonEnglish = "hs-shell-skeleton-en";
+        internal const string H28aFailureSectionEnglish = "h28a-failure-section-en";
     }
 }
