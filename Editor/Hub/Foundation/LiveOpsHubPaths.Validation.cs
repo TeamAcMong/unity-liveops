@@ -68,6 +68,9 @@ namespace DreamTech.LiveOps.Editor
             ValidationElementNames.Tabs, ValidationElementNames.TypeMenu, ValidationElementNames.Search,
             ValidationElementNames.Summary, ValidationElementNames.Progress, ValidationElementNames.Content,
             ValidationElementNames.Groups, ValidationElementNames.Empty, ValidationElementNames.Detail,
+            // Chỗ cắm card xem trước sửa hàng loạt (W5): nó LUÔN có trong cây, nên probe 9.3 phải canh — xoá nhầm chỉ vỡ một
+            // test của card là quá muộn để biết (soát W5 F-12). Card và popover thì KHÔNG ở đây: chúng chỉ sinh sau một cú bấm.
+            ValidationDepthElementNames.BulkPreviewHost,
         });
     }
 }

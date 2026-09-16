@@ -256,15 +256,41 @@ namespace DreamTech.LiveOps.Editor
         }
 
         /// <summary>
-        /// "Áp: dời hunt-0916-bonus" ([SD2 §2.6]) — nút nêu động từ của lựa chọn đang chọn. Thiết kế mới đặt tên động từ cho hai
-        /// cách DỜI đợt; cách sửa khác giữ khuôn trung tính "Áp: {id}" tới khi thiết kế đặt tên cho chúng.
+        /// "Áp: dời hunt-0916-bonus" ([SD2 §2.6]) — nút nêu ĐỘNG TỪ của lựa chọn đang chọn, không chỉ id: bấm "Áp: hunt-0916-bonus"
+        /// thì người bấm không biết mình sắp dời, sắp đổi tên hay sắp hoàn về. Mỗi <c>RepairId</c> một khuôn riêng (V-34, nợ Findings
+        /// mang từ cổng W4 sang); khuôn trung tính chỉ còn cho lệnh sửa mà gói chưa biết — luật của game tự viết cũng ra được
+        /// <c>RepairId</c> lạ, và một nút "Áp: …" vẫn phải bấm được.
         /// </summary>
         private string ApplyTextOf(LiveEventCalendarRepair repair)
         {
-            bool isShift = string.Equals(repair.RepairId, LiveOpsFindingText.ShiftStartKeepEndRepairId, StringComparison.Ordinal)
-                || string.Equals(repair.RepairId, LiveOpsFindingText.ShiftWholeKeepDurationRepairId, StringComparison.Ordinal);
-            string format = isShift ? LiveOpsHubStrings.ValidationProposalApplyShiftFormat : LiveOpsHubStrings.ValidationProposalApplyFormat;
-            return string.Format(CultureInfo.InvariantCulture, format, _finding.TargetId);
+            return string.Format(CultureInfo.InvariantCulture, ApplyFormatOf(repair.RepairId), _finding.TargetId);
+        }
+
+        /// <summary>Khuôn chữ nút áp theo <c>RepairId</c> — tách khỏi <see cref="ApplyTextOf"/> để test duyệt được cả chín id.</summary>
+        internal static string ApplyFormatOf(string repairId)
+        {
+            switch (repairId)
+            {
+                case LiveOpsFindingText.ShiftStartKeepEndRepairId:
+                case LiveOpsFindingText.ShiftWholeKeepDurationRepairId:
+                    return LiveOpsHubStrings.ValidationProposalApplyShiftFormat;
+                case LiveOpsFindingText.RenameRepairId:
+                    return LiveOpsHubStrings.ValidationProposalApplyRenameFormat;
+                case LiveOpsFindingText.NormalizeRepairId:
+                    return LiveOpsHubStrings.ValidationProposalApplyNormalizeFormat;
+                case LiveOpsFindingText.KeepStartSetDurationRepairId:
+                    return LiveOpsHubStrings.ValidationProposalApplySetDurationFormat;
+                case LiveOpsFindingText.SwapStartEndRepairId:
+                    return LiveOpsHubStrings.ValidationProposalApplySwapFormat;
+                case LiveOpsFindingText.SetActiveToPeriodRepairId:
+                    return LiveOpsHubStrings.ValidationProposalApplySetActiveFormat;
+                case LiveOpsFindingText.RevertRepairId:
+                    return LiveOpsHubStrings.ValidationProposalApplyRevertFormat;
+                case LiveOpsFindingText.DeferUntilEndRepairId:
+                    return LiveOpsHubStrings.ValidationProposalApplyDeferFormat;
+                default:
+                    return LiveOpsHubStrings.ValidationProposalApplyFormat;
+            }
         }
 
         private void OnKeyDown(KeyDownEvent keyDown)
