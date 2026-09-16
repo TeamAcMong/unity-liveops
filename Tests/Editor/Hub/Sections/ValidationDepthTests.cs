@@ -309,6 +309,7 @@ namespace DreamTech.LiveOps.Editor.Tests
             services.Bus.ToastRequested += model => toast = model;
             ValidationIgnoredRow row = FirstIgnoredRow();
             Assert.IsNotNull(row, "nhóm \"Đã bỏ qua\" mở ra phải liệt kê từng mục, không chỉ một dòng mono");
+            yield return null;
             Assert.AreEqual(LiveOpsHubStrings.ValidationDepthUnignoreButton, row.UnignoreButton.text,
                 "mỗi hàng có nút nhỏ \"Bỏ bỏ qua\" (menu chuột phải không chụp được, S-24)");
             StringAssert.Contains(LiveEventCalendarRuleIds.LongGapBetweenEvents, LiveOpsFindingText.PlainText(row.MetaLabel.text),
@@ -496,10 +497,16 @@ namespace DreamTech.LiveOps.Editor.Tests
             return null;
         }
 
+        /// <summary>
+        /// Nhóm "Đã bỏ qua (n) ▸" mặc định THU GỌN ([SD2 §2.1]): thân bị ẩn bằng class nên hàng bên trong không có layout và
+        /// không bấm được. Mọi test của nhóm phải mở nó ra trước, đúng như người dùng phải bấm header trước.
+        /// </summary>
         private ValidationIgnoredRow FirstIgnoredRow()
         {
             ValidationGroupCard card = Section.IgnoredCard;
-            return card == null || card.IgnoredRows.Count == 0 ? null : card.IgnoredRows[0];
+            if (card == null || card.IgnoredRows.Count == 0) return null;
+            card.SetCollapsed(false);
+            return card.IgnoredRows[0];
         }
 
         private static IReadOnlyList<string> MenuLabels(DropdownMenu menu)
