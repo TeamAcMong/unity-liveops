@@ -1,8 +1,9 @@
 # Đề xuất sửa CLAUDE.md (gốc repo + package) cho LiveOps Hub
 
-Trạng thái: **đề xuất** do G-TOOLS viết ở W0. User đã trả lời Q-10 = cho sửa; **G-DOCS (W5) áp nguyên văn** các khối dưới đây
-vào `CLAUDE.md` gốc và `Packages/com.dreamtech.liveops/CLAUDE.md` (cập nhật lại những gì W1–W5 làm đổi, vd tên file thật của
-hub), không cần hỏi lại. Mỗi khối ghi rõ: file đích, vị trí, hành động (thay / thêm).
+Trạng thái: **ĐÃ ÁP** — G-DOCS (đợt W5) đã ghi tám khối dưới đây vào `CLAUDE.md` gốc và
+`Packages/com.dreamtech.liveops/CLAUDE.md` (Q-10 = user cho sửa). File này giữ lại làm bản gốc của đề xuất và làm chỗ ghi
+những chỗ bản áp **lệch** so với đề xuất W0 — xem mục "Lệch khi áp" ở cuối. Mỗi khối ghi rõ: file đích, vị trí, hành động
+(thay / thêm).
 
 Vì sao cần sửa: CLAUDE.md hiện chỉ biết package 0.1.0 (core + Unity, không Editor). Hub P1 thêm assembly Editor, test UI cần
 GPU, công cụ compile/lint/slot/chụp ảnh; không ghi vào CLAUDE.md thì phiên sau lặp lại lỗi mà công cụ đã chặn (chạy test UI
@@ -122,3 +123,22 @@ của game, không nhắc tên hệ thống của game trong code.
   so chuỗi luôn có `StringComparison`; đọc/ghi số-ngày luôn `CultureInfo.InvariantCulture`. `tools/liveops-hub/code-lint.py`
   kiểm các luật này cùng danh sách tên viết tắt cấm (`evt`, `ctx`, `idx`, `e`, `x`…).
 ```
+
+---
+
+## Lệch khi áp (G-DOCS, đợt W5)
+
+Đề xuất viết ở W0, khi hub mới là kế hoạch. Bản đã ghi vào `CLAUDE.md` giữ nguyên văn tám khối, chỉ thêm những gì W1–W5
+làm đổi thật:
+
+| Chỗ | Bản áp có thêm | Vì sao |
+|---|---|---|
+| Khối 2 (`CLAUDE.md` gốc, luật repo) | ngoại lệ `.cs.meta` dạng ngắn bị lượt 2022.3 bổ sung khối `MonoImporter` — commit bản dạng dài | đo được ở cổng W0 (PD-27); không ghi thì phiên sau `git checkout` nhầm |
+| Khối 2 | một gạch mới về chữ ký đóng băng `contract-freeze-W3.md` + phiếu `contract-changes-<gói>.md` | PD-35 chốt sau khi đề xuất này viết xong |
+| Khối 3 (ma trận test) | câu PD-34 ghi luôn "ở README và CHANGELOG" | G-DOCS là nơi thực sự ghi hai file đó |
+| Khối 6 (luật hub) | mục **"Lịch, JSON và bộ kiểm — bất biến"** đứng trước phần hub | asset lịch, thứ tự xuất, bộ ghi tất định, id 12 luật là bất biến của **package**, không riêng hub — để lẫn trong phần hub thì gói chỉ sửa `Runtime/` sẽ không đọc |
+| Khối 6, gạch "Chữ UI" | đổi thành: khoá ở `LiveOpsHubStrings.<Vùng>.cs`, câu thật ở `Language/LiveOpsHubStringCatalog.<Vùng>.cs`, **vi + en, mặc định English** | PD-45 (G-I18N, đợt W3.5) đổi hằng thành property sau khi đề xuất này viết xong |
+| Khối 6 | thêm gạch "lý do bị khoá in thành CHỮ, tooltip chỉ phụ" | SPIKE-B SP-3; W5 làm cho cả nút, ô và tab |
+| Mục "Khi đổi thiết kế" (`PKG/CLAUDE.md`) | thêm đoạn: README có khối ```` ```csharp ```` bị `ReadmeSnippetCompileTests` chép nguyên văn và chạy | không ghi thì phiên sau sửa README xong không hiểu vì sao test đỏ |
+
+Không khối nào bị bỏ. Không có đổi chữ ký hay đổi hành vi nào kèm theo — G-DOCS chỉ viết tài liệu.
