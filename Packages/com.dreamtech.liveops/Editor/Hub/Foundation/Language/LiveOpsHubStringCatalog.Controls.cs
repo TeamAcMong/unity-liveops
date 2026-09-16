@@ -12,37 +12,37 @@ namespace DreamTech.LiveOps.Editor
         {
             table.Add(nameof(LiveOpsHubStrings.UtcFieldDatePlaceholder),
                 vietnamese: "yyyy-MM-dd",
-                english: null);
+                english: "yyyy-MM-dd");
             table.Add(nameof(LiveOpsHubStrings.UtcFieldTimePlaceholder),
                 vietnamese: "HH:mm",
-                english: null);
+                english: "HH:mm");
 
             table.Add(nameof(LiveOpsHubStrings.UtcFieldDateUnreadableWithSuggestionFormat),
                 vietnamese: "Không đọc được \"{0}\". Ô ngày cần dạng {1} (yyyy-MM-dd).",
-                english: null);
+                english: "Cannot read \"{0}\". The date field needs {1} (yyyy-MM-dd).");
             table.Add(nameof(LiveOpsHubStrings.UtcFieldDateUnreadableFormat),
                 vietnamese: "Không đọc được \"{0}\". Ô ngày cần dạng yyyy-MM-dd, ví dụ 2026-09-16.",
-                english: null);
+                english: "Cannot read \"{0}\". The date field needs the yyyy-MM-dd format, for example 2026-09-16.");
             table.Add(nameof(LiveOpsHubStrings.UtcFieldDateEmpty),
                 vietnamese: "Ô ngày còn trống. Ô ngày cần dạng yyyy-MM-dd, ví dụ 2026-09-16.",
-                english: null);
+                english: "The date field is empty. It needs the yyyy-MM-dd format, for example 2026-09-16.");
             table.Add(nameof(LiveOpsHubStrings.UtcFieldTimeEmpty),
                 vietnamese: "Ô giờ còn trống. Ô giờ cần dạng HH:mm, ví dụ 07:00.",
-                english: null);
+                english: "The time field is empty. It needs the HH:mm format, for example 07:00.");
             table.Add(nameof(LiveOpsHubStrings.UtcFieldTimeUnreadableFormat),
                 vietnamese: "Không đọc được \"{0}\". Ô giờ cần dạng HH:mm, ví dụ 07:00.",
-                english: null);
+                english: "Cannot read \"{0}\". The time field needs the HH:mm format, for example 07:00.");
 
             table.Add(nameof(LiveOpsHubStrings.TabStripChoiceOutOfRangeFormat),
                 vietnamese: "Tab thứ {0} không tồn tại — dải tab chỉ có {1} lựa chọn.",
-                english: null);
+                english: "Tab {0} does not exist — the tab strip only has {1} choices.");
 
             table.Add(nameof(LiveOpsHubStrings.JsonViewFormattedTab),
                 vietnamese: "Đã định dạng",
-                english: null);
+                english: "Formatted");
             table.Add(nameof(LiveOpsHubStrings.JsonViewSingleLineTab),
                 vietnamese: "Một dòng",
-                english: null);
+                english: "Single line");
 
             table.AddShared(nameof(LiveOpsHubStrings.JsonGutterAdded), "+");
             table.AddShared(nameof(LiveOpsHubStrings.JsonGutterModified), "~");
@@ -50,16 +50,16 @@ namespace DreamTech.LiveOps.Editor
 
             table.Add(nameof(LiveOpsHubStrings.JsonOverviewDroppedTooltipFormat),
                 vietnamese: "dòng {0} · bị bỏ",
-                english: null);
+                english: "line {0} · dropped");
             table.Add(nameof(LiveOpsHubStrings.JsonOverviewWarningTooltipFormat),
                 vietnamese: "dòng {0} · cảnh báo",
-                english: null);
+                english: "line {0} · warning");
             table.Add(nameof(LiveOpsHubStrings.JsonOverviewChangeTooltipFormat),
                 vietnamese: "dòng {0} · thay đổi",
-                english: null);
+                english: "line {0} · change");
             table.Add(nameof(LiveOpsHubStrings.JsonAnnotationLineOutOfRangeFormat),
                 vietnamese: "Chú thích trỏ dòng {0} — số dòng bắt đầu từ 1.",
-                english: null);
+                english: "The annotation points at line {0} — line numbers start at 1.");
         }
     }
 }
