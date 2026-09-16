@@ -110,6 +110,55 @@ namespace DreamTech.LiveOps.Editor.Tests
             Assert.AreEqual(1, popover.SelectedIndex);
         }
 
+        /// <summary>
+        /// (V-34, nợ Findings) Nút áp nêu ĐỘNG TỪ của cách sửa đang chọn — mockup [SD2 §2.6] viết "Áp: đổi hunt-0916-bonus".
+        /// Duyệt cả chín <c>RepairId</c> mà hub biết: mỗi id phải cho một khuôn chữ RIÊNG, không rơi về khuôn trung tính
+        /// "Áp: {0}" — khuôn đó chỉ còn dành cho lệnh sửa của luật game tự viết.
+        /// </summary>
+        [Test]
+        public void ApplyButton_VerbFollowsRepairId()
+        {
+            string[] knownRepairIds =
+            {
+                LiveOpsFindingText.NormalizeRepairId, LiveOpsFindingText.KeepStartSetDurationRepairId,
+                LiveOpsFindingText.SwapStartEndRepairId, LiveOpsFindingText.RenameRepairId,
+                LiveOpsFindingText.ShiftStartKeepEndRepairId, LiveOpsFindingText.ShiftWholeKeepDurationRepairId,
+                LiveOpsFindingText.SetActiveToPeriodRepairId, LiveOpsFindingText.RevertRepairId,
+                LiveOpsFindingText.DeferUntilEndRepairId,
+            };
+
+            var offenders = new List<string>();
+            for (int index = 0; index < knownRepairIds.Length; index++)
+            {
+                string format = ProposalPopover.ApplyFormatOf(knownRepairIds[index]);
+                if (format == LiveOpsHubStrings.ValidationProposalApplyFormat) offenders.Add(knownRepairIds[index]);
+            }
+
+            Assert.IsEmpty(offenders, "RepairId còn rơi về khuôn trung tính \"Áp: {0}\": " + string.Join(", ", offenders.ToArray()));
+            Assert.AreEqual(LiveOpsHubStrings.ValidationProposalApplyRenameFormat,
+                ProposalPopover.ApplyFormatOf(LiveOpsFindingText.RenameRepairId), "mockup [SD2 §2.6] đặt \"đổi\" cho đổi id");
+            Assert.AreEqual(LiveOpsHubStrings.ValidationProposalApplyShiftFormat,
+                ProposalPopover.ApplyFormatOf(LiveOpsFindingText.ShiftWholeKeepDurationRepairId), "hai cách DỜI giữ \"dời\" của W4");
+            Assert.AreEqual(LiveOpsHubStrings.ValidationProposalApplyFormat, ProposalPopover.ApplyFormatOf("luat-game-tu-viet"),
+                "RepairId lạ vẫn phải có chữ nút, không được rỗng");
+        }
+
+        /// <summary>Nút áp trên cây thật đổi chữ theo lựa chọn đang chọn, không chỉ hàm khuôn.</summary>
+        [Test]
+        public void ApplyButton_TextUsesSelectedRepairVerb()
+        {
+            LiveOpsHubServices services = LiveOpsHubTestServices.FromDesignSample();
+            LiveEventCalendarFinding finding = FirstProposalFinding(services);
+            Assume.That(finding, Is.Not.Null);
+
+            ProposalPopover popover = new ProposalPopover(finding, services.Format, services.LayoutLoader, null, null, 0);
+            VisualElement root = popover.BuildForTest();
+
+            string expected = string.Format(System.Globalization.CultureInfo.InvariantCulture,
+                ProposalPopover.ApplyFormatOf(finding.Repairs[0].RepairId), finding.TargetId);
+            Assert.AreEqual(expected, root.Q<Button>(ProposalPopover.ApplyElementName).text);
+        }
+
         private static int CountOf(IEnumerable<string> choices)
         {
             int count = 0;

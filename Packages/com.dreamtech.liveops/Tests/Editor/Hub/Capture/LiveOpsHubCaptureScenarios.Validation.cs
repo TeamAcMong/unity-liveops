@@ -196,8 +196,9 @@ namespace DreamTech.LiveOps.Editor.Tests
         {
             LiveOpsHubServices services = LiveOpsHubTestServices.FromDesignSample();
             EditorWindow window = OpenValidation(services, null);
-            // Đi đúng nút của section header: toast phải là hệ quả của một lần sửa thật, và host toast là của cửa sổ (G-HOSTUI).
-            Button safeRepair = window.rootVisualElement.Q<Button>(ValidationSection.SafeRepairButtonElementName);
+            // Đi đúng động từ "Sửa" của HÀNG: toast phải là hệ quả của một lần sửa thật. Nút section header từ W5 mở card xem
+            // trước ([SD2 §2.5]) nên nó không còn dẫn thẳng tới toast — ô 1 của Hình 17 mới là ảnh của card đó.
+            Button safeRepair = SafeRepairRowButton(window);
             if (safeRepair != null)
             {
                 using (NavigationSubmitEvent submit = NavigationSubmitEvent.GetPooled())
@@ -207,6 +208,17 @@ namespace DreamTech.LiveOps.Editor.Tests
                 }
             }
             return window;
+        }
+
+        /// <summary>Nút "Sửa" của hàng sửa nhanh được đầu tiên; null khi lịch không có lệnh sửa an toàn nào.</summary>
+        private static Button SafeRepairRowButton(EditorWindow window)
+        {
+            List<ValidationFindingRow> rows = window.rootVisualElement.Query<ValidationFindingRow>().ToList();
+            for (int index = 0; index < rows.Count; index++)
+            {
+                if (rows[index].Row.Action == ValidationRowAction.SafeRepair) return rows[index].ActionButton;
+            }
+            return null;
         }
 
         private static LiveEventCalendarFinding FirstProposalFinding(LiveOpsHubServices services)

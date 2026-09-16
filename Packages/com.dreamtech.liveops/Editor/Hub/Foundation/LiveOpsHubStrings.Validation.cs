@@ -20,12 +20,6 @@ namespace DreamTech.LiveOps.Editor
         internal static string ValidationSafeRepairButtonFormat => LiveOpsHubStringCatalog.Text(nameof(ValidationSafeRepairButtonFormat));
         internal static string ValidationSafeRepairNothingReason => LiveOpsHubStringCatalog.Text(nameof(ValidationSafeRepairNothingReason));
 
-        /// <summary>
-        /// Lý do tạm của nút "Sửa các lỗi an toàn (n)…" khi n &gt; 1 — W4 chưa có card xem trước hàng loạt (mục 12 I-7).
-        /// Hằng đọc nó tên <c>InterimBulkRepairReason</c> ở <see cref="ValidationSection"/>; khoá catalog giữ tên thường.
-        /// </summary>
-        internal static string ValidationBulkRepairNotBuiltReason => LiveOpsHubStringCatalog.Text(nameof(ValidationBulkRepairNotBuiltReason));
-
         internal static string ValidationRecheckButton => LiveOpsHubStringCatalog.Text(nameof(ValidationRecheckButton));
 
         /// <summary>Nút Kiểm lại lúc đang chạy: đổi chữ chứ không chỉ disabled, để biết vì sao bấm không được.</summary>
@@ -121,6 +115,20 @@ namespace DreamTech.LiveOps.Editor
         /// tên động từ vẫn dùng khuôn trung tính <see cref="ValidationProposalApplyFormat"/>.
         /// </summary>
         internal static string ValidationProposalApplyShiftFormat => LiveOpsHubStringCatalog.Text(nameof(ValidationProposalApplyShiftFormat));
+
+        /// <summary>
+        /// (V-34, nợ Findings từ cổng W4) Bảy khuôn còn lại của nút áp — một cho mỗi <c>RepairId</c> mà hub biết. Mockup
+        /// [SD2 §2.6] đã đặt "đổi" cho <c>rename-with-suggested-id</c>; sáu khuôn dưới nó thiết kế CHƯA đặt tên động từ, gói viết
+        /// tạm cả hai ngôn ngữ để nút chạy được và liệt kê nguyên văn vào báo cáo gói cho user chốt ở cổng W5.
+        /// </summary>
+        internal static string ValidationProposalApplyRenameFormat => LiveOpsHubStringCatalog.Text(nameof(ValidationProposalApplyRenameFormat));
+
+        internal static string ValidationProposalApplyNormalizeFormat => LiveOpsHubStringCatalog.Text(nameof(ValidationProposalApplyNormalizeFormat));
+        internal static string ValidationProposalApplySetDurationFormat => LiveOpsHubStringCatalog.Text(nameof(ValidationProposalApplySetDurationFormat));
+        internal static string ValidationProposalApplySwapFormat => LiveOpsHubStringCatalog.Text(nameof(ValidationProposalApplySwapFormat));
+        internal static string ValidationProposalApplySetActiveFormat => LiveOpsHubStringCatalog.Text(nameof(ValidationProposalApplySetActiveFormat));
+        internal static string ValidationProposalApplyRevertFormat => LiveOpsHubStringCatalog.Text(nameof(ValidationProposalApplyRevertFormat));
+        internal static string ValidationProposalApplyDeferFormat => LiveOpsHubStringCatalog.Text(nameof(ValidationProposalApplyDeferFormat));
 
         /// <summary>
         /// Dòng 10px dưới mỗi lựa chọn ([SD2 §2.6] "bắt đầu 16/9 12:00 → 17/9 00:00 · dài 24 giờ"): giờ NGƯỜI ĐỌC hiểu, không

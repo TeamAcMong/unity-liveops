@@ -1,4 +1,5 @@
 using System;
+using System.Globalization;
 using UnityEngine.UIElements;
 
 namespace DreamTech.LiveOps.Editor
@@ -31,7 +32,21 @@ namespace DreamTech.LiveOps.Editor
             Headline = new Label(row.Headline) { enableRichText = true };
             Headline.AddToClassList(LiveOpsHubClassNames.ValidationRowHeadline);
             Headline.AddToClassList(TextClassOf(row.State));
-            text.Add(Headline);
+            if (row.TagText.Length > 0)
+            {
+                // Chỉ bọc khi CÓ tag: hàng không tag giữ nguyên cây của W4 nên ảnh đã chụp không đổi một pixel nào.
+                VisualElement headlineLine = new VisualElement();
+                headlineLine.AddToClassList(LiveOpsHubClassNames.ValidationRowHeadlineLine);
+                headlineLine.Add(Headline);
+                TagLabel = new Label(row.TagText);
+                TagLabel.AddToClassList(LiveOpsHubClassNames.Tag);
+                headlineLine.Add(TagLabel);
+                text.Add(headlineLine);
+            }
+            else
+            {
+                text.Add(Headline);
+            }
 
             MetaLabel = new Label(row.MetaText) { enableRichText = true };
             MetaLabel.AddToClassList(LiveOpsHubClassNames.ValidationRowMeta);
@@ -51,9 +66,12 @@ namespace DreamTech.LiveOps.Editor
             }
             Add(text);
 
-            VisualElement actions = new VisualElement();
+            Actions = new VisualElement();
+            VisualElement actions = Actions;
             actions.AddToClassList(LiveOpsHubClassNames.ValidationRowActions);
-            if (row.Action != ValidationRowAction.None && row.ActionText.Length > 0)
+            // "Quyết định… ▾" là MENU chứ không phải nút ([SD2 §2.4]) và menu cần phiên để áp, nên màn cắm nó vào sau
+            // (SetDecisionMenu). Dựng một nút chết ở đây rồi thay là chỗ dễ để sót một nút bấm không làm gì.
+            if (row.Action != ValidationRowAction.None && row.Action != ValidationRowAction.Decision && row.ActionText.Length > 0)
             {
                 ActionButton = new Button(OnActionClicked) { text = row.ActionText, tooltip = row.ActionTooltip };
                 ActionButton.AddToClassList(LiveOpsHubClassNames.Button);
@@ -69,6 +87,7 @@ namespace DreamTech.LiveOps.Editor
 
             if (isStale) AddToClassList(LiveOpsHubClassNames.ValidationRowStale);
             RegisterCallback<PointerDownEvent>(OnPointerDown);
+            this.AddManipulator(new ContextualMenuManipulator(PopulateFromEvent));
         }
 
         /// <summary>Người dùng bấm động từ chính của hàng (Sửa, Đề xuất…, Xem diff, Copy lỗi…).</summary>
@@ -80,8 +99,20 @@ namespace DreamTech.LiveOps.Editor
         /// <summary>Hàng được chọn (bấm chuột) — màn mở pane Chi tiết.</summary>
         internal event Action<ValidationRow> SelectionRequested;
 
+        /// <summary>Menu chuột phải "Copy mô tả lỗi": chữ đi vào clipboard để dán vào ticket, không phải để đọc trên màn.</summary>
+        internal event Action<ValidationRow> CopyDescriptionRequested;
+
+        /// <summary>Menu chuột phải "Mở tài liệu luật &lt;id&gt;".</summary>
+        internal event Action<ValidationRow> OpenRuleDocumentationRequested;
+
         internal ValidationRow Row { get; }
         internal Label Headline { get; }
+
+        /// <summary>Tag cạnh headline ("đã tới hẹn", "hẹn tới 14/9 00:00"); null khi hàng không có tag.</summary>
+        internal Label TagLabel { get; }
+
+        /// <summary>Khối nút căn phải — màn cắm <see cref="DecisionMenu"/> vào đây cho hàng "Quyết định… ▾".</summary>
+        internal VisualElement Actions { get; private set; }
         internal Label MetaLabel { get; }
         internal Label RuleIdLabel { get; }
         internal Label ManualFixLabel { get; }
@@ -93,6 +124,17 @@ namespace DreamTech.LiveOps.Editor
             EnableInClassList(LiveOpsHubClassNames.ValidationRowSelected, selected);
             EnableInClassList(LiveOpsHubClassNames.RowActive, selected);
         }
+
+        /// <summary>Cắm menu "Quyết định… ▾" vào đầu khối nút; gọi lại lần nữa thì thay menu cũ, không chồng hai menu.</summary>
+        internal void SetDecisionMenu(VisualElement menu)
+        {
+            if (menu == null) throw new ArgumentNullException(nameof(menu));
+            if (DecisionMenuElement != null) DecisionMenuElement.RemoveFromHierarchy();
+            DecisionMenuElement = menu;
+            Actions.Insert(0, menu);
+        }
+
+        internal VisualElement DecisionMenuElement { get; private set; }
 
         /// <summary>Hàng cuối card mang <c>--last</c> do C# gắn: USS của Unity không có <c>:last-child</c> ([SD2 §2.2]).</summary>
         internal void MarkAsLast()
@@ -109,6 +151,43 @@ namespace DreamTech.LiveOps.Editor
         private void OnLinkClicked()
         {
             LinkRequested?.Invoke(Row);
+        }
+
+        /// <summary>
+        /// Menu chuột phải của hàng (mục 7.5 "Tương tác"): "Xem trong lịch · Sửa nhanh… · Copy mô tả lỗi · Mở tài liệu luật
+        /// &lt;id&gt;". Menu gốc của Unity không chụp được (S-24) nên test đọc thẳng hàm này; mọi mục ở đây đều có một đường
+        /// đi khác thấy được trên hàng (nút chính, link, pane Chi tiết) — chuột phải là lối tắt, không phải lối duy nhất.
+        /// <para>
+        /// Mục bị khoá ghi lý do NGAY TRONG NHÃN (SPIKE-B SP-3): menu gốc không có chỗ nào khác để in chữ.
+        /// </para>
+        /// </summary>
+        internal void PopulateContextMenu(DropdownMenu menu)
+        {
+            if (menu == null) throw new ArgumentNullException(nameof(menu));
+            if (Row.Finding == null) return;
+
+            menu.AppendAction(LiveOpsHubStrings.FindingLinkViewInCalendar,
+                action => LinkRequested?.Invoke(Row), DropdownMenuAction.AlwaysEnabled);
+
+            bool hasRepair = Row.Finding.Repairs.Count > 0;
+            string quickFixLabel = hasRepair
+                ? LiveOpsHubStrings.ValidationDepthContextQuickFixMenuItem
+                : string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.ValidationDepthMenuDisabledReasonFormat,
+                    LiveOpsHubStrings.ValidationDepthContextQuickFixMenuItem, LiveOpsHubStrings.ValidationDepthContextQuickFixNoRepairReason);
+            menu.AppendAction(quickFixLabel, action => ActionRequested?.Invoke(Row),
+                hasRepair ? DropdownMenuAction.AlwaysEnabled : DropdownMenuAction.AlwaysDisabled);
+
+            menu.AppendAction(LiveOpsHubStrings.ValidationDepthContextCopyDescriptionMenuItem,
+                action => CopyDescriptionRequested?.Invoke(Row), DropdownMenuAction.AlwaysEnabled);
+
+            menu.AppendAction(string.Format(CultureInfo.InvariantCulture,
+                    LiveOpsHubStrings.ValidationDepthContextOpenRuleDocumentationFormat, Row.Finding.RuleId),
+                action => OpenRuleDocumentationRequested?.Invoke(Row), DropdownMenuAction.AlwaysEnabled);
+        }
+
+        private void PopulateFromEvent(ContextualMenuPopulateEvent populateEvent)
+        {
+            PopulateContextMenu(populateEvent.menu);
         }
 
         private void OnPointerDown(PointerDownEvent pointerEvent)

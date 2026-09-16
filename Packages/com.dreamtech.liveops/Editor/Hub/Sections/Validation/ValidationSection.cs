@@ -31,12 +31,6 @@ namespace DreamTech.LiveOps.Editor
         internal const string ShouldReviewNoteElementName = "validation-should-review-note";
         internal const string ProgressRatioElementName = "validation-progress-ratio";
 
-        /// <summary>
-        /// Lý do tạm khi nút "Sửa các lỗi an toàn (n)…" có n &gt; 1: W4 chưa dựng card xem trước hàng loạt (mục 12 I-7).
-        /// </summary>
-        // INTERIM(G-VALIDATION-DEPTH): gỡ khi SafeRepairPreviewCard có — lúc đó n > 1 áp được sau khi xem trước.
-        internal static string InterimBulkRepairReason => LiveOpsHubStrings.ValidationBulkRepairNotBuiltReason;
-
         private static readonly IReadOnlyList<string> ElementNames = LiveOpsHubPaths.RequiredValidationElementNames;
 
         private readonly ValidationDetailPane _detail = new ValidationDetailPane();
@@ -66,6 +60,12 @@ namespace DreamTech.LiveOps.Editor
         private Button _emptyAction;
         private LiveOpsButtonSlot _safeRepairSlot;
         private Button _recheckButton;
+        private VisualElement _bulkPreviewHost;
+        private SafeRepairPreviewCard _bulkPreview;
+        private LiveOpsHoverCardHost _hoverCardHost;
+
+        /// <summary>Dấu vân tay của tập lệnh sửa an toàn lúc mở card xem trước; lệch = báo cáo đã đổi, card phải đóng.</summary>
+        private string _bulkPreviewKeys = string.Empty;
 
         private ValidationFilter _filter = ValidationFilter.All;
         private string _selectedKey = string.Empty;
@@ -96,6 +96,25 @@ namespace DreamTech.LiveOps.Editor
         internal string SelectedKey => _selectedKey;
         internal LiveOpsButtonSlot SafeRepairSlot => _safeRepairSlot;
         internal Button RecheckButton => _recheckButton;
+
+        /// <summary>Card xem trước sửa hàng loạt đang mở; null khi chưa bấm "Sửa các lỗi an toàn (n)…" ([SD2 §2.5]).</summary>
+        internal SafeRepairPreviewCard BulkPreview => _bulkPreview;
+
+        /// <summary>Card "Đã bỏ qua (n) ▸" (V-15); null khi chưa kiểm lần nào.</summary>
+        internal ValidationGroupCard IgnoredCard
+        {
+            get
+            {
+                for (int index = 0; index < _cards.Count; index++)
+                {
+                    if (_cards[index].Group.Kind == ValidationGroupKind.Ignored) return _cards[index];
+                }
+                return null;
+            }
+        }
+
+        /// <summary>Hover card ghim của "Xem ghi chú"; null khi chưa ai mở lần nào trong lượt dựng này.</summary>
+        internal LiveOpsHoverCardHost HoverCardHost => _hoverCardHost;
 
         public void Bind(IHubHost host)
         {
@@ -132,6 +151,7 @@ namespace DreamTech.LiveOps.Editor
             _search = _root.Q<TextField>(LiveOpsHubPaths.ValidationElementNames.Search);
             BuildSearch();
             _summary = _root.Q(LiveOpsHubPaths.ValidationElementNames.Summary);
+            _bulkPreviewHost = _root.Q(LiveOpsHubPaths.ValidationDepthElementNames.BulkPreviewHost);
             _progress = _root.Q(LiveOpsHubPaths.ValidationElementNames.Progress);
             BuildProgress();
             _content = _root.Q(LiveOpsHubPaths.ValidationElementNames.Content);
@@ -275,6 +295,9 @@ namespace DreamTech.LiveOps.Editor
             RefreshTypeMenu();
             RefreshSearch();
             RefreshSummary(model);
+            // Gỡ card thì nhãn và trạng thái nút header đang tính theo card ĐÃ CHẾT (soát W5 F-4): tính lại ngay tại đây,
+            // không đợi lần Refresh sau — giữa hai lần đó người dùng bấm được một nút nói dối.
+            if (RefreshBulkPreview()) RefreshHeaderActions(model);
             RefreshProgress(model);
             RefreshGroups(model);
             RefreshEmptyState(model);
@@ -313,9 +336,23 @@ namespace DreamTech.LiveOps.Editor
                 _safeRepairSlot.Button.text = model != null
                     ? model.SafeRepairButtonText
                     : string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.ValidationSafeRepairButtonFormat, 0);
-                // INTERIM(G-VALIDATION-DEPTH): W4 chỉ áp được khi đúng MỘT lệnh sửa an toàn; n > 1 khoá kèm lý do in thành chữ.
-                string reason = count == 0 ? LiveOpsHubStrings.ValidationSafeRepairNothingReason : (count > 1 ? InterimBulkRepairReason : string.Empty);
-                _safeRepairSlot.SetEnabledWithReason(count == 1, reason);
+                if (_bulkPreview != null)
+                {
+                    // Nhãn đếm theo số mục ĐANG BẬT của card xem trước khi card đang mở ([SD2 §2.5]).
+                    count = _bulkPreview.SelectedCount;
+                    _safeRepairSlot.Button.text = string.Format(CultureInfo.InvariantCulture,
+                        LiveOpsHubStrings.ValidationSafeRepairButtonFormat, count);
+                    // Card đang mở thì nút là CÔNG TẮC đóng card, nên nó KHÔNG khoá dù người dùng bỏ tick hết (soát W5 F-5):
+                    // khoá nó là vừa nói dối ("không có lỗi nào sửa nhanh an toàn được" — vẫn còn, chỉ là vừa bỏ tick) vừa
+                    // lấy mất đúng cái nút đã mở card. Lý do "Bỏ chọn hết rồi…" thuộc về nút Áp TRONG card.
+                    _safeRepairSlot.SetEnabledWithReason(true, string.Empty);
+                }
+                else
+                {
+                    // SPIKE-B SP-3: lý do khoá in thành chữ cạnh nút, tooltip chỉ phụ.
+                    _safeRepairSlot.SetEnabledWithReason(count > 0,
+                        count > 0 ? string.Empty : LiveOpsHubStrings.ValidationSafeRepairNothingReason);
+                }
             }
             if (_recheckButton != null)
             {
@@ -437,6 +474,9 @@ namespace DreamTech.LiveOps.Editor
                 card.RowActionRequested += OnRowAction;
                 card.RowLinkRequested += OnRowLink;
                 card.RowSelectionRequested += SelectRow;
+                card.RowCopyDescriptionRequested += OnRowCopyDescription;
+                card.RowOpenRuleDocumentationRequested += OnRowOpenRuleDocumentation;
+                card.IgnoredNoteRequested += ShowIgnoredNoteCard;
                 if (group.IsCollapsible) collapsedRow.Add(card);
                 else _groups.Add(card);
                 _cards.Add(card);
@@ -446,7 +486,49 @@ namespace DreamTech.LiveOps.Editor
                 }
             }
             _groups.Add(collapsedRow);
+            AttachDecisionMenus();
             ApplySelection();
+        }
+
+        /// <summary>
+        /// Hàng "Quyết định… ▾" nhận menu SAU khi card dựng xong: menu phải áp được lệnh sửa nên nó cần phiên, mà hàng cố ý
+        /// không biết gì về phiên (test hàng không cần asset). Màn là chỗ duy nhất có cả hai.
+        /// </summary>
+        private void AttachDecisionMenus()
+        {
+            for (int index = 0; index < _visibleRows.Count; index++)
+            {
+                ValidationFindingRow rowView = _visibleRows[index];
+                if (rowView.Row.Action != ValidationRowAction.Decision || rowView.Row.Finding == null) continue;
+                LiveEventCalendarFinding finding = rowView.Row.Finding;
+                DecisionMenu menu = new DecisionMenu(finding, Services.Format, rowView.Row.ActionTooltip,
+                    repair => ApplyDecision(finding, repair));
+                rowView.SetDecisionMenu(menu.Element);
+            }
+        }
+
+        /// <summary>Chọn một mục của "Quyết định… ▾": cùng ba việc với mọi lệnh sửa (một Undo group, một toast, tự kiểm lại).</summary>
+        private void ApplyDecision(LiveEventCalendarFinding finding, LiveEventCalendarRepair repair)
+        {
+            string undoName = string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.ValidationDepthDecisionAppliedFormat,
+                finding.TargetId, LiveOpsFindingText.PlainText(LiveOpsFindingText.RepairOptionText(finding, repair, Services.Format)));
+            ApplyEdit(repair.Edit, undoName);
+        }
+
+        private void OpenIgnorePopover(LiveEventCalendarFinding finding)
+        {
+            if (finding == null) return;
+            IgnoreWarningPopover popover = new IgnoreWarningPopover(finding, Services.Format, Services.LayoutLoader,
+                Services.Session.AssetFileName, warning => ApplyIgnoreWarning(finding, warning));
+            LiveOpsPopoverContent.ShowSingle(ActivatorBoundsOf(RowOf(finding)), popover);
+        }
+
+        /// <summary>Bỏ qua = ghi một <see cref="IgnoredCalendarWarning"/> vào asset lịch ([SD2 §2.7]) — hoàn tác được như mọi lệnh sửa.</summary>
+        private void ApplyIgnoreWarning(LiveEventCalendarFinding finding, IgnoredCalendarWarning warning)
+        {
+            string undoName = string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.ValidationDepthIgnoreUndoFormat,
+                finding.RuleId, finding.TargetId);
+            ApplyEdit(new AddIgnoredWarningEdit(warning), undoName);
         }
 
         private void RefreshEmptyState(ValidationViewModel model)
@@ -506,33 +588,119 @@ namespace DreamTech.LiveOps.Editor
             Refresh();
         }
 
+        /// <summary>
+        /// Nút section header MỞ card xem trước ([SD2 §2.5]) — kể cả khi chỉ có một thay đổi: "Sửa" áp ngay là động từ của
+        /// HÀNG, còn nút hàng loạt luôn cho soát danh sách trước. Bấm lần nữa khi card đang mở = đóng card (nút là công tắc).
+        /// </summary>
         private void OnSafeRepairClicked()
         {
-            LiveEventCalendarFinding finding = SingleSafeRepairFinding();
-            if (finding == null || finding.Repairs.Count == 0) return;
-            ApplyRepair(finding, finding.Repairs[0],
-                string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.ValidationSafeRepairUndoFormat, 1));
+            if (_bulkPreview != null)
+            {
+                CloseBulkPreview();
+                return;
+            }
+            IReadOnlyList<SafeRepairPreviewItem> pending = PendingSafeRepairs();
+            if (pending.Count == 0) return;
+            OpenBulkPreview(pending);
         }
 
-        private LiveEventCalendarFinding SingleSafeRepairFinding()
+        /// <summary>
+        /// Mọi lệnh sửa AN TOÀN đang chờ, theo thứ tự hàng của báo cáo. "Đề xuất…" không bao giờ lọt vào đây ([SD2 §2.4]):
+        /// nó đổi điều người chơi thấy nên phải hỏi riêng từng cái, kể cả khi có mười đề xuất giống nhau.
+        /// </summary>
+        private IReadOnlyList<SafeRepairPreviewItem> PendingSafeRepairs()
         {
+            var items = new List<SafeRepairPreviewItem>();
             LiveEventCalendarCheckReport report = Services.Session.Check.LastReport;
-            if (report == null) return null;
-            LiveEventCalendarFinding found = null;
+            if (report == null) return items;
             for (int index = 0; index < report.Findings.Count; index++)
             {
                 LiveEventCalendarFinding finding = report.Findings[index];
                 if (finding.IsIgnored || finding.RepairKind != LiveEventCalendarRepairKind.SafeRepair) continue;
-                if (found != null) return null;
-                found = finding;
+                if (finding.Repairs.Count == 0) continue;
+                items.Add(new SafeRepairPreviewItem(finding, finding.Repairs[0]));
             }
-            return found;
+            return items;
+        }
+
+        private void OpenBulkPreview(IReadOnlyList<SafeRepairPreviewItem> items)
+        {
+            if (_bulkPreviewHost == null) return;
+            _bulkPreview = new SafeRepairPreviewCard(items, Services.Format);
+            _bulkPreview.ApplyRequested += ApplyBulkRepair;
+            _bulkPreview.CancelRequested += CloseBulkPreview;
+            _bulkPreview.SelectedCountChanged += selectedCount => RefreshHeaderActions(null);
+            _bulkPreviewKeys = KeysOf(items);
+            _bulkPreviewHost.Add(_bulkPreview);
+            RefreshHeaderActions(null);
+        }
+
+        private void CloseBulkPreview()
+        {
+            if (_bulkPreview != null) _bulkPreview.RemoveFromHierarchy();
+            _bulkPreview = null;
+            _bulkPreviewKeys = string.Empty;
+            Refresh();
+        }
+
+        /// <summary>
+        /// Card đang mở mà báo cáo đã đổi (kiểm lại, sửa chỗ khác, Undo) thì danh sách trong card là danh sách của bản cũ —
+        /// bấm Áp sẽ áp lệnh sửa cho một lịch không còn tồn tại. Đóng card là cách duy nhất không nói dối.
+        /// </summary>
+        /// <returns><c>true</c> khi card vừa bị gỡ — người gọi phải tính lại nhãn nút header.</returns>
+        private bool RefreshBulkPreview()
+        {
+            if (_bulkPreview == null) return false;
+            if (string.Equals(_bulkPreviewKeys, KeysOf(PendingSafeRepairs()), StringComparison.Ordinal)) return false;
+            _bulkPreview.RemoveFromHierarchy();
+            _bulkPreview = null;
+            _bulkPreviewKeys = string.Empty;
+            return true;
+        }
+
+        private static string KeysOf(IReadOnlyList<SafeRepairPreviewItem> items)
+        {
+            var keys = new List<string>(items.Count);
+            for (int index = 0; index < items.Count; index++)
+            {
+                keys.Add(items[index].Finding.Fingerprint + KeyPartSeparator + items[index].Repair.RepairId);
+            }
+            return string.Join(KeySeparator, keys.ToArray());
+        }
+
+        private const string KeyPartSeparator = "#";
+        private const string KeySeparator = "|";
+
+        /// <summary>Nhiều lệnh sửa an toàn = MỘT lệnh ghép = MỘT Undo group "LiveOps: Sửa nhanh n lỗi" ([SD2 §2.5]).</summary>
+        private void ApplyBulkRepair(IReadOnlyList<SafeRepairPreviewItem> items)
+        {
+            if (items.Count == 0) return;
+            var edits = new List<LiveEventCalendarEdit>(items.Count);
+            for (int index = 0; index < items.Count; index++)
+            {
+                edits.Add(items[index].Repair.Edit);
+            }
+
+            string undoName = string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.ValidationSafeRepairUndoFormat, items.Count);
+            if (_bulkPreview != null) _bulkPreview.RemoveFromHierarchy();
+            _bulkPreview = null;
+            _bulkPreviewKeys = string.Empty;
+            ApplyEdit(new CompositeCalendarEdit(edits), undoName);
         }
 
         /// <summary>Một lệnh sửa = một Undo group + một toast + tự kiểm lại (PD-10): ba việc luôn đi cùng nhau.</summary>
         private void ApplyRepair(LiveEventCalendarFinding finding, LiveEventCalendarRepair repair, string undoName)
         {
-            LiveOpsHubEditOutcome outcome = Services.Session.Apply(repair.Edit, undoName);
+            ApplyEdit(repair.Edit, undoName);
+        }
+
+        /// <summary>
+        /// Cùng ba việc đó cho MỌI lệnh sửa lịch của màn — sửa an toàn, đề xuất, sửa hàng loạt, bỏ qua cảnh báo, bỏ bỏ qua.
+        /// Một lối ra duy nhất: chỗ nào quên toast hoặc quên kiểm lại thì kết quả cũ sẽ trông như kết quả mới.
+        /// </summary>
+        private void ApplyEdit(LiveEventCalendarEdit edit, string undoName)
+        {
+            LiveOpsHubEditOutcome outcome = Services.Session.Apply(edit, undoName);
             if (outcome.Applied)
             {
                 Services.Bus.ShowToast(LiveOpsToastModel.ForEdit(undoName, outcome.UndoGroup));
@@ -569,6 +737,12 @@ namespace DreamTech.LiveOps.Editor
                 case ValidationRowAction.CopyError:
                     Services.Clipboard.Text = LiveOpsFindingText.PlainText(row.Headline + RuleErrorSeparator + row.MetaText);
                     break;
+                case ValidationRowAction.IgnoreWarning:
+                    OpenIgnorePopover(row.Finding);
+                    break;
+                case ValidationRowAction.Unignore:
+                    Unignore(row.IgnoredWarning);
+                    break;
             }
         }
 
@@ -581,6 +755,52 @@ namespace DreamTech.LiveOps.Editor
                 if (ReferenceEquals(_visibleRows[index].Row, row)) return _visibleRows[index].worldBound;
             }
             return _root != null ? _root.worldBound : default(Rect);
+        }
+
+        /// <summary>
+        /// "Bỏ bỏ qua" (V-15): một Undo group "Bỏ bỏ qua &lt;luật&gt; · &lt;đích&gt;" + toast, KHÔNG hỏi lại (bảng 7.0 — việc
+        /// hoàn tác được trong một cú Hoàn tác thì hỏi chỉ làm chậm), rồi tự kiểm lại (PD-10) để phát hiện quay lại nhóm Nên xem.
+        /// </summary>
+        private void Unignore(IgnoredCalendarWarning warning)
+        {
+            if (warning == null) return;
+            string undoName = string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.ValidationDepthUnignoreUndoFormat,
+                warning.RuleId, warning.TargetId);
+            ApplyEdit(new RemoveIgnoredWarningEdit(warning), undoName);
+        }
+
+        private void OnRowCopyDescription(ValidationRow row)
+        {
+            Services.Clipboard.Text = LiveOpsFindingText.PlainText(
+                row.Headline + RuleErrorSeparator + row.MetaText + RuleErrorSeparator + row.RuleIdLine);
+        }
+
+        private void OnRowOpenRuleDocumentation(ValidationRow row)
+        {
+            if (row.Finding == null) return;
+            Application.OpenURL(LiveOpsHubPaths.RuleDocumentationUrl(row.Finding.RuleId));
+        }
+
+        /// <summary>
+        /// "Xem ghi chú" (V-15): hover card GHIM trên chính hàng đó. Thẻ chỉ có khoảng + hạn + ghi chú — asset KHÔNG lưu ai bỏ
+        /// qua và lúc nào, nên thêm hai dòng đó là bịa ra một thứ chỉ git mới trả lời được.
+        /// </summary>
+        private void ShowIgnoredNoteCard(VisualElement rowElement, ValidationRow row)
+        {
+            if (_root == null || row.IgnoredWarning == null) return;
+            if (_hoverCardHost == null) _hoverCardHost = new LiveOpsHoverCardHost(_root);
+
+            VisualElement content = new VisualElement { name = LiveOpsHubPaths.ValidationDepthElementNames.IgnoredNoteCard };
+            content.AddToClassList(LiveOpsHubClassNames.ValidationIgnoredNoteCard);
+            Label title = new Label(string.Format(CultureInfo.InvariantCulture,
+                LiveOpsHubStrings.ValidationDepthIgnoredNoteCardTitleFormat, row.MetaText)) { enableRichText = true };
+            title.AddToClassList(LiveOpsHubClassNames.ValidationDetailTitle);
+            content.Add(title);
+            // Hàng chỉ mang ghi chú RÚT GỌN (mục 7.5) nên thẻ ghim phải lấy bản đủ từ chính cảnh báo, không từ chữ của hàng.
+            Label note = new Label(ValidationViewModel.IgnoredNoteFullText(row.IgnoredWarning)) { enableRichText = true };
+            note.AddToClassList(LiveOpsHubClassNames.ValidationIgnoredNoteFull);
+            content.Add(note);
+            _hoverCardHost.ShowPinned(rowElement, content);
         }
 
         private void OnRowLink(ValidationRow row)
@@ -854,7 +1074,13 @@ namespace DreamTech.LiveOps.Editor
             Services.Session.DocumentChanged -= Refresh;
             Services.Session.CheckChanged -= Refresh;
             if (_spinner != null) _spinner.Stop();
+            _hoverCardHost = null;
             _root = null;
+            // Cửa sổ dựng lại thân bằng _body.Clear() + CreateView() trên CÙNG instance section (LiveOpsHubWindow.BuildSection):
+            // card xem trước đã rời cây nhưng biến vẫn trỏ vào nó thì đổi màn rồi quay lại sẽ thấy nút header đếm theo một card
+            // vô hình, và lần bấm đầu tiên chỉ "đóng" nó (soát W5 F-3).
+            _bulkPreview = null;
+            _bulkPreviewKeys = string.Empty;
         }
 
         private void Navigate(LiveOpsHubNavigation navigation)

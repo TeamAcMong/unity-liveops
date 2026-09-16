@@ -191,7 +191,7 @@ file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubPaths.Shell.
 file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubPaths.ShortcutHelp.cs	G-OPT-SHORTCUTHELP	G-OPT-SHORTCUTHELP vùng ShortcutHelp
 file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubPaths.Timeline.cs	G-TIMELINE-VIEW,G-OPT-TIMELINE	G-TIMELINE-VIEW vùng Timeline; G-OPT-TIMELINE vùng Timeline
 file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubPaths.TimelineModel.cs	G-TIMELINE-MODEL	G-TIMELINE-MODEL vùng TimelineModel
-file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubPaths.Validation.cs	G-VALIDATION	G-VALIDATION vùng Validation
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubPaths.Validation.cs	G-VALIDATION,G-VALIDATION-DEPTH	G-VALIDATION vùng Validation; G-VALIDATION-DEPTH thêm validation-bulk-preview-host vào RequiredValidationElementNames (soát W5 F-12 — chỗ cắm luôn có trong cây nên probe 9.3 phải canh; tự duyệt theo uỷ quyền user 15/9)
 file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubPaths.ValidationDepth.cs	G-VALIDATION-DEPTH	G-VALIDATION-DEPTH vùng ValidationDepth
 file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubPaths.cs	G-SKELETON	G-SKELETON tạo
 file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubStrings.Calendar.cs	G-CALENDAR,G-FIX-W4-2	G-CALENDAR vùng Calendar; G-FIX-W4-2 thêm CalendarMoveUndoStepFormat (phiếu D-5)
@@ -298,7 +298,7 @@ file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Validation/ValidationFil
 file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Validation/ValidationFindingRow.cs	G-VALIDATION,G-VALIDATION-DEPTH	G-VALIDATION tạo; G-VALIDATION-DEPTH sửa
 file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Validation/ValidationGroupCard.cs	G-VALIDATION,G-VALIDATION-DEPTH	G-VALIDATION tạo; G-VALIDATION-DEPTH sửa
 file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Validation/ValidationSection.cs	G-SHELL,G-SESSION,G-VALIDATION,G-VALIDATION-DEPTH	G-SHELL tạo; G-SESSION sửa; G-VALIDATION sửa; G-VALIDATION-DEPTH sửa
-file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Validation/ValidationSection.uss	G-VALIDATION	G-VALIDATION tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Validation/ValidationSection.uss	G-VALIDATION,G-VALIDATION-DEPTH	G-VALIDATION tạo; G-VALIDATION-DEPTH sửa (class của card xem trước + popover Bỏ qua + hàng nhóm Đã bỏ qua; cùng cặp với CalendarSection.uss -> G-CALENDAR,G-CALENDAR-DEPTH, dòng này thiếu là sót của bảng — tự duyệt theo uỷ quyền user 15/9, ghi ở G-VALIDATION-DEPTH-build.md)
 file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Validation/ValidationSection.uxml	G-VALIDATION,G-VALIDATION-DEPTH	G-VALIDATION tạo; G-VALIDATION-DEPTH sửa
 file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Validation/ValidationViewModel.cs	G-VALIDATION,G-VALIDATION-DEPTH	G-VALIDATION tạo; G-VALIDATION-DEPTH sửa
 file	Packages/com.dreamtech.liveops/Editor/Hub/Services/InterimUnavailableHubActions.cs	G-HUBKIT,G-I18N,G-PASTE	G-HUBKIT tạo; G-PASTE xoá; G-I18N sửa (ngôn ngữ, W3.5)
@@ -460,7 +460,7 @@ file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Capture/LiveOpsHubCaptureSc
 file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Capture/LiveOpsHubCaptureScenarios.ShellPolish.cs	G-SHELLPOLISH	G-SHELLPOLISH vùng ShellPolish
 file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Capture/LiveOpsHubCaptureScenarios.ShortcutHelp.cs	G-OPT-SHORTCUTHELP	G-OPT-SHORTCUTHELP vùng ShortcutHelp
 file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Capture/LiveOpsHubCaptureScenarios.Timeline.cs	G-TIMELINE-VIEW,G-OPT-TIMELINE	G-TIMELINE-VIEW vùng Timeline; G-OPT-TIMELINE vùng Timeline
-file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Capture/LiveOpsHubCaptureScenarios.Validation.cs	G-VALIDATION	G-VALIDATION vùng Validation
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Capture/LiveOpsHubCaptureScenarios.Validation.cs	G-VALIDATION,G-VALIDATION-DEPTH	G-VALIDATION vùng Validation; G-VALIDATION-DEPTH đổi h17-8 sang nút "Sửa" CỦA HÀNG vì nút section header từ W5 mở card xem trước ([SD2 §2.5]) — ảnh không đổi, chỉ đường bấm đổi (tự duyệt theo uỷ quyền user 15/9)
 file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Capture/LiveOpsHubCaptureScenarios.ValidationDepth.cs	G-VALIDATION-DEPTH	G-VALIDATION-DEPTH vùng ValidationDepth
 file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Capture/LiveOpsHubCaptureScenarios.cs	G-SHELL	G-SHELL tạo
 file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Controls/ControlsSkinTokenTests.cs	G-CONTROLS	G-CONTROLS tạo; JSON view + cycle bar của SelfDrawnElements_ResolveTokens_BothSkinClasses (V-21 D-3)
@@ -520,8 +520,8 @@ file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Sections/RecurringRuleModel
 file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Sections/RecurringRulesSectionTests.cs	G-RECURRING,G-RECURRING-JSON	G-RECURRING tạo; G-RECURRING-JSON thêm test Q-W4-4 DraftInOneField_LocksOtherThree_WithReasonAsText / DraftResolved_UnlocksAllFields
 file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Sections/SectionTestScope.cs	G-SHELL	G-SHELL tạo
 file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Sections/ValidationDepthTests.cs	G-VALIDATION-DEPTH	G-VALIDATION-DEPTH tạo
-file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Sections/ValidationSectionTests.cs	G-VALIDATION	G-VALIDATION tạo
-file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Sections/ValidationViewModelTests.cs	G-VALIDATION	G-VALIDATION tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Sections/ValidationSectionTests.cs	G-VALIDATION,G-VALIDATION-DEPTH	G-VALIDATION tạo; G-VALIDATION-DEPTH đổi SafeFix_AppliesOneUndoGroupAndRechecks sang nút "Sửa" của hàng (cùng lý do h17-8) — luồng card xem trước nằm ở ValidationDepthTests
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Sections/ValidationViewModelTests.cs	G-VALIDATION,G-VALIDATION-DEPTH	G-VALIDATION tạo; G-VALIDATION-DEPTH đổi IgnorableFinding_HasNeitherButtonNorLink -> HasIgnoreWarningButton (test khoá đúng nhánh INTERIM I-7 mà gói này gỡ)
 file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Services/AssetLocatorTests.cs	G-SESSION	G-SESSION tạo
 file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Services/CalendarSessionTests.cs	G-SESSION	G-SESSION tạo
 file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Services/CheckStateStaleTests.cs	G-SESSION	G-SESSION tạo
@@ -600,7 +600,7 @@ file	tools/liveops-hub/lint-samples/**	G-TOOLS,G-I18N	G-TOOLS tạo — bộ m�
 file	tools/liveops-hub/make-temp-project-2022.sh	G-TOOLS	G-TOOLS tạo
 file	tools/liveops-hub/make-worktree.sh	G-TOOLS	G-TOOLS tạo
 file	tools/liveops-hub/measure-capture.py	G-TOOLS	G-TOOLS tạo
-file	tools/liveops-hub/ownership.tsv	G-TOOLS,G-FIX-W2-1,G-I18N,G-HOSTUI,G-INSPECTOR,G-FIX-W4-1,G-FIX-W4-2,G-RECURRING-JSON,G-SHELLPOLISH	G-TOOLS tạo; G-FIX-W2-1 ghi V-21 (phụ thuộc cùng đợt W2, quyền ghi D-3/CC-SHELL-1/2/5/CC-VALB-1/5); G-I18N sửa (ngôn ngữ, W3.5); G-HOSTUI ghi ngoại lệ quyền ghi liveops-hub-feedback.uss (H-2 của soát 16/9); G-INSPECTOR thêm một dòng file USS của chính thư mục mình (vá review F-4, tự duyệt theo uỷ quyền user 15/9); G-FIX-W4-1/G-FIX-W4-2 ghi quyền sửa của hai gói sửa ở cổng W4 (phiếu D-1…D-6, CC-HOSTUI-4); G-SHELLPOLISH thêm dòng file LiveOpsHubClassNames.Controls.cs bị sót ở V-34 (region Controls classnames đã ghi gói); G-RECURRING-JSON thêm mình vào năm dòng RecurringRulesSection.cs/.uss + RecurringRulesSectionTests.cs + LiveOpsJsonSyntaxLocator.cs + JsonSyntaxLocatorTests.cs (lệch kỹ thuật tự duyệt — bốn tập W5 vẫn rời nhau, năm file này không gói W5 nào khác đụng; LiveOpsJsonSyntaxLocator.cs thêm ở bước cổng gói để sửa lỗi nhỏ thấy khi chạy EditMode lần đầu)
+file	tools/liveops-hub/ownership.tsv	G-TOOLS,G-FIX-W2-1,G-I18N,G-HOSTUI,G-INSPECTOR,G-FIX-W4-1,G-FIX-W4-2,G-RECURRING-JSON,G-SHELLPOLISH,G-VALIDATION-DEPTH	G-TOOLS tạo; G-FIX-W2-1 ghi V-21 (phụ thuộc cùng đợt W2, quyền ghi D-3/CC-SHELL-1/2/5/CC-VALB-1/5); G-I18N sửa (ngôn ngữ, W3.5); G-HOSTUI ghi ngoại lệ quyền ghi liveops-hub-feedback.uss (H-2 của soát 16/9); G-INSPECTOR thêm một dòng file USS của chính thư mục mình (vá review F-4, tự duyệt theo uỷ quyền user 15/9); G-FIX-W4-1/G-FIX-W4-2 ghi quyền sửa của hai gói sửa ở cổng W4 (phiếu D-1…D-6, CC-HOSTUI-4); G-SHELLPOLISH thêm dòng file LiveOpsHubClassNames.Controls.cs bị sót ở V-34 (region Controls classnames đã ghi gói); G-RECURRING-JSON thêm mình vào năm dòng RecurringRulesSection.cs/.uss + RecurringRulesSectionTests.cs + LiveOpsJsonSyntaxLocator.cs + JsonSyntaxLocatorTests.cs (lệch kỹ thuật tự duyệt — bốn tập W5 vẫn rời nhau, năm file này không gói W5 nào khác đụng; LiveOpsJsonSyntaxLocator.cs thêm ở bước cổng gói để sửa lỗi nhỏ thấy khi chạy EditMode lần đầu); G-VALIDATION-DEPTH ghi ba dòng của chính màn mình (ValidationSection.uss thiếu vế gói chiều sâu, ValidationSectionTests + LiveOpsHubCaptureScenarios.Validation đổi đường bấm sang nút "Sửa" của hàng) — tự duyệt theo uỷ quyền user 15/9
 file	tools/liveops-hub/run-editmode.sh	G-TOOLS	G-TOOLS tạo
 file	tools/liveops-hub/run-playmode.sh	G-TOOLS	G-TOOLS tạo
 file	tools/liveops-hub/unity-slot.sh	G-TOOLS	G-TOOLS tạo

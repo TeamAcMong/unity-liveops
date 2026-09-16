@@ -115,9 +115,12 @@
     flex-grow: 1;
 }
 
+/* Cho xuống dòng: card "Đã bỏ qua" khi MỞ chiếm cả bề ngang nên nó phải rơi xuống hàng dưới, không ép card "n luật đã qua"
+ * teo lại (soát W5 F-1). Thu gọn thì cả hai vẫn nằm đúng một hàng như [SD2 §2.1]. */
 .liveops-hub-validation-cards-row {
     flex-direction: row;
     align-items: flex-start;
+    flex-wrap: wrap;
 }
 
 .liveops-hub-validation-group {
@@ -158,6 +161,14 @@
 .liveops-hub-validation-group--ignored {
     width: 170px;
     flex-shrink: 0;
+}
+
+/* Mở ra là một DANH SÁCH mục (V-15): 170px thì meta "long-gap-between-events · lava-quest · 20/9 00:00 → 1/10 00:00" vỡ
+ * sáu dòng đứt giữa từ và ghi chú vỡ ba dòng (soát W5 F-1). Hai class để thắng luật một class ở trên bằng ĐỘ CỤ THỂ,
+ * không bằng thứ tự dòng trong file (bài học D-1 của W4). */
+.liveops-hub-validation-group--ignored.liveops-hub-validation-group--ignored-open {
+    width: 100%;
+    flex-shrink: 1;
 }
 
 .liveops-hub-validation-passed-ids {
@@ -362,4 +373,135 @@
     flex-grow: 1;
     font-size: 10px;
     opacity: 0.82;
+}
+
+/* ----- card xem trước sửa hàng loạt ([SD2 §2.5], Hình 17 ô 1) ----- */
+
+/* Card CHEN ngay dưới dải summary, không phải popover và không phải hộp modal: người dùng vẫn đọc được số của dải summary và
+ * các hàng phát hiện ở dưới trong lúc soát danh sách thay đổi. */
+.liveops-hub-validation-bulk-preview {
+    margin-top: var(--liveops-hub-space-8);
+}
+
+.liveops-hub-validation-bulk-preview-meta {
+    margin-left: var(--liveops-hub-space-8);
+    font-size: 10px;
+    opacity: 0.7;
+}
+
+/* Hàng cao tối thiểu 22 và cách nhau 6 ([SD2 §2.5]); USS không có gap nên khe nằm ở margin của chính hàng. */
+.liveops-hub-validation-bulk-preview-row {
+    flex-direction: row;
+    align-items: center;
+    min-height: 22px;
+    margin-bottom: var(--liveops-hub-space-6);
+}
+
+.liveops-hub-validation-bulk-preview-change {
+    margin-left: var(--liveops-hub-space-6);
+    font-size: 10px;
+    white-space: normal;
+}
+
+/* Thụt 20px cho thẳng với chữ của hàng thay đổi (Toggle 14 + khe 6), không phải một con số trang trí. */
+.liveops-hub-validation-bulk-preview-undo {
+    margin-left: 20px;
+    font-size: 10px;
+    opacity: 0.7;
+}
+
+.liveops-hub-validation-bulk-preview-footer {
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-end;
+    margin-top: var(--liveops-hub-space-8);
+}
+
+/* Headline + tag trên một dòng; tag tự co nên headline vẫn chiếm phần còn lại. */
+.liveops-hub-validation-row-headline-line {
+    flex-direction: row;
+    align-items: center;
+}
+
+/* ----- popover Bỏ qua cảnh báo… ([SD2 §2.7], Hình 17 ô 5) ----- */
+
+/* 300px theo mockup — hẹp hơn popover Đề xuất… 320px vì chỉ có một Toggle và một ô ghi chú; khoá ở USS để cây dựng ngoài
+ * PopupWindow (ảnh chụp ô 5) vẫn đúng bề rộng của thiết kế. */
+.liveops-hub-validation-ignore-popover {
+    width: 300px;
+    padding: var(--liveops-hub-space-10);
+}
+
+/* Câu phạm vi dài hơn một dòng trong 300px: không cho xuống dòng thì vế "hiện lại nếu khoảng này đổi" bị cắt mất — mà đó
+ * chính là vế nói cho người dùng biết bỏ qua KHÔNG phải tắt luật vĩnh viễn.
+ * Vì sao câu là một Label RIÊNG chứ không phải `label` của Toggle: Toggle là BaseField, nó vẽ nhãn TRƯỚC ô tick và cho nhãn
+ * giãn — câu hai dòng đẩy ô tick ra sát mép phải và cắt cụt còn ~6px, người dùng không nhìn ra phạm vi đang bật
+ * (soát W5 F-2). Ô tick đứng trước và không co, câu chiếm phần còn lại. */
+.liveops-hub-validation-ignore-scope {
+    flex-direction: row;
+    align-items: flex-start;
+    /* 10 chứ không 8: Yoga đo Label hai dòng bằng chiều cao MỘT dòng trong hàng flex, nên dòng thứ hai tràn khỏi hộp của
+     * chính nó — thiếu khe thì nó dính vào nhãn "Ghi chú (bắt buộc)" ngay dưới. */
+    margin-bottom: var(--liveops-hub-space-10);
+}
+
+.liveops-hub-validation-ignore-scope-box {
+    flex-grow: 0;
+    flex-shrink: 0;
+    margin-right: var(--liveops-hub-space-6);
+}
+
+.liveops-hub-validation-ignore-scope-label {
+    flex-grow: 1;
+    flex-shrink: 1;
+    font-size: 11px;
+    white-space: normal;
+}
+
+.liveops-hub-validation-ignore-note-label {
+    margin-bottom: var(--liveops-hub-space-2);
+    font-size: 11px;
+}
+
+.liveops-hub-validation-ignore-footer {
+    flex-direction: row;
+    align-items: center;
+    margin-top: var(--liveops-hub-space-10);
+}
+
+.liveops-hub-validation-ignore-hint {
+    flex-grow: 1;
+    font-size: 10px;
+    opacity: 0.82;
+}
+
+/* ----- nhóm "Đã bỏ qua (n)" mở ra (V-15, [SD2 §2.7] ô 6) ----- */
+
+.liveops-hub-validation-ignored-row {
+    flex-direction: row;
+    align-items: center;
+    min-height: 22px;
+}
+
+/* Ghi chú của HÀNG là bản rút gọn, đúng một dòng (mục 7.5): cho xuống dòng thì hàng cao dần theo độ dài ghi chú và danh
+ * sách mất nhịp. Chữ đã bị cắt trong ViewModel; `text-overflow` chỉ là lưới an toàn cho chữ rộng bất thường. */
+.liveops-hub-validation-ignored-note {
+    flex-shrink: 1;
+    font-size: 10px;
+    opacity: 0.82;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Hover card ghim của "Xem ghi chú": ghi chú ĐỦ (hàng chỉ hiện bản rút gọn), nên thẻ phải cho chữ xuống dòng. */
+.liveops-hub-validation-ignored-note-card {
+    width: 260px;
+    white-space: normal;
+}
+
+.liveops-hub-validation-ignored-note-full {
+    font-size: 10px;
+    opacity: 0.82;
+    white-space: normal;
 }
