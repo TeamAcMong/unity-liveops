@@ -144,9 +144,14 @@ namespace DreamTech.LiveOps.Editor
             table.Add(nameof(LiveOpsHubStrings.EventTypesUnknownTypeInDraftFormat),
                 vietnamese: "{0}: có {1} mục trong lịch nháp nhưng chưa có loại — game sẽ bỏ",
                 english: "{0}: {1} entries in the draft calendar but no such type — the game will drop them");
+            // (V-8) Một câu người dùng đọc = một chữ. Câu này trùng TỪNG CHỮ với FindingUnknownTypeRemoteConsequenceFormat
+            // (vùng Findings, có trước gói này) nhưng phải khai riêng: dòng dưới bảng dựng từ tài liệu + bản dán và phải đúng
+            // NGAY CẢ KHI chưa kiểm lần nào, lúc đó không có LiveEventCalendarFinding nào để gọi LiveOpsFindingText. Bản tiếng
+            // Anh lấy đúng nguyên văn của vùng Findings; test EventTypesModelTests.UnknownTypeInRemote_TextMatchesFindingText
+            // khoá hai khoá bằng nhau ở CẢ HAI ngôn ngữ để sửa một bên là bên kia đỏ.
             table.Add(nameof(LiveOpsHubStrings.EventTypesUnknownTypeInRemoteFormat),
                 vietnamese: "{0}: có {1} đợt trong JSON đã dán nhưng chưa có loại — game sẽ bỏ",
-                english: "{0}: {1} events in the pasted JSON but no such type — the game will drop them");
+                english: "{0}: {1} events in the pasted JSON have no declared type — the game will drop them");
             table.Add(nameof(LiveOpsHubStrings.EventTypesDeclareButton),
                 vietnamese: "Khai báo",
                 english: "Declare");

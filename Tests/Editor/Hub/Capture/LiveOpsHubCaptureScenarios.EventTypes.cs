@@ -26,16 +26,61 @@ namespace DreamTech.LiveOps.Editor.Tests
         private const string EventTypesCollisionType = "star-tournament";
         private const int EventTypesCollisionSlot = 7;
 
+        // Số đo RIÊNG của màn 7.2 ([SD1 §2.1]): inspector 300, dãy ô màu 18×18, và tám cột bảng 44/140/giãn/120/140/90/84/36.
+        // Không khai thì ba ảnh chỉ đo năm khung vỏ hub dùng chung mọi màn — "ĐẠT số đo" khi đó không chứng minh được số nào của 7.2.
+        private const float EventTypesRailWidth = 196f;
+        private const float EventTypesContentWidth = 1084f;
+        private const float EventTypesInspectorWidth = 300f;
+        private const float EventTypesColumnColorWidth = 44f;
+        private const float EventTypesColumnTypeIdWidth = 140f;
+        private const float EventTypesColumnEntryWidth = 120f;
+        private const float EventTypesColumnConfigKeyWidth = 140f;
+        private const float EventTypesColumnSourceWidth = 90f;
+        private const float EventTypesColumnEventCountWidth = 84f;
+        private const float EventTypesColumnStateWidth = 36f;
+
         static partial void RegisterEventTypes(List<LiveOpsHubCaptureScenario> scenarios)
         {
             scenarios.Add(new LiveOpsHubCaptureScenario(LiveOpsHubCaptureScenarioIds.H10EventTypesDefault, EventTypesWidth, EventTypesHeight,
-                OpenEventTypesDefault));
+                    OpenEventTypesDefault)
+                .WithExpectedFrames(EventTypesFrames()));
 
             scenarios.Add(new LiveOpsHubCaptureScenario(LiveOpsHubCaptureScenarioIds.H10bEventTypesUnknownType, EventTypesWidth,
-                EventTypesHeight, OpenEventTypesUnknownType));
+                    EventTypesHeight, OpenEventTypesUnknownType)
+                .WithExpectedFrames(EventTypesFrames()));
 
             scenarios.Add(new LiveOpsHubCaptureScenario(LiveOpsHubCaptureScenarioIds.H10cEventTypesColorCollision, EventTypesWidth,
-                EventTypesHeight, OpenEventTypesColorCollision));
+                    EventTypesHeight, OpenEventTypesColorCollision)
+                .WithExpectedFrames(EventTypesFrames()));
+        }
+
+        /// <summary>
+        /// Khung mong đợi của cả ba ảnh: hai khung vỏ hub (rail, cột nội dung) + số đo riêng của 7.2. Ba ảnh cùng một bố cục nên
+        /// cùng một bộ số — khác nhau chỉ ở nội dung bảng và inspector.
+        /// <para>
+        /// Cột "Tên hiển thị" là cột GIÃN nên không có số thiết kế để khai. KHÔNG khai ô màu 18×18: ToolbarToggle không tự vẽ
+        /// viền, thứ nhìn thấy là swatch 12×12 bên trong, nên dò cạnh luôn ra 12 dù worldBound đúng 18 ở cả hai skin (đo thật:
+        /// 12 ở 15/16 ô, 16 và 19 ở hai ô cạnh ô đang bật). Ô 18×18 và swatch 12×12 khoá bằng <c>resolvedStyle</c> ở
+        /// <c>EventTypesSectionTests.ColorSlots_MatchDesignSize</c> — chính xác hơn dò cạnh. Swatch 9×9 của bảng nằm trong hàng
+        /// list không có tên element nên lệnh chụp không ghi số đo; nó khoá bằng USS.
+        /// </para>
+        /// </summary>
+        private static LiveOpsHubCaptureExpectedFrame[] EventTypesFrames()
+        {
+            List<LiveOpsHubCaptureExpectedFrame> frames = new List<LiveOpsHubCaptureExpectedFrame>
+            {
+                new LiveOpsHubCaptureExpectedFrame(LiveOpsHubClassNames.Rail, EventTypesRailWidth, 0f),
+                new LiveOpsHubCaptureExpectedFrame(LiveOpsHubClassNames.Content, EventTypesContentWidth, 0f),
+                new LiveOpsHubCaptureExpectedFrame(LiveOpsHubPaths.EventTypesElementNames.Inspector, EventTypesInspectorWidth, 0f),
+                new LiveOpsHubCaptureExpectedFrame(EventTypeTable.ColorColumnName, EventTypesColumnColorWidth, 0f),
+                new LiveOpsHubCaptureExpectedFrame(EventTypeTable.TypeIdColumnName, EventTypesColumnTypeIdWidth, 0f),
+                new LiveOpsHubCaptureExpectedFrame(EventTypeTable.EntryColumnName, EventTypesColumnEntryWidth, 0f),
+                new LiveOpsHubCaptureExpectedFrame(EventTypeTable.ConfigKeyColumnName, EventTypesColumnConfigKeyWidth, 0f),
+                new LiveOpsHubCaptureExpectedFrame(EventTypeTable.SourceColumnName, EventTypesColumnSourceWidth, 0f),
+                new LiveOpsHubCaptureExpectedFrame(EventTypeTable.EventCountColumnName, EventTypesColumnEventCountWidth, 0f),
+                new LiveOpsHubCaptureExpectedFrame(EventTypeTable.StateColumnName, EventTypesColumnStateWidth, 0f),
+            };
+            return frames.ToArray();
         }
 
         /// <summary>

@@ -11,8 +11,12 @@ namespace DreamTech.LiveOps.Editor
     /// nằm ở đây, view chỉ đọc và gắn class (7.0 "model thuần + view mỏng").
     /// <para>
     /// Hàng bảng dựng từ <b>tài liệu + bản dán</b> chứ không từ báo cáo kiểm: bảng phải đúng ngay cả trước lần kiểm đầu tiên.
-    /// <see cref="Health"/> thì ngược lại, chỉ đọc báo cáo — để màn và rail không bao giờ nói hai chuyện khác nhau
-    /// (<see cref="LiveOpsHubFindingRouting"/> là nguồn health chính thức; test <c>Health_StateMatchesFindingRouting</c> khoá).
+    /// </para>
+    /// <para>
+    /// <see cref="Health"/> KHÔNG phải health mà màn báo lên rail: <c>EventTypesSection.GetHealth</c> trả
+    /// <see cref="LiveOpsHubFindingRouting.ForSection"/> (nguồn chính thức, biết cả "chưa có asset" và "kết quả cũ" mà model
+    /// không nhìn thấy). <see cref="Health"/> là bản tính ĐỘC LẬP của cùng kết luận, giữ để test
+    /// <c>Health_StateMatchesFindingRouting</c> đối chiếu hai cách tính — hai bên lệch nhau là routing đã đổi mà màn chưa biết.
     /// </para>
     /// </summary>
     internal sealed class EventTypesModel
@@ -59,9 +63,13 @@ namespace DreamTech.LiveOps.Editor
         }
 
         /// <summary>
-        /// Health của màn: Blocked khi báo cáo kiểm còn loại chưa khai báo (kể cả loại chỉ có trong JSON đang chạy, V-17),
-        /// Warning khi hai loại cùng ô màu (tính thẳng trên nháp, không luật nào lo), còn lại Ok. Badge để rỗng có chủ đích —
-        /// badge của rail do <see cref="LiveOpsHubFindingRouting"/> dựng, màn không đếm lại.
+        /// Bản tính độc lập của health màn: Blocked khi báo cáo kiểm còn loại chưa khai báo (kể cả loại chỉ có trong JSON đang
+        /// chạy, V-17), Warning khi hai loại cùng ô màu (tính thẳng trên nháp, không luật nào lo), còn lại Ok. Badge để rỗng có
+        /// chủ đích — badge của rail do <see cref="LiveOpsHubFindingRouting"/> dựng, màn không đếm lại.
+        /// <para>
+        /// KHÔNG được vẽ lên đâu cả: cái mà màn báo lên rail là <c>EventTypesSection.GetHealth</c> (routing). Đây chỉ là đầu
+        /// vào của test đối chiếu — dùng nó để vẽ là mở lại đúng cái khe "màn và rail nói hai chuyện" mà routing sinh ra để bịt.
+        /// </para>
         /// </summary>
         public SectionHealth Health
         {
@@ -381,9 +389,9 @@ namespace DreamTech.LiveOps.Editor
             for (int index = 0; index < types.Count; index++)
             {
                 LiveEventTypeDefinition type = types[index];
-                CountUsages(_document, type.TypeId, out int fixedEventCount, out bool hasRecurringRule);
+                CountUsages(_document, type.TypeId, out int fixedEventCount, out int recurringRuleCount);
                 AddRow(new EventTypeRow(index, type.TypeId, type.DisplayName, type.ColorSlot, type.RequiresJoin,
-                    type.DefaultConfigKey, fixedEventCount, hasRecurringRule, true, false));
+                    type.DefaultConfigKey, fixedEventCount, recurringRuleCount, true, false));
             }
         }
 
@@ -410,9 +418,9 @@ namespace DreamTech.LiveOps.Editor
             // thêm một hàng "loại lạ ''" chỉ là nhiễu (cùng cách bỏ qua của luật 8).
             if (!IsUsableTypeId(typeId) || _rowByTypeId.ContainsKey(typeId)) return;
 
-            CountUsages(source, typeId, out int fixedEventCount, out bool hasRecurringRule);
+            CountUsages(source, typeId, out int fixedEventCount, out int recurringRuleCount);
             AddRow(new EventTypeRow(_rows.Count, typeId, LiveOpsHubStrings.EventTypesUndeclaredName, -1, false, string.Empty,
-                fixedEventCount, hasRecurringRule, false, isFromRemoteSnapshotOnly));
+                fixedEventCount, recurringRuleCount, false, isFromRemoteSnapshotOnly));
         }
 
         /// <summary>Cùng bộ ký tự mà core cấm trong id (<c>LiveEventInstance.ValidateIdentifier</c>): rỗng, '#', xuống dòng.</summary>
@@ -439,7 +447,14 @@ namespace DreamTech.LiveOps.Editor
             for (int index = 0; index < free.Count; index++) _freeSlots.Add(free[index]);
         }
 
-        private static void CountUsages(LiveEventCalendarDocument source, string typeId, out int fixedEventCount, out bool hasRecurringRule)
+        /// <summary>
+        /// Đếm mục dùng loại, ĐÚNG cách <c>LiveOpsConfirmationPolicy.DecideRemoveEventType</c> đếm: duyệt cả danh sách luật chứ
+        /// không hỏi <c>TryGetRecurringRule</c> (tra bảng, tối đa ra một luật). Tài liệu dán vào CÓ THỂ có nhiều luật cùng loại
+        /// — core ghi nhận và giữ luật đứng trước — nên hỏi bảng sẽ đếm thiếu, và con số đó đi thẳng vào chữ người dùng đọc
+        /// ("Xoá loại (còn N đợt)", "đang có N đợt").
+        /// </summary>
+        private static void CountUsages(LiveEventCalendarDocument source, string typeId, out int fixedEventCount,
+            out int recurringRuleCount)
         {
             fixedEventCount = 0;
             IReadOnlyList<FixedLiveEventEntry> fixedEvents = source.FixedEvents;
@@ -447,7 +462,12 @@ namespace DreamTech.LiveOps.Editor
             {
                 if (string.Equals(fixedEvents[index].EventType, typeId, StringComparison.Ordinal)) fixedEventCount++;
             }
-            hasRecurringRule = source.TryGetRecurringRule(typeId, out RecurringLiveEventRule rule) && rule != null;
+            recurringRuleCount = 0;
+            IReadOnlyList<RecurringLiveEventRule> rules = source.RecurringRules;
+            for (int index = 0; index < rules.Count; index++)
+            {
+                if (string.Equals(rules[index].EventType, typeId, StringComparison.Ordinal)) recurringRuleCount++;
+            }
         }
 
         private int UsageCountOf(string typeId)
@@ -502,8 +522,12 @@ namespace DreamTech.LiveOps.Editor
     /// </summary>
     internal sealed class EventTypeRow
     {
+        /// <param name="recurringRuleCount">
+        /// Số luật lặp khai loại này. Thường 0 hoặc 1, nhưng tài liệu dán vào có thể có nhiều luật cùng loại (core giữ luật
+        /// đứng trước) — <see cref="UsageCount"/> phải đếm đủ để khớp <c>LiveOpsConfirmationPolicy</c>.
+        /// </param>
         internal EventTypeRow(int laneIndex, string typeId, string displayName, int colorSlot, bool requiresJoin, string configKey,
-            int fixedEventCount, bool hasRecurringRule, bool isDeclared, bool isFromRemoteSnapshotOnly)
+            int fixedEventCount, int recurringRuleCount, bool isDeclared, bool isFromRemoteSnapshotOnly)
         {
             LaneIndex = laneIndex;
             TypeId = typeId;
@@ -512,7 +536,7 @@ namespace DreamTech.LiveOps.Editor
             RequiresJoin = requiresJoin;
             ConfigKey = configKey ?? string.Empty;
             FixedEventCount = fixedEventCount;
-            HasRecurringRule = hasRecurringRule;
+            RecurringRuleCount = recurringRuleCount;
             IsDeclared = isDeclared;
             IsFromRemoteSnapshotOnly = isFromRemoteSnapshotOnly;
         }
@@ -529,16 +553,25 @@ namespace DreamTech.LiveOps.Editor
         public bool RequiresJoin { get; }
         public string ConfigKey { get; }
         public int FixedEventCount { get; }
-        public bool HasRecurringRule { get; }
+
+        /// <summary>Số luật lặp khai loại này (0 hoặc 1 ở tài liệu lành; >1 khi bản dán trùng loại).</summary>
+        public int RecurringRuleCount { get; }
+
+        /// <summary>Cột "Nguồn", ô "Đợt" và card "Dùng ở đâu" chỉ cần CÓ hay KHÔNG — chữ của chúng không nêu số luật.</summary>
+        public bool HasRecurringRule
+        {
+            get { return RecurringRuleCount > 0; }
+        }
+
         public bool IsDeclared { get; }
 
         /// <summary>Loại chỉ xuất hiện trong JSON đang chạy đã dán (V-17) — câu Blocked nói "trong JSON đã dán".</summary>
         public bool IsFromRemoteSnapshotOnly { get; }
 
-        /// <summary>Số mục dùng loại: đợt cố định + luật lặp (luật tính là một) — cùng cách đếm của bảng 7.0 ô "Xoá loại".</summary>
+        /// <summary>Số mục dùng loại: đợt cố định + MỌI luật lặp cùng loại — cùng cách đếm của bảng 7.0 ô "Xoá loại".</summary>
         public int UsageCount
         {
-            get { return FixedEventCount + (HasRecurringRule ? 1 : 0); }
+            get { return FixedEventCount + RecurringRuleCount; }
         }
 
         /// <summary>Cột "Cách vào"; "" với hàng chưa khai báo (không có định nghĩa để đọc).</summary>
