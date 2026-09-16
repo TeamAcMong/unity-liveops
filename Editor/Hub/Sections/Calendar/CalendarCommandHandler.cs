@@ -166,8 +166,12 @@ namespace DreamTech.LiveOps.Editor
                 LiveEventUtcText.Format(atUtc), LiveEventUtcText.Format(endUtc), source.ConfigKey);
             string message = string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.CalendarDepthPasteToastFormat,
                 pasted.EventId, _services.Format.ShortDateTime(atUtc));
+            // (phiếu D-5) Tên bước Undo tách khỏi câu toast: toast sau ⌘Z đọc "Đã hoàn tác: Dán hunt-0916-bonus-2", không phải
+            // "Đã hoàn tác: Đã dán …".
+            string undoneStepName = string.Format(CultureInfo.InvariantCulture,
+                LiveOpsHubStrings.CalendarDepthPasteUndoStepFormat, pasted.EventId);
             if (!_presenter.ApplyEdit(new AddFixedEventEdit(pasted), LiveOpsEditOperation.AddFixedEvent, pasted.EntryKey, message,
-                string.Empty)) return false;
+                string.Empty, undoneStepName)) return false;
             _presenter.SetSelectedBarKey(pasted.EntryKey);
             return true;
         }
@@ -254,8 +258,12 @@ namespace DreamTech.LiveOps.Editor
             string message = string.Format(CultureInfo.InvariantCulture, direction < 0
                 ? LiveOpsHubStrings.CalendarDepthMoveLaneUpToastFormat
                 : LiveOpsHubStrings.CalendarDepthMoveLaneDownToastFormat, typeId);
+            // (phiếu D-5) Tên bước không nhắc hướng: "Đã hoàn tác: Đưa làn treasure-hunt" đủ để tìm lại bước, và sau khi hoàn tác
+            // thì hướng cũ không còn nghĩa gì với người đọc.
+            string undoneStepName = string.Format(CultureInfo.InvariantCulture,
+                LiveOpsHubStrings.CalendarDepthMoveLaneUndoStepFormat, typeId);
             return _presenter.ApplyEdit(new MoveEventTypeEdit(typeId, target), LiveOpsEditOperation.ReorderEventTypes, typeId,
-                message, string.Empty);
+                message, string.Empty, undoneStepName);
         }
 
         // ============================================================================================================ hoàn về bản so
@@ -301,12 +309,16 @@ namespace DreamTech.LiveOps.Editor
             string message = string.Format(CultureInfo.InvariantCulture, fromDisk
                 ? LiveOpsHubStrings.CalendarDepthTakeFromDiskToastFormat
                 : LiveOpsHubStrings.CalendarDepthRevertToastFormat, baseline.EventId);
+            // (phiếu D-5) Tên bước Undo theo đúng nguồn bản so đang dùng — cùng động từ với mục chuột phải người dùng vừa bấm.
+            string undoneStepName = string.Format(CultureInfo.InvariantCulture, fromDisk
+                ? LiveOpsHubStrings.CalendarDepthTakeFromDiskUndoStepFormat
+                : LiveOpsHubStrings.CalendarDepthRevertUndoStepFormat, baseline.EventId);
             // Ghi vào ĐÚNG mục của nháp (giữ EntryKey của nháp) với giá trị của bản so — thay khoá là xoá rồi thêm, và mọi thứ
             // đang trỏ vào mục đó (lựa chọn, hover card, phát hiện) sẽ trỏ vào hư không.
             FixedLiveEventEntry reverted = new FixedLiveEventEntry(draft.EntryKey, baseline.EventId, baseline.EventType,
                 baseline.StartUtcText, baseline.EndUtcText, baseline.ConfigKey);
             return _presenter.ApplyEdit(new ReplaceFixedEventEdit(reverted), LiveOpsEditOperation.ChangeFixedEventTimes, entryKey,
-                message, string.Empty);
+                message, string.Empty, undoneStepName);
         }
 
         // ============================================================================================================ dùng chung

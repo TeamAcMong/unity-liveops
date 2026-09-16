@@ -59,17 +59,7 @@ namespace DreamTech.LiveOps.Editor
                 LiveOpsHubStrings.CalendarDepthHoverEndValueFormat, format.ShortDateTime(bar.EndUtc),
                 format.Duration(bar.EndUtc - bar.StartUtc, true))));
 
-            if (finding != null)
-            {
-                Label problem = new Label(LiveOpsFindingText.Headline(finding, format, latestStamp))
-                {
-                    name = LiveOpsHubPaths.CalendarDepthElementNames.HoverProblem,
-                };
-                problem.AddToClassList(LiveOpsHubClassNames.CalendarDepthHoverProblem);
-                LiveOpsHubStyle.SetStateText(problem, LiveOpsHubFindingRouting.StateOf(finding.Consequence));
-                problem.tooltip = LiveOpsFindingText.Meta(finding, format, services.Clock.UtcNow);
-                card.Add(problem);
-            }
+            if (finding != null) card.Add(ProblemRow(finding, format, latestStamp, services.Clock.UtcNow));
 
             if (isPinned) card.Add(PinnedRow(findingIndex, findingCount, quickFix));
 
@@ -77,6 +67,34 @@ namespace DreamTech.LiveOps.Editor
             footer.AddToClassList(LiveOpsHubClassNames.CalendarDepthHoverFooter);
             card.Add(footer);
             return card;
+        }
+
+        /// <summary>
+        /// Dòng lỗi [SD1 §3.8]: dấu trạng thái 12px ("icon err 12") rồi mới tới câu 10px theo họ màu của hậu quả. Dấu là
+        /// <see cref="LiveOpsStateMark"/> bản <c>Large</c> — cùng thứ mà hàng pane "So với đã đăng" và card lỗi dùng, nên một
+        /// người đọc thẻ không phải học thêm ký hiệu nào.
+        /// </summary>
+        private static VisualElement ProblemRow(LiveEventCalendarFinding finding, LiveOpsHubFormat format,
+            PublishedCalendarStamp latestStamp, DateTime nowUtc)
+        {
+            HealthState health = LiveOpsHubFindingRouting.StateOf(finding.Consequence);
+            VisualElement row = new VisualElement();
+            row.AddToClassList(LiveOpsHubClassNames.CalendarDepthHoverProblemRow);
+
+            LiveOpsStateMark mark = new LiveOpsStateMark { Size = LiveOpsStateMark.MarkSize.Large };
+            mark.SetHealth(health);
+            mark.AddToClassList(LiveOpsHubClassNames.CalendarDepthHoverProblemMark);
+            row.Add(mark);
+
+            Label problem = new Label(LiveOpsFindingText.Headline(finding, format, latestStamp))
+            {
+                name = LiveOpsHubPaths.CalendarDepthElementNames.HoverProblem,
+                tooltip = LiveOpsFindingText.Meta(finding, format, nowUtc),
+            };
+            problem.AddToClassList(LiveOpsHubClassNames.CalendarDepthHoverProblem);
+            LiveOpsHubStyle.SetStateText(problem, health);
+            row.Add(problem);
+            return row;
         }
 
         /// <summary>Hàng chỉ có ở thẻ ghim: nút "Sửa nhanh…" bên trái, bộ đếm "1/5" bên phải.</summary>

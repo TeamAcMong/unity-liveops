@@ -136,6 +136,9 @@ namespace DreamTech.LiveOps.Editor
             _services.Session.CheckChanged += OnSessionChanged;
             _root.RegisterCallback<DetachFromPanelEvent>(OnDetachFromPanel, TrickleDown.TrickleDown);
             _root.RegisterCallback<GeometryChangedEvent>(OnGeometryChanged);
+            // Esc đóng drawer [SD1 §3.9] — nghe ở pha NỔI BỌT (không TrickleDown) để timeline huỷ cử chỉ kéo trước: đang kéo mà
+            // Esc lại đóng drawer là mất luôn đường huỷ kéo, thứ SPIKE-B coi là lối thoát an toàn.
+            _root.RegisterCallback<KeyDownEvent>(OnRootKeyDown);
             Refresh();
             return _root;
         }
@@ -279,6 +282,9 @@ namespace DreamTech.LiveOps.Editor
             };
             _toolbar.SearchChanged += OnSearchChanged;
             _toolbar.SearchSubmitted += OnSearchSubmitted;
+            // Dải chú giải bị USS ẩn ở cửa sổ hẹp; mục "Chú giải" của menu ⋮ gắn class thắng luật ẩn đó lên chính dải.
+            _toolbar.LegendVisibilityChanged += isVisible =>
+                _timeline?.Legend.EnableInClassList(LiveOpsHubClassNames.CalendarDepthLegendShown, isVisible);
             _toolbar.SetZoomWithoutNotify(_zoom);
             _toolbar.SetListPaneOpenWithoutNotify(_isListPaneOpen);
         }
@@ -788,23 +794,9 @@ namespace DreamTech.LiveOps.Editor
             Action<CalendarMenuItemId> activate)
         {
             GenericMenu menu = new GenericMenu();
-            for (int index = 0; index < items.Count; index++)
-            {
-                CalendarMenuItem item = items[index];
-                if (item.IsSeparator)
-                {
-                    menu.AddSeparator(string.Empty);
-                    continue;
-                }
-                GUIContent content = new GUIContent(item.Text);
-                if (!item.IsEnabled)
-                {
-                    menu.AddDisabledItem(content);
-                    continue;
-                }
-                CalendarMenuItemId id = item.Id;
-                menu.AddItem(content, false, () => activate?.Invoke(id));
-            }
+            // Dựng mục qua CalendarContextMenus: '/' trong nhãn ngày giờ ("24/9 00:00") phải được né trước, không thì GenericMenu
+            // bẻ mục thành menu con và hai mục quan trọng nhất của [FD §3.9] biến mất khỏi tầng một.
+            CalendarContextMenus.PopulateGenericMenu(menu, items, activate);
             menu.DropDown(new Rect(worldPosition, Vector2.zero));
         }
 
@@ -952,6 +944,40 @@ namespace DreamTech.LiveOps.Editor
             _presenter.SetSelectedBarKey(string.Empty);
         }
 
+        /// <summary>
+        /// Drawer inspector đang mở: cửa sổ ở <c>--medium</c>, pane So với đang đóng (hai pane loại trừ nhau) và có đợt đang chọn —
+        /// đúng ba điều kiện làm inspector phủ lên trục. Ở cửa sổ rộng inspector là cột cố định, Esc không có gì để đóng.
+        /// </summary>
+        internal bool IsInspectorDrawerOpen
+        {
+            get
+            {
+                if (_root == null || _isComparePaneOpen || _presenter.SelectedBarKey.Length == 0) return false;
+                VisualElement hubRoot = FindHubRoot();
+                return hubRoot != null
+                    ? hubRoot.ClassListContains(LiveOpsHubClassNames.Medium)
+                    : _root.resolvedStyle.width > 0f && _root.resolvedStyle.width < LiveOpsHubBreakpoints.MediumBelowWidth;
+            }
+        }
+
+        /// <summary>
+        /// Test gọi thẳng nhánh phím của gốc màn. Không gửi <c>KeyDownEvent</c> qua <c>SendEvent</c>: ở 2022.3 phím được dispatch
+        /// theo ELEMENT ĐANG FOCUS chứ không theo target đã gán, nên cùng một test xanh ở 6000.6 và đỏ ở 2022.3 — đúng bẫy mà
+        /// <see cref="CalendarToolbar.HandleSearchKeyDownForTest"/> đã ghi.
+        /// </summary>
+        internal void HandleRootKeyDownForTest(KeyDownEvent keyEvent)
+        {
+            OnRootKeyDown(keyEvent);
+        }
+
+        /// <summary>Esc khi drawer mở = đóng drawer, đúng lời hứa của tooltip "Đóng (Esc)".</summary>
+        private void OnRootKeyDown(KeyDownEvent keyEvent)
+        {
+            if (keyEvent.keyCode != KeyCode.Escape || !IsInspectorDrawerOpen) return;
+            keyEvent.StopPropagation();
+            CloseInspectorDrawer();
+        }
+
         private void FrameBar(LiveOpsTimelineBarModel bar)
         {
             if (bar == null || _timeline == null) return;
@@ -967,6 +993,27 @@ namespace DreamTech.LiveOps.Editor
         private void OnGeometryChanged(GeometryChangedEvent geometryEvent)
         {
             _presenter.ContentWidth = geometryEvent.newRect.width;
+            _toolbar?.SetNarrow(IsNarrowWidth());
+        }
+
+        /// <summary>
+        /// Cửa sổ đang hẹp (< 900) theo class <c>--narrow</c> mà <see cref="LiveOpsHubBreakpoints"/> gắn trên root hub — đo bề rộng
+        /// THÂN MÀN sẽ lệch đúng bằng rail, và toolbar phải rút gọn cùng nhịp với USS chứ không theo một con số khác.
+        /// </summary>
+        private bool IsNarrowWidth()
+        {
+            VisualElement hubRoot = FindHubRoot();
+            if (hubRoot != null) return hubRoot.ClassListContains(LiveOpsHubClassNames.Narrow);
+            return _root != null && _root.resolvedStyle.width > 0f && _root.resolvedStyle.width < LiveOpsHubBreakpoints.NarrowBelowWidth;
+        }
+
+        private VisualElement FindHubRoot()
+        {
+            for (VisualElement element = _root; element != null; element = element.parent)
+            {
+                if (element.ClassListContains(LiveOpsHubClassNames.Root)) return element;
+            }
+            return null;
         }
 
         /// <summary>Panel biến mất (đổi màn, đóng cửa sổ, domain reload): gỡ nghe phiên và huỷ thao tác kéo đang mở (SP-2 (d)).</summary>

@@ -23,6 +23,14 @@ namespace DreamTech.LiveOps.Editor
     /// </summary>
     internal sealed class CalendarToolbar
     {
+        /// <summary>Icon ⋮ của menu tràn — cùng icon với menu ⋮ của section header [FD §2.12].</summary>
+        private const string OverflowIconName = "_Menu";
+
+        private const int OverflowIconSize = 14;
+
+        /// <summary>Dấu ▾ của nhãn menu zoom ("3 tuần ▾") — <see cref="LiveOpsChevron"/> vẽ tam giác, nhãn chỉ mang chữ.</summary>
+        private const int ZoomMenuChoiceCount = 3;
+
         private readonly Toolbar _host;
         private readonly LiveOpsHubFormat _format;
         private readonly ToolbarButton _todayButton;
@@ -34,6 +42,15 @@ namespace DreamTech.LiveOps.Editor
         private readonly ToolbarToggle _listToggle;
         private readonly ToolbarToggle _compareToggle;
         private readonly Label _compareDisabledReason;
+        private readonly ToolbarMenu _zoomMenu;
+        private readonly ToolbarMenu _overflowMenu;
+
+        private bool _isNarrow;
+        private bool _isLegendVisible;
+        private bool _rangeContainsToday;
+        private bool _hasRange;
+        private DateTime _rangeStartUtc;
+        private DateTime _rangeEndUtc;
 
         public CalendarToolbar(Toolbar host, LiveOpsHubFormat format)
         {
@@ -69,12 +86,21 @@ namespace DreamTech.LiveOps.Editor
             navigationGroup.Add(nextButton);
 
             _todayButton = new ToolbarButton(() => TodayRequested?.Invoke()) { text = LiveOpsHubStrings.CalendarTodayButton };
+            _todayButton.AddToClassList(LiveOpsHubClassNames.CalendarDepthTodayButton);
             navigationGroup.Add(_todayButton);
             _host.Add(navigationGroup);
 
             _zoomTabs = new LiveOpsTabStrip { Choices = LiveOpsHubStrings.CalendarZoomChoices };
+            _zoomTabs.AddToClassList(LiveOpsHubClassNames.CalendarDepthZoomTabs);
             _zoomTabs.SelectedIndexChanged += index => ZoomChanged?.Invoke(ZoomOf(index));
             _host.Add(_zoomTabs);
+
+            // Cửa sổ hẹp: ba tab zoom thu thành MỘT menu "3 tuần ▾" (8.8 [FD §4.2]). Cả hai luôn có trong cây, USS chọn cái nào
+            // hiện theo class --narrow của root — đổi cây theo bề rộng sẽ mất lựa chọn đang có mỗi lần người dùng kéo cửa sổ.
+            _zoomMenu = new ToolbarMenu();
+            _zoomMenu.AddToClassList(LiveOpsHubClassNames.CalendarDepthZoomMenu);
+            for (int index = 0; index < ZoomMenuChoiceCount; index++) AppendZoomChoice(index);
+            _host.Add(_zoomMenu);
 
             _snapMenu = new ToolbarMenu();
             AppendSnapChoice(CalendarSnapMode.Automatic, LiveOpsHubStrings.CalendarSnapAuto);
@@ -117,6 +143,20 @@ namespace DreamTech.LiveOps.Editor
             _search.RegisterCallback<KeyDownEvent>(OnSearchKeyDown);
             _host.Add(_search);
 
+            // Menu ⋮ của toolbar: chỗ ở của việc ít dùng khi cửa sổ hẹp ("nút ít dùng + Chú giải vào ⋮", 8.8). Trạng thái từng mục
+            // tính LẠI mỗi lần mở menu (actionStatusCallback) nên dấu tích và mục khoá luôn khớp màn, không phải bản chụp lúc dựng.
+            _overflowMenu = new ToolbarMenu { tooltip = LiveOpsHubStrings.CalendarDepthOverflowMenuTooltip };
+            _overflowMenu.AddToClassList(LiveOpsHubClassNames.CalendarDepthOverflowMenu);
+            _overflowMenu.Add(LiveOpsHubIcons.CreateImage(OverflowIconName, OverflowIconSize));
+            _overflowMenu.menu.AppendAction(LiveOpsHubStrings.CalendarDepthListToggle,
+                _ => ListPaneToggled?.Invoke(!_listToggle.value),
+                _ => _listToggle.value ? DropdownMenuAction.Status.Checked : DropdownMenuAction.Status.Normal);
+            _overflowMenu.menu.AppendAction(LiveOpsHubStrings.CalendarTodayButton, _ => TodayRequested?.Invoke(),
+                _ => _rangeContainsToday ? DropdownMenuAction.Status.Disabled : DropdownMenuAction.Status.Normal);
+            _overflowMenu.menu.AppendAction(LiveOpsHubStrings.CalendarDepthLegendToggle, _ => SetLegendVisible(!_isLegendVisible),
+                _ => _isLegendVisible ? DropdownMenuAction.Status.Checked : DropdownMenuAction.Status.Normal);
+            _host.Add(_overflowMenu);
+
             SetSnapMode(CalendarSnapMode.Automatic);
             SetCompareState(false, false, 0);
         }
@@ -139,6 +179,9 @@ namespace DreamTech.LiveOps.Editor
         /// <summary>Enter trong ô tìm: nhảy tới đợt khớp KẾ TIẾP, vòng lại đầu danh sách khi hết.</summary>
         public event Action<string> SearchSubmitted;
 
+        /// <summary>Mục "Chú giải" của menu ⋮ — dải chú giải bị USS ẩn ở cửa sổ hẹp, mục này bật lại khi cần tra ký hiệu.</summary>
+        public event Action<bool> LegendVisibilityChanged;
+
         public CalendarSnapMode SnapMode { get; private set; } = CalendarSnapMode.Automatic;
 
         public LiveOpsTimelineZoom Zoom => ZoomOf(_zoomTabs.SelectedIndex);
@@ -152,20 +195,60 @@ namespace DreamTech.LiveOps.Editor
         internal ToolbarToggle ListToggle => _listToggle;
         internal ToolbarToggle CompareToggle => _compareToggle;
         internal Label CompareDisabledReason => _compareDisabledReason;
+        internal ToolbarMenu ZoomMenu => _zoomMenu;
+        internal ToolbarMenu OverflowMenu => _overflowMenu;
+
+        /// <summary>Toolbar đang ở dạng rút gọn (cửa sổ dưới 900px) — màn bơm xuống từ class <c>--narrow</c> của root.</summary>
+        internal bool IsNarrow => _isNarrow;
+
+        internal bool IsLegendVisible => _isLegendVisible;
 
         /// <summary>Nhãn khoảng đang xem; "Hôm nay" tắt kèm lý do khi khung đã chứa hôm nay (7.0 — lý do luôn in thành chữ).</summary>
         public void SetRange(DateTime rangeStartUtc, DateTime rangeEndUtc, DateTime nowUtc)
         {
-            _rangeMenu.text = string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.CalendarRangeLabelFormat,
-                _format.DateWithYear(rangeStartUtc), _format.DateWithYear(rangeEndUtc));
-            bool containsToday = nowUtc >= rangeStartUtc && nowUtc < rangeEndUtc;
-            _todayButton.SetEnabled(!containsToday);
-            _todayButton.tooltip = containsToday ? LiveOpsHubStrings.CalendarTodayDisabledReason : string.Empty;
+            _hasRange = true;
+            _rangeStartUtc = rangeStartUtc;
+            _rangeEndUtc = rangeEndUtc;
+            _rangeContainsToday = nowUtc >= rangeStartUtc && nowUtc < rangeEndUtc;
+            ApplyRangeLabel();
+            _todayButton.SetEnabled(!_rangeContainsToday);
+            _todayButton.tooltip = _rangeContainsToday ? LiveOpsHubStrings.CalendarTodayDisabledReason : string.Empty;
+        }
+
+        /// <summary>
+        /// Dạng rút gọn của toolbar (8.8): tab zoom nhường chỗ cho menu, nút ít dùng vào ⋮, ô tìm 120px — phần NHÌN THẤY do USS
+        /// lo theo class <c>--narrow</c> của root; C# chỉ cần biết để bỏ NĂM khỏi nhãn khoảng ("6/9 – 27/9"), thứ USS không làm được.
+        /// </summary>
+        public void SetNarrow(bool isNarrow)
+        {
+            if (_isNarrow == isNarrow) return;
+            _isNarrow = isNarrow;
+            ApplyRangeLabel();
+        }
+
+        /// <summary>Bật/tắt dải chú giải từ menu ⋮; phát sự kiện để màn gắn class lên chính dải đó.</summary>
+        public void SetLegendVisible(bool isVisible)
+        {
+            if (_isLegendVisible == isVisible) return;
+            _isLegendVisible = isVisible;
+            LegendVisibilityChanged?.Invoke(isVisible);
+        }
+
+        /// <summary>Nhãn khoảng: có năm ở cửa sổ rộng, bỏ năm khi hẹp — "6/9/2026 – 27/9/2026" bị cắt mất vế sau ở 820px.</summary>
+        private void ApplyRangeLabel()
+        {
+            if (!_hasRange) return;
+            _rangeMenu.text = _isNarrow
+                ? string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.CalendarRangeLabelFormat,
+                    LiveOpsHubFormat.DayMonthText(_rangeStartUtc), LiveOpsHubFormat.DayMonthText(_rangeEndUtc))
+                : string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.CalendarRangeLabelFormat,
+                    _format.DateWithYear(_rangeStartUtc), _format.DateWithYear(_rangeEndUtc));
         }
 
         public void SetZoomWithoutNotify(LiveOpsTimelineZoom zoom)
         {
             _zoomTabs.SetSelectedIndexWithoutNotify(IndexOf(zoom));
+            _zoomMenu.text = ZoomChoiceAt(IndexOf(zoom));
         }
 
         /// <summary>(nợ D-3(c)) Lựa chọn đi thẳng xuống <c>LiveOpsTimelineDragController.SnapStep</c>, nên nhãn nói đúng việc đang làm.</summary>
@@ -219,6 +302,23 @@ namespace DreamTech.LiveOps.Editor
             if (keyEvent.keyCode != KeyCode.Return && keyEvent.keyCode != KeyCode.KeypadEnter) return;
             keyEvent.StopPropagation();
             SearchSubmitted?.Invoke(_search.value ?? string.Empty);
+        }
+
+        private void AppendZoomChoice(int choiceIndex)
+        {
+            _zoomMenu.menu.AppendAction(ZoomChoiceAt(choiceIndex), _ =>
+            {
+                _zoomTabs.SetSelectedIndexWithoutNotify(choiceIndex);
+                _zoomMenu.text = ZoomChoiceAt(choiceIndex);
+                ZoomChanged?.Invoke(ZoomOf(choiceIndex));
+            }, _ => _zoomTabs.SelectedIndex == choiceIndex ? DropdownMenuAction.Status.Checked : DropdownMenuAction.Status.Normal);
+        }
+
+        /// <summary>Nhãn một lựa chọn zoom, tách từ CÙNG chuỗi "Ngày|3 tuần|Tháng" mà tab strip đọc — hai nơi không được lệch chữ.</summary>
+        private static string ZoomChoiceAt(int choiceIndex)
+        {
+            string[] choices = LiveOpsHubStrings.CalendarZoomChoices.Split('|');
+            return choiceIndex >= 0 && choiceIndex < choices.Length ? choices[choiceIndex] : string.Empty;
         }
 
         private void AppendSnapChoice(CalendarSnapMode mode, string label)

@@ -14,6 +14,15 @@ namespace DreamTech.LiveOps.Editor
         /// <summary>Nhãn lý do in cạnh nút bị khoá (SPIKE-B SP-3) — chữ thật, không phải tooltip.</summary>
         internal const string CalendarDepthDisabledReason = "liveops-hub-calendar-disabled-reason";
 
+        // Toolbar rút gọn ở --narrow (8.8 [FD §4.2]): tab zoom ⇄ menu zoom, menu ⋮ của việc ít dùng, dải chú giải bật lại từ menu.
+        internal const string CalendarDepthZoomTabs = "liveops-hub-calendar-zoom-tabs";
+        internal const string CalendarDepthZoomMenu = "liveops-hub-calendar-zoom-menu";
+        internal const string CalendarDepthOverflowMenu = "liveops-hub-calendar-overflow-menu";
+        internal const string CalendarDepthTodayButton = "liveops-hub-calendar-today-button";
+
+        /// <summary>Dải chú giải được bật lại từ menu ⋮ tuy cửa sổ đang hẹp — thắng luật ẩn của <c>--narrow</c>.</summary>
+        internal const string CalendarDepthLegendShown = "liveops-hub-calendar-legend-shown";
+
         // Pane Danh sách [SD1 §3.12].
         internal const string CalendarDepthListTable = "liveops-hub-calendar-list-table";
         internal const string CalendarDepthListCell = "liveops-hub-calendar-list-cell";
@@ -38,6 +47,10 @@ namespace DreamTech.LiveOps.Editor
         internal const string CalendarDepthHoverKey = "liveops-hub-calendar-hover-key";
         internal const string CalendarDepthHoverValue = "liveops-hub-calendar-hover-value";
         internal const string CalendarDepthHoverProblem = "liveops-hub-calendar-hover-problem";
+
+        /// <summary>Hàng bọc dòng lỗi: dấu 12px + câu, [SD1 §3.8] "icon err 12 + blocked-text 10px".</summary>
+        internal const string CalendarDepthHoverProblemRow = "liveops-hub-calendar-hover-problem-row";
+        internal const string CalendarDepthHoverProblemMark = "liveops-hub-calendar-hover-problem-mark";
         internal const string CalendarDepthHoverFooter = "liveops-hub-calendar-hover-footer";
         internal const string CalendarDepthHoverPinnedRow = "liveops-hub-calendar-hover-pinned-row";
         internal const string CalendarDepthHoverCounter = "liveops-hub-calendar-hover-counter";

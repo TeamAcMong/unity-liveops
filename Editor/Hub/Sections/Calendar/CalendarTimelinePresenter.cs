@@ -433,6 +433,17 @@ namespace DreamTech.LiveOps.Editor
         public bool ApplyEdit(LiveEventCalendarEdit edit, LiveOpsEditOperation operation, string targetKey, string toastMessage,
             string toastTooltip)
         {
+            return ApplyEdit(edit, operation, targetKey, toastMessage, toastTooltip, string.Empty);
+        }
+
+        /// <summary>
+        /// Như trên, kèm TÊN BƯỚC ngắn cho toast sau ⌘Z (phiếu D-5). Câu toast của lệnh thường bắt đầu bằng "Đã …", mà toast sau
+        /// Undo in "Đã hoàn tác: " + tên bước — không truyền tên bước riêng thì người dùng đọc "Đã hoàn tác: Đã dán …".
+        /// </summary>
+        /// <param name="undoneStepName">"" = dùng lại câu toast (giữ nguyên hành vi cũ cho lệnh chưa có tên bước riêng).</param>
+        public bool ApplyEdit(LiveEventCalendarEdit edit, LiveOpsEditOperation operation, string targetKey, string toastMessage,
+            string toastTooltip, string undoneStepName)
+        {
             if (edit == null) return false;
             LiveOpsHubCalendarSession session = _services.Session;
             LiveEventCalendarDocument before = session.Document ?? LiveEventCalendarDocument.Empty;
@@ -449,7 +460,7 @@ namespace DreamTech.LiveOps.Editor
             }
             LiveOpsHubEditOutcome outcome = session.Apply(edit, toastMessage);
             if (!outcome.Applied) return false;
-            ToastRequested?.Invoke(LiveOpsToastModel.ForEdit(toastMessage, outcome.UndoGroup, toastTooltip));
+            ToastRequested?.Invoke(LiveOpsToastModel.ForEdit(toastMessage, outcome.UndoGroup, toastTooltip, undoneStepName));
             DocumentEdited?.Invoke();
             return true;
         }

@@ -216,6 +216,68 @@ namespace DreamTech.LiveOps.Editor.Tests
                 "ở --medium drawer PHỦ lên timeline, không đẩy trục hẹp lại [SD1 §3.9]");
         }
 
+        /// <summary>
+        /// Cửa sổ 820px: toolbar phải RÚT GỌN (8.8 [FD §4.2]) — ba tab zoom thành một menu, "Danh sách" / "Hôm nay (T)" rời thanh
+        /// vào menu ⋮, ô tìm 120px, dải chú giải nhường chỗ. Không có luật này thì ở 820px thanh bị cắt mất vế phải và nhãn
+        /// "Hôm nay (T" cụt đúng như ảnh h13 của lượt trước.
+        /// </summary>
+        [UnityTest]
+        public IEnumerator NarrowWindow_ToolbarIsCompact()
+        {
+            yield return OpenCalendarWith(LiveOpsHubTestServices.ForScenario(LiveOpsHubTestServices.DesignSampleScenario), 820, 560);
+            CalendarSection section = Calendar();
+            CalendarToolbar toolbar = section.Toolbar;
+
+            Assert.IsTrue(toolbar.IsNarrow, "820 < 900 nên toolbar ở dạng rút gọn");
+            Assert.AreEqual(DisplayStyle.None, toolbar.ZoomTabs.resolvedStyle.display, "tab zoom nhường chỗ cho menu");
+            Assert.AreEqual(DisplayStyle.Flex, toolbar.ZoomMenu.resolvedStyle.display, "menu zoom '3 tuần ▾' hiện");
+            Assert.AreEqual(DisplayStyle.Flex, toolbar.OverflowMenu.resolvedStyle.display, "menu ⋮ hiện");
+            Assert.AreEqual(DisplayStyle.None, toolbar.ListToggle.resolvedStyle.display, "'Danh sách' vào menu ⋮");
+            Assert.AreEqual(DisplayStyle.None, toolbar.TodayButton.resolvedStyle.display, "'Hôm nay (T)' vào menu ⋮");
+            Assert.AreEqual(120f, toolbar.SearchField.worldBound.width, 0.5f, "ô tìm 120px ở cửa sổ hẹp");
+            Assert.AreEqual(DisplayStyle.None, section.Timeline.Legend.resolvedStyle.display,
+                "dải chú giải ẩn khi hẹp — chỗ của nó là mục 'Chú giải' của menu ⋮");
+            Assert.IsFalse(toolbar.RangeMenu.text.Contains("2026"), "nhãn khoảng bỏ NĂM khi hẹp: " + toolbar.RangeMenu.text);
+        }
+
+        /// <summary>Mục "Chú giải" của menu ⋮ bật lại dải chú giải tuy cửa sổ vẫn hẹp — lý do mục đó tồn tại.</summary>
+        [UnityTest]
+        public IEnumerator NarrowWindow_LegendMenuItemShowsLegendAgain()
+        {
+            yield return OpenCalendarWith(LiveOpsHubTestServices.ForScenario(LiveOpsHubTestServices.DesignSampleScenario), 820, 560);
+            CalendarSection section = Calendar();
+
+            section.Toolbar.SetLegendVisible(true);
+            yield return null;
+
+            Assert.AreEqual(DisplayStyle.Flex, section.Timeline.Legend.resolvedStyle.display,
+                "bật mục 'Chú giải' thì dải hiện lại dù cửa sổ vẫn hẹp");
+        }
+
+        /// <summary>
+        /// Esc đóng drawer [SD1 §3.9] — tooltip nút đóng hứa "Đóng (Esc)", mà trước W5 chỉ có cái nút bấm được. Test bơm phím vào
+        /// NHÁNH PHÍM của gốc màn (không gọi thẳng hàm đóng) nên nó vẫn chứng minh điều kiện "drawer đang mở" và hành vi đóng;
+        /// gửi qua <c>SendEvent</c> thì 2022.3 dispatch theo element đang focus và test đỏ ở đúng một bản Unity.
+        /// </summary>
+        [UnityTest]
+        public IEnumerator NarrowWindow_EscapeClosesDrawer()
+        {
+            yield return OpenCalendarWith(LiveOpsHubTestServices.ForScenario(LiveOpsHubTestServices.DesignSampleScenario), 820, 560);
+            CalendarSection section = Calendar();
+            section.Presenter.SetSelectedBarKey(LiveOpsDesignSample.HuntBonusEntryKey);
+            yield return null;
+            Assert.IsTrue(section.IsInspectorDrawerOpen, "chọn một đợt ở cửa sổ hẹp = drawer mở");
+
+            using (KeyDownEvent escape = KeyDownEvent.GetPooled('\u001b', KeyCode.Escape, EventModifiers.None))
+            {
+                section.HandleRootKeyDownForTest(escape);
+            }
+            yield return null;
+
+            Assert.IsFalse(section.IsInspectorDrawerOpen, "Esc đóng drawer");
+            Assert.AreEqual(string.Empty, section.Presenter.SelectedBarKey, "đóng drawer = bỏ chọn đợt");
+        }
+
         // ------------------------------------------------------------------------------------------------ hover card + F8
 
         /// <summary>

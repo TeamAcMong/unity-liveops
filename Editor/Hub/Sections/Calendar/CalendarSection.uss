@@ -26,6 +26,52 @@
     flex-shrink: 0;
 }
 
+/* Toolbar rút gọn ở --narrow (8.8 [FD §4.2]) — dưới 900px thanh đủ bị cắt mất vế phải: tab zoom nhường chỗ cho menu "3 tuần ▾",
+   "Danh sách" / "Hôm nay (T)" / "Chú giải" vào menu ⋮, ô tìm còn 120px. Mọi phần tử vẫn ở trong cây: đổi theo class chứ không
+   dựng lại toolbar, nên kéo rộng cửa sổ ra là mọi trạng thái còn nguyên. */
+.liveops-hub-calendar-zoom-menu {
+    display: none;
+}
+
+.liveops-hub-calendar-overflow-menu {
+    display: none;
+}
+
+.liveops-hub--narrow .liveops-hub-calendar-zoom-tabs {
+    display: none;
+}
+
+.liveops-hub--narrow .liveops-hub-calendar-zoom-menu {
+    display: flex;
+}
+
+.liveops-hub--narrow .liveops-hub-calendar-overflow-menu {
+    display: flex;
+    flex-shrink: 0;
+}
+
+.liveops-hub--narrow .liveops-hub-calendar-list-toggle {
+    display: none;
+}
+
+.liveops-hub--narrow .liveops-hub-calendar-today-button {
+    display: none;
+}
+
+.liveops-hub--narrow .liveops-hub-calendar-search {
+    width: 120px;
+}
+
+/* Dải chú giải: ẩn khi hẹp (chỗ của nó là menu ⋮), hiện lại khi người dùng bật mục đó. Luật hai class nên nó thắng luật ẩn
+   một class ở trên mà không cần !important. */
+.liveops-hub--narrow .liveops-hub-timeline-legend {
+    display: none;
+}
+
+.liveops-hub--narrow .liveops-hub-timeline-legend.liveops-hub-calendar-legend-shown {
+    display: flex;
+}
+
 .liveops-hub-calendar-hidden-lanes-chip {
     flex-shrink: 0;
     font-size: 10px;
@@ -51,13 +97,8 @@
     overflow: hidden;
 }
 
-/* Inspector là sibling ngoài split nên bề rộng cố định giữ được; --medium (W5) đổi nó thành drawer phủ bên phải.
-   Luật bề rộng 280px khai Ở ĐÂY chứ không ở liveops-hub-components.uss: class dùng chung nhưng chưa gói nào viết luật cho nó,
-   và không có luật thì inspector co giãn theo nội dung — timeline bị bóp còn vài chục pixel [SD1 §3.9]. */
-.liveops-hub-inspector {
-    width: 280px;
-    flex-shrink: 0;
-}
+/* Bề rộng 280px của .liveops-hub-inspector nằm ở liveops-hub-components.uss (class DÙNG CHUNG): sheet này chỉ nạp khi màn Lịch
+   dựng, nên để luật ở đây thì mọi màn khác dùng class đó sau W5 sẽ không có bề rộng nào. Ở lại đây: biến thể drawer của màn Lịch. */
 
 /* Drawer ở --medium [SD1 §3.9]: inspector PHỦ bên phải thay vì bóp trục — ở 820px trục còn 616px, đủ 21 ngày ở 1,22 px/giờ.
    Luật hai class nên nó thắng luật một class ở trên mà không cần !important. */
@@ -341,10 +382,23 @@
     white-space: normal;
 }
 
+/* Dòng lỗi [SD1 §3.8]: dấu 12px canh trên rồi tới câu — dấu canh giữa sẽ trôi xuống khi câu xuống hai dòng. */
+.liveops-hub-calendar-hover-problem-row {
+    flex-direction: row;
+    align-items: flex-start;
+    margin-top: 3px;
+}
+
+.liveops-hub-calendar-hover-problem-mark {
+    align-self: flex-start;
+    margin-top: 2px;
+    margin-right: 4px;
+}
+
 .liveops-hub-calendar-hover-problem {
+    flex-shrink: 1;
     font-size: 10px;
     white-space: normal;
-    margin-top: 3px;
 }
 
 .liveops-hub-calendar-hover-pinned-row {

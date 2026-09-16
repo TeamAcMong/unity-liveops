@@ -19,6 +19,13 @@ namespace DreamTech.LiveOps.Editor
                 vietnamese: "Chưa có dấu đã đăng",
                 english: "No published stamp yet");
 
+            table.Add(nameof(LiveOpsHubStrings.CalendarDepthOverflowMenuTooltip),
+                vietnamese: "Lệnh khác của thanh công cụ",
+                english: "More toolbar commands");
+            table.Add(nameof(LiveOpsHubStrings.CalendarDepthLegendToggle),
+                vietnamese: "Chú giải",
+                english: "Legend");
+
             table.Add(nameof(LiveOpsHubStrings.CalendarDepthListColumnId),
                 vietnamese: "id",
                 english: "id");
@@ -96,6 +103,12 @@ namespace DreamTech.LiveOps.Editor
             table.Add(nameof(LiveOpsHubStrings.CalendarDepthMenuDuplicateFormat),
                 vietnamese: "Nhân bản sang {0} (+{1})…",
                 english: "Duplicate to {0} (+{1})…");
+            table.Add(nameof(LiveOpsHubStrings.CalendarDepthMenuDuplicateDisabled),
+                vietnamese: "Nhân bản…",
+                english: "Duplicate…");
+            table.Add(nameof(LiveOpsHubStrings.CalendarDepthMenuDuplicateUnreadableStartReason),
+                vietnamese: "giờ bắt đầu không đọc được",
+                english: "the start time cannot be read");
             table.Add(nameof(LiveOpsHubStrings.CalendarDepthMenuFrame),
                 vietnamese: "Căn khung",
                 english: "Frame");
@@ -179,6 +192,19 @@ namespace DreamTech.LiveOps.Editor
             table.Add(nameof(LiveOpsHubStrings.CalendarDepthMoveLaneDownToastFormat),
                 vietnamese: "Đã đưa làn {0} xuống",
                 english: "Moved the {0} lane down");
+
+            table.Add(nameof(LiveOpsHubStrings.CalendarDepthPasteUndoStepFormat),
+                vietnamese: "Dán {0}",
+                english: "Paste {0}");
+            table.Add(nameof(LiveOpsHubStrings.CalendarDepthMoveLaneUndoStepFormat),
+                vietnamese: "Đưa làn {0}",
+                english: "Move the {0} lane");
+            table.Add(nameof(LiveOpsHubStrings.CalendarDepthRevertUndoStepFormat),
+                vietnamese: "Hoàn {0} về bản đã đăng",
+                english: "Revert {0} to the published version");
+            table.Add(nameof(LiveOpsHubStrings.CalendarDepthTakeFromDiskUndoStepFormat),
+                vietnamese: "Lấy {0} từ bản trên đĩa",
+                english: "Take {0} from the version on disk");
         }
     }
 }

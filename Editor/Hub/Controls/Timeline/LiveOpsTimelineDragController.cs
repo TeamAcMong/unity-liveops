@@ -375,7 +375,16 @@ namespace DreamTech.LiveOps.Editor
         /// <summary>Bước bắt lưới đang hiệu lực: bước bơm từ khung nhìn nếu có, không thì bước tự động theo zoom.</summary>
         private TimeSpan EffectiveStep(LiveOpsTimelineGeometry geometry)
         {
-            return _snapStep ?? LiveOpsTimelineGeometry.AutoSnapStep(geometry.PixelsPerHour);
+            return EffectiveStepFor(geometry.PixelsPerHour);
+        }
+
+        /// <summary>
+        /// (nợ D-3(c)) Như trên nhưng chỉ cần độ phóng: element gọi cho giờ tại CON TRỎ và cho bước nhích bằng bàn phím, hai chỗ
+        /// trước đây tự tính bước theo zoom nên chọn "Bắt lưới: 1 ngày" xong nhấn → vẫn nhích 15 phút.
+        /// </summary>
+        public TimeSpan EffectiveStepFor(double pixelsPerHour)
+        {
+            return _snapStep ?? LiveOpsTimelineGeometry.AutoSnapStep(pixelsPerHour);
         }
 
         private void Reset()

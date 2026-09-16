@@ -226,6 +226,64 @@ namespace DreamTech.LiveOps.Editor.Tests
             Assert.AreEqual(otherEndBefore, OtherEndTextOf(services), "và KHÔNG đụng mục nào khác của nháp");
         }
 
+        /// <summary>
+        /// (phiếu D-5) Ba lệnh chiều sâu mới phải truyền TÊN BƯỚC riêng cho toast: câu toast bắt đầu bằng "Đã …", nên dùng lại nó
+        /// làm tên bước cho ra "Đã hoàn tác: Đã dán …" — đúng lỗi mà phiếu D-5 đã bắt ở đường kéo và sửa từ W4.
+        /// </summary>
+        [Test]
+        [Category(LiveOpsHubTestCategories.Logic)]
+        public void DepthCommandToasts_HaveOwnUndoStepNameSoUndoneReadsOnce()
+        {
+            LiveOpsHubServices services = CreateServices();
+            CalendarCommandHandler handler = CreateHandler(services, out CalendarTimelinePresenter presenter);
+            List<LiveOpsToastModel> toasts = new List<LiveOpsToastModel>();
+            presenter.ToastRequested += toast => toasts.Add(toast);
+
+            Assert.IsTrue(handler.CopyEventJson(LiveOpsDesignSample.HuntBonusEntryKey), "phải copy được thì mới dán được");
+            Assert.IsTrue(handler.PasteAt("treasure-hunt", new DateTime(2026, 9, 24, 0, 0, 0, DateTimeKind.Utc)));
+            Assert.IsTrue(handler.MoveLane(services.Session.Document.EventTypes[1].TypeId, MoveLaneIntent.Up));
+            Assert.IsTrue(services.Session.Document.TryGetFixedEvent(LiveOpsDesignSample.LavaQuestMidEntryKey,
+                out FixedLiveEventEntry original));
+            presenter.ApplyEdit(new ReplaceFixedEventEdit(original.WithTimes(original.StartUtcText, "2026-09-25T00:00:00Z")),
+                LiveOpsEditOperation.ChangeFixedEventTimes, original.EntryKey, "test", string.Empty);
+            Assert.IsTrue(handler.RevertToCompare(LiveOpsDesignSample.LavaQuestMidEntryKey));
+
+            List<LiveOpsToastModel> withUndo = new List<LiveOpsToastModel>();
+            for (int index = 0; index < toasts.Count; index++)
+            {
+                if (toasts[index].HasUndo) withUndo.Add(toasts[index]);
+            }
+            Assert.GreaterOrEqual(withUndo.Count, 3, "dán, đưa làn và hoàn về bản so đều là một bước Undo");
+            for (int index = 0; index < withUndo.Count; index++)
+            {
+                LiveOpsToastModel undone = withUndo[index].AsUndone();
+                if (withUndo[index].UndoneStepName.Length == 0) continue;
+                StringAssert.DoesNotContain(LiveOpsHubStrings.KitToastUndonePrefix + "Đã", undone.DisplayMessage,
+                    "toast sau ⌘Z không được đọc hai lần 'Đã': " + undone.DisplayMessage);
+            }
+            Assert.AreEqual(string.Format(System.Globalization.CultureInfo.InvariantCulture,
+                    LiveOpsHubStrings.CalendarDepthPasteUndoStepFormat, PastedEventIdOf(services)), PasteToastOf(toasts).UndoneStepName,
+                "toast Dán mang đúng tên bước ngắn của chính nó");
+        }
+
+        /// <summary>Toast của lệnh Dán = toast đầu tiên có bước Undo sau lệnh copy (copy chỉ là toast Info, không có Undo).</summary>
+        private static LiveOpsToastModel PasteToastOf(IReadOnlyList<LiveOpsToastModel> toasts)
+        {
+            for (int index = 0; index < toasts.Count; index++)
+            {
+                if (toasts[index].HasUndo) return toasts[index];
+            }
+            Assert.Fail("không có toast nào mang bước Undo");
+            return null;
+        }
+
+        /// <summary>Id của đợt vừa dán = đợt cố định cuối cùng của nháp (lệnh Dán thêm vào cuối).</summary>
+        private static string PastedEventIdOf(LiveOpsHubServices services)
+        {
+            IReadOnlyList<FixedLiveEventEntry> entries = services.Session.Document.FixedEvents;
+            return entries[entries.Count - 1].EventId;
+        }
+
         private static FixedLiveEventEntry BaselineOf(LiveOpsHubServices services, string eventId)
         {
             LiveEventCalendarDocument compare = services.Session.Publish.CompareDocument;

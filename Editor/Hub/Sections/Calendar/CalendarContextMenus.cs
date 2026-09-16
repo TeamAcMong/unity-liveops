@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using UnityEditor;
+using UnityEngine;
 using UnityEngine.UIElements;
 
 namespace DreamTech.LiveOps.Editor
@@ -20,6 +22,12 @@ namespace DreamTech.LiveOps.Editor
         private const string PasteShortcutId = "Main Menu/Edit/Paste";
         private const string DeleteShortcutId = "Main Menu/Edit/Delete";
         private const string FrameShortcutId = "Main Menu/Edit/Frame Selected";
+
+        /// <summary>Dấu phân cấp của <see cref="GenericMenu"/> — mọi '/' trong nhãn sẽ bẻ mục thành menu con.</summary>
+        private const char MenuPathSeparator = '/';
+
+        /// <summary>U+2215 DIVISION SLASH — thay chỗ cho '/' trong nhãn menu; cùng hình, không phải dấu phân cấp.</summary>
+        private const char MenuSafeSlash = '\u2215';
 
         /// <summary>Menu của một thanh đợt CỐ ĐỊNH [FD §3.9] — chín mục, thứ tự đúng mockup.</summary>
         public static IReadOnlyList<CalendarMenuItem> ForFixedBar(CalendarMenuContext context)
@@ -53,6 +61,9 @@ namespace DreamTech.LiveOps.Editor
                     LiveOpsHubStrings.CalendarDepthMenuOpenRuleFormat, context.LaneTypeId)),
                 WithShortcut(CalendarMenuItemId.Frame, LiveOpsHubStrings.CalendarDepthMenuFrame, FrameShortcutId),
                 Enabled(CalendarMenuItemId.CopyId, LiveOpsHubStrings.CalendarDepthMenuCopyId),
+                // [SD1 §3.8] Hình 12 khung 10 vẽ một mục ngăn cách TRƯỚC dòng "Không sửa được": ba mục trên là việc làm được,
+                // dòng dưới chỉ giải thích — dính liền nhau thì nó đọc như mục thứ tư bị hỏng.
+                Separator(),
                 Disabled(CalendarMenuItemId.RecurringReadOnly, LiveOpsHubStrings.CalendarDepthMenuRecurringReadOnly, string.Empty),
             };
         }
@@ -117,9 +128,54 @@ namespace DreamTech.LiveOps.Editor
             }
         }
 
+        /// <summary>
+        /// Đổ danh sách mục vào <see cref="GenericMenu"/> (menu gốc của Editor). Nhãn đi qua <see cref="EscapeMenuLabel"/> vì
+        /// <see cref="GenericMenu"/> coi '/' là dấu PHÂN CẤP: nhãn "Nhân bản sang 24/9 00:00…" sẽ bị bẻ thành menu con
+        /// "Nhân bản sang 24" ▸ "9 00:00…". Lớp này là nơi duy nhất dựng menu thật, nên test chạm được đúng đường màn dùng.
+        /// </summary>
+        public static void PopulateGenericMenu(GenericMenu menu, IReadOnlyList<CalendarMenuItem> items,
+            Action<CalendarMenuItemId> activate)
+        {
+            if (menu == null) throw new ArgumentNullException(nameof(menu));
+            if (items == null) throw new ArgumentNullException(nameof(items));
+            for (int index = 0; index < items.Count; index++)
+            {
+                CalendarMenuItem item = items[index];
+                if (item.IsSeparator)
+                {
+                    menu.AddSeparator(string.Empty);
+                    continue;
+                }
+                GUIContent content = new GUIContent(EscapeMenuLabel(item.Text));
+                if (!item.IsEnabled)
+                {
+                    menu.AddDisabledItem(content);
+                    continue;
+                }
+                CalendarMenuItemId id = item.Id;
+                menu.AddItem(content, false, () => activate?.Invoke(id));
+            }
+        }
+
+        /// <summary>
+        /// Nhãn an toàn cho <see cref="GenericMenu"/>: '/' đổi thành U+2215 DIVISION SLASH, glyph nhìn y hệt nhưng không phải dấu
+        /// phân cấp của menu. Không đổi <see cref="LiveOpsHubFormat"/> vì "16/9 12:00" là dạng ngày giờ của CẢ hub [SD1 §3.13] —
+        /// chỗ duy nhất phải né là menu gốc của Unity.
+        /// </summary>
+        internal static string EscapeMenuLabel(string text)
+        {
+            return string.IsNullOrEmpty(text) ? string.Empty : text.Replace(MenuPathSeparator, MenuSafeSlash);
+        }
+
         private static CalendarMenuItem DuplicateItem(CalendarMenuContext context)
         {
-            if (!context.CanDuplicate) return Disabled(CalendarMenuItemId.Duplicate, LiveOpsHubStrings.CalendarDepthMenuDuplicateFormat, string.Empty);
+            // Nhánh khoá dùng nhãn RIÊNG không có chỗ giữ chỗ: đẩy thẳng khuôn "{0}/{1}" vào menu in ra đúng dấu ngoặc nhọn cho
+            // người dùng đọc. Lý do in thành chữ (SPIKE-B SP-3) — nhánh này chỉ chạm tới khi giờ bắt đầu của đợt không đọc được.
+            if (!context.CanDuplicate)
+            {
+                return Disabled(CalendarMenuItemId.Duplicate, LiveOpsHubStrings.CalendarDepthMenuDuplicateDisabled,
+                    LiveOpsHubStrings.CalendarDepthMenuDuplicateUnreadableStartReason);
+            }
             string text = string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.CalendarDepthMenuDuplicateFormat,
                 context.DuplicateTargetText, context.DuplicateOffsetText);
             return WithShortcut(CalendarMenuItemId.Duplicate, text, DuplicateShortcutId);

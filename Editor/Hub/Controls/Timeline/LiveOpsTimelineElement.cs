@@ -525,20 +525,14 @@ namespace DreamTech.LiveOps.Editor
         }
 
         /// <summary>
-        /// Khoảng đang xem cho dòng gợi ý làn trống — dạng ngắn "14/9 → 19/9" đúng [SD1 §3.8 khung 13].
-        /// <see cref="LiveOpsHubFormat"/> chỉ phơi ra dạng có giờ ("14/9 00:00") và dạng có năm ("14/9/2026"); gợi ý của khung 13
-        /// không có giờ và không có năm, nên ngày/tháng ghép tại chỗ thay vì thêm thành viên vào một file của gói khác.
+        /// Khoảng đang xem cho dòng gợi ý làn trống — dạng ngắn "14/9 → 19/9" đúng [SD1 §3.8 khung 13]. Ngày/tháng đi qua
+        /// <see cref="LiveOpsHubFormat.DayMonthText"/>: thứ tự ngày/tháng và dấu phân cách là quyết định định dạng của CẢ hub
+        /// [FD §6.1], ghép tay ở đây là khoá cứng nó ngoài tầm bản dịch.
         /// </summary>
         private string RangeTextForHint()
         {
             return string.Format(System.Globalization.CultureInfo.InvariantCulture, LiveOpsHubStrings.TimelineHintRangeFormat,
-                DayMonthText(_rangeStartUtc), DayMonthText(RangeEndUtc));
-        }
-
-        private static string DayMonthText(DateTime utc)
-        {
-            System.Globalization.CultureInfo invariant = System.Globalization.CultureInfo.InvariantCulture;
-            return utc.Day.ToString(invariant) + "/" + utc.Month.ToString(invariant);
+                LiveOpsHubFormat.DayMonthText(_rangeStartUtc), LiveOpsHubFormat.DayMonthText(RangeEndUtc));
         }
 
         private void RaiseRangeChanged()
@@ -546,10 +540,18 @@ namespace DreamTech.LiveOps.Editor
             RangeChanged?.Invoke(_rangeStartUtc, RangeEndUtc);
         }
 
+        /// <summary>
+        /// (nợ D-3(c)) Giờ tại con trỏ, bắt theo BƯỚC LƯỚI CỦA KHUNG NHÌN (menu "Bắt lưới" của toolbar), không theo bước tự động
+        /// của zoom. Giờ này đi thẳng vào nhãn menu "Thêm đợt bắt đầu … UTC…" và vào <c>PasteAtTimeIntent</c>, nên bắt bằng một
+        /// bước khác với lúc kéo là hai đường cùng một thao tác cho ra hai giờ.
+        /// "Tắt" (bước ≤ 0) = không bắt lưới gì cả.
+        /// </summary>
         private DateTime SnappedTimeAt(float trackPosition)
         {
             LiveOpsTimelineGeometry geometry = CurrentGeometry();
-            return LiveOpsTimelineGeometry.Snap(geometry.TimeAt(trackPosition), LiveOpsTimelineGeometry.AutoSnapStep(geometry.PixelsPerHour));
+            DateTime timeUtc = geometry.TimeAt(trackPosition);
+            TimeSpan step = DragController.EffectiveStepFor(geometry.PixelsPerHour);
+            return step <= TimeSpan.Zero ? timeUtc : LiveOpsTimelineGeometry.Snap(timeUtc, step);
         }
 
         private LiveOpsTimelineGeometry CurrentGeometry()
@@ -1011,7 +1013,11 @@ namespace DreamTech.LiveOps.Editor
             bool startEdgeOnly = alt && shift;
             bool endEdgeOnly = alt && !shift;
             if (model.IsRunning && !endEdgeOnly) return true;
-            TimeSpan step = shift && !alt ? TimeSpan.FromDays(1) : LiveOpsTimelineGeometry.AutoSnapStep(_pixelsPerHour);
+            // (nợ D-3(c)) Nhích bàn phím dùng CÙNG bước lưới với cử chỉ kéo. "Tắt" không có nghĩa cho phím mũi tên (bước 0 =
+            // không nhích được), nên chỉ ở nhánh đó mới rơi về bước tự động theo zoom.
+            TimeSpan snapStep = DragController.EffectiveStepFor(_pixelsPerHour);
+            if (snapStep <= TimeSpan.Zero) snapStep = LiveOpsTimelineGeometry.AutoSnapStep(_pixelsPerHour);
+            TimeSpan step = shift && !alt ? TimeSpan.FromDays(1) : snapStep;
             long offset = step.Ticks * direction;
             DateTime start = model.StartUtc;
             DateTime end = model.EndUtc;
