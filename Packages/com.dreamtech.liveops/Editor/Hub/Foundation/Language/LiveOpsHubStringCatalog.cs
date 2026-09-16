@@ -10,9 +10,11 @@ namespace DreamTech.LiveOps.Editor
     /// đăng ký ở <c>LiveOpsHubStringCatalog.&lt;Vùng&gt;.cs</c> của vùng đó nên hai gói chạy song song không cùng sửa một file.
     /// </para>
     /// <para>
-    /// Thứ tự tra: ngôn ngữ đang chọn → tiếng Việt (bản gốc, luôn đủ) → tiếng Anh → <c>⟨khoá⟩</c>. Rơi về bản gốc thay vì trả
-    /// rỗng vì thiếu chữ là lỗi lập trình nhưng cửa sổ vẫn phải dựng được — người dùng cần thấy chỗ hỏng, không phải một ô trắng.
-    /// Test liệt kê mọi khoá chưa dịch; không khoá nào được rơi tới nhánh <c>⟨</c>.
+    /// Thứ tự tra (§1.3): ngôn ngữ đang chọn → English (ngôn ngữ mặc định của hub) → ngôn ngữ nào còn chữ → <c>⟨khoá⟩</c>.
+    /// Dự phòng là English chứ không phải bản gốc tiếng Việt: người đang đọc tiếng Anh gặp một câu tiếng Việt thì không hiểu,
+    /// còn người đọc tiếng Việt gặp câu tiếng Anh thì vẫn lần ra được. Rơi về chữ khác thay vì trả rỗng vì thiếu chữ là lỗi lập
+    /// trình nhưng cửa sổ vẫn phải dựng được — người dùng cần thấy chỗ hỏng, không phải một ô trắng. Test chặn mọi khoá thiếu
+    /// một trong hai bản, nên nhánh dự phòng chỉ còn là lưới an toàn.
     /// </para>
     /// </summary>
     internal static partial class LiveOpsHubStringCatalog
@@ -20,17 +22,27 @@ namespace DreamTech.LiveOps.Editor
         internal const string MissingTextOpenMark = "⟨";
         internal const string MissingTextCloseMark = "⟩";
 
-        /// <summary>Bản gốc: ngôn ngữ mọi câu được viết ra lần đầu, và là chỗ tra dự phòng khi ngôn ngữ đang chọn chưa có chữ.</summary>
+        /// <summary>Bản gốc: ngôn ngữ mọi câu được viết ra lần đầu (bản tiếng Anh dịch từ đây).</summary>
         internal const LiveOpsHubLanguageId SourceLanguage = LiveOpsHubLanguageId.Vietnamese;
+
+        /// <summary>Chỗ tra dự phòng khi ngôn ngữ đang chọn chưa có chữ — English vì đó là ngôn ngữ mặc định của hub (§1.3).</summary>
+        internal const LiveOpsHubLanguageId FallbackLanguage = LiveOpsHubLanguageId.English;
 
         private static LiveOpsHubStringTable _table;
 
         internal static string Text(string key)
         {
-            LiveOpsHubStringTable table = Table;
+            return Resolve(Table, key);
+        }
+
+        /// <summary>Đúng thứ tự tra của <see cref="Text"/> nhưng trên một bảng truyền vào — test soi được nhánh dự phòng mà
+        /// không phải làm hỏng bảng thật đang dựng cửa sổ.</summary>
+        internal static string Resolve(LiveOpsHubStringTable table, string key)
+        {
+            if (table == null) return MissingTextOpenMark + key + MissingTextCloseMark;
             string text;
             if (table.TryGet(LiveOpsHubLanguage.Current, key, out text)) return text;
-            if (table.TryGet(SourceLanguage, key, out text)) return text;
+            if (table.TryGet(FallbackLanguage, key, out text)) return text;
             foreach (LiveOpsHubLanguageId language in LiveOpsHubLanguage.Available)
             {
                 if (table.TryGet(language, key, out text)) return text;
