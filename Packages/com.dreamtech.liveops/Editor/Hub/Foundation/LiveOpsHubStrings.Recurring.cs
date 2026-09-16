@@ -19,6 +19,9 @@ namespace DreamTech.LiveOps.Editor
         internal static string RecurringNoAssetTitle => LiveOpsHubStringCatalog.Text(nameof(RecurringNoAssetTitle));
         internal static string RecurringNoAssetBody => LiveOpsHubStringCatalog.Text(nameof(RecurringNoAssetBody));
 
+        /// <summary>Nút bước tiếp của ca "chưa có asset" (mục 7 luật chung: trống phải có chỗ đi tiếp, không chỉ có lý do).</summary>
+        internal static string RecurringNoAssetActionButton => LiveOpsHubStringCatalog.Text(nameof(RecurringNoAssetActionButton));
+
         /// <summary>UXML của màn thiếu trên đĩa = package hỏng: card lỗi của khung nêu đúng đường dẫn (8.1 bước 2).</summary>
         internal static string RecurringMissingLayoutFormat => LiveOpsHubStringCatalog.Text(nameof(RecurringMissingLayoutFormat));
 
@@ -90,10 +93,22 @@ namespace DreamTech.LiveOps.Editor
         internal static string RecurringComputingNote => LiveOpsHubStringCatalog.Text(nameof(RecurringComputingNote));
         internal static string RecurringOccurrenceLimitNoteFormat => LiveOpsHubStringCatalog.Text(nameof(RecurringOccurrenceLimitNoteFormat));
 
+        /// <summary>
+        /// Vì sao bảng có 0 đợt: luật đang lỗi nên game bỏ hẳn nó. Không có câu này thì card "0 đợt kế tiếp" trông như
+        /// một kết quả đạt, đúng cái luật trạng thái trống của mục 7 cấm.
+        /// </summary>
+        internal static string RecurringOccurrencesEmptyReason => LiveOpsHubStringCatalog.Text(nameof(RecurringOccurrencesEmptyReason));
+
         // Luồng hai bước [SD1 §4.2]: bước 1 là nháp tại ô, Main.asset chưa đổi nên các màn khác vẫn thấy giá trị cũ.
         internal static string RecurringDraftNoticeFormat => LiveOpsHubStringCatalog.Text(nameof(RecurringDraftNoticeFormat));
         internal static string RecurringPrefixConsequenceFormat => LiveOpsHubStringCatalog.Text(nameof(RecurringPrefixConsequenceFormat));
         internal static string RecurringIdentityConsequenceFormat => LiveOpsHubStringCatalog.Text(nameof(RecurringIdentityConsequenceFormat));
+
+        /// <summary>
+        /// Ca "không đợt nào thay chỗ": luật mới không sinh lần lặp nào đang chạy lúc này (neo/chu kỳ dời vào khoảng nghỉ,
+        /// hoặc luật mới không hợp lệ nên game bỏ hẳn). Nói thẳng đợt biến mất, thay vì in một id rỗng vào câu "sẽ mang id …".
+        /// </summary>
+        internal static string RecurringNoReplacementConsequenceFormat => LiveOpsHubStringCatalog.Text(nameof(RecurringNoReplacementConsequenceFormat));
         internal static string RecurringActiveHoursConsequenceFormat => LiveOpsHubStringCatalog.Text(nameof(RecurringActiveHoursConsequenceFormat));
         internal static string RecurringDraftCancelButton => LiveOpsHubStringCatalog.Text(nameof(RecurringDraftCancelButton));
         internal static string RecurringDraftWritePrefixButton => LiveOpsHubStringCatalog.Text(nameof(RecurringDraftWritePrefixButton));
@@ -105,6 +120,9 @@ namespace DreamTech.LiveOps.Editor
         // Bước 2: hộp xác nhận (cấp 2 gõ tên với đổi id, cấp 1 với rút ngắn thời gian chạy).
         internal static string RecurringConfirmPrefixTitle => LiveOpsHubStringCatalog.Text(nameof(RecurringConfirmPrefixTitle));
         internal static string RecurringConfirmPrefixBodyFormat => LiveOpsHubStringCatalog.Text(nameof(RecurringConfirmPrefixBodyFormat));
+
+        /// <summary>Thân hộp của ca "không đợt nào thay chỗ" — cùng lý do với <see cref="RecurringNoReplacementConsequenceFormat"/>.</summary>
+        internal static string RecurringConfirmNoReplacementBodyFormat => LiveOpsHubStringCatalog.Text(nameof(RecurringConfirmNoReplacementBodyFormat));
         internal static string RecurringConfirmPrefixDestructive => LiveOpsHubStringCatalog.Text(nameof(RecurringConfirmPrefixDestructive));
         internal static string RecurringConfirmPrefixSafe => LiveOpsHubStringCatalog.Text(nameof(RecurringConfirmPrefixSafe));
         internal static string RecurringConfirmPrefixKeyHint => LiveOpsHubStringCatalog.Text(nameof(RecurringConfirmPrefixKeyHint));

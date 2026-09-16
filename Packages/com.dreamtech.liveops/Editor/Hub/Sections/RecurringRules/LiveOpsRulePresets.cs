@@ -47,6 +47,9 @@ namespace DreamTech.LiveOps.Editor
         public static IReadOnlyList<LiveOpsRulePresetLibrary.Preset> Resolve()
         {
             List<LiveOpsRulePresetLibrary.Preset> presets = new List<LiveOpsRulePresetLibrary.Preset>();
+            // Tên hiển thị là thứ DUY NHẤT dropdown cho người dùng thấy: hai mẫu trùng tên thì mẫu sau không có cách nào
+            // chọn được (ô chỉ giữ chuỗi), nên bỏ nó đi còn thật hơn là để một mục bấm vào lại ra mẫu khác.
+            HashSet<string> usedDisplayNames = new HashSet<string>(StringComparer.Ordinal);
             string[] guids = AssetDatabase.FindAssets(PresetLibraryFilter);
             for (int index = 0; index < guids.Length; index++)
             {
@@ -58,10 +61,16 @@ namespace DreamTech.LiveOps.Editor
                 for (int presetIndex = 0; presetIndex < libraryPresets.Count; presetIndex++)
                 {
                     LiveOpsRulePresetLibrary.Preset preset = libraryPresets[presetIndex];
-                    if (preset != null && preset.IsUsable) presets.Add(preset);
+                    if (preset == null || !preset.IsUsable) continue;
+                    if (!usedDisplayNames.Add(preset.DisplayName)) continue;
+                    presets.Add(preset);
                 }
             }
-            presets.AddRange(BuiltIn);
+            IReadOnlyList<LiveOpsRulePresetLibrary.Preset> builtIn = BuiltIn;
+            for (int index = 0; index < builtIn.Count; index++)
+            {
+                if (usedDisplayNames.Add(builtIn[index].DisplayName)) presets.Add(builtIn[index]);
+            }
             return presets;
         }
 

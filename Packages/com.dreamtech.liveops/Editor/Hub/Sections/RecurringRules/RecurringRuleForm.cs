@@ -83,6 +83,9 @@ namespace DreamTech.LiveOps.Editor
             AddFieldRow(RecurringRuleFields.ActiveHours, LiveOpsHubStrings.RecurringActiveHoursLabel, _activeField, true);
 
             _prefixField.AddToClassList(LiveOpsHubClassNames.Mono);
+            // Dòng giờ máy của chính ô sẽ dùng lệch mặc định 0 (ô không biết múi giờ của phiên) và in "00:00 … giờ máy" sai.
+            // Chữ phụ đúng — kèm thứ trong tuần — do model dựng bằng LiveOpsHubFormat của services ([SD1 §4.1]).
+            _anchorField.ShowDeviceTimeLine = false;
             _periodField.AddToClassList(LiveOpsHubClassNames.RecurringFieldNumber);
             _activeField.AddToClassList(LiveOpsHubClassNames.RecurringFieldNumber);
             // Loại khoá sau khi tạo (mục 7.4): đổi loại là một luật khác hẳn, nên đường duy nhất là "Thêm luật".
@@ -188,6 +191,7 @@ namespace DreamTech.LiveOps.Editor
         internal IntegerField PeriodField => _periodField;
         internal IntegerField ActiveField => _activeField;
         internal LiveOpsUtcDateTimeField AnchorField => _anchorField;
+        internal DropdownField PresetField => _presetField;
         internal Foldout JsonFoldout => _jsonFoldout;
         internal VisualElement DraftBlock => _draftBlock;
         internal VisualElement AfterWriteBlock => _afterWriteBlock;
@@ -243,7 +247,7 @@ namespace DreamTech.LiveOps.Editor
             BindAfterWriteBlock();
 
             _jsonText.text = jsonText ?? string.Empty;
-            _occurrences.SetRows(_model.NextOccurrences, occurrencesSubtitle, atOccurrenceLimit);
+            _occurrences.SetRows(_model.NextOccurrences, occurrencesSubtitle, atOccurrenceLimit, _model.OccurrencesEmptyReason);
         }
 
         /// <summary>Chuyển focus tới một field (bấm token trong câu đọc).</summary>
@@ -263,7 +267,7 @@ namespace DreamTech.LiveOps.Editor
             if (rule.TryGetAnchorUtc(out anchorUtc))
             {
                 _anchorField.SetValueWithoutNotify(anchorUtc);
-                SetSuffix(RecurringRuleFields.Anchor, string.Empty);
+                SetSuffix(RecurringRuleFields.Anchor, _model.AnchorDeviceLine);
                 return;
             }
             // Giờ không đọc được giữ NGUYÊN VĂN trong ô: sửa hộ người dùng là làm mất bằng chứng của chỗ hỏng.
@@ -411,17 +415,16 @@ namespace DreamTech.LiveOps.Editor
             _sentence.SetFocusedField(string.Empty);
         }
 
+        /// <summary>
+        /// Chọn mẫu theo CHỈ SỐ của dropdown, không dò theo tên hiển thị: hai thư viện mẫu của dự án được phép đặt trùng
+        /// <c>DisplayName</c>, và dò theo chuỗi thì mẫu thứ hai không bao giờ áp được. Chỉ số cuối là "Tùy chỉnh…" — không áp gì.
+        /// </summary>
         private void OnPresetChanged(ChangeEvent<string> changeEvent)
         {
             if (PresetSelected == null) return;
-            for (int index = 0; index < _presetNames.Count; index++)
-            {
-                if (string.Equals(_presetNames[index], changeEvent.newValue, StringComparison.Ordinal))
-                {
-                    PresetSelected(index);
-                    return;
-                }
-            }
+            int presetIndex = _presetField.index;
+            if (presetIndex < 0 || presetIndex >= _presetNames.Count) return;
+            PresetSelected(presetIndex);
         }
 
         private void RequestChange(string fieldName, Func<RecurringLiveEventRule, RecurringLiveEventRule> apply)

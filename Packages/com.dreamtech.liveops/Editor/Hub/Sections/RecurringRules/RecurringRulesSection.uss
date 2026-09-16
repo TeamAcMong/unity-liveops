@@ -4,6 +4,43 @@
     margin, hàng cuối bằng class liveops-hub-row--last bật từ C#, breakpoint bằng class --medium/--narrow trên root.
 */
 
+/* ---------------------------------------------------------------- Câu token đọc được [SD1 §4.1] */
+
+/* Câu, không phải danh sách nút: hàng ngang + wrap để bốn token nằm trong MỘT câu. USS không có line-height nên
+   "11px / line-height 20" của thiết kế viết thành min-height 20 + căn giữa theo trục dọc. */
+.liveops-hub-rule-sentence {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    min-height: 20px;
+    font-size: 11px;
+    margin-bottom: 8px;
+}
+
+/* Token là Button nhưng phải ĐỌC như chữ: bỏ margin/viền mặc định của Button, chỉ còn nền --def + bo 2, padding 0 3.
+   Viền của --highlighted bù lại bằng padding 0 2 nên bật viền không làm câu nhảy một pixel. */
+.liveops-hub-rule-token {
+    height: 16px;
+    margin: 0;
+    padding: 0 3px;
+    border-width: 0;
+    border-radius: 2px;
+    background-color: var(--unity-colors-default-background);
+    font-size: 11px;
+    -unity-text-align: middle-center;
+}
+
+.liveops-hub-rule-token--highlighted {
+    border-width: 1px;
+    border-color: var(--liveops-hub-color-focus);
+    padding: 0 2px;
+}
+
+/* Token đang gây hậu quả "người chơi mất tiến độ" đổi CHỮ (không đổi nền): nền warning trong một câu chữ đọc thành lỗi. */
+.liveops-hub-rule-token--warning {
+    color: var(--liveops-hub-color-warning-text);
+}
+
 /* ---------------------------------------------------------------- Bố cục hai pane */
 
 .liveops-hub-recurring-split {
@@ -11,13 +48,20 @@
     flex-grow: 1;
 }
 
-/* Pane trái cố định 240px: danh sách luật là cột điều hướng, không co theo nội dung. */
+/* Pane trái cố định 240px: danh sách luật là cột điều hướng, không co theo nội dung. flex-grow 1 để viền phải chạy
+   SUỐT chiều cao — viền chỉ cao bằng mấy hàng thì hai pane trông như dính vào nhau ([SD1 §4.1] "pane trái 240px (viền phải)"). */
 .liveops-hub-recurring-list {
     width: 240px;
     min-width: 240px;
+    flex-grow: 1;
     border-right-width: 1px;
     border-right-color: var(--unity-colors-window-border);
     padding: 6px 0;
+}
+
+/* ScrollView bên trong giãn theo pane; cuộn ngang đã tắt từ C# nên chỗ này chỉ lo chiều cao. */
+.liveops-hub-recurring-list-scroll {
+    flex-grow: 1;
 }
 
 .liveops-hub-recurring-form-scroll {
@@ -57,15 +101,29 @@
     color: var(--liveops-hub-color-on-selection);
 }
 
+/* Căn trái ghi rõ: hàng là một Button, mà Button của Unity căn giữa và NHẢ xuống con — không ghi thì chữ bị cắt cả hai đầu. */
 .liveops-hub-recurring-list-name {
     flex-grow: 1;
+    flex-shrink: 1;
+    overflow: hidden;
     margin-left: 6px;
+    -unity-text-align: middle-left;
+    white-space: nowrap;
+    text-overflow: ellipsis;
 }
 
+/* Meta là thứ ĐƯỢC PHÉP cắt khi pane hẹp: cắt nó thì dấu mức ở cuối hàng còn chỗ, chứ meta dài đẩy dấu ra ngoài
+   tầm nhìn thì người dùng mất đúng thứ nói "luật này có vấn đề". Mặc định của UI Toolkit là flex-shrink 0 nên phải ghi rõ. */
 .liveops-hub-recurring-list-meta {
     font-size: 10px;
     opacity: 0.82;
-    margin-left: 6px;
+    margin: 0 4px 0 6px;
+    /* Co gấp 4 lần tên luật: tên là DANH TÍNH (người dùng tìm hàng theo nó), meta chỉ là nhịp — cắt meta trước. */
+    flex-shrink: 4;
+    overflow: hidden;
+    -unity-text-align: middle-left;
+    white-space: nowrap;
+    text-overflow: ellipsis;
 }
 
 /* ---------------------------------------------------------------- Field */
@@ -232,6 +290,21 @@
     flex-grow: 1;
 }
 
+/* Tag "đổi id" cao 15 ([SD1 §4.1]) — thấp hơn tag chung 18 vì nó nằm trong một hàng bảng cao 20. */
+.liveops-hub-recurring-id-change-tag {
+    flex-direction: row;
+    align-items: center;
+    height: 15px;
+    margin-left: 6px;
+    padding: 0 4px;
+}
+
+/* Câu "vì sao bảng trống" của card đợt kế tiếp — cùng hàng chữ phụ với "đang tính…". */
+.liveops-hub-recurring-occurrences-empty {
+    white-space: normal;
+    padding: 4px 6px;
+}
+
 /* ---------------------------------------------------------------- Popover Thêm luật và foldout JSON */
 
 .liveops-hub-recurring-add {
@@ -259,4 +332,12 @@
 .liveops-hub-recurring-json-actions {
     flex-direction: row;
     margin-top: 4px;
+}
+
+/* ---------------------------------------------------------------- Trạng thái trống: nút bước tiếp */
+
+/* Nút nằm dưới hai dòng chữ của liveops-hub-empty (mục 7: "trống = vì sao · nút bước tiếp"). */
+.liveops-hub-recurring-empty-action {
+    margin: 8px 0 0 0;
+    align-self: flex-start;
 }

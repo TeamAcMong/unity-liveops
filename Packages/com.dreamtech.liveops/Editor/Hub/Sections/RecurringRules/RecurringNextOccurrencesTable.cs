@@ -20,11 +20,13 @@ namespace DreamTech.LiveOps.Editor
         internal const string RowsElementName = "recurring-occurrences-rows";
         internal const string AddMoreElementName = "recurring-occurrences-add-more";
         internal const string ComputingElementName = "recurring-occurrences-computing";
+        internal const string EmptyReasonElementName = "recurring-occurrences-empty";
 
         private readonly Label _title;
         private readonly Label _subtitle;
         private readonly VisualElement _rows;
         private readonly Label _computing;
+        private readonly Label _emptyReason;
         private readonly Button _addMore;
         private readonly Label _limitNote;
 
@@ -52,6 +54,11 @@ namespace DreamTech.LiveOps.Editor
             _computing.AddToClassList(LiveOpsHubClassNames.Caption);
             Add(_computing);
 
+            _emptyReason = new Label { name = EmptyReasonElementName };
+            _emptyReason.AddToClassList(LiveOpsHubClassNames.Caption);
+            _emptyReason.AddToClassList(LiveOpsHubClassNames.RecurringOccurrencesEmpty);
+            Add(_emptyReason);
+
             VisualElement foot = new VisualElement();
             foot.AddToClassList(LiveOpsHubClassNames.RecurringOccurrencesFoot);
             _addMore = new Button(RaiseAddMore) { name = AddMoreElementName };
@@ -74,8 +81,12 @@ namespace DreamTech.LiveOps.Editor
 
         public int RowCount => _rows.childCount;
 
-        /// <summary>Chân card: nút "Thêm 5" tắt kèm câu "Đã hiện tối đa 50 đợt" khi chạm trần.</summary>
-        public void SetRows(IReadOnlyList<RecurringOccurrenceRow> rows, string subtitleText, bool atLimit)
+        /// <summary>
+        /// Chân card: nút "Thêm 5" tắt kèm câu "Đã hiện tối đa 50 đợt" khi chạm trần.
+        /// <paramref name="emptyReasonText"/> khác rỗng = bảng trống VÌ luật đang lỗi: in câu lý do và TẮT "Thêm 5", vì thêm
+        /// 5 lần nữa của một luật game sẽ bỏ thì vẫn là 0 đợt (luật trạng thái trống của mục 7).
+        /// </summary>
+        public void SetRows(IReadOnlyList<RecurringOccurrenceRow> rows, string subtitleText, bool atLimit, string emptyReasonText)
         {
             ShowComputing(false);
             _rows.Clear();
@@ -86,7 +97,10 @@ namespace DreamTech.LiveOps.Editor
             {
                 for (int index = 0; index < rows.Count; index++) _rows.Add(BuildRow(rows[index], index == rows.Count - 1));
             }
-            _addMore.SetEnabled(!atLimit);
+            _emptyReason.text = emptyReasonText ?? string.Empty;
+            bool hasEmptyReason = _emptyReason.text.Length > 0;
+            _emptyReason.EnableInClassList(LiveOpsHubClassNames.RecurringHidden, !hasEmptyReason);
+            _addMore.SetEnabled(!atLimit && !hasEmptyReason);
             _limitNote.text = atLimit
                 ? string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.RecurringOccurrenceLimitNoteFormat,
                     RecurringRuleModel.MaximumOccurrenceCount)
@@ -98,6 +112,8 @@ namespace DreamTech.LiveOps.Editor
         {
             _computing.EnableInClassList(LiveOpsHubClassNames.RecurringHidden, !isComputing);
             _rows.EnableInClassList(LiveOpsHubClassNames.RecurringHidden, isComputing);
+            // Câu "vì sao trống" của bảng CŨ cũng phải im trong lúc chờ: nó nói về luật trước khi gõ.
+            if (isComputing) _emptyReason.AddToClassList(LiveOpsHubClassNames.RecurringHidden);
         }
 
         private VisualElement BuildHead()
@@ -149,9 +165,17 @@ namespace DreamTech.LiveOps.Editor
             nowCell.Add(new Label(row.NowText));
             if (row.IdChanges)
             {
-                Label tag = new Label(LiveOpsHubStrings.RecurringIdChangeTag);
+                // Tag riêng CÓ thoi Warning ([SD1 §4.1]): dấu giai đoạn bên trái nói "đợt này đang ở đâu", thoi nói "chỗ này
+                // mất tiến độ" — trộn hai nghĩa vào một dấu là mất đúng thứ người đọc cần phân biệt.
+                VisualElement tag = new VisualElement();
                 tag.AddToClassList(LiveOpsHubClassNames.Tag);
-                tag.AddToClassList(LiveOpsHubClassNames.TextWarning);
+                tag.AddToClassList(LiveOpsHubClassNames.RecurringIdChangeTag);
+                LiveOpsStateMark idChangeMark = new LiveOpsStateMark { Size = LiveOpsStateMark.MarkSize.Small };
+                idChangeMark.SetHealth(HealthState.Warning);
+                tag.Add(idChangeMark);
+                Label tagLabel = new Label(LiveOpsHubStrings.RecurringIdChangeTag);
+                tagLabel.AddToClassList(LiveOpsHubClassNames.TextWarning);
+                tag.Add(tagLabel);
                 nowCell.Add(tag);
             }
             element.Add(nowCell);

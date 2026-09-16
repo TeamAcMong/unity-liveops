@@ -35,7 +35,9 @@ namespace DreamTech.LiveOps.Editor.Tests
         static partial void RegisterRecurring(List<LiveOpsHubCaptureScenario> scenarios)
         {
             scenarios.Add(new LiveOpsHubCaptureScenario(LiveOpsHubCaptureScenarioIds.H14aRecurringDefault, StandardWidth, StandardHeight,
-                OpenRecurringDefault));
+                    OpenRecurringDefault)
+                .WithExpectedFrames(ShellFramesWith(new LiveOpsHubCaptureExpectedFrame(RecurringRuleForm.SentenceElementName, 0f,
+                    RecurringSentenceHeight))));
 
             scenarios.Add(new LiveOpsHubCaptureScenario(LiveOpsHubCaptureScenarioIds.H14bRecurringPrefixDraft, StandardWidth, StandardHeight,
                 OpenRecurringPrefixDraft));
@@ -53,6 +55,35 @@ namespace DreamTech.LiveOps.Editor.Tests
                 .WithExpectedFrames(new LiveOpsHubCaptureExpectedFrame(LiveOpsConfirmContent.RootElementName, LiveOpsConfirmWindow.Width,
                     LiveOpsConfirmWindow.TypeToConfirmHeight)));
         }
+
+        /// <summary>
+        /// Câu token cao 20 ([SD1 §4.1] "11px, line-height 20") — một DÒNG chữ. Đo khung này là cách duy nhất bắt được hồi
+        /// quy "bốn token thành bốn nút xếp dọc": ma trận mặc định chỉ đo rail/header/status nên câu cao 155 vẫn MEASURE OK.
+        /// </summary>
+        private const float RecurringSentenceHeight = 20f;
+
+        /// <summary>
+        /// Khung mặc định của measure-capture.py + khung riêng của kịch bản. Khai <c>expectedFrames</c> là GHI ĐÈ bảng mặc
+        /// định, nên phải chép lại rail/header/section header/status/cột nội dung, nếu không kịch bản này mất phần đo khung.
+        /// </summary>
+        private static LiveOpsHubCaptureExpectedFrame[] ShellFramesWith(LiveOpsHubCaptureExpectedFrame extraFrame)
+        {
+            return new[]
+            {
+                new LiveOpsHubCaptureExpectedFrame(LiveOpsHubClassNames.Rail, ShellRailWidth, 0f),
+                new LiveOpsHubCaptureExpectedFrame(LiveOpsHubClassNames.Header, 0f, ShellHeaderHeight),
+                new LiveOpsHubCaptureExpectedFrame(LiveOpsHubClassNames.SectionHeader, 0f, ShellSectionHeaderHeight),
+                new LiveOpsHubCaptureExpectedFrame(LiveOpsHubClassNames.Status, 0f, ShellStatusHeight),
+                new LiveOpsHubCaptureExpectedFrame(LiveOpsHubClassNames.Content, ShellContentWidth, 0f),
+                extraFrame,
+            };
+        }
+
+        private const float ShellRailWidth = 196f;
+        private const float ShellHeaderHeight = 26f;
+        private const float ShellSectionHeaderHeight = 36f;
+        private const float ShellStatusHeight = 20f;
+        private const float ShellContentWidth = 1084f;
 
         /// <summary>Mockup Hình 8 ô 5 đang gõ thiếu ký tự cuối của "weekly-pass-35".</summary>
         private const string RecurringTypedPrefixText = "weekly-pass-3";

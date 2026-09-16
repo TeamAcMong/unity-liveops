@@ -11,6 +11,7 @@ namespace DreamTech.LiveOps.Editor
         // Bố cục hai pane [SD1 §4.1]: trái 240px danh sách luật · phải form max-width 640.
         internal const string RecurringSplit = "liveops-hub-recurring-split";
         internal const string RecurringList = "liveops-hub-recurring-list";
+        internal const string RecurringListScroll = "liveops-hub-recurring-list-scroll";
         internal const string RecurringListRow = "liveops-hub-recurring-list-row";
         internal const string RecurringListRowSelected = "liveops-hub-recurring-list-row--selected";
         internal const string RecurringListName = "liveops-hub-recurring-list-name";
@@ -53,6 +54,15 @@ namespace DreamTech.LiveOps.Editor
         internal const string RecurringCellEnd = "liveops-hub-recurring-cell-end";
         internal const string RecurringCellDevice = "liveops-hub-recurring-cell-device";
         internal const string RecurringCellNow = "liveops-hub-recurring-cell-now";
+
+        // Tag "đổi id" của cột Lúc này: tag riêng CÓ thoi Warning, tách khỏi dấu giai đoạn để hai họ hình không trộn ([SD1 §4.1]).
+        internal const string RecurringIdChangeTag = "liveops-hub-recurring-id-change-tag";
+
+        // Câu "vì sao 0 đợt" trong card đợt kế tiếp (luật trạng thái trống của mục 7).
+        internal const string RecurringOccurrencesEmpty = "liveops-hub-recurring-occurrences-empty";
+
+        // Nút bước tiếp của trạng thái trống ("Thêm luật" / "Mở Tổng quan để tạo lịch").
+        internal const string RecurringEmptyAction = "liveops-hub-recurring-empty-action";
 
         // Popover "Thêm luật" (chọn loại chưa có luật + mẫu) và foldout JSON chỉ đọc của W4.
         internal const string RecurringAdd = "liveops-hub-recurring-add";

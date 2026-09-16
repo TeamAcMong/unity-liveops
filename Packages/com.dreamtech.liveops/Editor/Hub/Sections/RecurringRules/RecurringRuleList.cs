@@ -42,6 +42,10 @@ namespace DreamTech.LiveOps.Editor
             AddToClassList(LiveOpsHubClassNames.RecurringList);
             focusable = true;
             _scroll = new ScrollView(ScrollViewMode.Vertical);
+            _scroll.AddToClassList(LiveOpsHubClassNames.RecurringListScroll);
+            // Meta dài ("mỗi 8 ngày 8 giờ · chạy 8 ngày 8 giờ") làm ScrollView mọc thanh cuộn NGANG và đẩy dấu mức ra ngoài
+            // tầm nhìn — đúng thứ hàng này sinh ra để khoe. Cắt meta (USS) là đường đúng, cuộn ngang thì cấm hẳn.
+            _scroll.horizontalScrollerVisibility = ScrollerVisibility.Hidden;
             Add(_scroll);
             RegisterCallback<KeyDownEvent>(OnKeyDown);
             RegisterCallback<FocusInEvent>(OnFocusIn);
