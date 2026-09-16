@@ -260,6 +260,13 @@ namespace DreamTech.LiveOps.Editor
                 english: "Check everything again");
 
             // Băng tệp đã đổi trên đĩa (SPIKE-B SP-8b)
+            table.Add(nameof(LiveOpsHubStrings.ShellOpenDocumentationMenu),
+                vietnamese: "Mở tài liệu LiveOps",
+                english: "Open the LiveOps documentation");
+            table.Add(nameof(LiveOpsHubStrings.ShellShowDesignSampleMenu),
+                vietnamese: "Hiện dữ liệu mẫu (chỉ để xem giao diện)",
+                english: "Show sample data (for looking at the UI only)");
+
             table.Add(nameof(LiveOpsHubStrings.ShellDiskBannerFormat),
                 vietnamese: "{0} đã đổi trên đĩa lúc {1}. Bản đang sửa trong Editor vẫn còn — chọn giữ bản nào.",
                 english: "{0} changed on disk at {1}. Your in-editor draft is still here — choose which copy to keep.");

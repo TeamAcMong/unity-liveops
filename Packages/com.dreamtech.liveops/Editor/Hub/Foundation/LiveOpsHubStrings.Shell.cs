@@ -137,6 +137,12 @@ namespace DreamTech.LiveOps.Editor
         internal static string ShellCheckAllMenuFormat => LiveOpsHubStringCatalog.Text(nameof(ShellCheckAllMenuFormat));
         internal static string ShellCheckAllMenuWithoutKey => LiveOpsHubStringCatalog.Text(nameof(ShellCheckAllMenuWithoutKey));
 
+        /// <summary>Mở README của package — cùng địa chỉ với link "Vì sao? (tài liệu luật)" của Kiểm lịch ([FD §3.3]).</summary>
+        internal static string ShellOpenDocumentationMenu => LiveOpsHubStringCatalog.Text(nameof(ShellOpenDocumentationMenu));
+
+        /// <summary>Mở cửa sổ hub thứ hai chạy trên tài liệu mẫu — ngoặc "(chỉ để xem giao diện)" là của thiết kế, giữ nguyên.</summary>
+        internal static string ShellShowDesignSampleMenu => LiveOpsHubStringCatalog.Text(nameof(ShellShowDesignSampleMenu));
+
         // Băng "tệp đã đổi trên đĩa" (4.3, SPIKE-B SP-8b) — hub KHÔNG BAO GIỜ tự đè nháp; ba nút là ba quyết định của người dùng.
         internal static string ShellDiskBannerFormat => LiveOpsHubStringCatalog.Text(nameof(ShellDiskBannerFormat));
         internal static string ShellDiskBannerReloadButton => LiveOpsHubStringCatalog.Text(nameof(ShellDiskBannerReloadButton));
