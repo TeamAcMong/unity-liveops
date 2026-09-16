@@ -123,6 +123,20 @@ namespace DreamTech.LiveOps.Editor
         internal static string ValidationProposalApplyShiftFormat => LiveOpsHubStringCatalog.Text(nameof(ValidationProposalApplyShiftFormat));
 
         /// <summary>
+        /// (V-34, nợ Findings từ cổng W4) Bảy khuôn còn lại của nút áp — một cho mỗi <c>RepairId</c> mà hub biết. Mockup
+        /// [SD2 §2.6] đã đặt "đổi" cho <c>rename-with-suggested-id</c>; sáu khuôn dưới nó thiết kế CHƯA đặt tên động từ, gói viết
+        /// tạm cả hai ngôn ngữ để nút chạy được và liệt kê nguyên văn vào báo cáo gói cho user chốt ở cổng W5.
+        /// </summary>
+        internal static string ValidationProposalApplyRenameFormat => LiveOpsHubStringCatalog.Text(nameof(ValidationProposalApplyRenameFormat));
+
+        internal static string ValidationProposalApplyNormalizeFormat => LiveOpsHubStringCatalog.Text(nameof(ValidationProposalApplyNormalizeFormat));
+        internal static string ValidationProposalApplySetDurationFormat => LiveOpsHubStringCatalog.Text(nameof(ValidationProposalApplySetDurationFormat));
+        internal static string ValidationProposalApplySwapFormat => LiveOpsHubStringCatalog.Text(nameof(ValidationProposalApplySwapFormat));
+        internal static string ValidationProposalApplySetActiveFormat => LiveOpsHubStringCatalog.Text(nameof(ValidationProposalApplySetActiveFormat));
+        internal static string ValidationProposalApplyRevertFormat => LiveOpsHubStringCatalog.Text(nameof(ValidationProposalApplyRevertFormat));
+        internal static string ValidationProposalApplyDeferFormat => LiveOpsHubStringCatalog.Text(nameof(ValidationProposalApplyDeferFormat));
+
+        /// <summary>
         /// Dòng 10px dưới mỗi lựa chọn ([SD2 §2.6] "bắt đầu 16/9 12:00 → 17/9 00:00 · dài 24 giờ"): giờ NGƯỜI ĐỌC hiểu, không
         /// phải chuỗi ISO thô của <c>LiveEventCalendarRepair.BeforeText/AfterText</c> (core để thô có chủ đích — câu là việc của Editor).
         /// </summary>
