@@ -569,6 +569,25 @@ namespace DreamTech.LiveOps.Editor.Tests
             }
         }
 
+        // ------------------------------------------------------- nhãn nút outcome (cổng W5, nợ P-N1 của G-PASTE)
+
+        /// <summary>
+        /// Outcome mang <c>ActionId</c> là id MÀN phải có nhãn nút, nếu không thì <c>LiveOpsOutcomeView</c> ẩn nút và nhánh
+        /// V-14 bước 5 ("còn loại chưa khai báo → Mở Loại event") không bao giờ hiện ra dù điều hướng đã chạy đúng.
+        /// </summary>
+        [Test]
+        public void OutcomeActionLabel_ForSectionId_IsTheOpenSectionSentence()
+        {
+            Assert.AreEqual(LiveOpsHubStrings.OverviewOpenEventTypesButton,
+                LiveOpsHubWindow.OutcomeActionLabelOf(LiveOpsHubSections.Ids.EventTypes),
+                "id màn Loại event phải ra đúng câu 'Mở Loại event' đã có trong catalog");
+            Assert.AreEqual(LiveOpsHubStrings.ShellOutcomeRevealFileButton,
+                LiveOpsHubWindow.OutcomeActionLabelOf(ExportSection.RevealFileActionId),
+                "ngoại lệ chạm hệ điều hành vẫn giữ nhãn cũ");
+            Assert.AreEqual(string.Empty, LiveOpsHubWindow.OutcomeActionLabelOf("khong-phai-id-nao"),
+                "id khung không biết cách làm thì KHÔNG hiện nút (mục 12 I-11)");
+        }
+
         private static void ShowEverySection(LiveOpsHubWindow window, string label)
         {
             foreach (IHubSection section in ((IHubHost)window).Sections)

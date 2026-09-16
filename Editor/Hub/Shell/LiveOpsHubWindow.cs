@@ -560,11 +560,22 @@ namespace DreamTech.LiveOps.Editor
         /// Nhãn nút của outcome. <c>LiveOpsOutcomeView</c> ẩn nút khi nhãn rỗng, nên id nào khung chưa biết cách làm thì KHÔNG
         /// hiện nút — không bao giờ có nút trỏ tới thứ khung không chạy được (mục 12 I-11).
         /// </summary>
-        private static string OutcomeActionLabelOf(string actionId)
+        internal static string OutcomeActionLabelOf(string actionId)
         {
-            return string.Equals(actionId, ExportSection.RevealFileActionId, StringComparison.Ordinal)
-                ? LiveOpsHubStrings.ShellOutcomeRevealFileButton
-                : string.Empty;
+            if (string.Equals(actionId, ExportSection.RevealFileActionId, StringComparison.Ordinal))
+            {
+                return LiveOpsHubStrings.ShellOutcomeRevealFileButton;
+            }
+
+            // (cổng W5, nợ P-N1) Id màn thì OnOutcomeActionInvoked ĐÃ điều hướng đúng — chỉ thiếu nhãn, nên nút bị ẩn và cả
+            // nhánh V-14 bước 5 ("Mở Loại event" sau khi nhập JSON còn loại chưa khai báo) thành code chết. Nhãn lấy đúng câu
+            // đã có trong catalog, không đẻ câu mới.
+            if (string.Equals(actionId, LiveOpsHubSections.Ids.EventTypes, StringComparison.Ordinal))
+            {
+                return LiveOpsHubStrings.OverviewOpenEventTypesButton;
+            }
+
+            return string.Empty;
         }
 
         /// <summary>
