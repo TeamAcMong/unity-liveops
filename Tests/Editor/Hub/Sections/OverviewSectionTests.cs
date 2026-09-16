@@ -36,16 +36,27 @@ namespace DreamTech.LiveOps.Editor.Tests
             Undo.ClearAll();
         }
 
+        /// <summary>Câu lý do của ngữ cảnh khoá — nội dung không quan trọng, điều quan trọng là màn in ĐÚNG câu của port.</summary>
+        private const string PasteUnavailableReason = "Luồng dán bị khoá trong ngữ cảnh test";
+
         /// <summary>
-        /// Nút "Dán JSON đang chạy…" khi action chưa có (INTERIM(G-PASTE)): nút khoá và lý do IN THÀNH CHỮ cạnh nút, lấy đúng
-        /// câu của port — đường chính theo SPIKE-B SP-3, không test tooltip.
+        /// Nút "Dán JSON đang chạy…" khi luồng dán bị khoá: nút khoá và lý do IN THÀNH CHỮ cạnh nút, lấy đúng câu của port —
+        /// đường chính theo SPIKE-B SP-3, không test tooltip.
+        /// <para>
+        /// Từ W5 luồng thật (<c>LiveOpsHubPasteRunningJsonAction</c>) LUÔN bật, nên ngữ cảnh "bị khoá" phải dựng tường minh
+        /// bằng <see cref="ManualLiveOpsHubActions"/> — trước đó nó đến miễn phí từ adapter tạm của bản dev (mục 12 I-3, đã xoá).
+        /// Màn vẫn phải vẽ đúng phía khoá, nên test này không mất đi cùng adapter tạm.
+        /// </para>
         /// </summary>
         [UnityTest]
         public IEnumerator PasteUnavailable_ButtonDisabledWithActionsReason()
         {
-            LiveOpsHubServices services = LiveOpsHubTestServices.ForScenario(LiveOpsHubTestServices.DesignSampleScenario);
+            LiveOpsHubServices services = LiveOpsHubTestServices.Build(LiveOpsHubTestServices.CreateBuilder(null)
+                .WithCalendarAsset(LiveOpsHubTestServices.CreateMemoryAsset(LiveOpsDesignSample.Document))
+                .WithActions(new ManualLiveOpsHubActions(PasteUnavailableReason)));
+            services.Session.RunCheckToCompletion();
             yield return OpenOverview(services);
-            Assume.That(services.Actions.CanPasteRunningJson, Is.False, "ngữ cảnh test phải là bản chưa có action dán (mục 12 I-3)");
+            Assume.That(services.Actions.CanPasteRunningJson, Is.False, "ngữ cảnh test phải là bản có luồng dán bị khoá");
 
             LiveOpsButtonSlot slot = FindSlotWithButtonText(View(), LiveOpsHubStrings.OverviewPasteRunningJsonButton);
             Assert.IsNotNull(slot, "hàng bản remote phải có nút Dán JSON đang chạy…");

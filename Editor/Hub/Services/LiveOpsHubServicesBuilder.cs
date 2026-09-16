@@ -131,22 +131,29 @@ namespace DreamTech.LiveOps.Editor
             LiveOpsHubAssetLocator locator = _assetLocator ?? (_hasCalendarAsset ? null : new LiveOpsHubAssetLocator());
             LiveOpsHubCalendarSession session = new LiveOpsHubCalendarSession(clock, validator, publisherIdentity, locator, bus);
 
+            // Bốn port dưới đây được dựng TRƯỚC services vì luồng Dán JSON cần chính chúng: action thật là một người dùng của
+            // các port, không phải một port đứng riêng, nên nó phải nhận đúng bản mà services sẽ mang.
+            ILiveOpsHubFileDialog fileDialog = _fileDialog ?? new EditorLiveOpsHubFileDialog();
+            ILiveOpsHubConfirmationPresenter confirmation = _confirmation ?? new ModalLiveOpsHubConfirmationPresenter();
+            ILiveOpsHubJsonReadBack jsonReadBack = _jsonReadBack ?? new GameParserLiveOpsHubJsonReadBack();
+            ILiveOpsHubLayoutLoader layoutLoader = _layoutLoader ?? new AssetDatabaseLiveOpsHubLayoutLoader();
+            LiveOpsHubFormat format = new LiveOpsHubFormat(timeZone.DeviceOffsetAt(clock.UtcNow));
+
             LiveOpsHubServices services = new LiveOpsHubServices(
                 clock,
                 _clipboard ?? new EditorLiveOpsHubClipboard(),
-                _fileDialog ?? new EditorLiveOpsHubFileDialog(),
+                fileDialog,
                 publisherIdentity,
                 timeZone,
                 _compilationState ?? new EditorLiveOpsHubCompilationState(),
                 validator,
-                _confirmation ?? new ModalLiveOpsHubConfirmationPresenter(),
-                // INTERIM(G-PASTE): chưa có action Dán/Nhập JSON thật (mục 12 I-3) — G-PASTE thay bằng LiveOpsHubPasteRunningJsonAction.
-                _actions ?? new InterimUnavailableHubActions(),
-                _jsonReadBack ?? new GameParserLiveOpsHubJsonReadBack(),
-                _layoutLoader ?? new AssetDatabaseLiveOpsHubLayoutLoader(),
+                confirmation,
+                _actions ?? new LiveOpsHubPasteRunningJsonAction(session, bus, confirmation, fileDialog, jsonReadBack, layoutLoader, format),
+                jsonReadBack,
+                layoutLoader,
                 bus,
                 session,
-                new LiveOpsHubFormat(timeZone.DeviceOffsetAt(clock.UtcNow)));
+                format);
             session.Initialize(_calendarAsset, _hasCalendarAsset, _autoCheckOnOpen);
             return services;
         }

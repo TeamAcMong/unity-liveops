@@ -240,13 +240,20 @@ namespace DreamTech.LiveOps.Editor.Tests
             LogAssert.NoUnexpectedReceived();
         }
 
-        /// <summary>(mục 12 I-3) Nút "Dán JSON đang chạy…" của dòng cổng 4 khoá kèm lý do khi action chưa dựng.</summary>
+        /// <summary>Câu lý do của ngữ cảnh khoá — điều được khoá là card phải in ĐÚNG câu của port.</summary>
+        private const string PasteUnavailableReason = "Luồng dán bị khoá trong ngữ cảnh test";
+
+        /// <summary>
+        /// Nút "Dán JSON đang chạy…" của dòng cổng 4 khoá kèm lý do khi luồng dán bị khoá (SPIKE-B SP-3). Từ W5 luồng thật
+        /// luôn bật, nên ngữ cảnh khoá dựng tường minh bằng <see cref="ManualLiveOpsHubActions"/> — card cổng vẫn phải vẽ
+        /// đúng phía khoá (mục 12 I-3 đã đóng, hành vi của card thì không mất theo).
+        /// </summary>
         [UnityTest]
         public IEnumerator PasteRunningJsonRow_DisabledWithReason()
         {
-            yield return OpenDesignSample(null, null);
+            yield return OpenDesignSample(null, null, null, new ManualLiveOpsHubActions(PasteUnavailableReason));
 
-            Assert.IsFalse(Section.Services.Actions.CanPasteRunningJson, "bản dev chưa có action dán");
+            Assert.IsFalse(Section.Services.Actions.CanPasteRunningJson, "ngữ cảnh test phải là bản có luồng dán bị khoá");
             LiveOpsButtonSlot slot = Section.GateCard.Q<LiveOpsButtonSlot>();
             Assert.IsNotNull(slot, "nút của dòng cổng 4 phải nằm trong slot để in được lý do");
             Assert.IsFalse(slot.Button.enabledSelf, "action chưa dựng thì nút không được vẽ bật rồi rơi vào no-op");
@@ -307,9 +314,9 @@ namespace DreamTech.LiveOps.Editor.Tests
         }
 
         private IEnumerator OpenDesignSample(ILiveOpsHubClipboard clipboard, ILiveOpsHubConfirmationPresenter presenter,
-            ILiveOpsHubJsonReadBack readBack = null)
+            ILiveOpsHubJsonReadBack readBack = null, ILiveOpsHubActions actions = null)
         {
-            yield return Open(LiveOpsDesignSample.Document, clipboard, null, presenter, readBack);
+            yield return Open(LiveOpsDesignSample.Document, clipboard, null, presenter, readBack, actions);
         }
 
         /// <summary>Nháp đã sửa hết đợt bị bỏ và đã xem mục bắt buộc — trạng thái (b), ba nút mở để thử Copy/Lưu file thật.</summary>
@@ -327,7 +334,7 @@ namespace DreamTech.LiveOps.Editor.Tests
         }
 
         private IEnumerator Open(LiveEventCalendarDocument document, ILiveOpsHubClipboard clipboard, ILiveOpsHubFileDialog fileDialog,
-            ILiveOpsHubConfirmationPresenter presenter, ILiveOpsHubJsonReadBack readBack)
+            ILiveOpsHubConfirmationPresenter presenter, ILiveOpsHubJsonReadBack readBack, ILiveOpsHubActions actions = null)
         {
             LiveOpsHubServicesBuilder builder = LiveOpsHubTestServices.CreateBuilder(null)
                 .WithCalendarAsset(LiveOpsHubTestServices.CreateMemoryAsset(document));
@@ -335,6 +342,7 @@ namespace DreamTech.LiveOps.Editor.Tests
             if (fileDialog != null) builder.WithFileDialog(fileDialog);
             if (presenter != null) builder.WithConfirmation(presenter);
             if (readBack != null) builder.WithJsonReadBack(readBack);
+            if (actions != null) builder.WithActions(actions);
             LiveOpsHubServices services = LiveOpsHubTestServices.Build(builder);
             services.Session.RunCheckToCompletion();
             _scope = SectionTestScope.Open(new ExportSection(services));

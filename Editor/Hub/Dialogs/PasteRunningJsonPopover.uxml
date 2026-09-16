@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Popover "Dán JSON đang chạy" / "Nhập JSON đang chạy" ([SD2 §2.9], vá V-14) — PopupWindow 320px riêng. Một cây cho CẢ HAI
+  chế độ: chế độ dán ẩn dòng key remote và Toggle ghi dấu, chế độ nhập ẩn nhóm lựa chọn — hai cây riêng thì hai bố cục trôi
+  nhau, mà chúng phải là cùng một cái ô dán.
+  Khối không thuộc chế độ đang mở bị ẩn bằng CLASS `liveops-hub-paste-hidden` (khai trong sheet cạnh file này), không bằng
+  `style.display`: trạng thái không được gán style inline ([FD §2.14]).
+  Ô dán nằm trong ScrollView: bản đang chạy dài hàng trăm dòng, để ô nở theo nội dung thì nó đẩy dòng trạng thái và hàng nút ra ngoài
+  cửa sổ popover — còn đúng một ô chữ, không nút nào bấm được.
+  Câu của Toggle ghi dấu là Label RIÊNG cạnh ô tích, không phải `Toggle.text`: nhãn của BaseBoolField không xuống dòng được
+  nên câu dài bị cụt ở mép — cùng cách IgnoreWarningPopover đã làm (soát W5 F-2).
+  Nút chính KHÔNG khai ở đây: nó phải nằm trong LiveOpsButtonSlot để in lý do khoá thành chữ (SPIKE-B SP-3), mà slot là một
+  element do C# dựng quanh nút.
+  Không câu chữ nào trong file này — mọi label do C# đổ từ LiveOpsHubStrings (lint chặn chữ hiển thị trong UXML).
+-->
+<ui:UXML xmlns:ui="UnityEngine.UIElements">
+    <ui:VisualElement name="paste-running-json-body" class="liveops-hub-paste">
+        <ui:Label name="paste-running-json-header" class="liveops-hub-paste-header" />
+        <ui:Label name="paste-running-json-input-label" />
+        <ui:ScrollView name="paste-running-json-input-scroll" class="liveops-hub-paste-input-scroll">
+            <ui:TextField name="paste-running-json-input" multiline="true" class="liveops-hub-paste-input liveops-hub-mono" />
+        </ui:ScrollView>
+        <ui:Label name="paste-running-json-status" class="liveops-hub-paste-status" />
+        <ui:Label name="paste-running-json-remote-key" class="liveops-hub-paste-remote-key" />
+        <ui:RadioButtonGroup name="paste-running-json-mode" />
+        <ui:VisualElement name="paste-running-json-stamp-line" class="liveops-hub-paste-stamp">
+            <ui:Toggle name="paste-running-json-stamp" class="liveops-hub-paste-stamp-box" />
+            <ui:Label name="paste-running-json-stamp-label" class="liveops-hub-paste-stamp-label" />
+        </ui:VisualElement>
+        <ui:VisualElement name="paste-running-json-footer" class="liveops-hub-paste-footer">
+            <ui:Button name="paste-running-json-cancel" class="liveops-hub-button" />
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

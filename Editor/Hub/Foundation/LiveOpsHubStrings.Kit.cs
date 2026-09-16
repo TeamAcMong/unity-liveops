@@ -31,10 +31,6 @@ namespace DreamTech.LiveOps.Editor
         internal static string KitPublisherSourceGit => LiveOpsHubStringCatalog.Text(nameof(KitPublisherSourceGit));
         internal static string KitPublisherSourceAccount => LiveOpsHubStringCatalog.Text(nameof(KitPublisherSourceAccount));
 
-        // Lý do nút Dán/Nhập JSON đang chạy khi luồng đó chưa dựng ở bản dev (sổ nhánh tạm mục 12, dòng I-3). Câu nằm ở đây
-        // vì chữ tiếng Việt chỉ được ở file chuỗi; hằng tạm của nhánh (có dấu) nằm ở file action tạm và chỉ trỏ tới câu này.
-        internal static string KitActionNotBuiltInDevBuild => LiveOpsHubStringCatalog.Text(nameof(KitActionNotBuiltInDevBuild));
-
         // Lỗi cú pháp JSON (PD-13): "Dòng 3, ký tự 18: thiếu dấu phẩy".
         internal static string KitJsonSyntaxPositionFormat => LiveOpsHubStringCatalog.Text(nameof(KitJsonSyntaxPositionFormat));
         internal static string KitJsonSyntaxMissingComma => LiveOpsHubStringCatalog.Text(nameof(KitJsonSyntaxMissingComma));
