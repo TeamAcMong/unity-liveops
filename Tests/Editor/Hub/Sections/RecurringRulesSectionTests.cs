@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using System.Globalization;
 using DreamTech.LiveOps.Tests;
 using NUnit.Framework;
 using UnityEditor;
@@ -138,6 +139,76 @@ namespace DreamTech.LiveOps.Editor.Tests
             Assert.IsTrue(Section.Services.Session.Document.TryGetRecurringRule(SkyRaceType, out rule));
             Assert.AreEqual(SkyRaceLongerActiveHours, rule.ActiveHours);
             LogAssert.NoUnexpectedReceived();
+        }
+
+        /// <summary>
+        /// (Q-W4-4, user duyệt 16/9) Nháp sống ở ĐÚNG MỘT ô: gõ tiếp vào ô thứ hai sẽ thay nháp cũ bằng nháp mới và cái vừa
+        /// gõ ở ô thứ nhất biến mất không dấu vết. Nên khi một ô giữ nháp thì ba ô còn lại KHOÁ, kèm lý do in THÀNH CHỮ cạnh
+        /// ô (SPIKE-B SP-3 — test không assert tooltip, tooltip chỉ là đường dự phòng).
+        /// </summary>
+        [UnityTest]
+        public IEnumerator DraftInOneField_LocksOtherThree_WithReasonAsText()
+        {
+            yield return OpenPublishedPrefixSample(new ScriptedLiveOpsHubConfirmationPresenter());
+
+            Section.Form.PrefixField.value = NewPrefix;
+            yield return null;
+
+            Assert.IsTrue(Section.Draft.NeedsConfirmation, "gõ tiền tố mới khi đợt đang chạy chỉ tạo nháp tại ô");
+            Assert.IsTrue(Section.Form.PrefixField.enabledSelf, "chính ô đang giữ nháp phải mở để còn sửa tiếp hoặc Esc");
+            string expectedReason = string.Format(CultureInfo.InvariantCulture,
+                LiveOpsHubStrings.RecurringFieldLockedByDraftFormat, LiveOpsHubStrings.RecurringIdPrefixLabel);
+            AssertFieldLocked(Section.Form.AnchorField, expectedReason);
+            AssertFieldLocked(Section.Form.PeriodField, expectedReason);
+            AssertFieldLocked(Section.Form.ActiveField, expectedReason);
+            LogAssert.NoUnexpectedReceived();
+        }
+
+        /// <summary>Huỷ nháp tại ô mở lại cả bốn ô và xoá hết nhãn lý do — khoá là trạng thái tạm, không phải cửa một chiều.</summary>
+        [UnityTest]
+        public IEnumerator DraftResolved_UnlocksAllFields()
+        {
+            yield return OpenPublishedPrefixSample(new ScriptedLiveOpsHubConfirmationPresenter());
+            Section.Form.PrefixField.value = NewPrefix;
+            yield return null;
+
+            yield return ClickButton(RecurringRuleForm.DraftCancelElementName);
+
+            Assert.IsFalse(Section.Draft.NeedsConfirmation);
+            AssertFieldUnlocked(Section.Form.PrefixField);
+            AssertFieldUnlocked(Section.Form.AnchorField);
+            AssertFieldUnlocked(Section.Form.PeriodField);
+            AssertFieldUnlocked(Section.Form.ActiveField);
+            LogAssert.NoUnexpectedReceived();
+        }
+
+        /// <summary>Ô bị khoá: không gõ được VÀ có một nhãn lý do đọc được ngay cạnh, không phải chỉ một ô xám câm.</summary>
+        private void AssertFieldLocked(VisualElement input, string expectedReason)
+        {
+            Assert.IsFalse(input.enabledSelf, "ô '" + input.name + "' phải khoá trong lúc ô khác giữ nháp");
+            Label reason = LockReasonOf(input);
+            Assert.IsNotNull(reason, "ô '" + input.name + "' bị khoá mà không có nhãn lý do nào cạnh ô");
+            Assert.AreEqual(expectedReason, reason.text);
+            Assert.IsFalse(reason.ClassListContains(LiveOpsHubClassNames.RecurringHidden), "nhãn lý do phải HIỆN, không chỉ có chữ");
+        }
+
+        private void AssertFieldUnlocked(VisualElement input)
+        {
+            Assert.IsTrue(input.enabledSelf, "ô '" + input.name + "' phải mở lại khi hết nháp");
+            Label reason = LockReasonOf(input);
+            Assert.IsNotNull(reason);
+            Assert.AreEqual(string.Empty, reason.text);
+            Assert.IsTrue(reason.ClassListContains(LiveOpsHubClassNames.RecurringHidden));
+        }
+
+        /// <summary>
+        /// Nhãn lý do là Label đầu tiên mang class lý-do-khoá trong cùng NHÓM của ô (hàng field + chỗ treo chú thích) —
+        /// tìm theo cây chứ không theo tên, vì nhãn không có tên riêng trong hợp đồng element của màn.
+        /// </summary>
+        private static Label LockReasonOf(VisualElement input)
+        {
+            VisualElement group = input.parent != null ? input.parent.parent : null;
+            return group == null ? null : group.Q<Label>(className: LiveOpsHubClassNames.RecurringFieldLockReason);
         }
 
         [UnityTest]
