@@ -13,6 +13,10 @@ namespace DreamTech.LiveOps.Editor
         internal const string CalendarToolbarSpacer = "liveops-hub-calendar-toolbar-spacer";
         internal const string CalendarSearch = "liveops-hub-calendar-search";
         internal const string CalendarHiddenLanesChip = "liveops-hub-calendar-hidden-lanes-chip";
+        /// <summary>Ẩn hẳn một phần của màn (không chỉ trong suốt): <c>display: none</c>, dùng cho chip làn ẩn và các nhánh trạng thái.</summary>
+        internal const string CalendarHidden = "liveops-hub-calendar--hidden";
+
+        internal const string CalendarMain = "liveops-hub-calendar-main";
         internal const string CalendarSplit = "liveops-hub-calendar-split";
         internal const string CalendarListPane = "liveops-hub-calendar-list-pane";
         internal const string CalendarTimelineColumn = "liveops-hub-calendar-timeline-column";

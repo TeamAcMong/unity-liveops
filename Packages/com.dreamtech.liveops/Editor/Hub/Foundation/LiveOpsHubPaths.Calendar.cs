@@ -15,6 +15,9 @@ namespace DreamTech.LiveOps.Editor
         {
             internal const string Root = "calendar-root";
             internal const string Toolbar = "calendar-toolbar";
+            /// <summary>Thân màn (split + inspector) — ẩn cả khối khi chưa có asset lịch.</summary>
+            internal const string Main = "calendar-main";
+
             internal const string Split = "calendar-split";
 
             /// <summary>Pane trái của split — W4 luôn thu lại; G-CALENDAR-DEPTH (W5) đổ <c>CalendarListPane</c> vào đây.</summary>
@@ -47,7 +50,8 @@ namespace DreamTech.LiveOps.Editor
         /// <summary>Element sống còn của màn Lịch — trùng <c>CalendarSection.RequiredElementNames</c>.</summary>
         internal static readonly IReadOnlyList<string> RequiredCalendarElementNames = Array.AsReadOnly(new[]
         {
-            CalendarElementNames.Root, CalendarElementNames.Toolbar, CalendarElementNames.Split, CalendarElementNames.ListPane,
+            CalendarElementNames.Root, CalendarElementNames.Toolbar, CalendarElementNames.Main, CalendarElementNames.Split,
+            CalendarElementNames.ListPane,
             CalendarElementNames.TimelineColumn, CalendarElementNames.Timeline, CalendarElementNames.Inspector,
             CalendarElementNames.InspectorTitle, CalendarElementNames.InspectorBody, CalendarElementNames.Empty,
         });
