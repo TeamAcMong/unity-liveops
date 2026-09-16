@@ -12,95 +12,95 @@ namespace DreamTech.LiveOps.Editor
         {
             table.Add(nameof(LiveOpsHubStrings.StageCaptionConfigure),
                 vietnamese: "CẤU HÌNH",
-                english: null);
+                english: "CONFIGURE");
             table.Add(nameof(LiveOpsHubStrings.StageCaptionSchedule),
                 vietnamese: "LÊN LỊCH",
-                english: null);
+                english: "SCHEDULE");
             table.Add(nameof(LiveOpsHubStrings.StageCaptionCheck),
                 vietnamese: "KIỂM",
-                english: null);
+                english: "VALIDATE");
             table.Add(nameof(LiveOpsHubStrings.StageCaptionExport),
                 vietnamese: "XUẤT",
-                english: null);
+                english: "EXPORT");
             table.Add(nameof(LiveOpsHubStrings.StageCaptionRun),
                 vietnamese: "CHẠY",
-                english: null);
+                english: "RUN");
 
             table.Add(nameof(LiveOpsHubStrings.StaleHealthReason),
                 vietnamese: "Kết quả cũ — kiểm lại để cập nhật.",
-                english: null);
+                english: "Result is stale — validate again to refresh.");
             table.Add(nameof(LiveOpsHubStrings.HealthReasonRequiredFormat),
                 vietnamese: "Trạng thái {0} bắt buộc có lý do — người dùng phải biết vì sao và làm gì tiếp.",
-                english: null);
+                english: "State {0} must carry a reason — the user has to know why and what to do next.");
             table.Add(nameof(LiveOpsHubStrings.DisabledReasonRequired),
                 vietnamese: "Nút bị khoá bắt buộc có lý do — nút disabled không nói vì sao là người dùng kẹt.",
-                english: null);
+                english: "A locked button must carry a reason — a disabled button that says nothing leaves the user stuck.");
             table.Add(nameof(LiveOpsHubStrings.FindingCountNegative),
                 vietnamese: "Số phát hiện không được âm — nơi đếm theo đích đã tính sai.",
-                english: null);
+                english: "Finding count cannot be negative — the per-target counter miscounted.");
 
             table.Add(nameof(LiveOpsHubStrings.DurationDayUnit),
                 vietnamese: "ngày",
-                english: null);
+                english: "days");
             table.Add(nameof(LiveOpsHubStrings.DurationHourUnit),
                 vietnamese: "giờ",
-                english: null);
+                english: "hours");
             table.Add(nameof(LiveOpsHubStrings.DurationMinuteUnit),
                 vietnamese: "phút",
-                english: null);
+                english: "minutes");
             table.Add(nameof(LiveOpsHubStrings.CompactDayUnit),
                 vietnamese: "n",
-                english: null);
+                english: "d");
             table.Add(nameof(LiveOpsHubStrings.CompactHourUnit),
                 vietnamese: "g",
-                english: null);
+                english: "h");
             table.Add(nameof(LiveOpsHubStrings.CompactMinuteUnit),
                 vietnamese: "p",
-                english: null);
+                english: "m");
 
             table.Add(nameof(LiveOpsHubStrings.RelativeFuturePrefix),
                 vietnamese: "sau",
-                english: null);
+                english: "in");
             table.Add(nameof(LiveOpsHubStrings.RelativePastSuffix),
                 vietnamese: "trước",
-                english: null);
+                english: "ago");
             table.Add(nameof(LiveOpsHubStrings.RemainingPrefix),
                 vietnamese: "còn",
-                english: null);
+                english: "remaining");
 
             table.Add(nameof(LiveOpsHubStrings.UtcLabel),
                 vietnamese: "UTC",
-                english: null);
+                english: "UTC");
             table.Add(nameof(LiveOpsHubStrings.DeviceTimeSuffix),
                 vietnamese: "giờ máy",
-                english: null);
+                english: "device time");
             table.Add(nameof(LiveOpsHubStrings.ByteUnit),
                 vietnamese: "byte",
-                english: null);
+                english: "bytes");
             table.Add(nameof(LiveOpsHubStrings.IsoWeekPrefix),
                 vietnamese: "Tuần",
-                english: null);
+                english: "Week");
             table.Add(nameof(LiveOpsHubStrings.Monday),
                 vietnamese: "thứ Hai",
-                english: null);
+                english: "Monday");
             table.Add(nameof(LiveOpsHubStrings.Tuesday),
                 vietnamese: "thứ Ba",
-                english: null);
+                english: "Tuesday");
             table.Add(nameof(LiveOpsHubStrings.Wednesday),
                 vietnamese: "thứ Tư",
-                english: null);
+                english: "Wednesday");
             table.Add(nameof(LiveOpsHubStrings.Thursday),
                 vietnamese: "thứ Năm",
-                english: null);
+                english: "Thursday");
             table.Add(nameof(LiveOpsHubStrings.Friday),
                 vietnamese: "thứ Sáu",
-                english: null);
+                english: "Friday");
             table.Add(nameof(LiveOpsHubStrings.Saturday),
                 vietnamese: "thứ Bảy",
-                english: null);
+                english: "Saturday");
             table.Add(nameof(LiveOpsHubStrings.Sunday),
                 vietnamese: "Chủ nhật",
-                english: null);
+                english: "Sunday");
 
             table.AddShared(nameof(LiveOpsHubStrings.HubGlyphs), "…·–—×←→↑↓≥⌘⇧⌥⌫");
 
@@ -110,20 +110,20 @@ namespace DreamTech.LiveOps.Editor
             table.AddShared(nameof(LiveOpsHubStrings.LanguageShortCodeVietnamese), "VI");
             table.Add(nameof(LiveOpsHubStrings.LanguageMenuTooltip),
                 vietnamese: "Ngôn ngữ của LiveOps Hub",
-                english: null);
+                english: "LiveOps Hub language");
 
             table.Add(nameof(LiveOpsHubStrings.KeyLabelCommand),
                 vietnamese: "Cmd",
-                english: null);
+                english: "Cmd");
             table.Add(nameof(LiveOpsHubStrings.KeyLabelShift),
                 vietnamese: "Shift",
-                english: null);
+                english: "Shift");
             table.Add(nameof(LiveOpsHubStrings.KeyLabelOption),
                 vietnamese: "Alt",
-                english: null);
+                english: "Alt");
             table.Add(nameof(LiveOpsHubStrings.KeyLabelBackspace),
                 vietnamese: "Backspace",
-                english: null);
+                english: "Backspace");
         }
     }
 }

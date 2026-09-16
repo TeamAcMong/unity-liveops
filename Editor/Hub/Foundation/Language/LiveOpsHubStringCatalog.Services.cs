@@ -12,121 +12,121 @@ namespace DreamTech.LiveOps.Editor
         {
             table.Add(nameof(LiveOpsHubStrings.ServicesUndoCreateCalendar),
                 vietnamese: "Tạo lịch LiveOps",
-                english: null);
+                english: "Create LiveOps calendar");
             table.Add(nameof(LiveOpsHubStrings.ServicesUndoMarkPublishedFormat),
                 vietnamese: "Ghi dấu đã đăng sha {0}",
-                english: null);
+                english: "Mark published sha {0}");
             table.Add(nameof(LiveOpsHubStrings.ServicesUndoRemoveLatestStampFormat),
                 vietnamese: "Gỡ dấu đã đăng sha {0}",
-                english: null);
+                english: "Remove published stamp sha {0}");
             table.Add(nameof(LiveOpsHubStrings.ServicesUndoKeepEditorVersion),
                 vietnamese: "Giữ bản trong Editor thay bản trên đĩa",
-                english: null);
+                english: "Keep the Editor version instead of the disk version");
             table.Add(nameof(LiveOpsHubStrings.ServicesUndoDiscardUnsaved),
                 vietnamese: "Bỏ thay đổi chưa lưu",
-                english: null);
+                english: "Discard unsaved changes");
 
             table.Add(nameof(LiveOpsHubStrings.ServicesEditFailedNoAsset),
                 vietnamese: "Chưa có asset lịch — tạo hoặc chọn asset ở Tổng quan trước.",
-                english: null);
+                english: "No calendar asset yet — create or pick one in Overview first.");
             table.Add(nameof(LiveOpsHubStrings.ServicesEditFailedNotApplicable),
                 vietnamese: "Lệnh sửa không áp được lên lịch hiện tại (mục cần sửa không còn).",
-                english: null);
+                english: "The edit does not apply to the current calendar (the item it edits is gone).");
             table.Add(nameof(LiveOpsHubStrings.ServicesEditFailedContinuousEditOpen),
                 vietnamese: "Đang kéo một mục — thả chuột hoặc Esc trước khi sửa việc khác.",
-                english: null);
+                english: "An item is being dragged — release the mouse or press Esc before editing something else.");
             table.Add(nameof(LiveOpsHubStrings.ServicesEditFailedContinuousGroupMismatch),
                 vietnamese: "Thao tác kéo này đã kết thúc hoặc không phải thao tác đang mở.",
-                english: null);
+                english: "This drag has ended or is not the open one.");
             table.Add(nameof(LiveOpsHubStrings.ServicesEditFailedNoChange),
                 vietnamese: "Không có thay đổi để ghi.",
-                english: null);
+                english: "No change to record.");
             table.Add(nameof(LiveOpsHubStrings.ServicesSaveFailedFormat),
                 vietnamese: "Không lưu được {0} — asset vẫn còn thay đổi chưa lưu.",
-                english: null);
+                english: "Cannot save {0} — the asset still has unsaved changes.");
             table.Add(nameof(LiveOpsHubStrings.ServicesSaveFailedNoPath),
                 vietnamese: "Asset lịch này chỉ nằm trong bộ nhớ (không có file) nên không lưu được.",
-                english: null);
+                english: "This calendar asset lives only in memory (no file), so it cannot be saved.");
             table.Add(nameof(LiveOpsHubStrings.ServicesSaveFailedDiskConflictFormat),
                 vietnamese: "Chưa lưu được {0} — file đã đổi trên đĩa trong lúc bạn đang sửa. Chọn Tải lại hoặc Giữ bản trong Editor trước đã.",
-                english: null);
+                english: "Cannot save {0} yet — the file changed on disk while you were editing. Choose Reload or Keep editor version first.");
             table.Add(nameof(LiveOpsHubStrings.ServicesStampNoPublisher),
                 vietnamese: "không rõ",
-                english: null);
+                english: "unknown");
 
             table.Add(nameof(LiveOpsHubStrings.ServicesAssetDeletedHeadlineFormat),
                 vietnamese: "{0} đã bị xoá khỏi project",
-                english: null);
+                english: "{0} was deleted from the project");
             table.Add(nameof(LiveOpsHubStrings.ServicesAssetDeletedDetail),
                 vietnamese: "Hub về trạng thái chưa có lịch — tạo hoặc chọn asset khác ở Tổng quan.",
-                english: null);
+                english: "The hub is back to having no calendar — create or pick another asset in Overview.");
 
             table.Add(nameof(LiveOpsHubStrings.InterimDiskConflictLog),
                 vietnamese: "LiveOps Hub: {0} vừa đổi trên đĩa trong lúc hub còn thay đổi chưa lưu — nháp vẫn giữ trong phiên (Tải lại / Giữ bản trong Editor chưa có ở bản dev này).",
-                english: null);
+                english: "LiveOps Hub: {0} changed on disk while the hub still had unsaved changes — the draft is kept in the session (Reload / Keep editor version are not built in this dev build).");
 
             table.Add(nameof(LiveOpsHubStrings.ServicesHealthNoAsset),
                 vietnamese: "Chưa có asset lịch",
-                english: null);
+                english: "No calendar asset");
             table.Add(nameof(LiveOpsHubStrings.ServicesHealthNeverChecked),
                 vietnamese: "Chưa kiểm lần nào — F5 để kiểm",
-                english: null);
+                english: "Never checked — press F5 to check");
             table.Add(nameof(LiveOpsHubStrings.ServicesHealthRunningFormat),
                 vietnamese: "Đang kiểm {0}/{1} luật…",
-                english: null);
+                english: "Checking {0}/{1} rules…");
             table.Add(nameof(LiveOpsHubStrings.ServicesHealthInterruptedByReload),
                 vietnamese: "Lần kiểm bị cắt ngang khi Unity nạp lại script — F5 để kiểm lại",
-                english: null);
+                english: "The check was cut short when Unity reloaded scripts — press F5 to check again");
             table.Add(nameof(LiveOpsHubStrings.ServicesHealthStaleEditedPrefixFormat),
                 vietnamese: "Kết quả kiểm lúc {0}, lịch đã đổi sau đó: ",
-                english: null);
+                english: "Check result from {0}, the calendar changed after that: ");
             table.Add(nameof(LiveOpsHubStrings.ServicesHealthStaleMilestonePrefixFormat),
                 vietnamese: "Kết quả kiểm lúc {0}, đã qua mốc {1} UTC sau đó: ",
-                english: null);
+                english: "Check result from {0}, the {1} UTC milestone passed after that: ");
             table.Add(nameof(LiveOpsHubStrings.ServicesHealthStaleNoDetail),
                 vietnamese: "không còn phát hiện nào ở lần kiểm đó",
-                english: null);
+                english: "no findings left from that check");
             table.Add(nameof(LiveOpsHubStrings.ServicesHealthDroppedGroupFormat),
                 vietnamese: "{0} đợt bị bỏ: {1}",
-                english: null);
+                english: "{0} dropped: {1}");
             table.Add(nameof(LiveOpsHubStrings.ServicesHealthProgressLostGroupFormat),
                 vietnamese: "{0} mất tiến độ: {1}",
-                english: null);
+                english: "{0} progress loss: {1}");
             table.Add(nameof(LiveOpsHubStrings.ServicesHealthShouldReviewGroupFormat),
                 vietnamese: "{0} nên xem: {1}",
-                english: null);
+                english: "{0} should review: {1}");
             table.Add(nameof(LiveOpsHubStrings.ServicesHealthNotMeasuredGroupFormat),
                 vietnamese: "{0} luật chưa kiểm",
-                english: null);
+                english: "{0} rules not measured");
             table.Add(nameof(LiveOpsHubStrings.ServicesHealthRemoteFindingsFormat),
                 vietnamese: "{0} phát hiện về bản remote",
-                english: null);
+                english: "{0} findings on the remote version");
             table.AddShared(nameof(LiveOpsHubStrings.ServicesHealthItemFormat), "{0} ({1})");
             table.AddShared(nameof(LiveOpsHubStrings.ServicesHealthItemSeparator), ", ");
             table.AddShared(nameof(LiveOpsHubStrings.ServicesHealthGroupSeparator), " · ");
             table.Add(nameof(LiveOpsHubStrings.ServicesHealthColorCollisionBadge),
                 vietnamese: "trùng màu",
-                english: null);
+                english: "color clash");
             table.Add(nameof(LiveOpsHubStrings.ServicesHealthColorCollisionFormat),
                 vietnamese: "{0} dùng chung ô màu {1}",
-                english: null);
+                english: "{0} share color slot {1}");
 
             table.Add(nameof(LiveOpsHubStrings.ServicesSaveChangesMessageFormat),
                 vietnamese: "{0} có {1} thay đổi chưa lưu: {2}. Lưu trước khi đóng LiveOps Hub?",
-                english: null);
+                english: "{0} has unsaved changes ({1}): {2}. Save before closing LiveOps Hub?");
 
             table.Add(nameof(LiveOpsHubStrings.ServicesSaveChangesMessageNoCountFormat),
                 vietnamese: "{0} còn thay đổi chưa lưu (dấu đã đăng, cảnh báo đã bỏ qua hoặc thứ tự mục). Lưu trước khi đóng LiveOps Hub?",
-                english: null);
+                english: "{0} still has unsaved changes (published stamp, ignored warnings or item order). Save before closing LiveOps Hub?");
             table.Add(nameof(LiveOpsHubStrings.ServicesSaveChangesMoreFormat),
                 vietnamese: "{0} và {1} mục khác",
-                english: null);
+                english: "{0} and {1} more");
             table.Add(nameof(LiveOpsHubStrings.ServicesSaveChangesDocumentFields),
                 vietnamese: "lịch",
-                english: null);
+                english: "calendar fields");
             table.Add(nameof(LiveOpsHubStrings.ServicesSaveChangesFailedDetail),
                 vietnamese: "Thay đổi vẫn còn trong Editor — mở lại LiveOps Hub để lưu hoặc xử lý.",
-                english: null);
+                english: "The changes are still in the Editor — reopen LiveOps Hub to save or handle them.");
         }
     }
 }
