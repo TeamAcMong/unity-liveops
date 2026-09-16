@@ -49,9 +49,13 @@ namespace DreamTech.LiveOps.Editor.Tests
             {
                 RecurringRuleJsonFoldout foldout = section.Form.JsonFoldout;
                 foldout.value = true;
-                // Gõ vào ô bằng chính đường người dùng đi (đặt value ⇒ ChangeEvent ⇒ kiểm lại): nặn tay dòng lỗi thì ảnh
-                // chứng minh được câu chữ mà không chứng minh được bộ kiểm có chạy.
-                foldout.Editor.value = RecurringJsonWithMissingComma();
+                // KHÔNG gán thẳng Editor.value: kịch bản dựng trạng thái TRƯỚC khi cửa sổ Show (SP-16, xem OpenRecurring),
+                // lúc đó foldout chưa thuộc panel nào nên ChangeEvent của UI Toolkit không phát — chữ gán vào sẽ bị Bind()
+                // đầu tiên (sau khi cửa sổ hiện) đè mất mà không qua bộ kiểm. SetEditorTextForCapture đi thẳng đường kiểm
+                // (SetValueWithoutNotify + Validate) và tự khớp eventType với luật weekly-pass đang chọn nên Bind() đầu
+                // tiên đó không coi đây là "đổi sang luật khác" rồi xoá cờ đang sửa — luồng người dùng thật gõ khi ô đã
+                // trong panel nên không cần đường này.
+                foldout.SetEditorTextForCapture(RecurringWeeklyPassType, RecurringJsonWithMissingComma());
             });
         }
     }
