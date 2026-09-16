@@ -65,6 +65,10 @@ namespace DreamTech.LiveOps.Editor
                 vietnamese: "Thêm đợt",
                 english: "Add event");
 
+            table.Add(nameof(LiveOpsHubStrings.CalendarMissingLayoutMessageFormat),
+                vietnamese: "Không nạp được bố cục màn Lịch: {0}",
+                english: "Cannot load the Calendar layout: {0}");
+
             table.Add(nameof(LiveOpsHubStrings.CalendarNoAssetEmptyText),
                 vietnamese: "Chưa có lịch LiveOps trong project",
                 english: "No LiveOps calendar in this project yet");

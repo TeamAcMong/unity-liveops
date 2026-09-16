@@ -71,7 +71,13 @@ namespace DreamTech.LiveOps.Editor
         {
             _root = new VisualElement();
             VisualTreeAsset layout = _services.LayoutLoader.LoadVisualTree(LiveOpsHubPaths.CalendarSectionUxml);
-            if (layout == null) return _root;
+            // Nạp hỏng thì NÉM: shell bắt và hiện LiveOpsHubFailureView nêu đường dẫn (7.0). Trả về cây rỗng sẽ thành một màn
+            // trắng im lặng — đúng thứ RequiredElementNames sinh ra để chặn (UXML sai cú pháp XML từng lọt qua kiểu đó).
+            if (layout == null)
+            {
+                throw new InvalidOperationException(string.Format(System.Globalization.CultureInfo.InvariantCulture,
+                    LiveOpsHubStrings.CalendarMissingLayoutMessageFormat, LiveOpsHubPaths.CalendarSectionUxml));
+            }
             layout.CloneTree(_root);
             StyleSheet sheet = _services.LayoutLoader.LoadStyleSheet(LiveOpsHubPaths.CalendarSectionUss);
             if (sheet != null) _root.styleSheets.Add(sheet);
