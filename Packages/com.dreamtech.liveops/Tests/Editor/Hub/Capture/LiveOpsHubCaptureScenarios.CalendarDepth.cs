@@ -33,11 +33,15 @@ namespace DreamTech.LiveOps.Editor.Tests
         private const int CalendarNarrowWidth = 820;
         private const int CalendarNarrowHeight = 560;
 
+        /// <summary>Rail hẹp [SD1 §3.9] — I-8 của G-SHELLPOLISH; ảnh h13 là chỗ duy nhất của W5 chụp nó ở 820px.</summary>
+        private const float CalendarNarrowRailWidth = 36f;
+
         /// <summary>Hình 11: kéo mép cuối lava-quest-2026-09b từ 19/9 sang 20/9 lúc 08:46:50 — đúng tình huống của hình.</summary>
         private const string CalendarCompareMovedEndUtcText = "2026-09-20T00:00:00Z";
 
         private const string CalendarCompareDiskAssetFileName = "CaptureCalendarCompareDisk.asset";
         private const string CalendarCompareDiskMarkerComment = "# sửa tay ngoài Unity";
+        private const string MetaExtension = ".meta";
 
         static partial void RegisterCalendarDepth(List<LiveOpsHubCaptureScenario> scenarios)
         {
@@ -48,10 +52,13 @@ namespace DreamTech.LiveOps.Editor.Tests
             scenarios.Add(CalendarFrameScenario(LiveOpsHubCaptureScenarioIds.H12Frame02, () => OpenCalendarFrame(
                 LiveOpsDesignSample.Document, PoseCalendarFrameHover)));
 
+            // Khung đo của Hình 13 là RAIL 36px, không phải drawer: drawer ở `--medium` có viền trái 1px và nằm sát mép phải
+            // cửa sổ, nên measure-capture.py dò cạnh ra 282px trong khi worldBound đúng 280.0 — giới hạn của công cụ, không
+            // phải lệch layout. Bề rộng drawer khoá bằng CalendarDepthTests thay vì bằng ảnh.
             scenarios.Add(new LiveOpsHubCaptureScenario(LiveOpsHubCaptureScenarioIds.H13CalendarNarrowDrawer, CalendarNarrowWidth,
                     CalendarNarrowHeight, OpenCalendarNarrowDrawer)
-                .WithExpectedFrames(new LiveOpsHubCaptureExpectedFrame(LiveOpsHubPaths.CalendarElementNames.Inspector,
-                    CalendarInspectorWidth, 0f)));
+                .WithExpectedFrames(new LiveOpsHubCaptureExpectedFrame(LiveOpsHubPaths.ShellElementNames.Rail,
+                    CalendarNarrowRailWidth, 0f)));
 
             scenarios.Add(new LiveOpsHubCaptureScenario(LiveOpsHubCaptureScenarioIds.H28fCalendarCompareDisk, CalendarWidth,
                     CalendarHeight, OpenCalendarCompareDisk)
@@ -98,6 +105,7 @@ namespace DreamTech.LiveOps.Editor.Tests
             File.AppendAllText(Path.GetFullPath(assetPath), Environment.NewLine + CalendarCompareDiskMarkerComment + Environment.NewLine);
             services.Session.HandleAssetsChanged(new[] { assetPath }, null, null, null);
             services.Session.Publish.SelectCompareSource(LiveOpsHubCompareSource.Disk);
+            EraseCaptureAssetFiles(assetPath);
 
             return OpenCalendarWithComparePane(services, LiveOpsDesignSample.LavaQuestMidEntryKey, CalendarWidth, CalendarHeight);
         }
@@ -127,6 +135,24 @@ namespace DreamTech.LiveOps.Editor.Tests
             // Bật qua chính nút toolbar: ảnh phải cho thấy nút ở trạng thái BẬT, không chỉ pane đang mở.
             if (calendar.Toolbar != null) calendar.Toolbar.CompareToggle.value = true;
             return window;
+        }
+
+        /// <summary>
+        /// Xoá file asset tạm NGAY sau khi xung đột đã dựng xong: lượt chụp không có TearDown, nên một asset để lại sẽ nằm
+        /// trong <c>git status</c> của worktree và làm cổng quyền ghi đỏ. Xoá bằng <see cref="File"/> chứ không bằng
+        /// <c>AssetDatabase.DeleteAsset</c>: DeleteAsset HUỶ luôn instance mà phiên đang giữ, và màn Lịch sẽ vẽ trạng thái
+        /// "chưa có asset" thay vì pane So với. Xung đột đã cầm sẵn cả ba tài liệu nên không ai đọc lại file nữa.
+        /// </summary>
+        private static void EraseCaptureAssetFiles(string assetPath)
+        {
+            string fullPath = Path.GetFullPath(assetPath);
+            if (File.Exists(fullPath)) File.Delete(fullPath);
+            if (File.Exists(fullPath + MetaExtension)) File.Delete(fullPath + MetaExtension);
+            string directory = Path.GetDirectoryName(fullPath);
+            if (string.IsNullOrEmpty(directory) || !Directory.Exists(directory)) return;
+            if (Directory.GetFileSystemEntries(directory).Length > 0) return;
+            Directory.Delete(directory);
+            if (File.Exists(directory + MetaExtension)) File.Delete(directory + MetaExtension);
         }
 
         private static void MoveLavaQuestEnd(LiveOpsHubServices services)

@@ -197,6 +197,25 @@ namespace DreamTech.LiveOps.Editor.Tests
             Assert.AreEqual(section.ComparePane.ChangeCount, section.ComparePane.Rows.Count);
         }
 
+        /// <summary>
+        /// Hình 13: ở 820px inspector thành drawer 280px phủ bên phải. Bề rộng khoá bằng test chứ không bằng ảnh h13 —
+        /// <c>measure-capture.py</c> dò cạnh drawer ra 282px vì nó có viền trái 1px và nằm sát mép cửa sổ (giới hạn công cụ).
+        /// </summary>
+        [UnityTest]
+        public IEnumerator NarrowWindow_InspectorIsDrawer280()
+        {
+            yield return OpenCalendarWith(LiveOpsHubTestServices.ForScenario(LiveOpsHubTestServices.DesignSampleScenario), 820, 560);
+            CalendarSection section = Calendar();
+            section.Presenter.SetSelectedBarKey(LiveOpsDesignSample.HuntBonusEntryKey);
+            yield return null;
+
+            VisualElement inspector = SectionView().Q(LiveOpsHubPaths.CalendarElementNames.Inspector);
+            Assert.IsNotNull(inspector);
+            Assert.AreEqual(280f, inspector.worldBound.width, 0.5f, "drawer giữ đúng 280px, không co theo nội dung");
+            Assert.AreEqual(Position.Absolute, inspector.resolvedStyle.position,
+                "ở --medium drawer PHỦ lên timeline, không đẩy trục hẹp lại [SD1 §3.9]");
+        }
+
         // ------------------------------------------------------------------------------------------------ hover card + F8
 
         /// <summary>
@@ -380,9 +399,15 @@ namespace DreamTech.LiveOps.Editor.Tests
 
         private IEnumerator OpenCalendarWith(LiveOpsHubServices services)
         {
+            return OpenCalendarWith(services, 1280, 760);
+        }
+
+        private IEnumerator OpenCalendarWith(LiveOpsHubServices services, int width, int height)
+        {
             List<IHubSection> sections = LiveOpsHubSections.Create(services);
             _window = LiveOpsHubWindow.OpenWithServices(services, sections, LiveOpsHubSections.Ids.Calendar);
-            _window.position = new Rect(0, 0, 1280, 760);
+            // SP-16: đặt kích thước SAU Show.
+            _window.position = new Rect(0, 0, width, height);
             yield return WaitForLayout(_window.rootVisualElement);
         }
 

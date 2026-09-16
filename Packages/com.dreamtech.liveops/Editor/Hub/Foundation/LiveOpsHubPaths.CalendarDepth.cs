@@ -30,6 +30,9 @@ namespace DreamTech.LiveOps.Editor
             internal const string HoverProblem = "calendar-hover-problem";
             internal const string HoverQuickFix = "calendar-hover-quick-fix";
             internal const string HoverCounter = "calendar-hover-counter";
+
+            /// <summary>Nút đóng của drawer inspector — chỉ hiện ở <c>--medium</c> [SD1 §3.9].</summary>
+            internal const string InspectorDrawerClose = "calendar-inspector-drawer-close";
         }
 
         /// <summary>Element sống còn của phần chiều sâu màn Lịch — <c>CalendarDepthTests</c> Q từng tên sau khi mở pane.</summary>

@@ -86,6 +86,10 @@ namespace DreamTech.LiveOps.Editor
                 english: "Quick fix…");
             table.AddShared(nameof(LiveOpsHubStrings.CalendarDepthHoverCounterFormat), "{0}/{1}");
 
+            table.Add(nameof(LiveOpsHubStrings.CalendarDepthDrawerCloseTooltip),
+                vietnamese: "Đóng (Esc)",
+                english: "Close (Esc)");
+
             table.Add(nameof(LiveOpsHubStrings.CalendarDepthMenuEditInInspector),
                 vietnamese: "Sửa trong inspector",
                 english: "Edit in the inspector");

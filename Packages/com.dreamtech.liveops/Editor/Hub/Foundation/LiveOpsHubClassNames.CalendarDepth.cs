@@ -41,5 +41,8 @@ namespace DreamTech.LiveOps.Editor
         internal const string CalendarDepthHoverFooter = "liveops-hub-calendar-hover-footer";
         internal const string CalendarDepthHoverPinnedRow = "liveops-hub-calendar-hover-pinned-row";
         internal const string CalendarDepthHoverCounter = "liveops-hub-calendar-hover-counter";
+
+        /// <summary>Nút đóng của drawer inspector — USS chỉ hiện nó ở <c>--medium</c> [SD1 §3.9].</summary>
+        internal const string CalendarDepthDrawerClose = "liveops-hub-calendar-drawer-close";
     }
 }
