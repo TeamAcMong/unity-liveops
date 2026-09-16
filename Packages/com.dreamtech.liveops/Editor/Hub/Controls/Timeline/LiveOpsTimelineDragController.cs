@@ -206,7 +206,7 @@ namespace DreamTech.LiveOps.Editor
             bool overlapping = OverlapWithEventId.Length > 0;
             string separator = LiveOpsHubStrings.TimelineReadoutSeparator;
             string length = string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.TimelineReadoutLengthFormat,
-                HoursText(PreviewEndUtc - PreviewStartUtc));
+                LengthText(PreviewEndUtc - PreviewStartUtc));
             switch (Gesture)
             {
                 case DragGesture.ResizeStart:
@@ -239,7 +239,7 @@ namespace DreamTech.LiveOps.Editor
         {
             if (format == null) throw new ArgumentNullException(nameof(format));
             if (OverlapWithEventId.Length == 0) return string.Empty;
-            return string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.TimelineReadoutOverlapFormat, HoursText(OverlapDuration),
+            return string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.TimelineReadoutOverlapFormat, LengthText(OverlapDuration),
                 OverlapWithEventId);
         }
 
@@ -252,18 +252,25 @@ namespace DreamTech.LiveOps.Editor
         private static string ShiftText(TimeSpan shift, LiveOpsHubFormat format)
         {
             string sign = shift < TimeSpan.Zero ? LiveOpsHubStrings.TimelineNegativeSign : LiveOpsHubStrings.TimelinePositiveSign;
-            return string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.TimelineReadoutShiftFormat, sign, HoursText(shift));
+            return string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.TimelineReadoutShiftFormat, sign, LengthText(shift));
         }
 
         /// <summary>
-        /// Thời lượng của readout đo bằng GIỜ, không cuộn lên ngày: thiết kế ghi "dài 36 giờ" / "dời +12 giờ" / "chồng 12 giờ"
-        /// [SD1 §3.7, Hình 12 khung 5–7]. Khác <see cref="LiveOpsHubFormat.Duration"/> (bản chung của hub cho "3 ngày 18 giờ") vì
-        /// người đang kéo so độ dài mới với độ dài cũ — "1 ngày 12 giờ" bắt họ tự cộng lại. Có phút lẻ (bắt lưới 15 phút ở zoom
+        /// Thời lượng của readout và của nhãn vùng chồng [SD1 §3.7, Hình 12 khung 5–7]. Tròn ngày thì đo bằng NGÀY ("dời +1 ngày",
+        /// "dài 3 ngày" — khung 6); còn lại đo bằng GIỜ và KHÔNG cuộn lên ngày ("dài 36 giờ" — khung 5, "chồng 12 giờ" — khung 7).
+        /// Khác <see cref="LiveOpsHubFormat.Duration"/> (bản chung của hub cho "3 ngày 18 giờ") vì người đang kéo so độ dài mới với
+        /// độ dài cũ — "1 ngày 12 giờ" bắt họ tự cộng lại, còn "3 ngày" thì đọc ngay ra chu kỳ. Có phút lẻ (bắt lưới 15 phút ở zoom
         /// gần) thì ghi thêm phút; dưới một phút ghi "0 phút" như bản chung. Âm thì in trị tuyệt đối — dấu do nơi gọi đặt.
         /// </summary>
-        internal static string HoursText(TimeSpan duration)
+        internal static string LengthText(TimeSpan duration)
         {
             TimeSpan absolute = duration < TimeSpan.Zero ? duration.Negate() : duration;
+            // Đúng N ngày chẵn (không dư giờ/phút/giây) mới cuộn lên "ngày" — mọi giá trị lẻ giữ nguyên đơn vị giờ để so được với nhau.
+            if (absolute.Ticks >= TimeSpan.TicksPerDay && absolute.Ticks % TimeSpan.TicksPerDay == 0)
+            {
+                long days = absolute.Ticks / TimeSpan.TicksPerDay;
+                return days.ToString(CultureInfo.InvariantCulture) + " " + LiveOpsHubStrings.DurationDayUnit;
+            }
             int hours = (int)Math.Floor(absolute.TotalHours);
             int minutes = absolute.Minutes;
             if (hours == 0 && minutes == 0)

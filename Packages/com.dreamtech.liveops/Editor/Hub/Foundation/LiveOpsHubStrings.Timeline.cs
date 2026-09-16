@@ -52,7 +52,10 @@ namespace DreamTech.LiveOps.Editor
         // Minimap [SD1 §3.6]: vạch dựng câu từ LiveOpsFindingText.ShortLabel (CC-FT-1); vạch không có phát hiện nêu lý do riêng.
         internal const string TimelineMinimapLegendTooltipFormat =
             "Minimap {0} → {1} · vạch đỏ cao hết dải = đợt bị bỏ · vạch vàng nửa trên = cảnh báo · cờ = lần đăng · khung = khoảng đang xem · dải màu = loại event";
-        internal const string TimelineMinimapMarkFormat = "{0} · {1} ({2})";
+        // Câu vạch nối bằng khoảng trắng như [SD1 §3.6] ("Cảnh báo · weekly-pass-35 đổi id", "Nên xem · hunt-0914 không tự khai
+        // configKey"); riêng lý do KHÔNG đến từ phát hiện mới bọc ngoặc ("Bị bỏ · lava-quest-2026-10 (không đặt được)").
+        internal const string TimelineMinimapMarkFormat = "{0} · {1} {2}";
+        internal const string TimelineMinimapMarkNoFindingFormat = "{0} · {1} ({2})";
         internal const string TimelineMinimapDroppedLabel = "Bị bỏ";
         internal const string TimelineMinimapProgressLostLabel = "Cảnh báo";
         internal const string TimelineMinimapShouldReviewLabel = "Nên xem";

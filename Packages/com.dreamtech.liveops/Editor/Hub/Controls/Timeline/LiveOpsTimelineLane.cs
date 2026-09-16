@@ -126,7 +126,7 @@ namespace DreamTech.LiveOps.Editor
             style.height = LaneHeight; // style-inline-allowed: 3
 
             BindBars(lane, geometry, format, tooltipOf);
-            BindOverlapLabels(lane.OverlapRanges, geometry, format);
+            BindOverlapLabels(lane.OverlapRanges, geometry);
             BindNextChip(lane, format, nowUtc);
             MarkDirtyRepaint();
         }
@@ -268,8 +268,13 @@ namespace DreamTech.LiveOps.Editor
             return _droppedTags[index];
         }
 
-        private void BindOverlapLabels(IReadOnlyList<(DateTime startUtc, DateTime endUtc)> overlaps, LiveOpsTimelineGeometry geometry,
-            LiveOpsHubFormat format)
+        /// <summary>
+        /// Nhãn "chồng …" giữa vùng chồng. Đo bằng <see cref="LiveOpsTimelineDragController.LengthText"/> chứ không bằng
+        /// <see cref="LiveOpsHubFormat.Duration"/>: readout lúc kéo in "chồng 12 giờ với hunt-0916-bonus" ngay phía trên nhãn này
+        /// [SD1 §3.7, Hình 12 khung 7], nên cùng một đại lượng trên cùng một màn phải cùng một công thức — bản chung sẽ in
+        /// "chồng 1 ngày 12 giờ" cho đúng vùng mà readout gọi là "36 giờ".
+        /// </summary>
+        private void BindOverlapLabels(IReadOnlyList<(DateTime startUtc, DateTime endUtc)> overlaps, LiveOpsTimelineGeometry geometry)
         {
             for (int index = 0; index < overlaps.Count; index++)
             {
@@ -286,7 +291,7 @@ namespace DreamTech.LiveOps.Editor
                 float left = Math.Max(0f, geometry.XOf(overlap.startUtc));
                 float right = Math.Min(geometry.TrackWidth, geometry.XOf(overlap.endUtc));
                 label.text = string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.TimelineOverlapLabelFormat,
-                    format.Duration(overlap.endUtc - overlap.startUtc, false));
+                    LiveOpsTimelineDragController.LengthText(overlap.endUtc - overlap.startUtc));
                 label.style.left = (left + right) / 2f; // style-inline-allowed: 3
                 label.EnableInClassList(LiveOpsHubClassNames.TimelineHidden, right <= left);
             }
