@@ -538,6 +538,9 @@ namespace DreamTech.LiveOps.Editor.Tests
                 _toast.style.bottom = CalendarFrameToastBottomMargin;
                 canvas.Add(_toast);
 
+                // Tắt chuyển động cho ảnh: toast hiện bằng transition opacity 0 → 1, chụp giữa chừng ra một toast mờ đọc không nổi.
+                canvas.RegisterCallback<AttachToPanelEvent>(attachEvent => DisableMotionOnHubRoot(canvas));
+
                 // Lệnh chụp đóng cửa sổ sau mỗi kịch bản: gỡ delegate Undo của tracker, nếu không nó sống tới domain reload kế tiếp.
                 canvas.RegisterCallback<DetachFromPanelEvent>(detachEvent =>
                 {
@@ -558,6 +561,16 @@ namespace DreamTech.LiveOps.Editor.Tests
                 // Và chạy ở LƯỢT SAU: lệnh sửa dựng lại toàn bộ cây làn, mà lúc này panel đang duyệt danh sách element chờ layout để
                 // phát GeometryChangedEvent — đổi cây giữa chừng ném "Collection was modified" (thấy ở khung 14 khi ⌘Z).
                 _timeline.schedule.Execute(RunAction);
+            }
+
+            private static void DisableMotionOnHubRoot(VisualElement canvas)
+            {
+                for (VisualElement current = canvas; current != null; current = current.hierarchy.parent)
+                {
+                    if (!current.ClassListContains(LiveOpsHubClassNames.Root)) continue;
+                    current.AddToClassList(LiveOpsHubClassNames.NoMotion);
+                    return;
+                }
             }
 
             private void RunAction()
