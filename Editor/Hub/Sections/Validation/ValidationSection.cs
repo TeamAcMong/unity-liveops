@@ -114,7 +114,8 @@ namespace DreamTech.LiveOps.Editor
                 throw new InvalidOperationException(string.Format(CultureInfo.InvariantCulture,
                     LiveOpsHubStrings.ValidationMissingLayoutFormat, LiveOpsHubPaths.ValidationSectionUxml));
             }
-            _root = layout.Instantiate();
+            // Bỏ vỏ TemplateContainer: vỏ không mang class nào nên nó không giãn, và thân màn sẽ cao 0 trong cột section body.
+            _root = layout.Instantiate().Q(LiveOpsHubPaths.ValidationElementNames.Body) ?? layout.Instantiate();
             _root.name = LiveOpsHubPaths.ValidationElementNames.Body;
             StyleSheet sheet = Services.LayoutLoader.LoadStyleSheet(LiveOpsHubPaths.ValidationSectionUss);
             if (sheet != null) _root.styleSheets.Add(sheet);
