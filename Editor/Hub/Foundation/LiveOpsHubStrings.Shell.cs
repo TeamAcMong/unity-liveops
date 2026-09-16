@@ -47,6 +47,17 @@ namespace DreamTech.LiveOps.Editor
         internal static string ShellRailBlockerStaleDetailFormat => LiveOpsHubStringCatalog.Text(nameof(ShellRailBlockerStaleDetailFormat));
         internal static string ShellRailHealthCountMismatchFormat => LiveOpsHubStringCatalog.Text(nameof(ShellRailHealthCountMismatchFormat));
 
+        // Rail 36 px của cửa sổ hẹp ([FD §3.7], mục 12 I-8).
+
+        /// <summary>Tooltip nút ‹› trên đầu rail — một câu cho cả hai chiều: chiều chevron đã nói rõ đang mở hay đang thu.</summary>
+        internal static string ShellRailPinTooltip => LiveOpsHubStringCatalog.Text(nameof(ShellRailPinTooltip));
+
+        /// <summary>Mục menu của ô tầng: "Kiểm lịch — 2 bị bỏ" ([FD §3.7]); màn không có lý do thì chỉ còn tên màn.</summary>
+        internal static string ShellRailNarrowMenuItemFormat => LiveOpsHubStringCatalog.Text(nameof(ShellRailNarrowMenuItemFormat));
+
+        /// <summary>Tooltip ô icon lỗi ở đáy rail thu gọn: "Dừng ở Kiểm lịch: 2 đợt sẽ bị game bỏ khi đọc lịch" ([FD §3.7]).</summary>
+        internal static string ShellRailNarrowBlockerTooltipFormat => LiveOpsHubStringCatalog.Text(nameof(ShellRailNarrowBlockerTooltipFormat));
+
         // Health
         internal static string ShellHealthThrewReason => LiveOpsHubStringCatalog.Text(nameof(ShellHealthThrewReason));
         internal static string ShellHealthThrewLogFormat => LiveOpsHubStringCatalog.Text(nameof(ShellHealthThrewLogFormat));
