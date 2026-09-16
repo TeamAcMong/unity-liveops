@@ -169,7 +169,16 @@ namespace DreamTech.LiveOps.Editor
                     default:
                         if (containers.Count == 0)
                         {
-                            // Nội dung sau giá trị gốc (vd hai object liền nhau) không phải thiếu dấu phẩy — JSON chỉ có một gốc.
+                            // Ô luôn được bọc vào một mảng trước khi đưa cho parser (DocumentPrefix/Suffix), nên nhiều giá trị
+                            // gốc CÁCH NHAU BẰNG DẤU PHẨY là cú pháp hợp lệ ở đây — chỉ sai ngữ nghĩa (không đúng một luật),
+                            // và lỗi đó phải do tầng đọc-lại báo (RecurringJsonNotOneRuleReason), không phải cú pháp. Ký tự
+                            // khác dấu phẩy sau giá trị gốc (vd hai object dính liền không dấu phẩy) vẫn là lỗi cú pháp.
+                            if (character == ',')
+                            {
+                                index++;
+                                state = ScanState.ExpectValue;
+                                break;
+                            }
                             return Fail(index, ReasonUnexpectedCharacter, out errorOffset, out reasonCode);
                         }
                         char container = containers.Peek();
