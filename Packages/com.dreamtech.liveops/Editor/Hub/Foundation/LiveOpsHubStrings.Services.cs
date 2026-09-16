@@ -8,55 +8,55 @@ namespace DreamTech.LiveOps.Editor
     internal static partial class LiveOpsHubStrings
     {
         // Undo group (4.3): tên group = câu người dùng đọc trong Edit → Undo History, nên nói việc vừa làm chứ không nói tên hàm.
-        internal const string ServicesUndoCreateCalendar = "Tạo lịch LiveOps";
-        internal const string ServicesUndoMarkPublishedFormat = "Ghi dấu đã đăng sha {0}";
-        internal const string ServicesUndoRemoveLatestStampFormat = "Gỡ dấu đã đăng sha {0}";
-        internal const string ServicesUndoKeepEditorVersion = "Giữ bản trong Editor thay bản trên đĩa";
-        internal const string ServicesUndoDiscardUnsaved = "Bỏ thay đổi chưa lưu";
+        internal static string ServicesUndoCreateCalendar => LiveOpsHubStringCatalog.Text(nameof(ServicesUndoCreateCalendar));
+        internal static string ServicesUndoMarkPublishedFormat => LiveOpsHubStringCatalog.Text(nameof(ServicesUndoMarkPublishedFormat));
+        internal static string ServicesUndoRemoveLatestStampFormat => LiveOpsHubStringCatalog.Text(nameof(ServicesUndoRemoveLatestStampFormat));
+        internal static string ServicesUndoKeepEditorVersion => LiveOpsHubStringCatalog.Text(nameof(ServicesUndoKeepEditorVersion));
+        internal static string ServicesUndoDiscardUnsaved => LiveOpsHubStringCatalog.Text(nameof(ServicesUndoDiscardUnsaved));
 
         // Lệnh sửa không áp được — câu nói vì sao, để màn hiện cạnh thao tác thay vì im lặng không làm gì.
-        internal const string ServicesEditFailedNoAsset = "Chưa có asset lịch — tạo hoặc chọn asset ở Tổng quan trước.";
-        internal const string ServicesEditFailedNotApplicable = "Lệnh sửa không áp được lên lịch hiện tại (mục cần sửa không còn).";
-        internal const string ServicesEditFailedContinuousEditOpen = "Đang kéo một mục — thả chuột hoặc Esc trước khi sửa việc khác.";
-        internal const string ServicesEditFailedContinuousGroupMismatch = "Thao tác kéo này đã kết thúc hoặc không phải thao tác đang mở.";
-        internal const string ServicesEditFailedNoChange = "Không có thay đổi để ghi.";
-        internal const string ServicesSaveFailedFormat = "Không lưu được {0} — asset vẫn còn thay đổi chưa lưu.";
-        internal const string ServicesSaveFailedNoPath = "Asset lịch này chỉ nằm trong bộ nhớ (không có file) nên không lưu được.";
-        internal const string ServicesSaveFailedDiskConflictFormat = "Chưa lưu được {0} — file đã đổi trên đĩa trong lúc bạn đang sửa. Chọn Tải lại hoặc Giữ bản trong Editor trước đã.";
-        internal const string ServicesStampNoPublisher = "không rõ";
+        internal static string ServicesEditFailedNoAsset => LiveOpsHubStringCatalog.Text(nameof(ServicesEditFailedNoAsset));
+        internal static string ServicesEditFailedNotApplicable => LiveOpsHubStringCatalog.Text(nameof(ServicesEditFailedNotApplicable));
+        internal static string ServicesEditFailedContinuousEditOpen => LiveOpsHubStringCatalog.Text(nameof(ServicesEditFailedContinuousEditOpen));
+        internal static string ServicesEditFailedContinuousGroupMismatch => LiveOpsHubStringCatalog.Text(nameof(ServicesEditFailedContinuousGroupMismatch));
+        internal static string ServicesEditFailedNoChange => LiveOpsHubStringCatalog.Text(nameof(ServicesEditFailedNoChange));
+        internal static string ServicesSaveFailedFormat => LiveOpsHubStringCatalog.Text(nameof(ServicesSaveFailedFormat));
+        internal static string ServicesSaveFailedNoPath => LiveOpsHubStringCatalog.Text(nameof(ServicesSaveFailedNoPath));
+        internal static string ServicesSaveFailedDiskConflictFormat => LiveOpsHubStringCatalog.Text(nameof(ServicesSaveFailedDiskConflictFormat));
+        internal static string ServicesStampNoPublisher => LiveOpsHubStringCatalog.Text(nameof(ServicesStampNoPublisher));
 
         // Asset bị xoá khỏi project khi hub đang mở (4.3).
-        internal const string ServicesAssetDeletedHeadlineFormat = "{0} đã bị xoá khỏi project";
-        internal const string ServicesAssetDeletedDetail = "Hub về trạng thái chưa có lịch — tạo hoặc chọn asset khác ở Tổng quan.";
+        internal static string ServicesAssetDeletedHeadlineFormat => LiveOpsHubStringCatalog.Text(nameof(ServicesAssetDeletedHeadlineFormat));
+        internal static string ServicesAssetDeletedDetail => LiveOpsHubStringCatalog.Text(nameof(ServicesAssetDeletedDetail));
 
         // INTERIM(G-SHELLPOLISH): câu log tạm thay băng "asset đổi trên đĩa" (mục 12 I-8) — G-SHELLPOLISH xoá cùng dòng nối log ở cửa sổ.
-        internal const string InterimDiskConflictLog = "LiveOps Hub: {0} vừa đổi trên đĩa trong lúc hub còn thay đổi chưa lưu — nháp vẫn giữ trong phiên (Tải lại / Giữ bản trong Editor chưa có ở bản dev này).";
+        internal static string InterimDiskConflictLog => LiveOpsHubStringCatalog.Text(nameof(InterimDiskConflictLog));
 
         // Health theo đích (6.4). "Chưa kiểm" luôn kèm cách làm cho hết chưa kiểm (F5), vì vòng rỗng không có câu là vô dụng.
-        internal const string ServicesHealthNoAsset = "Chưa có asset lịch";
-        internal const string ServicesHealthNeverChecked = "Chưa kiểm lần nào — F5 để kiểm";
-        internal const string ServicesHealthRunningFormat = "Đang kiểm {0}/{1} luật…";
-        internal const string ServicesHealthInterruptedByReload = "Lần kiểm bị cắt ngang khi Unity nạp lại script — F5 để kiểm lại";
-        internal const string ServicesHealthStaleEditedPrefixFormat = "Kết quả kiểm lúc {0}, lịch đã đổi sau đó: ";
-        internal const string ServicesHealthStaleMilestonePrefixFormat = "Kết quả kiểm lúc {0}, đã qua mốc {1} UTC sau đó: ";
-        internal const string ServicesHealthStaleNoDetail = "không còn phát hiện nào ở lần kiểm đó";
-        internal const string ServicesHealthDroppedGroupFormat = "{0} đợt bị bỏ: {1}";
-        internal const string ServicesHealthProgressLostGroupFormat = "{0} mất tiến độ: {1}";
-        internal const string ServicesHealthShouldReviewGroupFormat = "{0} nên xem: {1}";
-        internal const string ServicesHealthNotMeasuredGroupFormat = "{0} luật chưa kiểm";
-        internal const string ServicesHealthRemoteFindingsFormat = "{0} phát hiện về bản remote";
-        internal const string ServicesHealthItemFormat = "{0} ({1})";
-        internal const string ServicesHealthItemSeparator = ", ";
-        internal const string ServicesHealthGroupSeparator = " · ";
-        internal const string ServicesHealthColorCollisionBadge = "trùng màu";
-        internal const string ServicesHealthColorCollisionFormat = "{0} dùng chung ô màu {1}";
+        internal static string ServicesHealthNoAsset => LiveOpsHubStringCatalog.Text(nameof(ServicesHealthNoAsset));
+        internal static string ServicesHealthNeverChecked => LiveOpsHubStringCatalog.Text(nameof(ServicesHealthNeverChecked));
+        internal static string ServicesHealthRunningFormat => LiveOpsHubStringCatalog.Text(nameof(ServicesHealthRunningFormat));
+        internal static string ServicesHealthInterruptedByReload => LiveOpsHubStringCatalog.Text(nameof(ServicesHealthInterruptedByReload));
+        internal static string ServicesHealthStaleEditedPrefixFormat => LiveOpsHubStringCatalog.Text(nameof(ServicesHealthStaleEditedPrefixFormat));
+        internal static string ServicesHealthStaleMilestonePrefixFormat => LiveOpsHubStringCatalog.Text(nameof(ServicesHealthStaleMilestonePrefixFormat));
+        internal static string ServicesHealthStaleNoDetail => LiveOpsHubStringCatalog.Text(nameof(ServicesHealthStaleNoDetail));
+        internal static string ServicesHealthDroppedGroupFormat => LiveOpsHubStringCatalog.Text(nameof(ServicesHealthDroppedGroupFormat));
+        internal static string ServicesHealthProgressLostGroupFormat => LiveOpsHubStringCatalog.Text(nameof(ServicesHealthProgressLostGroupFormat));
+        internal static string ServicesHealthShouldReviewGroupFormat => LiveOpsHubStringCatalog.Text(nameof(ServicesHealthShouldReviewGroupFormat));
+        internal static string ServicesHealthNotMeasuredGroupFormat => LiveOpsHubStringCatalog.Text(nameof(ServicesHealthNotMeasuredGroupFormat));
+        internal static string ServicesHealthRemoteFindingsFormat => LiveOpsHubStringCatalog.Text(nameof(ServicesHealthRemoteFindingsFormat));
+        internal static string ServicesHealthItemFormat => LiveOpsHubStringCatalog.Text(nameof(ServicesHealthItemFormat));
+        internal static string ServicesHealthItemSeparator => LiveOpsHubStringCatalog.Text(nameof(ServicesHealthItemSeparator));
+        internal static string ServicesHealthGroupSeparator => LiveOpsHubStringCatalog.Text(nameof(ServicesHealthGroupSeparator));
+        internal static string ServicesHealthColorCollisionBadge => LiveOpsHubStringCatalog.Text(nameof(ServicesHealthColorCollisionBadge));
+        internal static string ServicesHealthColorCollisionFormat => LiveOpsHubStringCatalog.Text(nameof(ServicesHealthColorCollisionFormat));
 
         // Đóng cửa sổ khi còn thay đổi chưa lưu (8.3): tên asset + số thay đổi + danh sách id ngắn.
-        internal const string ServicesSaveChangesMessageFormat = "{0} có {1} thay đổi chưa lưu: {2}. Lưu trước khi đóng LiveOps Hub?";
+        internal static string ServicesSaveChangesMessageFormat => LiveOpsHubStringCatalog.Text(nameof(ServicesSaveChangesMessageFormat));
         // Diff hậu quả rỗng mà file vẫn khác bản đã lưu (PD-22: dấu đã đăng, cảnh báo đã bỏ qua, thứ tự mục) — không bịa ra con số.
-        internal const string ServicesSaveChangesMessageNoCountFormat = "{0} còn thay đổi chưa lưu (dấu đã đăng, cảnh báo đã bỏ qua hoặc thứ tự mục). Lưu trước khi đóng LiveOps Hub?";
-        internal const string ServicesSaveChangesMoreFormat = "{0} và {1} mục khác";
-        internal const string ServicesSaveChangesDocumentFields = "lịch";
-        internal const string ServicesSaveChangesFailedDetail = "Thay đổi vẫn còn trong Editor — mở lại LiveOps Hub để lưu hoặc xử lý.";
+        internal static string ServicesSaveChangesMessageNoCountFormat => LiveOpsHubStringCatalog.Text(nameof(ServicesSaveChangesMessageNoCountFormat));
+        internal static string ServicesSaveChangesMoreFormat => LiveOpsHubStringCatalog.Text(nameof(ServicesSaveChangesMoreFormat));
+        internal static string ServicesSaveChangesDocumentFields => LiveOpsHubStringCatalog.Text(nameof(ServicesSaveChangesDocumentFields));
+        internal static string ServicesSaveChangesFailedDetail => LiveOpsHubStringCatalog.Text(nameof(ServicesSaveChangesFailedDetail));
     }
 }
