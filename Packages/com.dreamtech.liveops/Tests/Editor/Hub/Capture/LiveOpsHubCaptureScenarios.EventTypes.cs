@@ -38,10 +38,13 @@ namespace DreamTech.LiveOps.Editor.Tests
                 EventTypesHeight, OpenEventTypesColorCollision));
         }
 
-        /// <summary>Hình 10: lịch mẫu đã kiểm, star-tournament đang ghi đè ô 6 steel nên inspector có dòng phụ quiet.</summary>
+        /// <summary>
+        /// Hình 10: lịch mẫu đã kiểm, đang chọn star-tournament — loại này đang ghi đè ô 6 steel nên inspector hiện dòng phụ
+        /// quiet "theo băm trùng treasure-hunt", đúng thứ hình thiết kế vẽ.
+        /// </summary>
         private static EditorWindow OpenEventTypesDefault()
         {
-            return OpenEventTypes(LiveOpsHubTestServices.ForScenario(LiveOpsHubTestServices.DesignSampleScenario));
+            return OpenEventTypes(LiveOpsHubTestServices.ForScenario(LiveOpsHubTestServices.DesignSampleScenario), EventTypesCollisionType);
         }
 
         /// <summary>

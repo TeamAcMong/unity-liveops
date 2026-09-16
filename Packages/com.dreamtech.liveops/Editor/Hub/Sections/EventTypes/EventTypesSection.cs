@@ -330,13 +330,19 @@ namespace DreamTech.LiveOps.Editor
             findingRow.AddToClassList(LiveOpsHubClassNames.FindingRow);
             findingRow.AddToClassList(LiveOpsHubClassNames.FindingStripeBlocked);
 
+            // Hàng phát hiện là flex-row (sọc bên trái), nên hai dòng chữ phải nằm trong một cột riêng — không bọc thì headline
+            // và dòng id luật dính vào nhau trên cùng một dòng.
+            VisualElement textColumn = new VisualElement();
+            textColumn.AddToClassList(LiveOpsHubClassNames.EventTypesReferenceText);
+
             Label headline = new Label(_model.ReferenceHeadline(typeId, _services.Format));
             headline.AddToClassList(LiveOpsHubClassNames.TextBlocked);
-            findingRow.Add(headline);
+            textColumn.Add(headline);
 
             Label ruleLine = new Label(_model.ReferenceRuleIdLine(typeId));
             ruleLine.AddToClassList(LiveOpsHubClassNames.Caption);
-            findingRow.Add(ruleLine);
+            textColumn.Add(ruleLine);
+            findingRow.Add(textColumn);
             _referenceCard.Add(findingRow);
         }
 
