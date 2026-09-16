@@ -43,21 +43,43 @@ namespace DreamTech.LiveOps.Editor.Tests
         /// <summary>Kéo hunt-0916-bonus sang trái 57px ở 3 tuần (≈ 45 giờ): chui hẳn vào hunt-0914 nên xem trước là "sẽ chồng" rõ ràng.</summary>
         private const float DragOverlapShiftPixels = 57f;
 
+        /// <summary>Làn nào cũng phủ đúng track 635px = 803 − header làn 168 [SD1 §3.2] — số này đúng ở cả bốn kịch bản, mọi zoom.</summary>
+        private const int TimelineLaneWidth = 635;
+
+        /// <summary>
+        /// Thanh mốc của Hình 1 [SD1 §3.3]: lava-quest-2026-09a dài 72 giờ, ở 3 tuần (1,26 px/giờ) ra 90px. Chỉ khai cho
+        /// <c>ht-timeline-figure1</c> — bề rộng thanh đổi theo zoom nên kịch bản Tháng/Ngày không dùng được số này.
+        /// </summary>
+        private const int TimelineFigure1LavaQuestEarlyWidth = 90;
+
         static partial void RegisterTimeline(List<LiveOpsHubCaptureScenario> scenarios)
         {
-            scenarios.Add(TimelineScenario(LiveOpsHubCaptureScenarioIds.HtTimelineFigure1, LiveOpsTimelineZoom.ThreeWeeks, null));
+            scenarios.Add(TimelineScenario(LiveOpsHubCaptureScenarioIds.HtTimelineFigure1, LiveOpsTimelineZoom.ThreeWeeks, null,
+                new LiveOpsHubCaptureExpectedFrame(LiveOpsDesignSample.LavaQuestEarlyEntryKey, TimelineFigure1LavaQuestEarlyWidth, 0f)));
             scenarios.Add(TimelineScenario(LiveOpsHubCaptureScenarioIds.HtTimelineMonth, LiveOpsTimelineZoom.Month, null));
             scenarios.Add(TimelineScenario(LiveOpsHubCaptureScenarioIds.HtTimelineDragOverlap, LiveOpsTimelineZoom.ThreeWeeks, PoseDragOverlap));
             scenarios.Add(TimelineScenario(LiveOpsHubCaptureScenarioIds.HtTimelineDayRuler, LiveOpsTimelineZoom.Day, PoseDayRulerCursor));
         }
 
-        private static LiveOpsHubCaptureScenario TimelineScenario(string id, LiveOpsTimelineZoom zoom, Action<LiveOpsTimelineElement> pose)
+        /// <summary>
+        /// Khung mong đợi khai ba mức để measure-capture.py tự bắt hồi quy hình học thay vì phải đối chiếu tay trên
+        /// <c>ht-timeline-figure1-&lt;skin&gt;.json</c>: canvas 803×420, mọi làn rộng 635 (khớp theo class), và — chỉ ở Hình 1 —
+        /// thanh mốc lava-quest-2026-09a rộng 90 (khớp theo tên element = BarKey).
+        /// </summary>
+        private static LiveOpsHubCaptureScenario TimelineScenario(string id, LiveOpsTimelineZoom zoom, Action<LiveOpsTimelineElement> pose,
+            params LiveOpsHubCaptureExpectedFrame[] extraFrames)
         {
+            List<LiveOpsHubCaptureExpectedFrame> frames = new List<LiveOpsHubCaptureExpectedFrame>
+            {
+                new LiveOpsHubCaptureExpectedFrame(TimelineCanvasElementName, TimelineCanvasWidth, TimelineCanvasHeight),
+                new LiveOpsHubCaptureExpectedFrame(LiveOpsHubClassNames.TimelineLane, TimelineLaneWidth, 0f),
+            };
+            if (extraFrames != null) frames.AddRange(extraFrames);
             return new LiveOpsHubCaptureScenario(id, StandardWidth, StandardHeight,
                     () => OpenTimelineCanvas(zoom, pose),
                     window => window.rootVisualElement.Q(TimelineCanvasElementName))
                 .WithMinimumSettleFrames(TimelineSettleFrames)
-                .WithExpectedFrames(new LiveOpsHubCaptureExpectedFrame(TimelineCanvasElementName, TimelineCanvasWidth, TimelineCanvasHeight));
+                .WithExpectedFrames(frames.ToArray());
         }
 
         private static EditorWindow OpenTimelineCanvas(LiveOpsTimelineZoom zoom, Action<LiveOpsTimelineElement> pose)

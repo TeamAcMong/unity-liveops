@@ -114,17 +114,22 @@ namespace DreamTech.LiveOps.Editor
             return nearest != null ? MarkTooltip(nearest) : LegendTooltip();
         }
 
-        /// <summary>"Bị bỏ · hunt-0916-bonus (chồng giờ)" — nhãn hậu quả · id · câu ngắn của LiveOpsFindingText (không rich text).</summary>
+        /// <summary>
+        /// "Cảnh báo · weekly-pass-35 đổi id" — nhãn hậu quả · id · câu ngắn của LiveOpsFindingText (không rich text), nối bằng
+        /// khoảng trắng đúng [SD1 §3.6]. Vạch KHÔNG có phát hiện (đợt không đặt được lên trục) không mượn được câu nào nên lý do
+        /// là chữ riêng của timeline và bọc ngoặc để không đọc dính vào id: "Bị bỏ · lava-quest-2026-10 (không đặt được)".
+        /// </summary>
         internal static string MarkTooltip(LiveOpsTimelineMinimapMark mark)
         {
             if (mark == null) throw new ArgumentNullException(nameof(mark));
             string consequenceLabel = mark.State == HealthState.Blocked ? LiveOpsHubStrings.TimelineMinimapDroppedLabel : LiveOpsHubStrings.TimelineMinimapProgressLostLabel;
-            string reason = LiveOpsHubStrings.TimelineMinimapUnplaceableReason;
-            if (mark.Finding != null)
+            if (mark.Finding == null)
             {
-                consequenceLabel = ConsequenceLabelOf(mark.Finding.Consequence, consequenceLabel);
-                reason = LiveOpsFindingText.PlainText(LiveOpsFindingText.ShortLabel(mark.Finding));
+                return string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.TimelineMinimapMarkNoFindingFormat, consequenceLabel,
+                    mark.TargetId, LiveOpsHubStrings.TimelineMinimapUnplaceableReason);
             }
+            consequenceLabel = ConsequenceLabelOf(mark.Finding.Consequence, consequenceLabel);
+            string reason = LiveOpsFindingText.PlainText(LiveOpsFindingText.ShortLabel(mark.Finding));
             return string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.TimelineMinimapMarkFormat, consequenceLabel, mark.TargetId, reason);
         }
 

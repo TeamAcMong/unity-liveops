@@ -77,6 +77,9 @@ namespace DreamTech.LiveOps.Editor
             LiveOpsHubFormat format)
         {
             Model = model ?? throw new ArgumentNullException(nameof(model));
+            // Tên element = BarKey: chỉ để nơi ngoài gọi đúng MỘT thanh theo tên — kịch bản chụp khai khung mong đợi cho thanh mốc
+            // (đo được bằng máy thay vì đối chiếu tay), và Q(name) trong test. Không có USS nào bám tên.
+            name = model.BarKey;
             (float left, float width, bool clippedStart, bool clippedEnd) rectangle = geometry.BarRect(model.StartUtc, model.EndUtc);
             Left = rectangle.left;
             Width = rectangle.width;

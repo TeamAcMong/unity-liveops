@@ -106,6 +106,42 @@ namespace DreamTech.LiveOps.Editor.Tests
         }
 
         [UnityTest]
+        public IEnumerator Drag_EndEdge_ReadoutHasDeviceTimeShiftAndLength()
+        {
+            // Hình 12 khung 6: lava-quest-2026-09b đang kết thúc 19/9 00:00, kéo mép cuối sang 20/9 00:00. Nhánh mép cuối là nhánh
+            // duy nhất in đủ bốn vế (mép · giờ máy · dời · dài) nên khoá cả chuỗi ở đây; hai vế đo thời lượng khoá ở CẢ HAI đơn vị.
+            LiveEventCalendarDocument document = TimelineViewInputs.WithFixedTimes(LiveOpsDesignSample.Document,
+                LiveOpsDesignSample.LavaQuestMidEntryKey, "2026-09-17T00:00:00Z", "2026-09-19T00:00:00Z");
+            yield return OpenDesignSample(document);
+            LiveOpsTimelineBar mid = Element.FindBar(LiveOpsDesignSample.LavaQuestMidEntryKey);
+            Assert.IsNotNull(mid, "thanh lava-quest-2026-09b phải có trên trục 3 tuần");
+            Vector2 endEdge = new Vector2(mid.worldBound.xMax - 1f, mid.worldBound.center.y);
+            Assert.AreEqual(LiveOpsTimelineBarRegion.EndEdge, Element.HitTest(Element.WorldToLocal(endEdge)).BarRegion, "tiền đề: bấm đúng mép cuối");
+            float oneDay = (float)(Element.PixelsPerHour * 24d);
+            float twelveHours = (float)(Element.PixelsPerHour * 12d);
+
+            _panel.SendMouse(EventType.MouseDown, endEdge);
+            _panel.SendMouse(EventType.MouseDrag, endEdge + new Vector2(oneDay, 0f));
+            Assert.IsTrue(Element.DragController.IsDragging, "vượt ngưỡng 4px là đang kéo");
+            Assert.AreEqual("Kết thúc 20/9 00:00 UTC · 07:00 giờ máy · dời +1 ngày · dài 3 ngày", Element.ReadoutText.text,
+                "readout kéo mép Hình 12 khung 6: tròn ngày thì đo bằng NGÀY, không phải \"+24 giờ\" / \"72 giờ\"");
+            Assert.AreEqual(string.Empty, Element.ReadoutOverlap.text, "làn lava-quest không chồng giờ nên chỉ có vế chính");
+
+            // Cùng nhánh, độ dài lẻ ngày: 36 giờ ở lại đơn vị giờ (Hình 12 khung 5) — không cuộn thành "1 ngày 12 giờ".
+            _panel.SendMouse(EventType.MouseDrag, endEdge + new Vector2(-twelveHours, 0f));
+            Assert.AreEqual("Kết thúc 18/9 12:00 UTC · 19:00 giờ máy · dời −12 giờ · dài 36 giờ", Element.ReadoutText.text,
+                "độ dài lẻ ngày giữ đơn vị giờ, độ dời cũng vậy");
+            _panel.SendMouse(EventType.MouseUp, endEdge + new Vector2(-twelveHours, 0f));
+
+            List<MoveBarIntent> moves = Harness.IntentsOf<MoveBarIntent>();
+            Assert.AreEqual(1, TimelineTestQueries.Count(moves, move => move.IsCommit), "một cử chỉ = đúng một Commit");
+            MoveBarIntent commit = TimelineTestQueries.Single(moves, move => move.IsCommit);
+            Assert.AreEqual(new DateTime(2026, 9, 17, 0, 0, 0, DateTimeKind.Utc), commit.NewStartUtc, "mép đầu không đổi khi kéo mép cuối");
+            Assert.AreEqual(new DateTime(2026, 9, 18, 12, 0, 0, DateTimeKind.Utc), commit.NewEndUtc, "mép cuối theo lần kéo cuối cùng");
+            LogAssert.NoUnexpectedReceived();
+        }
+
+        [UnityTest]
         public IEnumerator Drag_WillOverlap_PreviewBeforeRelease()
         {
             // Hình 12 khung 7: bonus đã dời sang 17/9 00:00 → 18/9 12:00 (khung 5); kéo mép cuối hunt-0914 tới 17/9 12:00.
@@ -623,7 +659,8 @@ namespace DreamTech.LiveOps.Editor.Tests
             yield return OpenDesignSample();
             LiveOpsTimelineMinimapMark bonusMark = TimelineTestQueries.Single(Element.Model.Minimap.Marks,
                 mark => mark.TargetEntryKey == LiveOpsDesignSample.HuntBonusEntryKey && mark.Finding != null && mark.State == HealthState.Blocked);
-            string expected = "Bị bỏ · hunt-0916-bonus (" + LiveOpsFindingText.PlainText(LiveOpsFindingText.ShortLabel(bonusMark.Finding)) + ")";
+            // [SD1 §3.6] nối bằng khoảng trắng ("Cảnh báo · weekly-pass-35 đổi id"); ngoặc chỉ dành cho vạch không có phát hiện.
+            string expected = "Bị bỏ · hunt-0916-bonus " + LiveOpsFindingText.PlainText(LiveOpsFindingText.ShortLabel(bonusMark.Finding));
             Assert.AreEqual(expected, LiveOpsTimelineMinimap.MarkTooltip(bonusMark), "vạch minimap: câu ngắn của LiveOpsFindingText (CC-FT-1)");
             float markX = Element.Model.Minimap.XOf(bonusMark.AtUtc) * Element.Minimap.contentRect.width / Element.Model.Minimap.Width;
             Assert.AreEqual(expected, Element.Minimap.TooltipAt(new Vector2(markX + 1f, 5f)));
@@ -689,7 +726,8 @@ namespace DreamTech.LiveOps.Editor.Tests
             try
             {
                 // 6000.6: computedStyle là property trả `ref readonly` — Reflection từ chối gọi (NotSupportedException), không có
-                // đường nào khác đọc cursor đã tính. 2022.3 trả struct bình thường nên vẫn đo được ở bản đó.
+                // đường nào khác đọc cursor đã tính. 2022.3 cũng không đọc được (cấu trúc style khác), nên test Ignore ở CẢ HAI bản
+                // và con trỏ chuyển hẳn sang kiểm tay M-15 — đúng dự liệu của V-11 ("resolvedStyle.cursor nếu đọc được; không thì M-15").
                 computed = typeof(VisualElement).GetProperty("computedStyle", flags)?.GetValue(element);
             }
             catch (NotSupportedException)
