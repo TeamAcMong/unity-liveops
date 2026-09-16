@@ -282,6 +282,21 @@ namespace DreamTech.LiveOps.Editor
             table.Add(nameof(LiveOpsHubStrings.ShellDiskBannerKeepLineFormat),
                 vietnamese: "Giữ bản trong Editor: lần lưu tới ghi đè {0} mục trên đĩa.",
                 english: "Keep the editor copy: the next save overwrites {0} items on disk.");
+            table.Add(nameof(LiveOpsHubStrings.ShellDiskBannerRuleItemFormat),
+                vietnamese: "luật {0}",
+                english: "the {0} rule");
+            table.Add(nameof(LiveOpsHubStrings.ShellDiskBannerChangeAddedFormat),
+                vietnamese: "Thêm {0}",
+                english: "Add {0}");
+            table.Add(nameof(LiveOpsHubStrings.ShellDiskBannerChangeRemovedFormat),
+                vietnamese: "Xoá {0}",
+                english: "Remove {0}");
+            table.Add(nameof(LiveOpsHubStrings.ShellDiskBannerChangeMovedFormat),
+                vietnamese: "Dời {0}",
+                english: "Move {0}");
+            table.Add(nameof(LiveOpsHubStrings.ShellDiskBannerChangeEditedFormat),
+                vietnamese: "Đổi {0}",
+                english: "Change {0}");
             table.AddShared(nameof(LiveOpsHubStrings.ShellDiskBannerSentenceSeparator), " ");
             table.AddShared(nameof(LiveOpsHubStrings.ShellDiskBannerItemSeparator), ", ");
             table.Add(nameof(LiveOpsHubStrings.ShellDiskBannerReloadButton),

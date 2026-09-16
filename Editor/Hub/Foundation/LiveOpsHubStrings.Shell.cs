@@ -160,6 +160,22 @@ namespace DreamTech.LiveOps.Editor
         /// <summary>Câu 3 — hậu quả của "Giữ bản trong Editor": lần lưu tới sẽ ghi đè.</summary>
         internal static string ShellDiskBannerKeepLineFormat => LiveOpsHubStringCatalog.Text(nameof(ShellDiskBannerKeepLineFormat));
 
+        /// <summary>Tên hiển thị của một LUẬT LẶP trong danh sách mục ("luật weekly-pass") — Hình 28 khung 4 gọi tên loại mục
+        /// chứ không để id trần lẫn với id đợt.</summary>
+        internal static string ShellDiskBannerRuleItemFormat => LiveOpsHubStringCatalog.Text(nameof(ShellDiskBannerRuleItemFormat));
+
+        /// <summary>Động từ của một thay đổi chưa lưu trong câu "Tải lại": mục MỚI thêm.</summary>
+        internal static string ShellDiskBannerChangeAddedFormat => LiveOpsHubStringCatalog.Text(nameof(ShellDiskBannerChangeAddedFormat));
+
+        /// <summary>Động từ: mục đã xoá khỏi nháp.</summary>
+        internal static string ShellDiskBannerChangeRemovedFormat => LiveOpsHubStringCatalog.Text(nameof(ShellDiskBannerChangeRemovedFormat));
+
+        /// <summary>Động từ: đổi giờ bắt đầu/kết thúc — "Dời lava-quest-2026-09b" của Hình 28 khung 4.</summary>
+        internal static string ShellDiskBannerChangeMovedFormat => LiveOpsHubStringCatalog.Text(nameof(ShellDiskBannerChangeMovedFormat));
+
+        /// <summary>Động từ chung cho mọi thay đổi còn lại (config key, tiền tố luật, thuộc tính loại…).</summary>
+        internal static string ShellDiskBannerChangeEditedFormat => LiveOpsHubStringCatalog.Text(nameof(ShellDiskBannerChangeEditedFormat));
+
         internal static string ShellDiskBannerSentenceSeparator => LiveOpsHubStringCatalog.Text(nameof(ShellDiskBannerSentenceSeparator));
         internal static string ShellDiskBannerItemSeparator => LiveOpsHubStringCatalog.Text(nameof(ShellDiskBannerItemSeparator));
         internal static string ShellDiskBannerReloadButton => LiveOpsHubStringCatalog.Text(nameof(ShellDiskBannerReloadButton));

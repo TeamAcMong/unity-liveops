@@ -29,6 +29,10 @@ namespace DreamTech.LiveOps.Editor
         private const string WarningIconName = "console.warnicon.sml";
         private const int WarningIconSize = 16;
 
+        // Tên field JSON của giờ đợt — mục chỉ đổi giờ thì câu đọc là "Dời …" đúng như Hình 28 khung 4, còn lại là "Đổi …".
+        private const string StartUtcFieldName = "startUtc";
+        private const string EndUtcFieldName = "endUtc";
+
         private LiveOpsHubDiskConflictBanner(VisualElement element, Label text)
         {
             Element = element;
@@ -102,7 +106,7 @@ namespace DreamTech.LiveOps.Editor
                 : string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.ShellDiskBannerHeadFormat,
                     fileName, format.ShortDateTimeUtc(conflict.DetectedUtc), changedCount, changedItems);
 
-            string lostItems = ItemListOf(conflict.LostIfReload);
+            string lostItems = ChangeListOf(conflict.LostIfReload);
             string lostCount = format.Integer(conflict.LostIfReload.ChangeCount);
             string reloadLine = lostItems.Length == 0
                 ? string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.ShellDiskBannerReloadLineWithoutItemsFormat, lostCount)
@@ -113,18 +117,65 @@ namespace DreamTech.LiveOps.Editor
                    + LiveOpsHubStrings.ShellDiskBannerSentenceSeparator + keepLine;
         }
 
-        /// <summary>Id các mục khác nhau, mỗi id một lần; "" khi diff không nêu mục nào (vd chỉ khác key remote).</summary>
+        /// <summary>
+        /// Tên các mục khác nhau, mỗi tên một lần; "" khi diff không nêu mục nào (vd chỉ khác key remote). Luật lặp mang tiền
+        /// tố loại ("luật weekly-pass") và danh sách được SẮP theo tên, đúng chữ và đúng thứ tự của Hình 28 khung 4
+        /// ("hunt-0914, lava-quest-2026-10, luật weekly-pass") — thứ tự duyệt diff phụ thuộc thứ tự mục trong tài liệu nên
+        /// cùng một xung đột có thể đọc ra hai câu khác nhau.
+        /// </summary>
         internal static string ItemListOf(LiveEventCalendarDiffResult diff)
+        {
+            return JoinSorted(diff, DisplayNameOf);
+        }
+
+        /// <summary>
+        /// Như trên nhưng mỗi mục có ĐỘNG TỪ ("Dời lava-quest-2026-09b") — câu "Tải lại: mất 1 thay đổi chưa lưu (…)" của
+        /// Hình 28 khung 4 nói thay đổi đó LÀ GÌ, id trần bắt người dùng tự đoán mình đã làm gì với nó.
+        /// </summary>
+        internal static string ChangeListOf(LiveEventCalendarDiffResult diff)
+        {
+            return JoinSorted(diff, ChangeTextOf);
+        }
+
+        private static string JoinSorted(LiveEventCalendarDiffResult diff, Func<LiveEventCalendarChange, string> textOf)
         {
             if (diff == null) return string.Empty;
             List<string> names = new List<string>();
             foreach (LiveEventCalendarChange change in diff.Changes)
             {
                 if (change.Kind == LiveEventCalendarChangeKind.Kept) continue;
-                if (names.Contains(change.ItemId)) continue;
-                names.Add(change.ItemId);
+                string text = textOf(change);
+                if (names.Contains(text)) continue;
+                names.Add(text);
             }
+            names.Sort(StringComparer.Ordinal);
             return string.Join(LiveOpsHubStrings.ShellDiskBannerItemSeparator, names.ToArray());
+        }
+
+        private static string DisplayNameOf(LiveEventCalendarChange change)
+        {
+            if (change.ItemKind != LiveEventCalendarItemKind.RecurringRule) return change.ItemId;
+            return string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.ShellDiskBannerRuleItemFormat, change.ItemId);
+        }
+
+        private static string ChangeTextOf(LiveEventCalendarChange change)
+        {
+            string format;
+            if (change.Kind == LiveEventCalendarChangeKind.Added) format = LiveOpsHubStrings.ShellDiskBannerChangeAddedFormat;
+            else if (change.Kind == LiveEventCalendarChangeKind.Removed) format = LiveOpsHubStrings.ShellDiskBannerChangeRemovedFormat;
+            else if (HasTimeFieldChange(change)) format = LiveOpsHubStrings.ShellDiskBannerChangeMovedFormat;
+            else format = LiveOpsHubStrings.ShellDiskBannerChangeEditedFormat;
+            return string.Format(CultureInfo.InvariantCulture, format, DisplayNameOf(change));
+        }
+
+        private static bool HasTimeFieldChange(LiveEventCalendarChange change)
+        {
+            foreach (LiveEventCalendarFieldChange field in change.Fields)
+            {
+                if (string.Equals(field.FieldName, StartUtcFieldName, StringComparison.Ordinal)) return true;
+                if (string.Equals(field.FieldName, EndUtcFieldName, StringComparison.Ordinal)) return true;
+            }
+            return false;
         }
     }
 }

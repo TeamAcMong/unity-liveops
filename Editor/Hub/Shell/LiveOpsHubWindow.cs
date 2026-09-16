@@ -101,6 +101,11 @@ namespace DreamTech.LiveOps.Editor
         // DestroyImmediate, vì DontSave gồm cả DontUnloadUnusedAsset nên Unity không bao giờ tự dọn (mục 3, ràng buộc vòng đời).
         [NonSerialized] private LiveEventCalendarAsset _ownedPreviewAsset;
         [NonSerialized] private bool _ownsInjectedServices;
+
+        // Cờ DUY NHẤT của cửa sổ mẫu sống qua domain reload: mọi thứ khác của nó ([NonSerialized] services tiêm vào, cờ cách
+        // ly, asset mẫu) bị xoá khi biên dịch lại. Không nhớ điều này thì cửa sổ mẫu dựng lại thành cửa sổ hub THẬT trên lịch
+        // thật, và người dùng tưởng đang nghịch dữ liệu mẫu (R-24).
+        [SerializeField] private bool isPreviewSampleWindow;
         [NonSerialized] private Action<string> _openUrlForTest;
 
         // Người dùng đã chọn "Giữ bản trong Editor" và chưa lưu lần nào từ đó — lần ⌘S tới mới thật sự ghi đè bản trên đĩa.
@@ -202,16 +207,44 @@ namespace DreamTech.LiveOps.Editor
         /// </summary>
         internal static LiveOpsHubWindow OpenPreviewSample()
         {
-            LiveEventCalendarAsset sampleAsset = LiveOpsHubPreviewSample.CreateAsset();
-            LiveOpsHubServices services = new LiveOpsHubServicesBuilder()
+            LiveEventCalendarAsset sampleAsset;
+            LiveOpsHubServices services = BuildPreviewSampleServices(out sampleAsset);
+            LiveOpsHubWindow window = CreateInstance<LiveOpsHubWindow>();
+            // Không đi qua OpenWithServices vì cờ mẫu phải nằm trên cửa sổ TRƯỚC Show: Show có thể chạy CreateGUI ngay, và
+            // sau này chính cờ đó là thứ duy nhất còn lại sau domain reload.
+            window.isPreviewSampleWindow = true;
+            window._injectedServices = services;
+            window._pendingSectionId = LiveOpsHubSections.Ids.Overview;
+            window._isIsolatedFromSessionState = true;
+            window._ownedPreviewAsset = sampleAsset;
+            window._ownsInjectedServices = true;
+            window.Show();
+            return window;
+        }
+
+        /// <summary>
+        /// Trạng thái của cửa sổ mẫu NGAY SAU domain reload, dựng bằng đúng thứ Unity còn giữ: mỗi field
+        /// <c>[SerializeField]</c> sống, mọi field <c>[NonSerialized]</c> về mặc định. Chỉ test dùng — mô phỏng reload bằng
+        /// cách gọi tay <c>OnDisable</c>/<c>OnEnable</c> để lại cửa sổ nửa sống nửa chết và làm hỏng test chạy sau.
+        /// </summary>
+        internal static LiveOpsHubWindow OpenPreviewSampleAfterDomainReloadForTest()
+        {
+            LiveOpsHubWindow window = CreateInstance<LiveOpsHubWindow>();
+            window.isPreviewSampleWindow = true;
+            window.Show();
+            return window;
+        }
+
+        /// <summary>Phiên mẫu 13/9/2026 08:47 với đồng hồ đứng yên trên asset chỉ sống trong bộ nhớ — một chỗ dựng duy nhất,
+        /// dùng cả lúc mở cửa sổ lẫn lúc dựng lại sau domain reload.</summary>
+        private static LiveOpsHubServices BuildPreviewSampleServices(out LiveEventCalendarAsset sampleAsset)
+        {
+            sampleAsset = LiveOpsHubPreviewSample.CreateAsset();
+            return new LiveOpsHubServicesBuilder()
                 .WithClock(LiveOpsHubPreviewSample.CreateClock())
                 .WithTimeZone(LiveOpsHubPreviewSample.CreateTimeZone())
                 .WithCalendarAsset(sampleAsset)
                 .Build();
-            LiveOpsHubWindow window = OpenWithServices(services, LiveOpsHubSections.Ids.Overview);
-            window._ownedPreviewAsset = sampleAsset;
-            window._ownsInjectedServices = true;
-            return window;
         }
 
         // ------------------------------------------------------------------------------------------------------------ vòng đời
@@ -221,6 +254,9 @@ namespace DreamTech.LiveOps.Editor
             ApplyWindowTitle();
             minSize = new Vector2(MinimumWidth, MinimumHeight);
             if (windowState == null) windowState = new LiveOpsHubWindowState();
+            // Cờ cách ly là [NonSerialized] nên reload xoá mất: bật lại ngay ở đây để cửa sổ mẫu không ghi màn đang mở của
+            // nó vào SessionState dùng chung với cửa sổ hub thật.
+            if (isPreviewSampleWindow) _isIsolatedFromSessionState = true;
             // Đăng ký ở OnEnable chứ không ở CreateGUI: chính tay xử lý gọi lại CreateGUI, mà CreateGUI mở đầu bằng
             // TearDownChrome — gỡ đăng ký trong đó sẽ cắt luôn sự kiện đang chạy.
             LiveOpsHubLanguage.Changed -= OnLanguageChanged;
@@ -690,7 +726,9 @@ namespace DreamTech.LiveOps.Editor
                 ReloadFromDisk,
                 // Đi qua BUS chứ không gọi thẳng Navigate: "Xem khác biệt" là một yêu cầu điều hướng như mọi yêu cầu khác của
                 // hub (V-13), nên nó phải quan sát được ở cùng một chỗ — cửa sổ vẫn là nơi nghe và thực hiện.
-                () => _services.Bus.Navigate(LiveOpsHubNavigation.To(LiveOpsHubSections.Ids.Export).WithCompareSource(LiveOpsHubCompareSource.Disk)),
+                // Đích là màn LỊCH, không phải Xuất JSON: bảng V-13 cho nguồn Disk đúng một chỗ vẽ — pane "So với" của Lịch
+                // (4.3 "Xem khác biệt mở pane So với, nguồn là bản trên đĩa"; ảnh h28f-calendar-compare-disk).
+                () => _services.Bus.Navigate(LiveOpsHubNavigation.To(LiveOpsHubSections.Ids.Calendar).WithCompareSource(LiveOpsHubCompareSource.Disk)),
                 KeepEditorVersion).Element;
             _notes.Add(_diskBanner);
         }
@@ -1231,6 +1269,17 @@ namespace DreamTech.LiveOps.Editor
             {
                 _services = _injectedServices;
                 _ownsServices = false;
+                return;
+            }
+            if (isPreviewSampleWindow)
+            {
+                // Domain reload đã xoá services tiêm vào: dựng lại ĐÚNG phiên mẫu. Rơi xuống nhánh mặc định dưới là đi tìm
+                // asset lịch thật của project — cửa sổ "chỉ để xem giao diện" hoá ra đang sửa lịch thật (R-24).
+                LiveEventCalendarAsset sampleAsset;
+                _services = BuildPreviewSampleServices(out sampleAsset);
+                _ownedPreviewAsset = sampleAsset;
+                _ownsInjectedServices = true;
+                _isIsolatedFromSessionState = true;
                 return;
             }
             LiveOpsHubServicesBuilder builder = new LiveOpsHubServicesBuilder();

@@ -130,6 +130,39 @@ namespace DreamTech.LiveOps.Editor.Tests
         }
 
         /// <summary>
+        /// (R-24) Cửa sổ mẫu phải CÒN LÀ cửa sổ mẫu sau domain reload (biên dịch lại, gắn lại dock). Mọi thứ nhận diện nó —
+        /// services tiêm vào, cờ cách ly, asset mẫu — đều là <c>[NonSerialized]</c>, nên trước khi có cờ
+        /// <c>isPreviewSampleWindow</c> thì <c>EnsureServices</c> rơi vào nhánh mặc định: phiên THẬT, đi tìm asset lịch mặc
+        /// định của project. Người dùng mở "Hiện dữ liệu mẫu (chỉ để xem giao diện)" rồi sửa thử — hoá ra sửa lịch thật.
+        /// <para>
+        /// Hai test mẫu còn lại chạy trọn trong MỘT domain nên không bao giờ chạm nhánh này. Ở đây cửa sổ được dựng ở đúng
+        /// trạng thái sau reload (chỉ field <c>[SerializeField]</c> còn lại) thay vì gọi tay <c>OnDisable</c>/<c>OnEnable</c>:
+        /// gọi tay để lại một cửa sổ nửa sống nửa chết mà <c>Close()</c> của Unity không đóng được, và test chạy sau vớ phải nó.
+        /// </para>
+        /// </summary>
+        [UnityTest]
+        public IEnumerator PreviewSample_AfterDomainReload_StaysOnSampleData()
+        {
+            LiveOpsHubWindow preview = null;
+            try
+            {
+                preview = LiveOpsHubWindow.OpenPreviewSampleAfterDomainReloadForTest();
+                yield return LiveOpsHubWindowTestScope.WaitFrames(3);
+
+                LiveOpsHubCalendarSession session = preview.Services.Session;
+                Assert.IsNotNull(session.Asset, "cửa sổ mẫu sau reload vẫn phải có asset mẫu");
+                Assert.AreEqual(LiveOpsHubPreviewSample.AssetName, session.Asset.name,
+                    "sau reload cửa sổ mẫu không được cầm lịch THẬT của project (R-24)");
+                Assert.AreEqual(string.Empty, session.AssetPath, "asset mẫu vẫn không có đường dẫn nên không thể ra đĩa");
+                Assert.AreEqual(LiveOpsHubPreviewSample.NowUtc, session.Clock.UtcNow, "đồng hồ mẫu vẫn đứng yên sau reload");
+            }
+            finally
+            {
+                if (preview != null) preview.Close();
+            }
+        }
+
+        /// <summary>
         /// (R-24) Hai cửa sổ cùng nghe <c>Undo.undoRedoPerformed</c>: Undo của một asset KHÁC không được kéo cửa sổ mẫu đi theo.
         /// Asset mẫu không bao giờ vào lịch sử Undo, nên phiên của nó phải im lặng.
         /// </summary>
