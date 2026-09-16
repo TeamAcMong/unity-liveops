@@ -125,6 +125,23 @@ namespace DreamTech.LiveOps.Editor
             Validate();
         }
 
+        /// <summary>
+        /// Đặt chữ trong ô và kiểm ngay — dùng cho kịch bản CHỤP ẢNH dựng trạng thái TRƯỚC khi cửa sổ gắn vào panel
+        /// (<c>OpenRecurring</c> chạy <c>prepare</c> trước <c>Show</c> để tránh đua với lượt layout đầu tiên, SP-16). UI
+        /// Toolkit không phát <see cref="ChangeEvent{T}"/> khi phần tử chưa thuộc panel, nên gán thẳng <c>Editor.value</c>
+        /// lúc đó im lặng không kiểm gì. <paramref name="eventType"/> phải là loại của luật đang chọn (khớp tham số đầu
+        /// <see cref="Bind"/> sẽ gọi ngay sau khi cửa sổ hiện) — không khớp thì <c>Bind</c> coi đây là "đổi sang luật khác"
+        /// và xoá cờ đang sửa, chữ vừa gán bị đè mất y như gán thẳng <c>Editor.value</c>. Luồng người dùng thật không gọi
+        /// hàm này: ô đã ở trong panel nên <c>RegisterValueChangedCallback</c> đủ.
+        /// </summary>
+        internal void SetEditorTextForCapture(string eventType, string text)
+        {
+            _eventType = eventType ?? string.Empty;
+            _editor.SetValueWithoutNotify(text ?? string.Empty);
+            _isEdited = true;
+            Validate();
+        }
+
         private void Validate()
         {
             _candidate = null;
