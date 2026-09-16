@@ -56,6 +56,33 @@ namespace DreamTech.LiveOps.Editor.Tests
             LogAssert.NoUnexpectedReceived();
         }
 
+        /// <summary>
+        /// Số đo Hình 4 chốt bằng resolvedStyle: cột "chặn Copy JSON" 96px, nút việc cần làm 150px, thân "Đường đi của lịch"
+        /// 48px, cột bảng 7 ngày 170/250/140/130. Ô không viền nên dò cạnh trên ảnh chỉ thấy mép chữ — đây mới là chỗ chốt số.
+        /// </summary>
+        [UnityTest]
+        public IEnumerator NeedsActionRow_ColumnWidthsMatchDesign()
+        {
+            LiveOpsHubServices services = LiveOpsHubTestServices.ForScenario(LiveOpsHubTestServices.DesignSampleScenario);
+            yield return OpenOverview(services);
+            VisualElement view = View();
+
+            VisualElement blocks = view.Q(className: LiveOpsHubClassNames.OverviewNeedBlocks);
+            Assert.IsNotNull(blocks);
+            Assert.AreEqual(96f, blocks.resolvedStyle.width, 0.5f, "cột trạng thái cổng rộng 96px [SD1 §1.1]");
+
+            VisualElement slot = view.Q(className: LiveOpsHubClassNames.OverviewNeedButton);
+            Assert.AreEqual(150f, slot.resolvedStyle.width, 0.5f, "nút việc cần làm rộng 150px");
+
+            Assert.AreEqual(48f, view.Q(OverviewSection.FlowElementName).resolvedStyle.height, 0.5f, "thân Đường đi của lịch cao 48px");
+
+            Assert.AreEqual(170f, view.Q(className: LiveOpsHubClassNames.OverviewUpcomingCellTime).resolvedStyle.width, 0.5f);
+            Assert.AreEqual(250f, view.Q(className: LiveOpsHubClassNames.OverviewUpcomingCellEvent).resolvedStyle.width, 0.5f);
+            Assert.AreEqual(140f, view.Q(className: LiveOpsHubClassNames.OverviewUpcomingCellType).resolvedStyle.width, 0.5f);
+            Assert.AreEqual(130f, view.Q(className: LiveOpsHubClassNames.OverviewUpcomingCellKind).resolvedStyle.width, 0.5f);
+            LogAssert.NoUnexpectedReceived();
+        }
+
         /// <summary>Mọi tên element sống còn phải Q được ở CẢ hai ngữ cảnh — probe 9.3 và HubWindowTests duyệt cả hai.</summary>
         [UnityTest]
         public IEnumerator RequiredElements_PresentWithAndWithoutAsset()

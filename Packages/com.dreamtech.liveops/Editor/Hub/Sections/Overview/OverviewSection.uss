@@ -97,9 +97,11 @@
 
 /* ---------------------------------------------------------------- Đường đi của lịch */
 
+/* flex-shrink 0: thân flow là số đo của Hình 4 (48px) — cột dọc chật không được bóp nó xuống 46. */
 .liveops-hub-overview-flow {
     flex-direction: row;
     align-items: center;
+    flex-shrink: 0;
     height: 48px;
     padding-left: var(--liveops-hub-space-12);
     padding-right: var(--liveops-hub-space-12);

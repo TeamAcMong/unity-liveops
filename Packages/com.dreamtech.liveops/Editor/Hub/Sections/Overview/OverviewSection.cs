@@ -184,12 +184,14 @@ namespace DreamTech.LiveOps.Editor
                 throw new InvalidOperationException(string.Format(CultureInfo.InvariantCulture,
                     LiveOpsHubStrings.OverviewMissingLayoutFormat, LiveOpsHubPaths.OverviewSectionUxml));
             }
-            VisualElement root = tree.CloneTree();
-            StyleSheet sheet = _services.LayoutLoader.LoadStyleSheet(LiveOpsHubPaths.OverviewSectionUss);
-            if (sheet != null) root.styleSheets.Add(sheet);
+            VisualElement clone = tree.CloneTree();
             // CloneTree bọc thêm một TemplateContainer: trả đúng thân màn để tên element và class của màn nằm ngay dưới thân.
-            VisualElement body = root.Q(BodyElementName);
-            return body ?? root;
+            VisualElement body = clone.Q(BodyElementName) ?? clone;
+            // Stylesheet gắn vào CHÍNH element trả về, không vào TemplateContainer: cái bọc bị bỏ lại nên sheet gắn ở đó không
+            // bao giờ vào panel — màn vẫn dựng nhưng mất sạch số đo (cột 96/150, thân flow 48, cột bảng 170/250/140/130).
+            StyleSheet sheet = _services.LayoutLoader.LoadStyleSheet(LiveOpsHubPaths.OverviewSectionUss);
+            if (sheet != null) body.styleSheets.Add(sheet);
+            return body;
         }
 
         private void Subscribe()
