@@ -22,10 +22,10 @@ namespace DreamTech.LiveOps.Editor.Tests
     /// view; (6) mọi icon trong <see cref="LiveOpsHubIcons.AllDesignNames"/> nạp được. Lỗi &gt; 0 → thoát 1; sạch → log
     /// <c>LIVEOPS HUB PROBE OK</c> + thoát 0.
     /// <para>
-    /// Ngữ cảnh (9.3: tối thiểu không asset + mẫu). Ở W2 chưa có phiên lịch: ngữ cảnh "không asset" = registry thật (6 màn giữ chỗ,
-    /// không đọc dữ liệu) dựng ở (5); ngữ cảnh "mẫu" = health dạng Hình 4 gắn vào đúng id của registry thật rồi dựng
-    /// <see cref="LiveOpsHubRailModel"/> — kiểm khung với dấu/badge/ô chặn của mẫu, KHÔNG chứng minh màn thật dựng với dữ liệu mẫu.
-    /// Dữ liệu thật của từng ngữ cảnh do G-SESSION nối (đề xuất cùng quyền ghi: plan/w2/contract-changes-G-SHELL.md CC-SHELL-1).
+    /// Ngữ cảnh (9.3; V-21 CC-SHELL-1, G-SESSION): bốn phiên THẬT dựng bằng <see cref="LiveOpsHubTestServices.ForScenario"/> — không asset,
+    /// asset rỗng, mẫu thiết kế (đã kiểm), kiểm cũ. Mỗi ngữ cảnh: registry nhận services của phiên đó, dựng cả 6 màn vào host tách rời
+    /// mang services, rồi dựng <see cref="LiveOpsHubRailModel"/> từ health định tuyến của phiên (<see cref="LiveOpsHubFindingRouting.ForSection"/>)
+    /// + bộ tổng hợp của lần kiểm — kiểm dấu/badge/ô chặn bằng dữ liệu phiên, không bằng health dán tay.
     /// </para>
     /// </summary>
     [Category(LiveOpsHubTestCategories.UI)]
@@ -79,10 +79,21 @@ namespace DreamTech.LiveOps.Editor.Tests
             List<string> problems = new List<string>();
             CheckLayoutFiles(problems, notes);
             CheckShellElements(problems);
-            List<IHubSection> sections = LiveOpsHubSections.Create();
-            CheckSectionContract(sections, problems);
-            CheckSectionsBuild(sections, problems, notes);
-            CheckDesignSampleRail(problems, notes);
+            try
+            {
+                foreach (string scenario in LiveOpsHubTestServices.ContextScenarios)
+                {
+                    LiveOpsHubServices services = LiveOpsHubTestServices.ForScenario(scenario);
+                    List<IHubSection> sections = LiveOpsHubSections.Create(services);
+                    CheckSectionContract(sections, problems);
+                    CheckSectionsBuild(scenario, sections, services, problems, notes);
+                    CheckSessionRail(scenario, sections, services, problems, notes);
+                }
+            }
+            finally
+            {
+                LiveOpsHubTestServices.ReleaseAll();
+            }
             CheckIcons(problems);
             return problems;
         }
@@ -152,9 +163,10 @@ namespace DreamTech.LiveOps.Editor.Tests
         }
 
         // (5) + (5b) + (3) màn
-        private static void CheckSectionsBuild(IReadOnlyList<IHubSection> sections, List<string> problems, List<string> notes)
+        private static void CheckSectionsBuild(string scenario, IReadOnlyList<IHubSection> sections, LiveOpsHubServices services, List<string> problems,
+            List<string> notes)
         {
-            DetachedHost host = new DetachedHost(sections);
+            DetachedHost host = new DetachedHost(sections, services);
             foreach (IHubSection section in sections)
             {
                 if (section is IHubHostAware hostAware) hostAware.Bind(host);
@@ -167,66 +179,69 @@ namespace DreamTech.LiveOps.Editor.Tests
                     VisualElement view = section.CreateView();
                     if (view == null)
                     {
-                        problems.Add(section.Id + ": CreateView trả null");
+                        problems.Add(scenario + " · " + section.Id + ": CreateView trả null");
                         continue;
                     }
                     foreach (string elementName in section.RequiredElementNames)
                     {
-                        if (view.Q(elementName) == null) problems.Add(section.Id + ": view thiếu element '" + elementName + "'");
+                        if (view.Q(elementName) == null) problems.Add(scenario + " · " + section.Id + ": view thiếu element '" + elementName + "'");
                     }
                     section.OnShown();
 
                     SectionHealth first = section.GetHealth();
                     SectionHealth second = section.GetHealth();
-                    if (first.State != second.State) problems.Add(section.Id + ": GetHealth hai lần khác trạng thái (" + first.State + " / " + second.State + ")");
-                    if (first.State != HealthState.Ok && string.IsNullOrEmpty(first.Reason)) problems.Add(section.Id + ": " + first.State + " không có lý do");
+                    if (first.State != second.State) problems.Add(scenario + " · " + section.Id + ": GetHealth hai lần khác trạng thái (" + first.State + " / " + second.State + ")");
+                    if (first.State != HealthState.Ok && string.IsNullOrEmpty(first.Reason)) problems.Add(scenario + " · " + section.Id + ": " + first.State + " không có lý do");
 
                     if (section is IHubSectionViewState viewState)
                     {
                         viewState.RestoreViewState(viewState.CaptureViewState());
                         viewState.RestoreViewState(string.Empty);
                     }
-                    notes.Add(string.Format(CultureInfo.InvariantCulture, "màn {0}: dựng OK, health {1}", section.Id, first.State));
+                    notes.Add(string.Format(CultureInfo.InvariantCulture, "{0} · màn {1}: dựng OK, health {2}", scenario, section.Id, first.State));
                 }
                 catch (Exception exception)
                 {
-                    problems.Add(section.Id + ": ném " + exception.GetType().Name + ": " + exception.Message);
+                    problems.Add(scenario + " · " + section.Id + ": ném " + exception.GetType().Name + ": " + exception.Message);
                 }
             }
         }
 
-        // (5) ngữ cảnh mẫu: health dạng Hình 4 theo id trên registry thật → rail model đủ 4 tầng, cổng chặn đầu tiên là KIỂM, có ô chặn.
-        private static void CheckDesignSampleRail(List<string> problems, List<string> notes)
+        // (5) rail của phiên: health định tuyến từ dữ liệu phiên (thứ màn W4 sẽ trả) + bộ tổng hợp của lần kiểm → đủ 4 tầng, ô chặn đúng ngữ cảnh.
+        private static void CheckSessionRail(string scenario, IReadOnlyList<IHubSection> sections, LiveOpsHubServices services, List<string> problems,
+            List<string> notes)
         {
-            List<IHubSection> sections = LiveOpsHubSections.Create();
-            Dictionary<string, SectionHealth> sampleHealthById = new Dictionary<string, SectionHealth>(StringComparer.Ordinal);
-            foreach (FakeHubSection sample in FakeHubSection.CreateDesignSampleShaped()) sampleHealthById[sample.Id] = sample.Health;
-
-            List<SectionHealth> healths = new List<SectionHealth>(sections.Count);
-            foreach (IHubSection section in sections)
-            {
-                if (!sampleHealthById.TryGetValue(section.Id, out SectionHealth health))
-                {
-                    problems.Add("ngữ cảnh mẫu: registry có màn '" + section.Id + "' không có trong mẫu Hình 4");
-                    health = SectionHealth.Ok();
-                }
-                healths.Add(health);
-            }
-
             try
             {
-                LiveOpsHubRailModel model = LiveOpsHubRailModel.Build(sections, healths, null, false);
-                if (model.Stages.Count != DrawnStageCount) problems.Add("ngữ cảnh mẫu: rail có " + model.Stages.Count + " tầng, P1 cần " + DrawnStageCount);
-                if (model.FirstBlockedGateIndex < 0 || model.Stages[model.FirstBlockedGateIndex].Stage != PipelineStage.Check)
+                List<SectionHealth> healths = new List<SectionHealth>(sections.Count);
+                foreach (IHubSection section in sections)
                 {
-                    problems.Add("ngữ cảnh mẫu: cổng chặn đầu tiên phải là KIỂM");
+                    SectionHealth first = LiveOpsHubFindingRouting.ForSection(section.Id, services);
+                    SectionHealth second = LiveOpsHubFindingRouting.ForSection(section.Id, services);
+                    if (first.State != second.State) problems.Add(scenario + " · " + section.Id + ": health phiên hai lần khác trạng thái");
+                    if (first.State != HealthState.Ok && string.IsNullOrEmpty(first.Reason)) problems.Add(scenario + " · " + section.Id + ": health phiên " + first.State + " không có lý do");
+                    healths.Add(first);
                 }
-                if (!model.HasBlocker) problems.Add("ngữ cảnh mẫu: KIỂM Blocked mà không có ô chặn");
-                notes.Add("ngữ cảnh mẫu (health Hình 4 trên registry thật): rail model OK, " + model.BlockerTitle);
+                LiveOpsHubCheckState check = services.Session.Check;
+                LiveEventCalendarCheckSummary summary = check.LastReport != null ? check.LastReport.Summary : null;
+                LiveOpsHubRailModel model = LiveOpsHubRailModel.Build(sections, healths, summary, check.IsStale);
+                if (model.Stages.Count != DrawnStageCount) problems.Add(scenario + ": rail có " + model.Stages.Count + " tầng, P1 cần " + DrawnStageCount);
+
+                bool expectsBlocker = scenario == LiveOpsHubTestServices.DesignSampleScenario || scenario == LiveOpsHubTestServices.StaleCheckScenario;
+                if (model.HasBlocker != expectsBlocker)
+                {
+                    problems.Add(scenario + ": ô chặn " + (model.HasBlocker ? "có" : "không có") + " — mong đợi " + (expectsBlocker ? "có (mẫu còn 2 đợt bị bỏ)" : "không"));
+                }
+                if (scenario == LiveOpsHubTestServices.DesignSampleScenario
+                    && (model.FirstBlockedGateIndex < 0 || model.Stages[model.FirstBlockedGateIndex].Stage != PipelineStage.Check))
+                {
+                    problems.Add(scenario + ": cổng chặn đầu tiên phải là KIỂM");
+                }
+                notes.Add(scenario + ": rail của phiên OK" + (model.HasBlocker ? ", " + model.BlockerTitle : string.Empty));
             }
             catch (Exception exception)
             {
-                problems.Add("ngữ cảnh mẫu: rail model ném " + exception.GetType().Name + ": " + exception.Message);
+                problems.Add(scenario + ": rail của phiên ném " + exception.GetType().Name + ": " + exception.Message);
             }
         }
 
@@ -244,12 +259,15 @@ namespace DreamTech.LiveOps.Editor.Tests
         {
             private readonly Dictionary<string, string> _viewStates = new Dictionary<string, string>(StringComparer.Ordinal);
 
-            public DetachedHost(IReadOnlyList<IHubSection> sections)
+            public DetachedHost(IReadOnlyList<IHubSection> sections, LiveOpsHubServices services)
             {
                 Sections = sections;
+                Services = services;
             }
 
             public IReadOnlyList<IHubSection> Sections { get; }
+
+            public LiveOpsHubServices Services { get; }
 
             public void Navigate(string sectionId)
             {

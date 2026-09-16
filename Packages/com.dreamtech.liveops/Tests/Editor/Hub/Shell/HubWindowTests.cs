@@ -15,11 +15,12 @@ namespace DreamTech.LiveOps.Editor.Tests
     /// Cửa sổ hub thật (UI, không -nographics): trình tự CreateGUI 8.1, mọi màn dựng không ném ở các ngữ cảnh, màn ném không kéo
     /// sập cửa sổ, thiếu UXML không trắng cửa sổ, id sai về Tổng quan, trạng thái cửa sổ sống qua serialize, mở từ menu.
     /// <para>
-    /// Ngữ cảnh (không asset / asset rỗng / mẫu / kiểm cũ / đang kiểm) ở W2 chưa có phiên lịch: 6 màn thật là màn giữ chỗ không đọc
-    /// dữ liệu, nên phần "registry thật" giống nhau ở mọi ngữ cảnh. Phần khác nhau giữa các ngữ cảnh là registry giả cùng id/tầng
-    /// mang health của ngữ cảnh đó — khung (rail, ô chặn, badge tầng, element sống còn) được kiểm với đúng tổ hợp dấu mà màn thật
-    /// sẽ phát ra. Dữ liệu thật của từng ngữ cảnh do G-SESSION nối (W3): đề xuất cho G-SESSION cùng quyền ghi file này và probe ở
-    /// plan/w2/contract-changes-G-SHELL.md (CC-SHELL-1) — chưa được duyệt thì các test này KHÔNG chứng minh màn thật chạy với dữ liệu.
+    /// Ngữ cảnh không asset / asset rỗng / mẫu / kiểm cũ (V-21 CC-SHELL-1, G-SESSION): mỗi ngữ cảnh là một phiên THẬT
+    /// (<see cref="LiveOpsHubTestServices.ForScenario"/>) mở bằng <see cref="LiveOpsHubWindow.OpenWithServices(LiveOpsHubServices, string)"/>.
+    /// Hai lượt mỗi ngữ cảnh: (1) registry thật nhận services của phiên — mọi màn dựng, host mang đúng services; (2) registry giả cùng
+    /// id/tầng mang health ĐỊNH TUYẾN từ chính phiên đó (<see cref="LiveOpsHubFindingRouting.ForSection"/>, thứ màn W4 sẽ trả) — rail
+    /// (dấu, badge tầng từ bộ tổng hợp của lần kiểm, ô chặn) được kiểm bằng dữ liệu phiên, không bằng health dán tay. "Đang kiểm" giữ
+    /// health ngữ cảnh của W2 (chưa có trong phạm vi CC-SHELL-1).
     /// </para>
     /// </summary>
     [TestFixture]
@@ -29,14 +30,19 @@ namespace DreamTech.LiveOps.Editor.Tests
         private static readonly DateTime CheckedAtUtc = new DateTime(2026, 9, 13, 8, 46, 30, DateTimeKind.Utc);
 
         private const double CompilationNoteTimeoutSeconds = 5.0;
+        private const double LayoutTimeoutSeconds = 5.0;
 
         private LiveOpsHubWindowTestScope _scope;
+
+        private LiveOpsHubWindow _sessionWindow;
 
         [TearDown]
         public void TearDown()
         {
             _scope?.Dispose();
             _scope = null;
+            CloseSessionWindow();
+            LiveOpsHubTestServices.ReleaseAll();
         }
 
         [UnityTest]
@@ -336,37 +342,61 @@ namespace DreamTech.LiveOps.Editor.Tests
 
         private IEnumerator AssertEverySectionShows(HubTestContext context)
         {
-            // Registry thật.
+            if (context == HubTestContext.RunningCheck)
+            {
+                yield return AssertEverySectionShowsWithContextHealth(context);
+                yield break;
+            }
+
+            // (1) Registry thật nhận services của phiên thật.
+            LiveOpsHubServices services = LiveOpsHubTestServices.ForScenario(ScenarioOf(context));
+            yield return OpenSessionWindow(services, null);
+            Assert.AreSame(services, ((IHubHost)_sessionWindow).Services, context + ": host phải mang đúng services đã tiêm");
+            AssertSessionMatchesContext(services, context);
+            ShowEverySection(_sessionWindow, context + " (registry + phiên)");
+            CloseSessionWindow();
+
+            // (2) Registry giả mang health định tuyến từ CHÍNH phiên đó — rail dựng đủ dấu/badge/ô chặn mà không ném.
+            List<FakeHubSection> fakes = SessionRoutedSections(services);
+            yield return OpenSessionWindow(services, FakeHubSection.AsSections(fakes));
+            ShowEverySection(_sessionWindow, context + " (health của phiên)");
+            Assert.AreEqual(6, _sessionWindow.Rail.SectionRows.Count);
+            Assert.AreEqual(context == HubTestContext.DesignSample || context == HubTestContext.StaleCheck, _sessionWindow.Rail.BlockerElement != null,
+                context + ": ô chặn chỉ khi còn đợt bị bỏ (mới: tầng KIỂM Blocked; cũ: nhắc F5)");
+            LogAssert.NoUnexpectedReceived();
+        }
+
+        private IEnumerator AssertEverySectionShowsWithContextHealth(HubTestContext context)
+        {
             _scope = LiveOpsHubWindowTestScope.Open();
             yield return _scope.WaitForLayout();
             ShowEverySection(_scope.Window, context + " (registry)");
             _scope.Dispose();
 
-            // Registry giả mang health của ngữ cảnh — rail dựng đủ dấu/badge/ô chặn mà không ném.
-            List<FakeHubSection> fakes = ContextSections(context);
+            List<FakeHubSection> fakes = FakeHubSection.CreateRegistryShaped();
+            fakes[4].Health = SectionHealth.NotMeasured("Đang kiểm 7/12 luật…");
             _scope = LiveOpsHubWindowTestScope.Open(FakeHubSection.AsSections(fakes));
             yield return _scope.WaitForLayout();
             ShowEverySection(_scope.Window, context + " (health ngữ cảnh)");
             Assert.AreEqual(6, _scope.Window.Rail.SectionRows.Count);
-            Assert.AreEqual(context == HubTestContext.DesignSample || context == HubTestContext.StaleCheck, _scope.Window.Rail.BlockerElement != null,
-                context + ": ô chặn chỉ khi một tầng cổng Blocked");
+            Assert.IsNull(_scope.Window.Rail.BlockerElement, context + ": đang kiểm không có tầng cổng Blocked");
             LogAssert.NoUnexpectedReceived();
         }
 
         private IEnumerator AssertRequiredElements(HubTestContext context)
         {
-            // Registry thật (6 màn giữ chỗ — chưa đọc dữ liệu nên như nhau ở mọi ngữ cảnh W2).
-            _scope = LiveOpsHubWindowTestScope.Open();
-            yield return _scope.WaitForLayout();
-            AssertShellAndSectionElements(_scope, context + " (registry)");
-            _scope.Dispose();
+            LiveOpsHubServices services = LiveOpsHubTestServices.ForScenario(ScenarioOf(context));
 
-            // Health của ngữ cảnh: rail dựng dấu/badge/ô chặn của ngữ cảnh mà element sống còn của khung và của màn vẫn đủ.
-            List<FakeHubSection> fakes = ContextSections(context);
-            _scope = LiveOpsHubWindowTestScope.Open(FakeHubSection.AsSections(fakes));
-            yield return _scope.WaitForLayout();
-            LiveOpsHubWindow window = _scope.Window;
-            AssertShellAndSectionElements(_scope, context + " (health ngữ cảnh)");
+            // Registry thật với phiên của ngữ cảnh.
+            yield return OpenSessionWindow(services, null);
+            AssertShellAndSectionElements(_sessionWindow, LiveOpsHubSections.Create(services), context + " (registry + phiên)");
+            CloseSessionWindow();
+
+            // Health của phiên: rail dựng dấu/badge/ô chặn của ngữ cảnh mà element sống còn của khung và của màn vẫn đủ.
+            List<FakeHubSection> fakes = SessionRoutedSections(services);
+            yield return OpenSessionWindow(services, FakeHubSection.AsSections(fakes));
+            LiveOpsHubWindow window = _sessionWindow;
+            AssertShellAndSectionElements(window, FakeHubSection.AsSections(fakes), context + " (health của phiên)");
 
             List<VisualElement> stageRows = window.Rail.Element.Query(className: LiveOpsHubClassNames.RailStageRow).ToList();
             Assert.AreEqual(4, stageRows.Count, context + ": 4 tầng P1");
@@ -382,22 +412,93 @@ namespace DreamTech.LiveOps.Editor.Tests
                 case HubTestContext.DesignSample:
                     Assert.IsNotNull(window.Rail.BlockerElement, "mẫu thiết kế (Hình 4): KIỂM Blocked → có ô chặn");
                     Assert.IsTrue(blockerHost.Contains(window.Rail.BlockerElement), "ô chặn nằm trong element sống còn " + LiveOpsHubPaths.ShellElementNames.RailBlockerHost);
-                    Assert.AreEqual("2 bị bỏ", checkBadge.text, "mẫu thiết kế: badge KIỂM \"2 bị bỏ\"");
-                    Assert.AreEqual("2 bị bỏ", stageRows[1].Q<Label>(className: LiveOpsHubClassNames.RailBadge).text, "mẫu thiết kế: badge LÊN LỊCH");
-                    Assert.AreEqual("chặn", stageRows[3].Q<Label>(className: LiveOpsHubClassNames.RailBadge).text, "mẫu thiết kế: badge XUẤT");
+                    Assert.AreEqual("2 bị bỏ", checkBadge.text, "mẫu thiết kế: badge KIỂM \"2 bị bỏ\" (bộ tổng hợp của lần kiểm thật)");
+                    Assert.AreEqual("2 bị bỏ", stageRows[1].Q<Label>(className: LiveOpsHubClassNames.RailBadge).text, "mẫu thiết kế: badge LÊN LỊCH (Counts của Lịch + Luật lặp)");
+                    Assert.AreEqual("chặn", stageRows[3].Q<Label>(className: LiveOpsHubClassNames.RailBadge).text, "mẫu thiết kế: badge XUẤT (cổng chặn Copy)");
                     break;
             }
             LogAssert.NoUnexpectedReceived();
         }
 
-        private static void AssertShellAndSectionElements(LiveOpsHubWindowTestScope scope, string label)
+        private IEnumerator OpenSessionWindow(LiveOpsHubServices services, IReadOnlyList<IHubSection> sections)
         {
-            LiveOpsHubWindow window = scope.Window;
+            CloseSessionWindow();
+            _sessionWindow = LiveOpsHubWindow.OpenWithServices(services, sections, null);
+            // SP-16: đặt kích thước SAU Show.
+            _sessionWindow.position = new Rect(0, 0, LiveOpsHubWindowTestScope.StandardWidth, LiveOpsHubWindowTestScope.StandardHeight);
+            int frames = 0;
+            double deadline = EditorApplication.timeSinceStartup + LayoutTimeoutSeconds;
+            // V-23: chỉ fail khi quá CẢ 60 khung lẫn 5 giây — batch chạy 60 khung trong ~60 ms, máy bận (hai Unity song song) sẽ đỏ giả.
+            while (!LiveOpsHubWindowTestScope.HasLayout(_sessionWindow.rootVisualElement))
+            {
+                if (++frames > LiveOpsHubWindowTestScope.MaximumLayoutFrames && EditorApplication.timeSinceStartup > deadline)
+                {
+                    Assert.Fail("cửa sổ hub (services tiêm) không có layout sau 60 khung và 5 giây — test UI phải chạy không -nographics");
+                }
+                yield return null;
+            }
+            yield return null;
+            yield return null;
+        }
+
+        private void CloseSessionWindow()
+        {
+            if (_sessionWindow != null) _sessionWindow.Close();
+            _sessionWindow = null;
+        }
+
+        private static void AssertSessionMatchesContext(LiveOpsHubServices services, HubTestContext context)
+        {
+            LiveOpsHubCalendarSession session = services.Session;
+            switch (context)
+            {
+                case HubTestContext.NoAsset:
+                    Assert.IsNull(session.Asset, "không asset: phiên thật không có asset");
+                    Assert.IsNull(session.Check.LastReport);
+                    break;
+                case HubTestContext.EmptyAsset:
+                    Assert.IsNotNull(session.Asset);
+                    Assert.AreEqual(0, session.Document.FixedEvents.Count, "asset rỗng: không đợt nào");
+                    Assert.AreEqual(LiveOpsHubCheckStaleReason.NeverChecked, session.Check.StaleReason);
+                    break;
+                case HubTestContext.DesignSample:
+                    Assert.IsNotNull(session.Check.LastReport, "mẫu: phiên đã kiểm");
+                    Assert.AreEqual(2, session.Check.LastReport.Summary.DroppedCount, "mẫu thiết kế: 2 đợt bị bỏ");
+                    Assert.IsFalse(session.Check.IsStale);
+                    break;
+                case HubTestContext.StaleCheck:
+                    Assert.IsTrue(session.Check.IsStale, "kiểm cũ: kết quả phải cũ");
+                    Assert.AreEqual(LiveOpsHubCheckStaleReason.CalendarEdited, session.Check.StaleReason);
+                    break;
+            }
+        }
+
+        private static List<FakeHubSection> SessionRoutedSections(LiveOpsHubServices services)
+        {
+            List<FakeHubSection> sections = FakeHubSection.CreateRegistryShaped();
+            foreach (FakeHubSection section in sections) section.Health = LiveOpsHubFindingRouting.ForSection(section.Id, services);
+            return sections;
+        }
+
+        private static string ScenarioOf(HubTestContext context)
+        {
+            switch (context)
+            {
+                case HubTestContext.NoAsset: return LiveOpsHubTestServices.NoAssetScenario;
+                case HubTestContext.EmptyAsset: return LiveOpsHubTestServices.EmptyAssetScenario;
+                case HubTestContext.DesignSample: return LiveOpsHubTestServices.DesignSampleScenario;
+                case HubTestContext.StaleCheck: return LiveOpsHubTestServices.StaleCheckScenario;
+                default: return LiveOpsHubTestServices.RunningCheckScenario;
+            }
+        }
+
+        private static void AssertShellAndSectionElements(LiveOpsHubWindow window, IReadOnlyList<IHubSection> sections, string label)
+        {
             foreach (string elementName in LiveOpsHubPaths.RequiredShellElementNames)
             {
                 Assert.IsNotNull(window.rootVisualElement.Q(elementName), label + ": khung thiếu element '" + elementName + "'");
             }
-            foreach (IHubSection section in scope.Sections)
+            foreach (IHubSection section in sections)
             {
                 window.Navigate(section.Id);
                 Assert.IsFalse(window.IsSectionFailed(section.Id), label + ": màn " + section.Id + " ném khi dựng");
@@ -419,37 +520,6 @@ namespace DreamTech.LiveOps.Editor.Tests
                 Assert.AreEqual(section.Subtitle, window.SectionHeader.SubtitleLabel.text);
                 Assert.Greater(window.SectionBody.childCount, 0, label + ": thân màn " + section.Id + " trống");
                 Assert.IsTrue(window.Rail.GetRow(section.Id).ClassListContains(LiveOpsHubClassNames.RailRowActive), label + ": hàng rail không active");
-            }
-        }
-
-        private static List<FakeHubSection> ContextSections(HubTestContext context)
-        {
-            const string noAssetReason = "Chưa có asset lịch";
-            const string neverCheckedReason = "Chưa kiểm lần nào — F5 để kiểm";
-            List<FakeHubSection> sections;
-            switch (context)
-            {
-                case HubTestContext.NoAsset:
-                    sections = FakeHubSection.CreateRegistryShaped();
-                    for (int index = 1; index < sections.Count; index++) sections[index].Health = SectionHealth.NotMeasured(noAssetReason);
-                    return sections;
-                case HubTestContext.EmptyAsset:
-                    sections = FakeHubSection.CreateRegistryShaped();
-                    sections[4].Health = SectionHealth.NotMeasured(neverCheckedReason);
-                    sections[5].Health = SectionHealth.NotMeasured(neverCheckedReason);
-                    return sections;
-                case HubTestContext.DesignSample:
-                    return FakeHubSection.CreateDesignSampleShaped();
-                case HubTestContext.StaleCheck:
-                    sections = FakeHubSection.CreateDesignSampleShaped();
-                    sections[4].Health = sections[4].Health.AsStale(CheckedAtUtc);
-                    return sections;
-                case HubTestContext.RunningCheck:
-                    sections = FakeHubSection.CreateRegistryShaped();
-                    sections[4].Health = SectionHealth.NotMeasured("Đang kiểm 7/12 luật…");
-                    return sections;
-                default:
-                    throw new ArgumentOutOfRangeException(nameof(context), context, null);
             }
         }
 
