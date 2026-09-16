@@ -24,7 +24,10 @@ namespace DreamTech.LiveOps.Editor
 
         // Popover Bỏ qua cảnh báo… — 300px theo mockup, hẹp hơn popover Đề xuất… 320px vì chỉ có một Toggle và một ô ghi chú.
         internal const string ValidationIgnorePopover = "liveops-hub-validation-ignore-popover";
+        /// <summary>Hàng phạm vi của popover: ô tick + CÂU RIÊNG bên phải (không dùng label của Toggle — soát W5 F-2).</summary>
         internal const string ValidationIgnoreScope = "liveops-hub-validation-ignore-scope";
+        internal const string ValidationIgnoreScopeBox = "liveops-hub-validation-ignore-scope-box";
+        internal const string ValidationIgnoreScopeLabel = "liveops-hub-validation-ignore-scope-label";
         internal const string ValidationIgnoreNoteLabel = "liveops-hub-validation-ignore-note-label";
         internal const string ValidationIgnoreFooter = "liveops-hub-validation-ignore-footer";
         internal const string ValidationIgnoreHint = "liveops-hub-validation-ignore-hint";
@@ -38,6 +41,16 @@ namespace DreamTech.LiveOps.Editor
         // Nhóm "Đã bỏ qua (n) ▸" mở ra (V-15, [SD2 §2.7] ô 6): mỗi mục một hàng có nút nhỏ "Bỏ bỏ qua".
         internal const string ValidationIgnoredRow = "liveops-hub-validation-ignored-row";
         internal const string ValidationIgnoredNote = "liveops-hub-validation-ignored-note";
+
+        /// <summary>Ghi chú ĐỦ trong hover card ghim — xuống dòng thoải mái, khác hẳn bản một dòng của hàng.</summary>
+        internal const string ValidationIgnoredNoteFull = "liveops-hub-validation-ignored-note-full";
+
         internal const string ValidationIgnoredNoteCard = "liveops-hub-validation-ignored-note-card";
+
+        /// <summary>
+        /// Card "Đã bỏ qua (n)" đang MỞ: xuống hàng riêng và chiếm cả bề ngang. 170px chỉ đúng cho lúc THU GỌN ([SD2 §2.1]);
+        /// giữ 170px lúc mở thì meta vỡ sáu dòng đứt giữa từ (soát W5 F-1).
+        /// </summary>
+        internal const string ValidationGroupIgnoredOpen = "liveops-hub-validation-group--ignored-open";
     }
 }

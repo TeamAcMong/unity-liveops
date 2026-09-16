@@ -21,11 +21,24 @@ namespace DreamTech.LiveOps.Editor
         private readonly List<string> _itemLabels = new List<string>();
 
         internal DecisionMenu(LiveEventCalendarFinding finding, LiveOpsHubFormat format, Action<LiveEventCalendarRepair> apply)
+            : this(finding, format, string.Empty, apply)
+        {
+        }
+
+        /// <param name="actionTooltip">
+        /// Câu tooltip của hàng (<c>ValidationRow.ActionTooltip</c>, tức <c>LiveOpsFindingText.PrimaryButtonTooltip</c>).
+        /// </param>
+        internal DecisionMenu(LiveEventCalendarFinding finding, LiveOpsHubFormat format, string actionTooltip,
+            Action<LiveEventCalendarRepair> apply)
         {
             if (finding == null) throw new ArgumentNullException(nameof(finding));
             if (format == null) throw new ArgumentNullException(nameof(format));
 
             Element = new ToolbarMenu { text = LiveOpsFindingText.PrimaryButtonText(finding) };
+            // Tooltip của hàng Quyết định ([SD2 §2.3] bảng luật 3: "Hai cách đúng: giữ tiền tố weekly-pass-, hoặc để sau khi
+            // weekly-pass-35 khép (14/9 00:00 UTC)") đi theo NÚT. Nút đổi thành ToolbarMenu ở W5 thì câu đó rơi mất vì không
+            // element nào mang nó nữa (soát W5 F-10) — menu là chỗ duy nhất còn lại để gắn.
+            Element.tooltip = actionTooltip ?? string.Empty;
             Element.AddToClassList(LiveOpsHubClassNames.Button);
             for (int index = 0; index < finding.Repairs.Count; index++)
             {

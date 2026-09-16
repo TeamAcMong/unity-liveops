@@ -295,7 +295,9 @@ namespace DreamTech.LiveOps.Editor
             RefreshTypeMenu();
             RefreshSearch();
             RefreshSummary(model);
-            RefreshBulkPreview();
+            // Gỡ card thì nhãn và trạng thái nút header đang tính theo card ĐÃ CHẾT (soát W5 F-4): tính lại ngay tại đây,
+            // không đợi lần Refresh sau — giữa hai lần đó người dùng bấm được một nút nói dối.
+            if (RefreshBulkPreview()) RefreshHeaderActions(model);
             RefreshProgress(model);
             RefreshGroups(model);
             RefreshEmptyState(model);
@@ -334,16 +336,23 @@ namespace DreamTech.LiveOps.Editor
                 _safeRepairSlot.Button.text = model != null
                     ? model.SafeRepairButtonText
                     : string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.ValidationSafeRepairButtonFormat, 0);
-                // Nhãn đếm theo số mục ĐANG BẬT của card xem trước khi card đang mở ([SD2 §2.5]); còn lại theo báo cáo.
-                if (_bulkPreview != null) count = _bulkPreview.SelectedCount;
                 if (_bulkPreview != null)
                 {
+                    // Nhãn đếm theo số mục ĐANG BẬT của card xem trước khi card đang mở ([SD2 §2.5]).
+                    count = _bulkPreview.SelectedCount;
                     _safeRepairSlot.Button.text = string.Format(CultureInfo.InvariantCulture,
                         LiveOpsHubStrings.ValidationSafeRepairButtonFormat, count);
+                    // Card đang mở thì nút là CÔNG TẮC đóng card, nên nó KHÔNG khoá dù người dùng bỏ tick hết (soát W5 F-5):
+                    // khoá nó là vừa nói dối ("không có lỗi nào sửa nhanh an toàn được" — vẫn còn, chỉ là vừa bỏ tick) vừa
+                    // lấy mất đúng cái nút đã mở card. Lý do "Bỏ chọn hết rồi…" thuộc về nút Áp TRONG card.
+                    _safeRepairSlot.SetEnabledWithReason(true, string.Empty);
                 }
-                // SPIKE-B SP-3: lý do khoá in thành chữ cạnh nút, tooltip chỉ phụ.
-                _safeRepairSlot.SetEnabledWithReason(count > 0,
-                    count > 0 ? string.Empty : LiveOpsHubStrings.ValidationSafeRepairNothingReason);
+                else
+                {
+                    // SPIKE-B SP-3: lý do khoá in thành chữ cạnh nút, tooltip chỉ phụ.
+                    _safeRepairSlot.SetEnabledWithReason(count > 0,
+                        count > 0 ? string.Empty : LiveOpsHubStrings.ValidationSafeRepairNothingReason);
+                }
             }
             if (_recheckButton != null)
             {
@@ -492,7 +501,8 @@ namespace DreamTech.LiveOps.Editor
                 ValidationFindingRow rowView = _visibleRows[index];
                 if (rowView.Row.Action != ValidationRowAction.Decision || rowView.Row.Finding == null) continue;
                 LiveEventCalendarFinding finding = rowView.Row.Finding;
-                DecisionMenu menu = new DecisionMenu(finding, Services.Format, repair => ApplyDecision(finding, repair));
+                DecisionMenu menu = new DecisionMenu(finding, Services.Format, rowView.Row.ActionTooltip,
+                    repair => ApplyDecision(finding, repair));
                 rowView.SetDecisionMenu(menu.Element);
             }
         }
@@ -637,13 +647,15 @@ namespace DreamTech.LiveOps.Editor
         /// Card đang mở mà báo cáo đã đổi (kiểm lại, sửa chỗ khác, Undo) thì danh sách trong card là danh sách của bản cũ —
         /// bấm Áp sẽ áp lệnh sửa cho một lịch không còn tồn tại. Đóng card là cách duy nhất không nói dối.
         /// </summary>
-        private void RefreshBulkPreview()
+        /// <returns><c>true</c> khi card vừa bị gỡ — người gọi phải tính lại nhãn nút header.</returns>
+        private bool RefreshBulkPreview()
         {
-            if (_bulkPreview == null) return;
-            if (string.Equals(_bulkPreviewKeys, KeysOf(PendingSafeRepairs()), StringComparison.Ordinal)) return;
+            if (_bulkPreview == null) return false;
+            if (string.Equals(_bulkPreviewKeys, KeysOf(PendingSafeRepairs()), StringComparison.Ordinal)) return false;
             _bulkPreview.RemoveFromHierarchy();
             _bulkPreview = null;
             _bulkPreviewKeys = string.Empty;
+            return true;
         }
 
         private static string KeysOf(IReadOnlyList<SafeRepairPreviewItem> items)
@@ -784,8 +796,9 @@ namespace DreamTech.LiveOps.Editor
                 LiveOpsHubStrings.ValidationDepthIgnoredNoteCardTitleFormat, row.MetaText)) { enableRichText = true };
             title.AddToClassList(LiveOpsHubClassNames.ValidationDetailTitle);
             content.Add(title);
-            Label note = new Label(row.Headline) { enableRichText = true };
-            note.AddToClassList(LiveOpsHubClassNames.ValidationIgnoredNote);
+            // Hàng chỉ mang ghi chú RÚT GỌN (mục 7.5) nên thẻ ghim phải lấy bản đủ từ chính cảnh báo, không từ chữ của hàng.
+            Label note = new Label(ValidationViewModel.IgnoredNoteFullText(row.IgnoredWarning)) { enableRichText = true };
+            note.AddToClassList(LiveOpsHubClassNames.ValidationIgnoredNoteFull);
             content.Add(note);
             _hoverCardHost.ShowPinned(rowElement, content);
         }
@@ -1063,6 +1076,11 @@ namespace DreamTech.LiveOps.Editor
             if (_spinner != null) _spinner.Stop();
             _hoverCardHost = null;
             _root = null;
+            // Cửa sổ dựng lại thân bằng _body.Clear() + CreateView() trên CÙNG instance section (LiveOpsHubWindow.BuildSection):
+            // card xem trước đã rời cây nhưng biến vẫn trỏ vào nó thì đổi màn rồi quay lại sẽ thấy nút header đếm theo một card
+            // vô hình, và lần bấm đầu tiên chỉ "đóng" nó (soát W5 F-3).
+            _bulkPreview = null;
+            _bulkPreviewKeys = string.Empty;
         }
 
         private void Navigate(LiveOpsHubNavigation navigation)

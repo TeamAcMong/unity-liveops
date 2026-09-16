@@ -10,8 +10,9 @@
   Chỗ cắm validation-bulk-preview-host nằm NGAY DƯỚI dải summary vì [SD2 §2.5] đòi card xem trước sửa hàng loạt chen đúng
   chỗ đó; nó rỗng và không mang class nên cao 0 khi chưa bấm "Sửa các lỗi an toàn (n)…".
 
-  Cả mười hai element sống ở MỌI trạng thái (chưa kiểm · đang kiểm · cũ · không còn lỗi · không có asset): probe 9.3 và
-  HubWindowTests duyệt nhiều ngữ cảnh nên phần chưa dùng chỉ ẩn bằng `hidden`, không bị gỡ khỏi cây.
+  Cả mười ba element có tên sống ở MỌI trạng thái (chưa kiểm · đang kiểm · cũ · không còn lỗi · không có asset) — mười hai
+  khai ở đây cộng `validation-detail` do C# dựng: probe 9.3 và HubWindowTests duyệt nhiều ngữ cảnh nên phần chưa dùng chỉ ẩn
+  bằng `hidden`, không bị gỡ khỏi cây.
   Không câu chữ nào trong file này — mọi label do C# đổ từ LiveOpsHubStrings (lint chặn chữ hiển thị trong UXML).
 -->
 <ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:liveops="DreamTech.LiveOps.Editor">

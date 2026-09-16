@@ -521,13 +521,43 @@ namespace DreamTech.LiveOps.Editor
             string rangeText = LiveOpsFindingText.IgnoredWarningRangeText(warning, format);
             string meta = string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.ValidationDepthIgnoredMetaFormat,
                 LiveOpsFindingText.NoParse(warning.RuleId), LiveOpsFindingText.NoParse(warning.TargetId), rangeText);
-            string note = warning.Note.Length > 0
-                ? LiveOpsFindingText.NoParse(warning.Note)
-                : LiveOpsHubStrings.ValidationDepthIgnoredNoteEmpty;
+            string note = IgnoredNoteShortText(warning);
             return new ValidationRow(finding, null, HealthState.Ok, note, meta, LiveOpsFindingText.RuleIdLine(finding),
                 ValidationRowAction.Unignore, LiveOpsHubStrings.ValidationDepthUnignoreButton, string.Empty,
                 string.Empty, string.Empty, warning.IsReminder ? rangeText : string.Empty, warning);
         }
+
+        /// <summary>
+        /// Ghi chú ĐỦ của một cảnh báo đã bỏ qua — chữ của hover card ghim "Xem ghi chú". Không rút gọn: thẻ ghim tồn tại
+        /// đúng để đọc trọn ghi chú mà hàng không đủ chỗ.
+        /// </summary>
+        internal static string IgnoredNoteFullText(IgnoredCalendarWarning warning)
+        {
+            if (warning == null) throw new ArgumentNullException(nameof(warning));
+            return warning.Note.Length > 0
+                ? LiveOpsFindingText.NoParse(warning.Note)
+                : LiveOpsHubStrings.ValidationDepthIgnoredNoteEmpty;
+        }
+
+        /// <summary>
+        /// Ghi chú RÚT GỌN của hàng (mục 7.5 "ghi chú rút gọn"). Vì sao cắt bằng KÝ TỰ chứ không chỉ bằng USS ellipsis: chữ
+        /// của hàng phải khác chữ của thẻ ghim thì "Xem ghi chú" mới còn lý do tồn tại, và một test đọc được chữ mới khoá
+        /// được luật đó — ellipsis của USS chỉ đổi cách vẽ, không đổi chữ.
+        /// </summary>
+        internal static string IgnoredNoteShortText(IgnoredCalendarWarning warning)
+        {
+            if (warning == null) throw new ArgumentNullException(nameof(warning));
+            if (warning.Note.Length == 0) return LiveOpsHubStrings.ValidationDepthIgnoredNoteEmpty;
+            if (warning.Note.Length <= IgnoredNoteMaximumCharacters) return LiveOpsFindingText.NoParse(warning.Note);
+            string head = warning.Note.Substring(0, IgnoredNoteMaximumCharacters).TrimEnd();
+            return LiveOpsFindingText.NoParse(head) + LiveOpsHubStrings.ValidationDepthIgnoredNoteEllipsis;
+        }
+
+        /// <summary>
+        /// Số ký tự ghi chú mà một hàng giữ lại. 72 ký tự là bề ngang của hàng ở cột card mở hết (756px, chữ 10px) — dài hơn
+        /// thì hàng đẩy nút "Bỏ bỏ qua" ra khỏi tầm mắt.
+        /// </summary>
+        private const int IgnoredNoteMaximumCharacters = 72;
 
         private const string RuleIdSeparator = " · ";
 

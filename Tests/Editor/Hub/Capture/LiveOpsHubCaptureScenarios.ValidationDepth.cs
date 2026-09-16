@@ -29,24 +29,58 @@ namespace DreamTech.LiveOps.Editor.Tests
         // Số đo bám hình: popover Bỏ qua 300px ([SD2 §2.7] "mockup 300px"), card "Đã bỏ qua" 170px ([SD2 §2.1]).
         private const float ValidationDepthIgnorePopoverWidth = 300f;
 
+        /// <summary>
+        /// Một hàng thay đổi cao tối thiểu 22 ([SD2 §2.5]). Bề ngang card KHÔNG đo trên ảnh: ô tick của hàng nằm đúng 4px
+        /// trong viền card, mà <c>measure-capture.py</c> dò cạnh trong bán kính 4px và ở skin tối cạnh ô tick (56 → 33) mạnh
+        /// hơn cạnh viền (56 → 36) nên nó bắt nhầm — giới hạn của công cụ, không phải lệch layout. Bề ngang, khe 6 và thụt
+        /// 20px của dòng Undo được khoá bằng <c>ValidationDepthTests.BulkRepairPreview_GeometryMatchesDesign</c>.
+        /// </summary>
+        private const float ValidationDepthBulkPreviewRowHeight = 22f;
+
+        /// <summary>
+        /// Nhóm "Đã bỏ qua" MỞ chiếm cả bề ngang cột card (756px = 1064 − pane Chi tiết 300 − khe 8), không còn 170px của
+        /// lúc thu gọn (soát W5 F-1).
+        /// </summary>
+        private const float ValidationDepthIgnoredOpenCardWidth = 756f;
+
         static partial void RegisterValidationDepth(List<LiveOpsHubCaptureScenario> scenarios)
         {
             scenarios.Add(new LiveOpsHubCaptureScenario(LiveOpsHubCaptureScenarioIds.H171SafeBulkPreview, StandardWidth, StandardHeight,
-                OpenValidationBulkPreview).WithExpectedFrames(ValidationDepthGroupsFrames()));
+                OpenValidationBulkPreview).WithExpectedFrames(ValidationDepthBulkPreviewFrames()));
 
             scenarios.Add(new LiveOpsHubCaptureScenario(LiveOpsHubCaptureScenarioIds.H175IgnorePopover, StandardWidth, StandardHeight,
                 OpenValidationIgnorePopover).WithExpectedFrames(ValidationDepthIgnorePopoverFrames()));
 
             scenarios.Add(new LiveOpsHubCaptureScenario(LiveOpsHubCaptureScenarioIds.H176IgnoredGroup, StandardWidth, StandardHeight,
-                OpenValidationIgnoredGroup).WithExpectedFrames(ValidationDepthGroupsFrames()));
+                OpenValidationIgnoredGroup).WithExpectedFrames(ValidationDepthIgnoredOpenFrames()));
         }
 
-        private static LiveOpsHubCaptureExpectedFrame[] ValidationDepthGroupsFrames()
+        /// <summary>
+        /// Ô 1 đo CHÍNH thứ nó sinh ra để chụp (PD-36): chiều cao hai hàng thay đổi của card ([SD2 §2.5] "hàng min-height 22").
+        /// Thiếu hai dòng này thì ảnh h17-1 chỉ chứng minh cái vỏ màn, không chứng minh cái card.
+        /// </summary>
+        private static LiveOpsHubCaptureExpectedFrame[] ValidationDepthBulkPreviewFrames()
         {
             List<LiveOpsHubCaptureExpectedFrame> frames = ShellFrames();
             frames.Add(new LiveOpsHubCaptureExpectedFrame(IgnoredCardElementName, ValidationIgnoredCardWidth, 0f));
+            frames.Add(new LiveOpsHubCaptureExpectedFrame(BulkPreviewFirstRowElementName, 0f, ValidationDepthBulkPreviewRowHeight));
+            frames.Add(new LiveOpsHubCaptureExpectedFrame(BulkPreviewSecondRowElementName, 0f, ValidationDepthBulkPreviewRowHeight));
             return frames.ToArray();
         }
+
+        /// <summary>Ô 6 chụp nhóm ĐANG MỞ, nên bề ngang phải là bề ngang lúc mở, không phải 170px lúc thu gọn.</summary>
+        private static LiveOpsHubCaptureExpectedFrame[] ValidationDepthIgnoredOpenFrames()
+        {
+            List<LiveOpsHubCaptureExpectedFrame> frames = ShellFrames();
+            frames.Add(new LiveOpsHubCaptureExpectedFrame(IgnoredCardElementName, ValidationDepthIgnoredOpenCardWidth, 0f));
+            return frames.ToArray();
+        }
+
+        private static readonly string BulkPreviewFirstRowElementName =
+            LiveOpsHubPaths.ValidationDepthElementNames.BulkPreviewRowPrefix + "0";
+
+        private static readonly string BulkPreviewSecondRowElementName =
+            LiveOpsHubPaths.ValidationDepthElementNames.BulkPreviewRowPrefix + "1";
 
         private static LiveOpsHubCaptureExpectedFrame[] ValidationDepthIgnorePopoverFrames()
         {

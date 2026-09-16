@@ -73,6 +73,8 @@ namespace DreamTech.LiveOps.Editor
             table.Add(nameof(LiveOpsHubStrings.ValidationDepthIgnoredNoteEmpty),
                 vietnamese: "(chưa ghi chú)",
                 english: "(no note)");
+            // Dấu câu dùng chung: AddShared để bảng tiếng Anh không phải chép lại một ký tự y hệt.
+            table.AddShared(nameof(LiveOpsHubStrings.ValidationDepthIgnoredNoteEllipsis), "…");
             table.Add(nameof(LiveOpsHubStrings.ValidationDepthViewNoteMenuItem),
                 vietnamese: "Xem ghi chú",
                 english: "View the note");

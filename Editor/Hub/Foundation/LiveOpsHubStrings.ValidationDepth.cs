@@ -77,6 +77,9 @@ namespace DreamTech.LiveOps.Editor
         /// <summary>Ghi chú bắt buộc nên chỉ rỗng với dữ liệu của bản cũ — vẫn phải có chữ, không để hàng trống trơn.</summary>
         internal static string ValidationDepthIgnoredNoteEmpty => LiveOpsHubStringCatalog.Text(nameof(ValidationDepthIgnoredNoteEmpty));
 
+        /// <summary>Dấu ba chấm nối vào ghi chú bị cắt của hàng — dấu câu, không dịch (dùng chung hai ngôn ngữ).</summary>
+        internal static string ValidationDepthIgnoredNoteEllipsis => LiveOpsHubStringCatalog.Text(nameof(ValidationDepthIgnoredNoteEllipsis));
+
         internal static string ValidationDepthViewNoteMenuItem => LiveOpsHubStringCatalog.Text(nameof(ValidationDepthViewNoteMenuItem));
 
         /// <summary>
