@@ -1,11 +1,12 @@
+using System;
 using System.Collections.Generic;
 
 namespace DreamTech.LiveOps.Editor
 {
     /// <summary>
     /// Registry DUY NHẤT của các màn P1 (PD-1: 6 màn, tầng CHẠY không vẽ). Thứ tự trong danh sách = thứ tự rail = ⌘1…6 = thứ tự
-    /// palette ([FD §3.1]) — thêm màn P2/P3 chỉ là thêm một dòng ở đây. G-SESSION đổi <see cref="Create"/> thành nhận services
-    /// (chữ ký đóng băng khi cổng W3 xanh).
+    /// palette ([FD §3.1]) — thêm màn P2/P3 chỉ là thêm một dòng ở đây. <see cref="Create(LiveOpsHubServices)"/> nhận services của cửa sổ
+    /// (G-SESSION; chữ ký đóng băng khi cổng W3 xanh).
     /// </summary>
     internal static class LiveOpsHubSections
     {
@@ -20,18 +21,32 @@ namespace DreamTech.LiveOps.Editor
             public const string Export = "export";
         }
 
-        /// <summary>Danh sách MỚI mỗi lần gọi: mỗi cửa sổ giữ màn của riêng nó (hai cửa sổ hub không dùng chung view/trạng thái).</summary>
-        public static List<IHubSection> Create()
+        /// <summary>
+        /// Danh sách MỚI mỗi lần gọi: mỗi cửa sổ giữ màn của riêng nó (hai cửa sổ hub không dùng chung view/trạng thái). Mọi màn nhận
+        /// services của cửa sổ qua ctor — màn không tự dựng phiên hay adapter.
+        /// </summary>
+        public static List<IHubSection> Create(LiveOpsHubServices services)
         {
+            if (services == null) throw new ArgumentNullException(nameof(services));
             return new List<IHubSection>
             {
-                new OverviewSection(),
-                new EventTypesSection(),
-                new CalendarSection(),
-                new RecurringRulesSection(),
-                new ValidationSection(),
-                new ExportSection(),
+                new OverviewSection(services),
+                new EventTypesSection(services),
+                new CalendarSection(services),
+                new RecurringRulesSection(services),
+                new ValidationSection(services),
+                new ExportSection(services),
             };
+        }
+
+        /// <summary>
+        /// Registry với services KHÔNG có asset, không tìm asset, không tự kiểm — cho nơi chỉ cần hình dạng registry (test hợp đồng màn,
+        /// kịch bản chụp khung của W2). Giữ chữ ký W2 để các file đó không phải đổi cùng đợt (contract-changes-G-SESSION.md CC-SESSION-1).
+        /// Phiên không asset không đăng ký sự kiện tĩnh nào nên không cần Dispose.
+        /// </summary>
+        internal static List<IHubSection> Create()
+        {
+            return Create(new LiveOpsHubServicesBuilder().WithCalendarAsset(null).WithAutoCheckOnOpen(false).Build());
         }
     }
 }
