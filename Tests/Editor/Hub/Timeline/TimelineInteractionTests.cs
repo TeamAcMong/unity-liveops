@@ -521,10 +521,9 @@ namespace DreamTech.LiveOps.Editor.Tests
             Assert.AreEqual(46f, ruler.resolvedStyle.height, 0.5f, "thước 3 tuần 46px [SD1 §3.2]");
             List<string> monthTexts = TimelineTestQueries.Map(ruler.VisibleMonthLabels, label => label.text);
             CollectionAssert.Contains(monthTexts, "THÁNG 9 2026");
-            CollectionAssert.Contains(monthTexts, "Tuần 39");
-            // Khung bắt đầu đúng thứ Hai 14/9 nên nhãn "Tuần 38" rơi vào x = 0 y như nhãn tháng; thước bỏ nhãn đứng sau để
-            // chữ không chồng nhau (phiếu D-2 của cổng W4) — nhãn tháng giữ chỗ vì nó là mốc duy nhất nói năm.
-            CollectionAssert.DoesNotContain(monthTexts, "Tuần 38", "hai nhãn tầng 1 không bao giờ chồng chữ");
+            // Khung Hình 1 bắt đầu trước thứ Hai nên "Tuần 38" cách nhãn tháng đủ xa và vẫn hiện. Khung nào bắt đầu ĐÚNG thứ Hai
+            // (mini timeline Hình 12) thì hai nhãn cùng x = 0 và thước bỏ nhãn đứng sau — phiếu D-2 của cổng W4.
+            CollectionAssert.Contains(monthTexts, "Tuần 38");
             List<string> dayTexts = TimelineTestQueries.Map(ruler.VisibleDayLabels, label => label.text);
             CollectionAssert.Contains(dayTexts, "T2 14", "thứ Hai ghi \"T2 14\"");
             Assert.IsTrue(TimelineTestQueries.Single(ruler.VisibleDayLabels, label => label.text == "T2 14")
@@ -533,6 +532,27 @@ namespace DreamTech.LiveOps.Editor.Tests
             Assert.AreEqual("08:47 UTC · 15:47 giờ máy", ruler.NowFlag.tooltip);
             Assert.IsFalse(ruler.PublishedFlag.ClassListContains(LiveOpsHubClassNames.TimelineHidden), "cờ đã đăng 11/9 16:20 trong khung");
             Assert.AreEqual("Đã đăng 11/9 16:20 · sha " + LiveOpsDesignSample.PublishedSha256Hex.Substring(0, 6), ruler.PublishedFlag.tooltip);
+            LogAssert.NoUnexpectedReceived();
+        }
+
+        /// <summary>
+        /// Phiếu D-2 của cổng W4: khung bắt đầu ĐÚNG thứ Hai (mini timeline Hình 12 mở từ 14/9) đặt nhãn tháng và nhãn tuần
+        /// vào cùng x = 0 — trước khi sửa, hai chuỗi vẽ đè lên nhau và đọc ra "THÁNG9 2026".
+        /// </summary>
+        [UnityTest]
+        public IEnumerator Ruler_RangeStartsOnMonday_DropsOverlappingWeekLabel()
+        {
+            _panel = TimelineTestPanel.Open();
+            VisualElement root = _panel.CreateRoot(false);
+            TimelineHarness harness = TimelineHarness.Create(root, TimelineViewInputs.Checked(LiveOpsDesignSample.Document));
+            harness.Start(new DateTime(2026, 9, 14, 0, 0, 0, DateTimeKind.Utc), LiveOpsTimelineZoom.ThreeWeeks);
+            _panel.Harness = harness;
+            yield return harness.WaitReady();
+
+            List<string> monthTexts = TimelineTestQueries.Map(Element.Ruler.VisibleMonthLabels, label => label.text);
+            CollectionAssert.Contains(monthTexts, "THÁNG 9 2026", "nhãn tháng giữ chỗ — mốc duy nhất nói năm");
+            CollectionAssert.DoesNotContain(monthTexts, "Tuần 38", "nhãn tuần ở x = 0 bị bỏ vì chồng lên nhãn tháng");
+            CollectionAssert.Contains(monthTexts, "Tuần 39", "thứ Hai sau đó đủ chỗ nên vẫn hiện");
             LogAssert.NoUnexpectedReceived();
         }
 
