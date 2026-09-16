@@ -98,7 +98,7 @@ namespace DreamTech.LiveOps.Editor.Tests
                 Assert.IsTrue(headline.text.StartsWith(LiveOpsHubStrings.EventTypesReferencePrefix, StringComparison.Ordinal),
                     "(V-22 CC-FT-2 (a)) chỉ màn này ghép tiền tố 'Kiểm lịch · '");
 
-                declare.SendEvent(ClickEvent.GetPooled());
+                Click(declare);
                 yield return null;
                 Assert.IsTrue(services.Session.Document.TryGetEventType(RemoteOnlyType, out LiveEventTypeDefinition declared),
                     "'Khai báo' phải thêm định nghĩa loại vào nháp");
@@ -192,6 +192,20 @@ namespace DreamTech.LiveOps.Editor.Tests
                 yield return scope.WaitForLayout();
                 Assert.DoesNotThrow(() => section.RestoreViewState("{ khong-phai-json"),
                     "(7.0) JSON của bản trước không được làm sập màn");
+            }
+        }
+
+        /// <summary>
+        /// Bấm một <see cref="Button"/> trong panel thật. <c>ClickEvent</c> KHÔNG chạy <c>Clickable</c> của Button (manipulator
+        /// nghe pointer), còn <c>NavigationSubmitEvent</c> thì Button xử lý ở cả 2022.3 lẫn 6000.6 — đây là đường bấm duy nhất
+        /// gửi được từ test batchmode mà không phải dựng chuỗi pointer giả.
+        /// </summary>
+        private static void Click(Button button)
+        {
+            using (NavigationSubmitEvent submit = NavigationSubmitEvent.GetPooled())
+            {
+                submit.target = button;
+                button.SendEvent(submit);
             }
         }
 
