@@ -131,6 +131,32 @@ namespace DreamTech.LiveOps.Editor.Tests
             AssertError("{} {}", 1, 4, LiveOpsJsonSyntaxLocator.ReasonUnexpectedCharacter);
         }
 
+        /// <summary>
+        /// Dấu phẩy NỐI HAI GỐC cũng là lỗi với người gọi mặc định: cổng Xuất và popover Dán đang dò CẢ một tài liệu, mà
+        /// một tài liệu chỉ có một gốc. Ô JSON một-luật của màn Luật lặp là ngoại lệ phải TỰ KHAI (xem test dưới) — để nó
+        /// thành luật chung thì mọi file nhiều gốc mất dòng/ký tự ở cổng Xuất và người dùng chỉ còn câu trần của parser.
+        /// </summary>
+        [Test]
+        public void TopLevelComma_IsErrorForDocumentCallers()
+        {
+            AssertError("{},{}", 1, 3, LiveOpsJsonSyntaxLocator.ReasonUnexpectedCharacter);
+            AssertError("{},", 1, 3, LiveOpsJsonSyntaxLocator.ReasonUnexpectedCharacter);
+        }
+
+        /// <summary>
+        /// Người gọi khai <c>allowMultipleRoots</c> (mẩu sắp được bọc vào một mảng) mới được nối nhiều gốc bằng dấu phẩy —
+        /// và chỉ ĐƯỢC NGẦN ĐÓ: dấu phẩy cụt vẫn là JSON kết thúc giữa chừng, không phải "hợp lệ vì đã khai".
+        /// </summary>
+        [Test]
+        public void TopLevelComma_AllowedOnlyWhenCallerAsksForMultipleRoots()
+        {
+            LiveOpsJsonSyntaxLocator.SyntaxError error;
+            Assert.IsFalse(LiveOpsJsonSyntaxLocator.TryFindFirstError("{},{}", true, out error),
+                "hai gốc cách nhau bằng dấu phẩy là cú pháp hợp lệ với người gọi đã khai");
+            Assert.IsTrue(LiveOpsJsonSyntaxLocator.TryFindFirstError("{},", true, out error), "dấu phẩy cụt vẫn hỏng");
+            Assert.AreEqual(LiveOpsJsonSyntaxLocator.ReasonUnexpectedEnd, error.ReasonCode);
+        }
+
         [Test]
         public void SurrogatePair_CountsAsOneCharacter()
         {

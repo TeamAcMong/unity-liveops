@@ -334,6 +334,28 @@
     margin-top: 4px;
 }
 
+/* Ô JSON sửa được (W5): cao sẵn đủ một object luật bảy dòng để người sửa thấy hết mà không cuộn; white-space: normal là
+   cách USS xuống dòng (không có word-wrap), giữ dòng configKey dài không đẩy foldout tràn ngang. */
+.liveops-hub-recurring-json-editor {
+    min-height: 116px;
+    margin: 0;
+    white-space: normal;
+}
+
+/* Dòng lỗi cú pháp / đọc lại, ngay dưới ô: cùng cỡ chữ phụ với dòng lỗi của field. */
+.liveops-hub-recurring-json-error {
+    font-size: 10px;
+    margin-top: 2px;
+    white-space: normal;
+}
+
+/* (Q-W4-4) Lý do ô bị khoá, in THÀNH CHỮ dưới chính ô đó — thẳng cột với khối nháp (nhãn 96 + 7 lề). */
+.liveops-hub-recurring-field-lock-reason {
+    font-size: 10px;
+    margin: 0 3px 4px 103px;
+    white-space: normal;
+}
+
 /* ---------------------------------------------------------------- Trạng thái trống: nút bước tiếp */
 
 /* Nút nằm dưới hai dòng chữ của liveops-hub-empty (mục 7: "trống = vì sao · nút bước tiếp"). */
