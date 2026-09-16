@@ -26,15 +26,22 @@ namespace DreamTech.LiveOps.Editor.Tests
 
         private LiveOpsHubWindow _window;
 
-        [TearDown]
-        public void TearDown()
+        /// <summary>
+        /// (V-23) Đóng cửa sổ rồi NHƯỜNG một khung trước khi test kế tiếp chạy: ở 2022.3 batchmode, cửa sổ vừa đóng còn giữ
+        /// quyền nhận phím thêm một khung, nên test sau gọi <c>Focus()</c> một lần là rơi vào hư không — đúng cách lượt đầu của
+        /// gói này làm <c>CalendarSectionTests.Frame03a_SelectedBarKeepsTimelineFocus</c> đỏ dù nó không đụng gì tới W5.
+        /// </summary>
+        [UnityTearDown]
+        public IEnumerator TearDown()
         {
             if (_window != null)
             {
                 _window.Close();
                 _window = null;
+                yield return null;
             }
             LiveOpsHubTestServices.ReleaseAll();
+            yield return null;
         }
 
         // ------------------------------------------------------------------------------------------------ lệnh Edit (R-15)
@@ -53,9 +60,8 @@ namespace DreamTech.LiveOps.Editor.Tests
             int before = services.Session.Document.FixedEvents.Count;
 
             section.Presenter.SetSelectedBarKey(LiveOpsDesignSample.HuntBonusEntryKey);
-            section.Timeline.Focus();
-            yield return null;
-            SendCommand(LiveOpsTimelineElement.CopyCommand);
+            yield return ClaimFocus(section.Timeline);
+            SendCommand(section.Timeline, LiveOpsTimelineElement.CopyCommand);
 
             Assert.IsTrue(section.CommandHandler.HasCopiedEvent, "⌘C trên một thanh cố định phải đưa đợt vào clipboard");
             StringAssert.Contains("hunt-0916-bonus", services.Clipboard.Text, "clipboard giữ object JSON của chính đợt đó");
@@ -63,7 +69,7 @@ namespace DreamTech.LiveOps.Editor.Tests
             DateTime cursorUtc = new DateTime(2026, 9, 21, 0, 0, 0, DateTimeKind.Utc);
             section.Timeline.SetCursor(cursorUtc, "lava-quest", true);
             yield return null;
-            SendCommand(LiveOpsTimelineElement.PasteCommand);
+            SendCommand(section.Timeline, LiveOpsTimelineElement.PasteCommand);
 
             Assert.AreEqual(before + 1, services.Session.Document.FixedEvents.Count, "⌘V tại con trỏ thêm đúng một đợt");
             Assert.AreNotEqual(string.Empty, section.Presenter.SelectedBarKey, "đợt vừa dán được chọn để sửa tiếp");
@@ -80,7 +86,7 @@ namespace DreamTech.LiveOps.Editor.Tests
             section.Timeline.Focus();
             yield return null;
 
-            SendCommand(LiveOpsTimelineElement.DeleteCommand);
+            SendCommand(section.Timeline, LiveOpsTimelineElement.DeleteCommand);
 
             Assert.IsFalse(section.Services.Session.Document.TryGetFixedEvent(LiveOpsDesignSample.HuntBonusEntryKey,
                 out FixedLiveEventEntry _), "⌘⌫ xoá ngay đợt chưa đăng và chưa bắt đầu");
@@ -98,9 +104,8 @@ namespace DreamTech.LiveOps.Editor.Tests
             section.CommandHandler.DuplicateRequested += (entry, targetStartUtc) => targets.Add(targetStartUtc);
 
             section.Presenter.SetSelectedBarKey(LiveOpsDesignSample.LavaQuestMidEntryKey);
-            section.Timeline.Focus();
-            yield return null;
-            SendCommand(LiveOpsTimelineElement.DuplicateCommand);
+            yield return ClaimFocus(section.Timeline);
+            SendCommand(section.Timeline, LiveOpsTimelineElement.DuplicateCommand);
 
             Assert.AreEqual(1, targets.Count, "⌘D hỏi nhân bản đúng một lần");
             Assert.AreEqual(before, section.Services.Session.Document.FixedEvents.Count,
@@ -205,6 +210,10 @@ namespace DreamTech.LiveOps.Editor.Tests
             CalendarCommandHandler handler = CreateHandler(services, out CalendarTimelinePresenter presenter);
             Assert.IsTrue(services.Session.Document.TryGetFixedEvent(LiveOpsDesignSample.LavaQuestMidEntryKey,
                 out FixedLiveEventEntry original));
+            // Bản đã đăng đọc lại từ JSON của dấu nên EntryKey của nó KHÁC nháp — mục tương ứng tìm theo eventId.
+            FixedLiveEventEntry baseline = BaselineOf(services, original.EventId);
+            Assert.IsNotNull(baseline, "lịch mẫu đã có dấu đã đăng chứa lava-quest-2026-09b");
+            string otherEndBefore = OtherEndTextOf(services);
             presenter.ApplyEdit(new ReplaceFixedEventEdit(original.WithTimes(original.StartUtcText, "2026-09-25T00:00:00Z")),
                 LiveOpsEditOperation.ChangeFixedEventTimes, original.EntryKey, "test", string.Empty);
 
@@ -212,8 +221,29 @@ namespace DreamTech.LiveOps.Editor.Tests
             Assert.IsTrue(handler.RevertToCompare(LiveOpsDesignSample.LavaQuestMidEntryKey));
 
             Assert.IsTrue(services.Session.Document.TryGetFixedEvent(LiveOpsDesignSample.LavaQuestMidEntryKey,
-                out FixedLiveEventEntry reverted));
-            Assert.AreEqual(original.EndUtcText, reverted.EndUtcText, "mục đã về đúng bản đã đăng");
+                out FixedLiveEventEntry reverted), "mục giữ nguyên EntryKey — hoàn về không phải là xoá rồi thêm");
+            Assert.AreEqual(baseline.EndUtcText, reverted.EndUtcText, "mục đã về đúng bản đã đăng");
+            Assert.AreEqual(otherEndBefore, OtherEndTextOf(services), "và KHÔNG đụng mục nào khác của nháp");
+        }
+
+        private static FixedLiveEventEntry BaselineOf(LiveOpsHubServices services, string eventId)
+        {
+            LiveEventCalendarDocument compare = services.Session.Publish.CompareDocument;
+            if (compare == null) return null;
+            for (int index = 0; index < compare.FixedEvents.Count; index++)
+            {
+                if (string.Equals(compare.FixedEvents[index].EventId, eventId, StringComparison.Ordinal))
+                {
+                    return compare.FixedEvents[index];
+                }
+            }
+            return null;
+        }
+
+        private static string OtherEndTextOf(LiveOpsHubServices services)
+        {
+            return services.Session.Document.TryGetFixedEvent(LiveOpsDesignSample.HuntBonusEntryKey,
+                out FixedLiveEventEntry other) ? other.EndUtcText : string.Empty;
         }
 
         /// <summary>Đợt chỉ có trong nháp thì không có gì để hoàn về — menu phải khoá mục, không im lặng không làm gì.</summary>
@@ -274,10 +304,46 @@ namespace DreamTech.LiveOps.Editor.Tests
             return null;
         }
 
-        private void SendCommand(string commandName)
+        /// <summary>
+        /// (V-23) Đòi lại focus MỖI KHUNG tới khi element thật sự giữ nó: ở 2022.3 batchmode lần <c>Focus()</c> đầu có thể rơi
+        /// vào hư không khi cửa sổ thử chưa là cửa sổ nhận phím, và lệnh Edit gửi sau đó sẽ không tới được timeline.
+        /// </summary>
+        private IEnumerator ClaimFocus(VisualElement target)
         {
-            _window.SendEvent(new Event { type = EventType.ValidateCommand, commandName = commandName });
-            _window.SendEvent(UnityEditor.EditorGUIUtility.CommandEvent(commandName));
+            int frames = 0;
+            Stopwatch stopwatch = Stopwatch.StartNew();
+            while (target.panel == null || target.panel.focusController.focusedElement != target)
+            {
+                target.Focus();
+                frames++;
+                if (frames > MaximumLayoutFrames && stopwatch.ElapsedMilliseconds > MaximumLayoutMilliseconds)
+                {
+                    Assert.Fail("timeline không nhận được focus sau 60 khung và 5 giây — lệnh Edit sẽ không tới nơi");
+                }
+                yield return null;
+            }
+        }
+
+        /// <summary>
+        /// Validate rồi Execute như Edit menu của Unity ([API §12.1]), gửi THẲNG vào timeline. Không gửi qua
+        /// <c>EditorWindow.SendEvent</c>: ở 2022.3 batchmode việc cửa sổ thử có phải cửa sổ nhận lệnh hay không phụ thuộc cửa sổ
+        /// vừa đóng ở test trước, nên cùng một test xanh ở 6000.6 và đỏ ở 2022.3 (đúng thứ lượt đầu của gói này gặp). Đường đi
+        /// vào element vẫn là <c>ValidateCommandEvent</c>/<c>ExecuteCommandEvent</c> thật của R-15, không gọi tay handler.
+        /// </summary>
+        private static void SendCommand(VisualElement target, string commandName)
+        {
+            Event commandEvent = UnityEditor.EditorGUIUtility.CommandEvent(commandName);
+            using (ValidateCommandEvent validate = ValidateCommandEvent.GetPooled(
+                new Event { type = EventType.ValidateCommand, commandName = commandName }))
+            {
+                validate.target = target;
+                target.SendEvent(validate);
+            }
+            using (ExecuteCommandEvent execute = ExecuteCommandEvent.GetPooled(commandEvent))
+            {
+                execute.target = target;
+                target.SendEvent(execute);
+            }
         }
 
         private IEnumerator OpenCalendar()

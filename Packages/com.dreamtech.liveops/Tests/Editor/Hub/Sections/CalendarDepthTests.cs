@@ -24,15 +24,22 @@ namespace DreamTech.LiveOps.Editor.Tests
 
         private LiveOpsHubWindow _window;
 
-        [TearDown]
-        public void TearDown()
+        /// <summary>
+        /// (V-23) Đóng cửa sổ rồi NHƯỜNG một khung trước khi test kế tiếp chạy: ở 2022.3 batchmode, cửa sổ vừa đóng còn giữ
+        /// quyền nhận phím thêm một khung, nên test sau gọi <c>Focus()</c> một lần là rơi vào hư không — đúng cách lượt đầu của
+        /// gói này làm <c>CalendarSectionTests.Frame03a_SelectedBarKeepsTimelineFocus</c> đỏ dù nó không đụng gì tới W5.
+        /// </summary>
+        [UnityTearDown]
+        public IEnumerator TearDown()
         {
             if (_window != null)
             {
                 _window.Close();
                 _window = null;
+                yield return null;
             }
             LiveOpsHubTestServices.ReleaseAll();
+            yield return null;
         }
 
         // ------------------------------------------------------------------------------------------------ toolbar (mục 12 I-5)
@@ -136,16 +143,43 @@ namespace DreamTech.LiveOps.Editor.Tests
         [UnityTest]
         public IEnumerator ComparePane_DiskSource_FromNavigation()
         {
-            yield return OpenCalendar(LiveOpsHubTestServices.DesignSampleScenario);
+            // Nguồn Disk chỉ TỒN TẠI khi phiên thật sự có xung đột đĩa (không thì Publish tự rơi về Published), nên ca này chạy
+            // trên asset thật rồi sửa file ngoài Unity — đúng cách băng "asset đã đổi trên đĩa" xuất hiện.
+            LiveOpsHubServices services = LiveOpsHubTestServices.Build(
+                LiveOpsHubTestServices.CreateBuilder(LiveOpsHubTestServices.CreateClock())
+                    .WithCalendarAsset(LiveOpsHubTestServices.CreateAssetFile(DiskConflictAssetFileName,
+                        LiveOpsDesignSample.Document)));
+            yield return OpenCalendarWith(services);
             CalendarSection section = Calendar();
+            Assert.IsTrue(services.Session.Document.TryGetFixedEvent(LiveOpsDesignSample.LavaQuestMidEntryKey,
+                out FixedLiveEventEntry entry));
+            services.Session.Apply(new ReplaceFixedEventEdit(entry.WithTimes(entry.StartUtcText, "2026-09-23T12:00:00Z")),
+                "Dời kết thúc " + entry.EventId);
+            yield return ChangeAssetOnDiskThenNotify(services);
 
             section.ApplyNavigation(LiveOpsHubNavigation.To(LiveOpsHubSections.Ids.Calendar)
                 .WithCompareSource(LiveOpsHubCompareSource.Disk));
             yield return null;
 
             Assert.IsTrue(section.IsComparePaneOpen, "tới bằng 'Xem khác biệt' thì pane phải tự mở");
+            Assert.AreEqual(LiveOpsHubCompareSource.Disk, services.Session.Publish.ActiveCompareSource);
             Assert.AreEqual(LiveOpsHubStrings.CalendarDepthCompareDiskNote, section.ComparePane.Note.text,
                 "nguồn Disk không có mục 'Hoàn về bản đã đăng' nên note cũng phải đổi theo (V-13)");
+            StringAssert.StartsWith(LiveOpsHubStrings.CalendarDepthCompareDiskTitleFormat.Substring(0, 12),
+                section.ComparePane.Title.text, "tiêu đề nói rõ đang so với bản trên đĩa");
+        }
+
+        private IEnumerator ChangeAssetOnDiskThenNotify(LiveOpsHubServices services)
+        {
+            string assetPath = services.Session.AssetPath;
+            Assert.IsNotEmpty(assetPath, "ca này cần asset thật trên đĩa");
+            System.IO.File.AppendAllText(System.IO.Path.GetFullPath(assetPath),
+                Environment.NewLine + "# sửa tay ngoài Unity" + Environment.NewLine);
+            // Cửa sổ ghi một cảnh báo CÓ CHỦ ĐÍCH để Console còn dấu vết lần file đổi ngoài (SP-8b).
+            LogAssert.Expect(LogType.Warning, string.Format(System.Globalization.CultureInfo.InvariantCulture,
+                LiveOpsHubStrings.ShellDiskConflictLogFormat, services.Session.AssetFileName));
+            services.Session.HandleAssetsChanged(new[] { assetPath }, null, null, null);
+            yield return null;
         }
 
         /// <summary>Nút toolbar in ĐÚNG số dòng mà pane vẽ — hai con số đếm bằng hai đường là cách chắc chắn nhất để nút nói dối.</summary>
@@ -233,11 +267,7 @@ namespace DreamTech.LiveOps.Editor.Tests
             Button repairButton = RepairButtonOf(section);
             Assert.IsNotNull(repairButton, "đợt hunt-0916-bonus có phát hiện kèm cách sửa");
 
-            using (ClickEvent clickEvent = ClickEvent.GetPooled())
-            {
-                clickEvent.target = repairButton;
-                repairButton.SendEvent(clickEvent);
-            }
+            Click(repairButton);
             yield return null;
 
             Assert.AreEqual(1, requested.Count, "bấm nút đề xuất mở popover đúng một lần");
@@ -289,6 +319,19 @@ namespace DreamTech.LiveOps.Editor.Tests
 
         // ------------------------------------------------------------------------------------------------ dựng
 
+        /// <summary>
+        /// Bấm nút đúng cách người dùng bấm: <c>Button</c> nghe <c>Clickable</c>, không nghe một <c>ClickEvent</c> nặn tay — gửi
+        /// ClickEvent thẳng vào nút thì test xanh giả mà nút thật không chạy.
+        /// </summary>
+        private static void Click(Button button)
+        {
+            using (NavigationSubmitEvent submitEvent = NavigationSubmitEvent.GetPooled(EventModifiers.None))
+            {
+                submitEvent.target = button;
+                button.SendEvent(submitEvent);
+            }
+        }
+
         private static CalendarListRow RowOf(CalendarListPane pane, string entryKey)
         {
             IReadOnlyList<CalendarListRow> rows = pane.Rows;
@@ -328,9 +371,15 @@ namespace DreamTech.LiveOps.Editor.Tests
             return _window.SectionBody == null || _window.SectionBody.childCount == 0 ? null : _window.SectionBody[0];
         }
 
+        private const string DiskConflictAssetFileName = "CalendarDepthDiskConflict.asset";
+
         private IEnumerator OpenCalendar(string scenarioId)
         {
-            LiveOpsHubServices services = LiveOpsHubTestServices.ForScenario(scenarioId);
+            return OpenCalendarWith(LiveOpsHubTestServices.ForScenario(scenarioId));
+        }
+
+        private IEnumerator OpenCalendarWith(LiveOpsHubServices services)
+        {
             List<IHubSection> sections = LiveOpsHubSections.Create(services);
             _window = LiveOpsHubWindow.OpenWithServices(services, sections, LiveOpsHubSections.Ids.Calendar);
             _window.position = new Rect(0, 0, 1280, 760);
