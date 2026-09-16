@@ -115,9 +115,12 @@
     flex-grow: 1;
 }
 
+/* Cho xuống dòng: card "Đã bỏ qua" khi MỞ chiếm cả bề ngang nên nó phải rơi xuống hàng dưới, không ép card "n luật đã qua"
+ * teo lại (soát W5 F-1). Thu gọn thì cả hai vẫn nằm đúng một hàng như [SD2 §2.1]. */
 .liveops-hub-validation-cards-row {
     flex-direction: row;
     align-items: flex-start;
+    flex-wrap: wrap;
 }
 
 .liveops-hub-validation-group {
@@ -158,6 +161,14 @@
 .liveops-hub-validation-group--ignored {
     width: 170px;
     flex-shrink: 0;
+}
+
+/* Mở ra là một DANH SÁCH mục (V-15): 170px thì meta "long-gap-between-events · lava-quest · 20/9 00:00 → 1/10 00:00" vỡ
+ * sáu dòng đứt giữa từ và ghi chú vỡ ba dòng (soát W5 F-1). Hai class để thắng luật một class ở trên bằng ĐỘ CỤ THỂ,
+ * không bằng thứ tự dòng trong file (bài học D-1 của W4). */
+.liveops-hub-validation-group--ignored.liveops-hub-validation-group--ignored-open {
+    width: 100%;
+    flex-shrink: 1;
 }
 
 .liveops-hub-validation-passed-ids {
@@ -422,13 +433,28 @@
 }
 
 /* Câu phạm vi dài hơn một dòng trong 300px: không cho xuống dòng thì vế "hiện lại nếu khoảng này đổi" bị cắt mất — mà đó
- * chính là vế nói cho người dùng biết bỏ qua KHÔNG phải tắt luật vĩnh viễn. */
+ * chính là vế nói cho người dùng biết bỏ qua KHÔNG phải tắt luật vĩnh viễn.
+ * Vì sao câu là một Label RIÊNG chứ không phải `label` của Toggle: Toggle là BaseField, nó vẽ nhãn TRƯỚC ô tick và cho nhãn
+ * giãn — câu hai dòng đẩy ô tick ra sát mép phải và cắt cụt còn ~6px, người dùng không nhìn ra phạm vi đang bật
+ * (soát W5 F-2). Ô tick đứng trước và không co, câu chiếm phần còn lại. */
 .liveops-hub-validation-ignore-scope {
-    margin-bottom: var(--liveops-hub-space-8);
+    flex-direction: row;
+    align-items: flex-start;
+    /* 10 chứ không 8: Yoga đo Label hai dòng bằng chiều cao MỘT dòng trong hàng flex, nên dòng thứ hai tràn khỏi hộp của
+     * chính nó — thiếu khe thì nó dính vào nhãn "Ghi chú (bắt buộc)" ngay dưới. */
+    margin-bottom: var(--liveops-hub-space-10);
 }
 
-/* Nhãn của Toggle là một Label con: `white-space` đặt trên chính Toggle không tới được nó. */
-.liveops-hub-validation-ignore-scope .unity-label {
+.liveops-hub-validation-ignore-scope-box {
+    flex-grow: 0;
+    flex-shrink: 0;
+    margin-right: var(--liveops-hub-space-6);
+}
+
+.liveops-hub-validation-ignore-scope-label {
+    flex-grow: 1;
+    flex-shrink: 1;
+    font-size: 11px;
     white-space: normal;
 }
 
@@ -457,14 +483,25 @@
     min-height: 22px;
 }
 
+/* Ghi chú của HÀNG là bản rút gọn, đúng một dòng (mục 7.5): cho xuống dòng thì hàng cao dần theo độ dài ghi chú và danh
+ * sách mất nhịp. Chữ đã bị cắt trong ViewModel; `text-overflow` chỉ là lưới an toàn cho chữ rộng bất thường. */
 .liveops-hub-validation-ignored-note {
+    flex-shrink: 1;
     font-size: 10px;
     opacity: 0.82;
-    white-space: normal;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 /* Hover card ghim của "Xem ghi chú": ghi chú ĐỦ (hàng chỉ hiện bản rút gọn), nên thẻ phải cho chữ xuống dòng. */
 .liveops-hub-validation-ignored-note-card {
     width: 260px;
+    white-space: normal;
+}
+
+.liveops-hub-validation-ignored-note-full {
+    font-size: 10px;
+    opacity: 0.82;
     white-space: normal;
 }

@@ -31,7 +31,9 @@ namespace DreamTech.LiveOps.Editor
             // Popover Bỏ qua cảnh báo… ([SD2 §2.7]) — tên viết tay trong IgnoreWarningPopover.uxml.
             internal const string IgnoreBody = "ignore-warning-body";
             internal const string IgnoreHeader = "ignore-warning-header";
+            internal const string IgnoreScopeLine = "ignore-warning-scope-line";
             internal const string IgnoreScope = "ignore-warning-scope";
+            internal const string IgnoreScopeLabel = "ignore-warning-scope-label";
             internal const string IgnoreNoteLabel = "ignore-warning-note-label";
             internal const string IgnoreNote = "ignore-warning-note";
             internal const string IgnoreFooterHint = "ignore-warning-hint";

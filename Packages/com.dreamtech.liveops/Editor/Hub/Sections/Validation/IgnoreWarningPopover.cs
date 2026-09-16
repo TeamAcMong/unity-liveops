@@ -29,6 +29,7 @@ namespace DreamTech.LiveOps.Editor
         private readonly Action<IgnoredCalendarWarning> _apply;
 
         private Toggle _scopeToggle;
+        private Label _scopeLabel;
         private TextField _noteField;
         private LiveOpsButtonSlot _confirmSlot;
 
@@ -49,6 +50,9 @@ namespace DreamTech.LiveOps.Editor
         internal LiveOpsButtonSlot ConfirmSlot => _confirmSlot;
         internal Button CancelButton { get; private set; }
         internal Toggle ScopeToggle => _scopeToggle;
+
+        /// <summary>Câu phạm vi — Label riêng cạnh ô tick (soát W5 F-2), không phải <c>Toggle.label</c>.</summary>
+        internal Label ScopeLabel => _scopeLabel;
         internal TextField NoteField => _noteField;
 
         protected override Vector2 PopoverSize => WindowSize;
@@ -77,11 +81,13 @@ namespace DreamTech.LiveOps.Editor
             _scopeToggle = root.Q<Toggle>(LiveOpsHubPaths.ValidationDepthElementNames.IgnoreScope);
             if (_scopeToggle != null)
             {
-                _scopeToggle.label = ScopeLabelText();
                 // Bật sẵn, và khoá hẳn khi phát hiện không có khoảng: bật một Toggle không đổi được gì là nói dối về phạm vi.
                 _scopeToggle.SetValueWithoutNotify(HasRange);
                 _scopeToggle.SetEnabled(HasRange);
             }
+
+            _scopeLabel = root.Q<Label>(LiveOpsHubPaths.ValidationDepthElementNames.IgnoreScopeLabel);
+            if (_scopeLabel != null) _scopeLabel.text = ScopeLabelText();
 
             Label noteLabel = root.Q<Label>(LiveOpsHubPaths.ValidationDepthElementNames.IgnoreNoteLabel);
             if (noteLabel != null) noteLabel.text = LiveOpsHubStrings.ValidationDepthIgnoreNoteLabel;

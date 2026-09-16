@@ -130,6 +130,9 @@ namespace DreamTech.LiveOps.Editor
         internal void SetCollapsed(bool collapsed)
         {
             EnableInClassList(LiveOpsHubClassNames.CardCollapsed, collapsed);
+            // 170px của [SD2 §2.1] là số đo lúc THU GỌN. Mở ra là một danh sách mục: giữ 170px thì meta vỡ sáu dòng đứt giữa
+            // từ và ghi chú vỡ ba dòng (soát W5 F-1), nên card xuống hàng riêng và chiếm cả bề ngang.
+            if (Group.Kind == ValidationGroupKind.Ignored) EnableInClassList(LiveOpsHubClassNames.ValidationGroupIgnoredOpen, !collapsed);
             Body.EnableInClassList(LiveOpsHubClassNames.ValidationHidden, collapsed);
             // Chevron chỉ sang phải khi thu gọn, xuống khi mở — cùng quy ước với Foldout của Unity.
             if (Chevron != null) Chevron.Direction = collapsed ? LiveOpsChevron.ChevronDirection.Right : LiveOpsChevron.ChevronDirection.Down;

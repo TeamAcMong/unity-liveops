@@ -29,6 +29,13 @@ namespace DreamTech.LiveOps.Editor.Tests
         private const string LavaConfigKey = "lava_quest_v2";
         private const string IgnoreNote = "lava-quest nghỉ đến mùa tháng 10";
 
+        /// <summary>
+        /// Ghi chú DÀI hơn sức chứa một hàng: dùng để chứng minh hàng chỉ giữ bản rút gọn còn thẻ ghim "Xem ghi chú" giữ bản
+        /// đủ (mục 7.5). Ghi chú ngắn của thiết kế không cắt nên không đọc được luật này.
+        /// </summary>
+        private const string LongIgnoreNote = "lava-quest nghỉ đến mùa tháng 10 vì đợt săn kho báu đã chiếm trọn khung giờ "
+            + "cuối tuần, đội vận hành chốt trong buổi họp lịch ngày 12/9 và sẽ xem lại sau khi đợt hunt-0916-bonus khép";
+
         /// <summary>Hạn của ghi chú hẹn trong thiết kế ([SD2 §2.4] mục 2: "14/9 00:00 UTC").</summary>
         private const string ReminderDeadlineUtcText = "2026-09-14T00:00:00Z";
 
@@ -75,6 +82,35 @@ namespace DreamTech.LiveOps.Editor.Tests
             StringAssert.Contains(card.UndoGroupName, card.UndoLine.text, "dòng 10px nói ĐÚNG tên Undo group sắp tạo");
             Assert.IsNotNull(_scope.View.Q(LiveOpsHubPaths.ValidationDepthElementNames.BulkPreviewCard),
                 "card nằm trong cây của màn (chỗ cắm ngay dưới dải summary)");
+            LogAssert.NoUnexpectedReceived();
+        }
+
+        [UnityTest]
+        public IEnumerator BulkRepairPreview_GeometryMatchesDesign()
+        {
+            // Ba số đo của [SD2 §2.5] (hàng cao ≥ 22, khe 6, dòng Undo thụt 20px) và bề ngang card bằng cả chỗ cắm. Khoá ở
+            // đây chứ không trên ảnh: ô tick nằm 4px trong viền card nên dò cạnh ở skin tối bắt nhầm cạnh ô tick (soát W5 F-8).
+            LiveOpsHubServices services = ServicesFor(TwoBrokenTimesDocument());
+            yield return Open(services);
+            yield return ClickHeaderButton(ValidationSection.SafeRepairButtonElementName);
+            SafeRepairPreviewCard card = Section.BulkPreview;
+            Assume.That(card, Is.Not.Null);
+            yield return LiveOpsHubWindowTestScope.WaitForLayout(card);
+
+            VisualElement host = _scope.View.Q(LiveOpsHubPaths.ValidationDepthElementNames.BulkPreviewHost);
+            Assert.IsNotNull(host, "chỗ cắm luôn có trong cây");
+            Assert.AreEqual(host.worldBound.width, card.worldBound.width, 1f,
+                "card chen ngang cả chỗ cắm dưới dải summary — không phải popover hẹp");
+
+            VisualElement firstRow = _scope.View.Q(LiveOpsHubPaths.ValidationDepthElementNames.BulkPreviewRowPrefix + "0");
+            VisualElement secondRow = _scope.View.Q(LiveOpsHubPaths.ValidationDepthElementNames.BulkPreviewRowPrefix + "1");
+            Assert.IsNotNull(firstRow);
+            Assert.IsNotNull(secondRow);
+            Assert.GreaterOrEqual(firstRow.worldBound.height, BulkPreviewRowMinimumHeight, "[SD2 §2.5] hàng cao tối thiểu 22");
+            Assert.AreEqual(BulkPreviewRowGap, secondRow.worldBound.yMin - firstRow.worldBound.yMax, 1f,
+                "[SD2 §2.5] khe giữa hai hàng là 6");
+            Assert.AreEqual(BulkPreviewUndoIndent, card.UndoLine.worldBound.xMin - firstRow.worldBound.xMin, 1f,
+                "[SD2 §2.5] dòng Undo thụt 20px cho thẳng với chữ của hàng (Toggle 14 + khe 6)");
             LogAssert.NoUnexpectedReceived();
         }
 
@@ -131,6 +167,85 @@ namespace DreamTech.LiveOps.Editor.Tests
             LogAssert.NoUnexpectedReceived();
         }
 
+        [UnityTest]
+        public IEnumerator BulkRepairPreview_ApplyAfterToggleOff_AppliesOnlyTickedItem()
+        {
+            // Luật "chỉ áp mục đang bật" và "tên group đếm theo số ĐÃ ÁP" chỉ đọc được khi tập áp KHÁC tập đầy (soát W5 F-7):
+            // với hai mục bật hết, một hồi quy bỏ qua Toggle vẫn cho đúng kết quả.
+            LiveOpsHubServices services = ServicesFor(TwoBrokenTimesDocument());
+            yield return Open(services);
+            LiveOpsToastModel toast = null;
+            services.Bus.ToastRequested += model => toast = model;
+
+            yield return ClickHeaderButton(ValidationSection.SafeRepairButtonElementName);
+            SafeRepairPreviewCard card = Section.BulkPreview;
+            Assume.That(card, Is.Not.Null);
+            Assume.That(card.ItemCount, Is.EqualTo(2));
+            string huntEndBefore = EndTimeTextOf(services, HuntBrokenEntryKey);
+            string lavaEndBefore = EndTimeTextOf(services, LavaBrokenEntryKey);
+
+            card.Toggles[0].value = false;
+            yield return null;
+            Assume.That(card.SelectedCount, Is.EqualTo(1));
+
+            yield return Click(card.ApplyButton);
+
+            int changed = 0;
+            if (EndTimeTextOf(services, HuntBrokenEntryKey) != huntEndBefore) changed++;
+            if (EndTimeTextOf(services, LavaBrokenEntryKey) != lavaEndBefore) changed++;
+            Assert.AreEqual(1, changed,
+                "đúng MỘT đợt được sửa — bỏ tick mà vẫn áp cả hai thì Toggle chỉ là trang trí");
+            Assert.IsNotNull(toast);
+            Assert.AreEqual(string.Format(System.Globalization.CultureInfo.InvariantCulture,
+                LiveOpsHubStrings.ValidationSafeRepairUndoFormat, 1), toast.Message,
+                "[SD2 §2.5] tên group đếm theo số mục ĐÃ ÁP, không phải số mục có trong card");
+            LogAssert.NoUnexpectedReceived();
+        }
+
+        [UnityTest]
+        public IEnumerator BulkRepairPreview_ToggleOffEverything_HeaderButtonStaysTheSwitchThatClosesTheCard()
+        {
+            // Soát W5 F-5: khoá nút header lúc này vừa nói dối ("không có lỗi nào sửa nhanh an toàn được" — vẫn còn hai lệnh
+            // sửa, người dùng chỉ vừa bỏ tick) vừa lấy mất đúng cái nút đã mở card.
+            LiveOpsHubServices services = ServicesFor(TwoBrokenTimesDocument());
+            yield return Open(services);
+            yield return ClickHeaderButton(ValidationSection.SafeRepairButtonElementName);
+            SafeRepairPreviewCard card = Section.BulkPreview;
+            Assume.That(card, Is.Not.Null);
+
+            card.Toggles[0].value = false;
+            card.Toggles[1].value = false;
+            yield return null;
+
+            Assert.IsTrue(Section.SafeRepairSlot.Button.enabledSelf, "nút header còn vai trò công tắc nên không được khoá");
+            Assert.AreEqual(string.Empty, Section.SafeRepairSlot.Reason,
+                "nút mở thì không được in lý do khoá — nhất là lý do sai sự thật");
+
+            yield return ClickHeaderButton(ValidationSection.SafeRepairButtonElementName);
+
+            Assert.IsNull(Section.BulkPreview, "bấm lần nữa phải ĐÓNG card");
+            LogAssert.NoUnexpectedReceived();
+        }
+
+        [UnityTest]
+        public IEnumerator BulkRepairPreview_ClosedWhenSectionDetaches()
+        {
+            // Soát W5 F-3: cửa sổ dựng lại thân bằng _body.Clear() + CreateView() trên CÙNG instance section, nên biến còn trỏ
+            // vào card cũ là nút header đếm theo một card vô hình và lần bấm đầu tiên chỉ "đóng" nó.
+            LiveOpsHubServices services = ServicesFor(TwoBrokenTimesDocument());
+            yield return Open(services);
+            yield return ClickHeaderButton(ValidationSection.SafeRepairButtonElementName);
+            Assume.That(Section.BulkPreview, Is.Not.Null);
+
+            ValidationSection section = Section;
+            _scope.Dispose();
+            _scope = null;
+            yield return null;
+
+            Assert.IsNull(section.BulkPreview, "rời panel là card không còn — state không được sống lâu hơn cây");
+            LogAssert.NoUnexpectedReceived();
+        }
+
         // ------------------------------------------------------------------------------------------- Quyết định… ▾ (§2.4)
 
         [UnityTest]
@@ -147,6 +262,9 @@ namespace DreamTech.LiveOps.Editor.Tests
             Assert.IsNotNull(menu, "hàng phải được cắm một ToolbarMenu có chevron");
             Assert.AreEqual(LiveOpsFindingText.PrimaryButtonText(row.Row.Finding), menu.text, "(V-8) chữ nút lấy từ LiveOpsFindingText");
             Assert.AreEqual(2, row.Row.Finding.Repairs.Count, "[SD2 §2.4] đúng hai mục: giữ tiền tố cũ, hoặc để sau khi đợt khép");
+            Assert.AreEqual(row.Row.ActionTooltip, menu.tooltip,
+                "[SD2 §2.3] tooltip \"Hai cách đúng…\" đi theo nút; nút đổi thành menu thì menu phải mang nó (soát W5 F-10)");
+            Assert.AreNotEqual(string.Empty, menu.tooltip, "câu tooltip không được rỗng");
             LogAssert.NoUnexpectedReceived();
         }
 
@@ -225,6 +343,13 @@ namespace DreamTech.LiveOps.Editor.Tests
                 Assert.IsTrue(popover.ConfirmButton.enabledSelf, "có ghi chú thì bỏ qua được");
                 Assert.AreEqual(string.Empty, popover.ConfirmSlot.Reason, "nút mở thì lý do phải biến mất");
                 Assert.IsTrue(popover.ScopeToggle.value, "[SD2 §2.7] Toggle phạm vi bật sẵn: bỏ qua gắn với đúng khoảng này");
+                // Soát W5 F-2: câu phạm vi PHẢI là Label riêng. Để nó làm label của Toggle thì BaseField vẽ nhãn trước ô tick,
+                // câu hai dòng đẩy ô tick ra sát mép phải và cắt cụt còn ~6px — nhìn không ra là phạm vi đang bật.
+                Assert.IsTrue(string.IsNullOrEmpty(popover.ScopeToggle.label), "Toggle không được mang câu phạm vi làm label");
+                Assert.IsNotNull(popover.ScopeLabel, "câu phạm vi nằm ở Label riêng");
+                Assert.AreNotEqual(string.Empty, popover.ScopeLabel.text, "câu phạm vi vẫn phải đọc được");
+                Assert.AreSame(popover.ScopeToggle.parent, popover.ScopeLabel.parent, "hai element nằm cùng một hàng");
+                Assert.AreSame(popover.ScopeToggle, popover.ScopeLabel.parent[0], "ô tick đứng TRƯỚC câu chữ");
                 Submit(popover.ConfirmButton);
 
                 Assert.AreEqual(1, applied.Count, "bấm \"Bỏ qua\" mới ghi cảnh báo");
@@ -354,6 +479,8 @@ namespace DreamTech.LiveOps.Editor.Tests
             Assert.IsNotNull(Section.HoverCardHost, "\"Xem ghi chú\" phải ghim một hover card");
             Assert.IsTrue(Section.HoverCardHost.IsPinned, "thẻ GHIM: rời chuột không tắt");
             Assert.IsNotNull(Section.HoverCardHost.Card.Q(LiveOpsHubPaths.ValidationDepthElementNames.IgnoredNoteCard));
+            StringAssert.Contains(IgnoreNote, LiveOpsFindingText.PlainText(PinnedNoteText()),
+                "thẻ ghim mang ghi chú ĐỦ — đó là lý do tồn tại của \"Xem ghi chú\"");
             LogAssert.NoUnexpectedReceived();
         }
 
@@ -388,6 +515,38 @@ namespace DreamTech.LiveOps.Editor.Tests
             Assert.IsNotNull(backRow, "hạn qua thì cảnh báo hết ẩn");
             Assert.IsNotNull(backRow.TagLabel, "hàng phải nói được vì sao nó quay lại");
             Assert.AreEqual(LiveOpsFindingText.DueReminderTag, backRow.TagLabel.text);
+            LogAssert.NoUnexpectedReceived();
+        }
+
+        [UnityTest]
+        public IEnumerator IgnoredGroup_LongNote_RowShortensItButPinnedCardKeepsItWhole()
+        {
+            // Mục 7.5 nói hàng chỉ mang "ghi chú rút gọn". In nguyên văn thì hàng cao dần theo độ dài ghi chú và "Xem ghi chú"
+            // mất lý do tồn tại (soát W5 F-6).
+            LiveOpsHubServices services = LiveOpsHubTestServices.FromDesignSample();
+            LiveEventCalendarFinding finding = FindFinding(services, LiveEventCalendarRuleIds.LongGapBetweenEvents);
+            Assume.That(finding, Is.Not.Null);
+            ApplyIgnore(services, finding, LongIgnoreNote, true, string.Empty);
+            yield return Open(services);
+
+            ValidationIgnoredRow row = FirstIgnoredRow();
+            Assert.IsNotNull(row);
+            string rowNote = LiveOpsFindingText.PlainText(row.NoteLabel.text);
+            Assert.AreNotEqual(LongIgnoreNote, rowNote, "ghi chú dài phải bị cắt trên hàng");
+            Assert.Less(rowNote.Length, LongIgnoreNote.Length, "bản rút gọn phải ngắn hơn bản đủ");
+            string ellipsis = LiveOpsHubStrings.ValidationDepthIgnoredNoteEllipsis;
+            Assert.AreEqual(ellipsis, rowNote.Substring(rowNote.Length - ellipsis.Length), "chỗ bị cắt phải nói là đã cắt");
+            Assert.AreEqual(LongIgnoreNote.Substring(0, NoteHeadCompareLength), rowNote.Substring(0, NoteHeadCompareLength),
+                "phần giữ lại là phần ĐẦU của ghi chú");
+
+            DropdownMenu menu = new DropdownMenu();
+            row.PopulateContextMenu(menu);
+            InvokeMenuItem(menu, LiveOpsHubStrings.ValidationDepthViewNoteMenuItem);
+            yield return null;
+
+            string pinnedNote = LiveOpsFindingText.PlainText(PinnedNoteText());
+            Assert.AreEqual(LongIgnoreNote, pinnedNote, "thẻ ghim giữ ghi chú ĐỦ");
+            Assert.AreNotEqual(rowNote, pinnedNote, "chữ của hàng phải KHÁC chữ của thẻ ghim, nếu không thẻ ghim là thừa");
             LogAssert.NoUnexpectedReceived();
         }
 
@@ -469,6 +628,39 @@ namespace DreamTech.LiveOps.Editor.Tests
                 submit.target = button;
                 button.SendEvent(submit);
             }
+        }
+
+        /// <summary>Chữ ghi chú trong hover card ghim — Label thứ hai (Label đầu là tiêu đề "Ghi chú bỏ qua · …").</summary>
+        private string PinnedNoteText()
+        {
+            VisualElement card = Section.HoverCardHost.Card.Q(LiveOpsHubPaths.ValidationDepthElementNames.IgnoredNoteCard);
+            Assert.IsNotNull(card, "thiếu thẻ ghi chú trong hover card");
+            var notes = new List<Label>();
+            card.Query<Label>(className: LiveOpsHubClassNames.ValidationIgnoredNoteFull).ToList(notes);
+            Assert.AreEqual(1, notes.Count, "thẻ ghim có đúng một Label ghi chú đủ");
+            return notes[0].text;
+        }
+
+        /// <summary>Số ký tự đầu đem so — đủ để chắc hàng giữ phần ĐẦU, ngắn hơn hẳn mức cắt nên không phụ thuộc con số cắt.</summary>
+        private const int NoteHeadCompareLength = 24;
+
+        // Ba số đo của card xem trước ([SD2 §2.5]).
+        private const float BulkPreviewRowMinimumHeight = 22f;
+        private const float BulkPreviewRowGap = 6f;
+        private const float BulkPreviewUndoIndent = 20f;
+
+        private const string HuntBrokenEntryKey = "entry-hunt-broken";
+        private const string LavaBrokenEntryKey = "entry-lava-broken";
+
+        /// <summary>Giờ kết thúc của một đợt — đổi nghĩa là lệnh sửa an toàn "chuẩn hoá giờ" đã chạy cho đợt đó.</summary>
+        private static string EndTimeTextOf(LiveOpsHubServices services, string entryKey)
+        {
+            IReadOnlyList<FixedLiveEventEntry> entries = services.Session.Document.FixedEvents;
+            for (int index = 0; index < entries.Count; index++)
+            {
+                if (entries[index].EntryKey == entryKey) return entries[index].EndUtcText;
+            }
+            return null;
         }
 
         private static string CardApplyReason(SafeRepairPreviewCard card)
