@@ -129,6 +129,13 @@
     margin: 0 6px 6px 6px;
 }
 
+.liveops-hub-event-types-reference-text {
+    flex-direction: column;
+    flex-grow: 1;
+    padding: 4px 0;
+    min-width: 0;
+}
+
 /* ---------------------------------------------------------------- Inspector */
 
 .liveops-hub-event-types-inspector-title {

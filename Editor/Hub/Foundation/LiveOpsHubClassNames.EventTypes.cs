@@ -42,6 +42,9 @@ namespace DreamTech.LiveOps.Editor
         /// <summary>Card tham chiếu phát hiện của Kiểm lịch (sọc Blocked) nằm trong cột bảng.</summary>
         internal const string EventTypesReferenceCard = "liveops-hub-event-types-reference-card";
 
+        /// <summary>Cột chữ trong hàng phát hiện: headline rồi dòng id luật — hàng gốc là flex-row nên phải có bọc riêng.</summary>
+        internal const string EventTypesReferenceText = "liveops-hub-event-types-reference-text";
+
         // Inspector 300px.
         internal const string EventTypesInspector = "liveops-hub-event-types-inspector";
         internal const string EventTypesInspectorTitle = "liveops-hub-event-types-inspector-title";
