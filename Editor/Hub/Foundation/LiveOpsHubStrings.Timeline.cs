@@ -83,6 +83,13 @@ namespace DreamTech.LiveOps.Editor
         internal static string TimelineHintDuplicate => LiveOpsHubStringCatalog.Text(nameof(TimelineHintDuplicate));
         internal static string TimelineHintDelete => LiveOpsHubStringCatalog.Text(nameof(TimelineHintDelete));
         internal static string TimelineHintDragging => LiveOpsHubStringCatalog.Text(nameof(TimelineHintDragging));
+
+        // (nợ D-3(b), Hình 12 khung 13) Con trỏ đứng trên chỗ trống của một làn cố định. Nhấp đúp là đường DUY NHẤT tạo đợt
+        // bằng chuột ở chỗ trống; không nói ra thì cử chỉ đó chỉ ai đọc tài liệu mới biết.
+        internal static string TimelineHintEmptyLaneFormat => LiveOpsHubStringCatalog.Text(nameof(TimelineHintEmptyLaneFormat));
+
+        /// <summary>Khoảng đang xem trong dòng gợi ý: "14/9 → 19/9" — không giờ, không năm (khung 13).</summary>
+        internal static string TimelineHintRangeFormat => LiveOpsHubStringCatalog.Text(nameof(TimelineHintRangeFormat));
         internal static string TimelineActionKeyMac => LiveOpsHubStringCatalog.Text(nameof(TimelineActionKeyMac));
         internal static string TimelineActionKeyOther => LiveOpsHubStringCatalog.Text(nameof(TimelineActionKeyOther));
     }

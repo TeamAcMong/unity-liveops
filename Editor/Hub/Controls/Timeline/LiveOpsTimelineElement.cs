@@ -46,6 +46,9 @@ namespace DreamTech.LiveOps.Editor
         private readonly VisualElement _ghost;
         private readonly Label _readoutText;
         private readonly Label _readoutOverlap;
+        private readonly VisualElement _readoutQuickCheck;
+        private readonly LiveOpsStateMark _readoutQuickCheckMark;
+        private readonly Label _readoutQuickCheckText;
 
         private LiveOpsTimelineModel _model;
         private LiveOpsTimelineZoom _zoom = LiveOpsTimelineZoom.ThreeWeeks;
@@ -59,6 +62,9 @@ namespace DreamTech.LiveOps.Editor
         private string _hoverBarKey = string.Empty;
         private DateTime? _cursorUtc;
         private string _cursorLaneTypeId = string.Empty;
+        private bool _cursorOnEmptyLane;
+        private string _quickCheckTagText = string.Empty;
+        private HealthState _quickCheckTagHealth = HealthState.Ok;
         private bool _consumeNextHorizontalNavigation;
 
         public LiveOpsTimelineElement()
@@ -99,6 +105,20 @@ namespace DreamTech.LiveOps.Editor
             _readoutOverlap.AddToClassList(LiveOpsHubClassNames.TimelineReadoutOverlap);
             _readoutOverlap.AddToClassList(LiveOpsHubClassNames.TextBlocked);
             Readout.Add(_readoutOverlap);
+            // (nợ D-3(a), Hình 12 khung 5) Vế thứ ba: tag kiểm nhanh của làn đang kéo. Câu đã được presenter tính xong ở mỗi
+            // bước xem trước; thiếu chỗ VẼ thì người kéo không bao giờ biết mình vừa kéo hết chồng giờ hay chưa.
+            _readoutQuickCheck = new VisualElement { pickingMode = PickingMode.Ignore };
+            _readoutQuickCheck.AddToClassList(LiveOpsHubClassNames.TimelineReadoutQuickCheck);
+            _readoutQuickCheck.AddToClassList(LiveOpsHubClassNames.TimelineHidden);
+            Label quickCheckSeparator = new Label(LiveOpsHubStrings.TimelineReadoutSeparator) { pickingMode = PickingMode.Ignore };
+            quickCheckSeparator.AddToClassList(LiveOpsHubClassNames.TimelineReadoutQuickCheckText);
+            _readoutQuickCheck.Add(quickCheckSeparator);
+            _readoutQuickCheckMark = new LiveOpsStateMark { pickingMode = PickingMode.Ignore, Size = LiveOpsStateMark.MarkSize.Small };
+            _readoutQuickCheck.Add(_readoutQuickCheckMark);
+            _readoutQuickCheckText = new Label { pickingMode = PickingMode.Ignore };
+            _readoutQuickCheckText.AddToClassList(LiveOpsHubClassNames.TimelineReadoutQuickCheckText);
+            _readoutQuickCheck.Add(_readoutQuickCheckText);
+            Readout.Add(_readoutQuickCheck);
             _overlay.Add(Readout);
 
             _ghost = new VisualElement { pickingMode = PickingMode.Ignore };
@@ -322,6 +342,11 @@ namespace DreamTech.LiveOps.Editor
         internal VisualElement Readout { get; }
         internal Label ReadoutText => _readoutText;
         internal Label ReadoutOverlap => _readoutOverlap;
+
+        /// <summary>(nợ D-3(a)) Vế tag kiểm nhanh của readout — ẩn khi presenter chưa gửi câu nào.</summary>
+        internal VisualElement ReadoutQuickCheck => _readoutQuickCheck;
+        internal Label ReadoutQuickCheckText => _readoutQuickCheckText;
+        internal LiveOpsStateMark ReadoutQuickCheckMark => _readoutQuickCheckMark;
         internal ScrollView Body => _body;
         internal string HoverBarKey => _hoverBarKey;
         internal DateTime? CursorUtc => _cursorUtc;
@@ -471,6 +496,17 @@ namespace DreamTech.LiveOps.Editor
                 HintLine.ShowDragging();
                 return;
             }
+            // (nợ D-3(b)) Con trỏ đứng trên chỗ trống của một làn: gợi ý nói về CHỖ ĐANG TRỎ TỚI, không phải về đợt đã chọn từ
+            // trước — người dùng đang hỏi "ở đây làm được gì", và câu trả lời là nhấp đúp.
+            if (_cursorOnEmptyLane)
+            {
+                LiveOpsTimelineLaneModel cursorLane = FindLaneModel(_cursorLaneTypeId);
+                if (cursorLane != null && !cursorLane.IsRecurring)
+                {
+                    HintLine.ShowEmptyLane(cursorLane.TypeId, RangeTextForHint());
+                    return;
+                }
+            }
             LiveOpsTimelineBar selected = FindBar(_selectedBarKey);
             if (selected == null)
             {
@@ -480,6 +516,29 @@ namespace DreamTech.LiveOps.Editor
             LiveOpsTimelineMinimapMark mark = MarkOf(selected.Model);
             string shortLabel = mark?.Finding != null ? LiveOpsFindingText.PlainText(LiveOpsFindingText.ShortLabel(mark.Finding)) : string.Empty;
             HintLine.ShowSelected(selected.Model, shortLabel);
+        }
+
+        private LiveOpsTimelineLaneModel FindLaneModel(string typeId)
+        {
+            LaneRow row = FindRow(typeId);
+            return row?.Lane.Model;
+        }
+
+        /// <summary>
+        /// Khoảng đang xem cho dòng gợi ý làn trống — dạng ngắn "14/9 → 19/9" đúng [SD1 §3.8 khung 13].
+        /// <see cref="LiveOpsHubFormat"/> chỉ phơi ra dạng có giờ ("14/9 00:00") và dạng có năm ("14/9/2026"); gợi ý của khung 13
+        /// không có giờ và không có năm, nên ngày/tháng ghép tại chỗ thay vì thêm thành viên vào một file của gói khác.
+        /// </summary>
+        private string RangeTextForHint()
+        {
+            return string.Format(System.Globalization.CultureInfo.InvariantCulture, LiveOpsHubStrings.TimelineHintRangeFormat,
+                DayMonthText(_rangeStartUtc), DayMonthText(RangeEndUtc));
+        }
+
+        private static string DayMonthText(DateTime utc)
+        {
+            System.Globalization.CultureInfo invariant = System.Globalization.CultureInfo.InvariantCulture;
+            return utc.Day.ToString(invariant) + "/" + utc.Month.ToString(invariant);
         }
 
         private void RaiseRangeChanged()
@@ -658,8 +717,9 @@ namespace DreamTech.LiveOps.Editor
             UpdateHover(hit.Kind == LiveOpsTimelineHitKind.Bar ? hit.BarKey : string.Empty);
             bool overTrack = hit.Kind == LiveOpsTimelineHitKind.Bar || hit.Kind == LiveOpsTimelineHitKind.EmptyLane ||
                              (hit.Kind == LiveOpsTimelineHitKind.Ruler && hit.TimeUtc.HasValue);
-            _cursorLaneTypeId = hit.Kind == LiveOpsTimelineHitKind.Ruler ? string.Empty : hit.LaneTypeId;
-            SetCursor(overTrack ? SnappedTimeAt(Ruler.Track.WorldToLocal(pointerEvent.position).x) : (DateTime?)null);
+            SetCursor(overTrack ? SnappedTimeAt(Ruler.Track.WorldToLocal(pointerEvent.position).x) : (DateTime?)null,
+                hit.Kind == LiveOpsTimelineHitKind.Ruler ? string.Empty : hit.LaneTypeId,
+                hit.Kind == LiveOpsTimelineHitKind.EmptyLane);
         }
 
         private void OnPointerUp(PointerUpEvent pointerEvent)
@@ -680,7 +740,7 @@ namespace DreamTech.LiveOps.Editor
         {
             if (DragController.IsActive) return;
             UpdateHover(string.Empty);
-            SetCursor(null);
+            SetCursor(null, string.Empty, false);
         }
 
         private void UpdateHover(string barKey)
@@ -699,11 +759,42 @@ namespace DreamTech.LiveOps.Editor
         /// </summary>
         internal void SetCursor(DateTime? cursorUtc)
         {
+            SetCursor(cursorUtc, _cursorLaneTypeId, _cursorOnEmptyLane);
+        }
+
+        /// <summary>
+        /// (nợ D-3(b)) Như trên nhưng nói rõ con trỏ đang ở làn nào và có phải CHỖ TRỐNG của làn đó không — dòng gợi ý cần cả
+        /// hai để in "star-tournament · 14/9 → 19/9 · nhấp đúp chỗ trống để thêm đợt" (Hình 12 khung 13).
+        /// </summary>
+        internal void SetCursor(DateTime? cursorUtc, string laneTypeId, bool isEmptyLane)
+        {
+            _cursorLaneTypeId = laneTypeId ?? string.Empty;
+            _cursorOnEmptyLane = isEmptyLane && cursorUtc.HasValue && _cursorLaneTypeId.Length > 0;
             _cursorUtc = cursorUtc;
             Ruler.SetCursor(cursorUtc);
             bool visible = cursorUtc.HasValue && _model != null && cursorUtc.Value >= _model.RangeStartUtc && cursorUtc.Value <= _model.RangeEndUtc;
             CursorLine.EnableInClassList(LiveOpsHubClassNames.TimelineHidden, !visible);
             if (visible) CursorLine.style.left = _model.Geometry.XOf(cursorUtc.Value); // style-inline-allowed: 6
+            UpdateHintLine();
+        }
+
+        /// <summary>
+        /// (nợ D-3(a)) Câu tag kiểm nhanh của lần xem trước gần nhất; "" = không có tag. Presenter gọi trong nhánh Preview, ngay
+        /// trước khi element vẽ lại readout, nên tag và giờ trên readout luôn là của CÙNG một bước kéo.
+        /// </summary>
+        internal void SetDragQuickCheckTag(string text, HealthState health)
+        {
+            _quickCheckTagText = text ?? string.Empty;
+            _quickCheckTagHealth = health;
+            ApplyQuickCheckTag();
+        }
+
+        private void ApplyQuickCheckTag()
+        {
+            bool hasTag = _quickCheckTagText.Length > 0;
+            _readoutQuickCheckText.text = _quickCheckTagText;
+            _readoutQuickCheckMark.SetHealth(_quickCheckTagHealth);
+            _readoutQuickCheck.EnableInClassList(LiveOpsHubClassNames.TimelineHidden, !hasTag);
         }
 
         private void EndDrag(bool commit)
@@ -774,8 +865,8 @@ namespace DreamTech.LiveOps.Editor
             float readoutWidth = Readout.layout.width;
             if (float.IsNaN(readoutWidth) || readoutWidth <= 0f)
             {
-                readoutWidth = (_readoutText.text.Length + _readoutOverlap.text.Length) * LiveOpsTimelineGeometry.LabelCharacterWidth +
-                               LiveOpsTimelineGeometry.LabelHorizontalPadding;
+                readoutWidth = (_readoutText.text.Length + _readoutOverlap.text.Length + _readoutQuickCheckText.text.Length)
+                               * LiveOpsTimelineGeometry.LabelCharacterWidth + LiveOpsTimelineGeometry.LabelHorizontalPadding;
             }
             // Bám mép đang kéo, kẹp trong track lề 6px; chạm mép phải thì lật sang trái tay nắm [SD1 §3.7].
             float anchorX = geometry.XOf(DragController.AnchorUtc);
@@ -791,6 +882,7 @@ namespace DreamTech.LiveOps.Editor
 
         private void ClearDragVisuals()
         {
+            SetDragQuickCheckTag(string.Empty, HealthState.Ok);
             Readout.EnableInClassList(LiveOpsHubClassNames.TimelineHidden, true);
             _ghost.EnableInClassList(LiveOpsHubClassNames.TimelineHidden, true);
             foreach (LaneRow row in _rows)

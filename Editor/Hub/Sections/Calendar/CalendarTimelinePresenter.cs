@@ -22,6 +22,7 @@ namespace DreamTech.LiveOps.Editor
         private readonly List<string> _hiddenLanes = new List<string>();
 
         private LiveOpsTimelineModel _model;
+        private CalendarCommandHandler _commandHandler;
         private string _selectedBarKey = string.Empty;
         private int _dragGroup = LiveOpsHubEditOutcome.NoUndoGroup;
         private string _dragBarKey = string.Empty;
@@ -55,6 +56,13 @@ namespace DreamTech.LiveOps.Editor
         /// <summary>Tài liệu vừa đổi vì một ý định — section dựng lại view.</summary>
         public event Action DocumentEdited;
 
+        /// <summary>
+        /// (nợ D-3(a)) Câu tag kiểm nhanh của bước xem trước vừa chạy ("" = hết cử chỉ kéo) kèm trạng thái sức khoẻ để dấu 7px
+        /// đi theo câu. Phát NGAY trong nhánh Preview, trước khi element vẽ lại readout, nên tag và giờ trên readout là của
+        /// cùng một bước kéo (Hình 12 khung 5).
+        /// </summary>
+        public event Action<string, HealthState> QuickCheckTagChanged;
+
         /// <summary>Cách hoãn hộp xác nhận tới sau khi chuột nhả; test thay bằng chạy đồng bộ (SP-2 (a)).</summary>
         internal Action<Action> DeferConfirmation { get; set; }
 
@@ -62,6 +70,16 @@ namespace DreamTech.LiveOps.Editor
         internal Action UndoLastStep { get; set; }
 
         public string SelectedBarKey => _selectedBarKey;
+
+        /// <summary>
+        /// Bộ xử lý lệnh chiều sâu (W5) — nhân bản, copy/dán, ẩn/đưa làn, ⌘+kéo tạo. Presenter chỉ CHUYỂN TIẾP những loại ý định
+        /// nó không tự xử lý: giữ luật "họ ý định là họ đóng" (V-10) mà không nhét cả màn vào một lớp.
+        /// </summary>
+        internal CalendarCommandHandler CommandHandler
+        {
+            get { return _commandHandler; }
+            set { _commandHandler = value; }
+        }
 
         /// <summary>Bề rộng cột nội dung — quyết định toast xoá dùng dạng đủ hay dạng ngắn (PD của 7.3).</summary>
         public float ContentWidth { get; set; }
@@ -167,10 +185,10 @@ namespace DreamTech.LiveOps.Editor
                 }
                 return;
             }
-            // INTERIM(G-CALENDAR-DEPTH): W4 chưa có nhân bản, copy/dán, hover card F8, ⌘+kéo tạo, ẩn/đổi thứ tự làn (mục 12 I-5).
-            // Bỏ qua có chủ ý, KHÔNG hiện nút disabled: nút trỏ tới thứ chưa có còn khó hiểu hơn là không có nút.
-            // W5 nối các nhánh này; hai luật CC-TLMODEL-2 đã chốt sẵn: MoveLaneIntent("") và CreateByDragIntent trên làn "" bỏ qua
-            // vì làn chưa ghi loại không có loại nào để dời hay để tạo đợt.
+            // Mọi loại còn lại đi qua CalendarCommandHandler (W5): nhân bản, copy/dán, ẩn/đưa làn, ⌘+kéo tạo, F8.
+            // Hai luật CC-TLMODEL-2: MoveLaneIntent("") và CreateByDragIntent trên làn "" bỏ qua — làn chưa ghi loại không có
+            // loại nào để dời hay để tạo đợt.
+            _commandHandler?.HandleIntent(intent);
         }
 
         /// <summary>Chọn thanh; dải gom không ánh xạ ra đợt nên bấm dải là zoom vào (V-22 CC-TLMODEL-1).</summary>
@@ -247,12 +265,27 @@ namespace DreamTech.LiveOps.Editor
             }
             _previewLaneCheckReport = session.CheckLane(eventType, session.Document);
             _previewQuickCheckText = QuickCheckTextOf(_previewLaneCheckReport);
+            QuickCheckTagChanged?.Invoke(_previewQuickCheckText, QuickCheckHealthOf(_previewLaneCheckReport));
+        }
+
+        /// <summary>Dấu đi theo KẾT QUẢ: có phát hiện Bị bỏ trên làn thì Blocked, không thì Ok (không bao giờ gán cứng Ok).</summary>
+        private static HealthState QuickCheckHealthOf(LiveEventCalendarCheckReport report)
+        {
+            if (report == null) return HealthState.NotMeasured;
+            IReadOnlyList<LiveEventCalendarFinding> findings = report.Findings;
+            for (int index = 0; index < findings.Count; index++)
+            {
+                if (findings[index].Consequence == LiveEventCalendarConsequence.Dropped) return HealthState.Blocked;
+            }
+            return HealthState.Ok;
         }
 
         private void ClearPreviewQuickCheck()
         {
+            bool hadText = _previewQuickCheckText.Length > 0;
             _previewLaneCheckReport = null;
             _previewQuickCheckText = string.Empty;
+            if (hadText) QuickCheckTagChanged?.Invoke(string.Empty, HealthState.Ok);
         }
 
         /// <summary>Không có phát hiện Bị bỏ nào trên làn = câu Ok; có thì nêu đúng câu của phát hiện nặng nhất (V-8).</summary>

@@ -21,8 +21,6 @@ namespace DreamTech.LiveOps.Editor
     /// Lớp này chỉ ĐỔ nội dung vào phần tử <c>calendar-toolbar</c> của UXML, không tự là control mới — nhờ vậy UXML giữ nguyên
     /// hình dạng màn và test Q theo tên element như mọi phần khác.
     /// </summary>
-    // INTERIM(G-CALENDAR-DEPTH): W4 chưa có toggle "Danh sách" và "So với đã đăng (n)" (mục 12 I-5). Hai nút KHÔNG hiện (không
-    // vẽ disabled): nút trỏ tới pane chưa dựng thì bấm vào không có gì xảy ra, khó hiểu hơn là chưa có nút.
     internal sealed class CalendarToolbar
     {
         private readonly Toolbar _host;
@@ -33,11 +31,20 @@ namespace DreamTech.LiveOps.Editor
         private readonly LiveOpsTabStrip _zoomTabs;
         private readonly ToolbarSearchField _search;
         private readonly Label _hiddenLanesChip;
+        private readonly ToolbarToggle _listToggle;
+        private readonly ToolbarToggle _compareToggle;
+        private readonly Label _compareDisabledReason;
 
         public CalendarToolbar(Toolbar host, LiveOpsHubFormat format)
         {
             _host = host ?? throw new ArgumentNullException(nameof(host));
             _format = format ?? throw new ArgumentNullException(nameof(format));
+
+            // "Danh sách" tách khỏi cụm điều hướng và đứng đầu toolbar [SD1 §3.1] — nó đổi BỐ CỤC màn, không đổi khoảng đang xem.
+            _listToggle = new ToolbarToggle { text = LiveOpsHubStrings.CalendarDepthListToggle };
+            _listToggle.AddToClassList(LiveOpsHubClassNames.CalendarDepthListToggle);
+            _listToggle.RegisterValueChangedCallback(change => ListPaneToggled?.Invoke(change.newValue));
+            _host.Add(_listToggle);
 
             VisualElement navigationGroup = new VisualElement();
             navigationGroup.AddToClassList(LiveOpsHubClassNames.CalendarToolbarGroup);
@@ -81,6 +88,18 @@ namespace DreamTech.LiveOps.Editor
             spacer.AddToClassList(LiveOpsHubClassNames.CalendarToolbarSpacer);
             _host.Add(spacer);
 
+            // "So với đã đăng (n)" [SD1 §3.4]: pane so THAY CHỖ inspector, nên nút nằm sau phần giãn, cạnh ô tìm.
+            _compareToggle = new ToolbarToggle();
+            _compareToggle.AddToClassList(LiveOpsHubClassNames.CalendarDepthCompareToggle);
+            _compareToggle.RegisterValueChangedCallback(change => ComparePaneToggled?.Invoke(change.newValue));
+            _host.Add(_compareToggle);
+
+            // SPIKE-B SP-3: lý do nút bị khoá LUÔN in thành chữ cạnh nút, tooltip chỉ là bản phụ.
+            _compareDisabledReason = new Label();
+            _compareDisabledReason.AddToClassList(LiveOpsHubClassNames.CalendarDepthDisabledReason);
+            _compareDisabledReason.AddToClassList(LiveOpsHubClassNames.CalendarHidden);
+            _host.Add(_compareDisabledReason);
+
             _hiddenLanesChip = new Label();
             _hiddenLanesChip.AddToClassList(LiveOpsHubClassNames.CalendarHiddenLanesChip);
             _host.Add(_hiddenLanesChip);
@@ -99,6 +118,7 @@ namespace DreamTech.LiveOps.Editor
             _host.Add(_search);
 
             SetSnapMode(CalendarSnapMode.Automatic);
+            SetCompareState(false, false, 0);
         }
 
         /// <summary>−1 = khoảng trước, +1 = khoảng sau.</summary>
@@ -109,6 +129,12 @@ namespace DreamTech.LiveOps.Editor
         public event Action<LiveOpsTimelineZoom> ZoomChanged;
         public event Action<CalendarSnapMode> SnapModeChanged;
         public event Action<string> SearchChanged;
+
+        /// <summary>Bật/tắt pane Danh sách bên trái split.</summary>
+        public event Action<bool> ListPaneToggled;
+
+        /// <summary>Bật/tắt pane "So với đã đăng" — loại trừ với inspector đợt.</summary>
+        public event Action<bool> ComparePaneToggled;
 
         /// <summary>Enter trong ô tìm: nhảy tới đợt khớp KẾ TIẾP, vòng lại đầu danh sách khi hết.</summary>
         public event Action<string> SearchSubmitted;
@@ -123,6 +149,9 @@ namespace DreamTech.LiveOps.Editor
         internal ToolbarMenu SnapMenu => _snapMenu;
         internal LiveOpsTabStrip ZoomTabs => _zoomTabs;
         internal Label HiddenLanesChip => _hiddenLanesChip;
+        internal ToolbarToggle ListToggle => _listToggle;
+        internal ToolbarToggle CompareToggle => _compareToggle;
+        internal Label CompareDisabledReason => _compareDisabledReason;
 
         /// <summary>Nhãn khoảng đang xem; "Hôm nay" tắt kèm lý do khi khung đã chứa hôm nay (7.0 — lý do luôn in thành chữ).</summary>
         public void SetRange(DateTime rangeStartUtc, DateTime rangeEndUtc, DateTime nowUtc)
@@ -139,12 +168,32 @@ namespace DreamTech.LiveOps.Editor
             _zoomTabs.SetSelectedIndexWithoutNotify(IndexOf(zoom));
         }
 
-        // INTERIM(G-CALENDAR-DEPTH): bước lưới thật nằm trong LiveOpsTimelineDragController (G-TIMELINE-VIEW) và chưa có đường
-        // tiêm, nên W4 mới chỉ NHỚ lựa chọn. Nhãn menu nói thẳng chuyện đó thay vì để menu im lặng không đổi gì (7.0).
+        /// <summary>(nợ D-3(c)) Lựa chọn đi thẳng xuống <c>LiveOpsTimelineDragController.SnapStep</c>, nên nhãn nói đúng việc đang làm.</summary>
         public void SetSnapMode(CalendarSnapMode mode)
         {
             SnapMode = mode;
-            _snapMenu.text = string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.CalendarSnapMenuInterimFormat, LabelOf(mode));
+            _snapMenu.text = string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.CalendarSnapMenuFormat, LabelOf(mode));
+        }
+
+        /// <summary>Trạng thái nút "Danh sách" khi khôi phục view state — không phát sự kiện để khỏi vẽ lại hai lần.</summary>
+        public void SetListPaneOpenWithoutNotify(bool isOpen)
+        {
+            _listToggle.SetValueWithoutNotify(isOpen);
+        }
+
+        /// <summary>
+        /// Nút "So với đã đăng (n)": số là số thay đổi so với bản so đang chọn. Chưa đăng lần nào thì nút TẮT và lý do in thành
+        /// chữ ("Chưa có dấu đã đăng") chứ không chỉ nằm trong tooltip (SPIKE-B SP-3).
+        /// </summary>
+        public void SetCompareState(bool isOpen, bool isAvailable, int changeCount)
+        {
+            _compareToggle.SetValueWithoutNotify(isOpen);
+            _compareToggle.text = string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.CalendarDepthCompareToggleFormat,
+                changeCount);
+            _compareToggle.SetEnabled(isAvailable);
+            _compareToggle.tooltip = isAvailable ? string.Empty : LiveOpsHubStrings.CalendarDepthCompareUnavailableReason;
+            _compareDisabledReason.text = isAvailable ? string.Empty : LiveOpsHubStrings.CalendarDepthCompareUnavailableReason;
+            _compareDisabledReason.EnableInClassList(LiveOpsHubClassNames.CalendarHidden, isAvailable);
         }
 
         /// <summary>Chip chỉ hiện khi thật sự có làn ẩn — không có làn ẩn thì không chiếm chỗ trên toolbar.</summary>

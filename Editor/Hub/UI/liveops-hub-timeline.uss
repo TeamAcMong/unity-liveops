@@ -595,11 +595,24 @@
 }
 
 .liveops-hub-timeline-readout-text,
-.liveops-hub-timeline-readout-overlap {
+.liveops-hub-timeline-readout-overlap,
+.liveops-hub-timeline-readout-quick-check-text {
     padding: 0;
     margin: 0;
     font-size: 10px;
     white-space: nowrap;
+}
+
+/* (nợ D-3(a)) Vế tag kiểm nhanh: dấu 7px đứng trước câu, cùng hàng với hai vế kia của readout (Hình 12 khung 5). */
+.liveops-hub-timeline-readout-quick-check {
+    flex-direction: row;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+.liveops-hub-timeline-readout-quick-check-text {
+    margin-left: 4px;
+    opacity: 0.82;
 }
 
 /* ---------------------------------------------------------------- Minimap 20px · chú giải · dòng gợi ý 18px */

@@ -44,6 +44,25 @@ namespace DreamTech.LiveOps.Editor
             SetText(string.Empty, LiveOpsHubStrings.TimelineHintDragging);
         }
 
+        /// <summary>
+        /// (nợ D-3(b), Hình 12 khung 13) Con trỏ đang đứng trên chỗ trống của một làn cố định: gợi ý nêu TÊN LÀN, khoảng đang
+        /// xem và cách tạo đợt ngay tại đó — "star-tournament · 14/9 → 19/9 · nhấp đúp chỗ trống để thêm đợt". Trước W5 dòng gợi
+        /// ý chỉ có ba trạng thái (nghỉ / đang kéo / đang chọn) nên khung 13 vẽ y hệt khung 1 và cử chỉ nhấp đúp — đường DUY
+        /// NHẤT tạo đợt bằng chuột ở chỗ trống — không có chỗ nào nói ra.
+        /// </summary>
+        /// <param name="laneDisplayName">Tên làn đang trỏ tới; rỗng thì về trạng thái nghỉ (không có làn thì không có gợi ý làn).</param>
+        /// <param name="rangeText">Khoảng đang xem, đã định dạng ngắn ("14/9 → 19/9").</param>
+        internal void ShowEmptyLane(string laneDisplayName, string rangeText)
+        {
+            if (string.IsNullOrEmpty(laneDisplayName))
+            {
+                ShowIdle();
+                return;
+            }
+            SetText(laneDisplayName, string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.TimelineHintEmptyLaneFormat,
+                rangeText ?? string.Empty));
+        }
+
         /// <param name="bar">Thanh đang chọn.</param>
         /// <param name="findingShortLabel">Câu ngắn của phát hiện nặng nhất trên thanh (LiveOpsFindingText, không rich text); "" khi không có.</param>
         internal void ShowSelected(LiveOpsTimelineBarModel bar, string findingShortLabel)

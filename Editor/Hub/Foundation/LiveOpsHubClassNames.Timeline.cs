@@ -73,6 +73,10 @@ namespace DreamTech.LiveOps.Editor
         internal const string TimelineReadoutText = "liveops-hub-timeline-readout-text";
         internal const string TimelineReadoutOverlap = "liveops-hub-timeline-readout-overlap";
 
+        // (nợ D-3(a)) Vế thứ ba của readout: dấu 7px + câu kiểm nhanh của làn đang kéo (Hình 12 khung 5).
+        internal const string TimelineReadoutQuickCheck = "liveops-hub-timeline-readout-quick-check";
+        internal const string TimelineReadoutQuickCheckText = "liveops-hub-timeline-readout-quick-check-text";
+
         // Chú giải 8 mục (mẫu 18×10 + chữ) và dòng gợi ý 18px.
         internal const string TimelineLegend = "liveops-hub-timeline-legend";
         internal const string TimelineLegendItem = "liveops-hub-timeline-legend-item";

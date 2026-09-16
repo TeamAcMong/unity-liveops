@@ -176,3 +176,155 @@
     opacity: 0.82;
     flex-grow: 1;
 }
+
+/* ---------------------------------------------------------------- Chiều sâu W5 (G-CALENDAR-DEPTH) */
+
+/* Nhãn lý do in cạnh nút bị khoá — SPIKE-B SP-3: chữ thật, không phải tooltip. */
+.liveops-hub-calendar-disabled-reason {
+    font-size: 10px;
+    color: var(--liveops-hub-color-quiet);
+    margin-right: var(--liveops-hub-space-4);
+    flex-shrink: 0;
+}
+
+/* Pane Danh sách [SD1 §3.12]: bảng chiếm hết pane trái của split. */
+.liveops-hub-calendar-list-table {
+    flex-grow: 1;
+}
+
+.liveops-hub-calendar-list-cell {
+    font-size: 11px;
+    padding-left: 6px;
+    padding-right: 6px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.liveops-hub-calendar-list-empty {
+    font-size: 11px;
+    color: var(--liveops-hub-color-quiet);
+    white-space: normal;
+    padding: 8px 6px;
+}
+
+/* Pane So với đã đăng [SD1 §3.4]: cùng 280px với inspector, hai pane loại trừ nhau. */
+.liveops-hub-compare-pane {
+    width: 280px;
+    flex-shrink: 0;
+}
+
+.liveops-hub-calendar-compare-title {
+    font-size: 11px;
+    -unity-font-style: bold;
+    margin-left: var(--liveops-hub-space-4);
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.liveops-hub-calendar-compare-count {
+    font-size: 10px;
+    opacity: 0.7;
+    margin-left: auto;
+    margin-right: var(--liveops-hub-space-4);
+}
+
+.liveops-hub-calendar-compare-body {
+    flex-grow: 1;
+}
+
+.liveops-hub-calendar-compare-group-label {
+    font-size: 10px;
+    -unity-font-style: bold;
+    opacity: 0.82;
+    padding: 5px 6px 1px 6px;
+}
+
+.liveops-hub-calendar-compare-row {
+    flex-direction: row;
+    align-items: center;
+    height: 22px;
+    padding-left: 6px;
+    padding-right: 6px;
+}
+
+.liveops-hub-calendar-compare-row--selected {
+    background-color: var(--unity-colors-highlight-background);
+}
+
+.liveops-hub-calendar-compare-symbol {
+    width: 10px;
+    -unity-font-style: bold;
+    font-size: 10px;
+    margin-left: 6px;
+}
+
+.liveops-hub-calendar-compare-text {
+    flex-shrink: 1;
+    font-size: 11px;
+    margin-left: 6px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.liveops-hub-calendar-compare-note {
+    font-size: 10px;
+    opacity: 0.82;
+    white-space: normal;
+    margin: 8px 6px 0 6px;
+}
+
+/* Hover card của thanh [SD1 §3.8]: 260px, hàng key-value min-height 17, cột key 58. */
+.liveops-hub-calendar-hover-card {
+    width: 260px;
+}
+
+.liveops-hub-calendar-hover-header {
+    flex-direction: row;
+    align-items: center;
+}
+
+.liveops-hub-calendar-hover-row {
+    flex-direction: row;
+    align-items: flex-start;
+    min-height: 17px;
+}
+
+.liveops-hub-calendar-hover-key {
+    width: 58px;
+    flex-shrink: 0;
+    font-size: 10px;
+    opacity: 0.7;
+}
+
+.liveops-hub-calendar-hover-value {
+    flex-shrink: 1;
+    font-size: 10px;
+    white-space: normal;
+}
+
+.liveops-hub-calendar-hover-problem {
+    font-size: 10px;
+    white-space: normal;
+    margin-top: 3px;
+}
+
+.liveops-hub-calendar-hover-pinned-row {
+    flex-direction: row;
+    align-items: center;
+    margin-top: 4px;
+}
+
+.liveops-hub-calendar-hover-counter {
+    font-size: 10px;
+    opacity: 0.7;
+    margin-left: auto;
+}
+
+.liveops-hub-calendar-hover-footer {
+    font-size: 10px;
+    opacity: 0.7;
+    white-space: normal;
+    margin-top: 4px;
+}
