@@ -1,0 +1,262 @@
+/*
+    Màn Luật lặp ([SD1 §4.1–4.2]). Mọi màu đi qua token của liveops-hub-theme.uss hoặc biến skin của Unity — sheet này không
+    có màu trần, nên hai skin đổi theo cùng một chỗ. Không dùng gap / :last-child / @media (uss-lint chặn): khoảng cách bằng
+    margin, hàng cuối bằng class liveops-hub-row--last bật từ C#, breakpoint bằng class --medium/--narrow trên root.
+*/
+
+/* ---------------------------------------------------------------- Bố cục hai pane */
+
+.liveops-hub-recurring-split {
+    flex-direction: row;
+    flex-grow: 1;
+}
+
+/* Pane trái cố định 240px: danh sách luật là cột điều hướng, không co theo nội dung. */
+.liveops-hub-recurring-list {
+    width: 240px;
+    min-width: 240px;
+    border-right-width: 1px;
+    border-right-color: var(--unity-colors-window-border);
+    padding: 6px 0;
+}
+
+.liveops-hub-recurring-form-scroll {
+    flex-grow: 1;
+    padding: 10px 12px;
+    overflow: hidden;
+}
+
+/* Nội dung form không vượt 640px: câu token dài hơn thế thì mắt phải quét ngang mới đọc hết một câu. */
+.liveops-hub-recurring-form {
+    max-width: 640px;
+}
+
+.liveops-hub-recurring-hidden {
+    display: none;
+}
+
+/* ---------------------------------------------------------------- Danh sách luật */
+
+.liveops-hub-recurring-list-row {
+    flex-direction: row;
+    align-items: center;
+    height: 22px;
+    padding: 0 8px;
+    margin: 0;
+    border-width: 0;
+    border-radius: 0;
+    background-color: transparent;
+}
+
+.liveops-hub-recurring-list-row:hover {
+    background-color: var(--unity-colors-highlight-background-hover);
+}
+
+.liveops-hub-recurring-list-row--selected {
+    background-color: var(--unity-colors-highlight-background);
+    color: var(--liveops-hub-color-on-selection);
+}
+
+.liveops-hub-recurring-list-name {
+    flex-grow: 1;
+    margin-left: 6px;
+}
+
+.liveops-hub-recurring-list-meta {
+    font-size: 10px;
+    opacity: 0.82;
+    margin-left: 6px;
+}
+
+/* ---------------------------------------------------------------- Field */
+
+.liveops-hub-recurring-field-row {
+    flex-direction: row;
+    align-items: center;
+    margin-bottom: 4px;
+}
+
+/* Nhãn 96px: sáu nhãn thẳng cột thì mắt đi thẳng xuống thay vì dò từng dòng. */
+.liveops-hub-recurring-field-label {
+    width: 96px;
+    min-width: 96px;
+}
+
+.liveops-hub-recurring-field-label--focused {
+    color: var(--liveops-hub-color-focus);
+}
+
+.liveops-hub-recurring-field-input {
+    min-width: 120px;
+    margin: 0;
+}
+
+/* Ô số hẹp 64px: chu kỳ và thời gian chạy là số giờ, không cần rộng bằng ô chữ. */
+.liveops-hub-recurring-field-number {
+    width: 64px;
+    min-width: 64px;
+    max-width: 64px;
+}
+
+/* Viền warning ngay tại ô đang giữ nháp — dấu hiệu "chưa ghi" nằm đúng chỗ người dùng đang nhìn ([SD1 §4.2]). */
+.liveops-hub-recurring-field-input--drafting {
+    border-width: 1px;
+    border-color: var(--liveops-hub-color-warning-fill);
+}
+
+.liveops-hub-recurring-field-suffix {
+    font-size: 10px;
+    opacity: 0.82;
+    margin-left: 6px;
+    white-space: nowrap;
+}
+
+/* ---------------------------------------------------------------- Nháp tại ô và câu ở lại sau khi ghi */
+
+.liveops-hub-recurring-draft-block {
+    margin: 2px 3px 6px 103px;
+}
+
+.liveops-hub-recurring-draft-notice {
+    white-space: normal;
+    margin-bottom: 2px;
+}
+
+.liveops-hub-recurring-draft-actions {
+    flex-direction: row;
+    align-items: center;
+    margin-top: 4px;
+}
+
+.liveops-hub-recurring-after-write {
+    margin: 2px 3px 6px 103px;
+}
+
+.liveops-hub-recurring-after-write-actions {
+    flex-direction: row;
+    align-items: center;
+    margin-top: 4px;
+}
+
+/* Link chữ, không nền: đây là lối đi tiếp chứ không phải một hành động sửa. */
+.liveops-hub-recurring-link {
+    background-color: transparent;
+    border-width: 0;
+    margin-left: 8px;
+    padding: 0;
+    color: var(--liveops-hub-color-link);
+}
+
+/* ---------------------------------------------------------------- Thanh chu kỳ */
+
+.liveops-hub-recurring-cycle-row {
+    margin: 4px 3px 10px 103px;
+}
+
+.liveops-hub-recurring-cycle-text {
+    font-size: 10px;
+    opacity: 0.82;
+    margin-top: 2px;
+}
+
+/* ---------------------------------------------------------------- Card "n đợt kế tiếp" */
+
+.liveops-hub-recurring-occurrences {
+    margin-top: 6px;
+}
+
+.liveops-hub-recurring-occurrences-head {
+    flex-direction: row;
+    align-items: center;
+    height: 20px;
+    padding: 0 6px;
+    font-size: 10px;
+    opacity: 0.82;
+    border-bottom-width: 1px;
+    border-bottom-color: var(--unity-colors-window-border);
+}
+
+.liveops-hub-recurring-occurrences-row {
+    flex-direction: row;
+    align-items: center;
+    min-height: 20px;
+    padding: 0 6px;
+    border-bottom-width: 1px;
+    border-bottom-color: var(--unity-colors-window-border);
+}
+
+/* Hàng cuối không kẻ đáy: viền card đã là đường kẻ đó (thay cho :last-child). */
+.liveops-hub-recurring-occurrences-row.liveops-hub-row--last {
+    border-bottom-width: 0;
+}
+
+.liveops-hub-recurring-occurrences-foot {
+    flex-direction: row;
+    align-items: center;
+    padding: 4px 6px;
+    border-top-width: 1px;
+    border-top-color: var(--unity-colors-window-border);
+}
+
+.liveops-hub-recurring-cell-id {
+    flex-direction: row;
+    align-items: center;
+    width: 190px;
+    min-width: 190px;
+}
+
+/* Mũi tên là Label Inter riêng giữa hai Label mono: RobotoMono không có glyph → ([SD1 §4.1]). */
+.liveops-hub-recurring-cell-arrow {
+    margin: 0 3px;
+    opacity: 0.82;
+}
+
+.liveops-hub-recurring-cell-start {
+    width: 96px;
+    min-width: 96px;
+}
+
+.liveops-hub-recurring-cell-end {
+    width: 96px;
+    min-width: 96px;
+}
+
+.liveops-hub-recurring-cell-device {
+    width: 70px;
+    min-width: 70px;
+}
+
+.liveops-hub-recurring-cell-now {
+    flex-direction: row;
+    align-items: center;
+    flex-grow: 1;
+}
+
+/* ---------------------------------------------------------------- Popover Thêm luật và foldout JSON */
+
+.liveops-hub-recurring-add {
+    position: absolute;
+    top: 8px;
+    right: 12px;
+    width: 280px;
+    padding: 8px;
+    border-width: 1px;
+    border-radius: 3px;
+    border-color: var(--unity-colors-window-border);
+    background-color: var(--unity-colors-popup-background);
+}
+
+.liveops-hub-recurring-add-actions {
+    flex-direction: row;
+    justify-content: flex-end;
+    margin-top: 6px;
+}
+
+.liveops-hub-recurring-json {
+    margin-top: 6px;
+}
+
+.liveops-hub-recurring-json-actions {
+    flex-direction: row;
+    margin-top: 4px;
+}
