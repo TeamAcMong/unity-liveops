@@ -95,6 +95,12 @@ namespace DreamTech.LiveOps.Editor
         [NonSerialized] private bool _hasStatusSignature;
         [NonSerialized] private Action _saveMenuCommandForTest;
 
+        // Cửa sổ dữ liệu mẫu (menu ⋮ "Hiện dữ liệu mẫu"): asset DontSave không đường dẫn — người gọi sở hữu và phải
+        // DestroyImmediate, vì DontSave gồm cả DontUnloadUnusedAsset nên Unity không bao giờ tự dọn (mục 3, ràng buộc vòng đời).
+        [NonSerialized] private LiveEventCalendarAsset _ownedPreviewAsset;
+        [NonSerialized] private bool _ownsInjectedServices;
+        [NonSerialized] private Action<string> _openUrlForTest;
+
         IReadOnlyList<IHubSection> IHubHost.Sections => _sections;
 
         LiveOpsHubServices IHubHost.Services => _services;
@@ -180,6 +186,26 @@ namespace DreamTech.LiveOps.Editor
             window._pendingSectionId = sectionId;
             window._isIsolatedFromSessionState = true;
             window.Show();
+            return window;
+        }
+
+        /// <summary>
+        /// Menu ⋮ "Hiện dữ liệu mẫu (chỉ để xem giao diện)" ([FD §3.3]): một cửa sổ hub THỨ HAI chạy trên tài liệu mẫu
+        /// 13/9/2026 08:47 với đồng hồ đứng yên. Asset mẫu chỉ sống trong bộ nhớ (<c>DontSave</c>, không đường dẫn) nên
+        /// không bao giờ ra đĩa, và không ghi Undo — sửa thử ở đây không chen vào lịch sử Undo của lịch thật (R-24).
+        /// Cửa sổ này sở hữu cả services lẫn asset và dọn cả hai khi đóng.
+        /// </summary>
+        internal static LiveOpsHubWindow OpenPreviewSample()
+        {
+            LiveEventCalendarAsset sampleAsset = LiveOpsHubPreviewSample.CreateAsset();
+            LiveOpsHubServices services = new LiveOpsHubServicesBuilder()
+                .WithClock(LiveOpsHubPreviewSample.CreateClock())
+                .WithTimeZone(LiveOpsHubPreviewSample.CreateTimeZone())
+                .WithCalendarAsset(sampleAsset)
+                .Build();
+            LiveOpsHubWindow window = OpenWithServices(services, LiveOpsHubSections.Ids.Overview);
+            window._ownedPreviewAsset = sampleAsset;
+            window._ownsInjectedServices = true;
             return window;
         }
 
@@ -770,22 +796,98 @@ namespace DreamTech.LiveOps.Editor
 
         public void AddItemsToMenu(GenericMenu menu)
         {
-            // INTERIM(G-SHELLPOLISH): menu ⋮ mới có "Kiểm lại tất cả (F5)" và "Tắt chuyển động"; "Mở tài liệu LiveOps" và "Hiện dữ
-            // liệu mẫu" thêm ở G-SHELLPOLISH (mục 12 I-8) — không thêm mục disabled trỏ tới thứ chưa có.
+            if (menu == null) throw new ArgumentNullException(nameof(menu));
+            IReadOnlyList<OverflowMenuEntry> entries = BuildOverflowMenuEntries();
+            for (int index = 0; index < entries.Count; index++)
+            {
+                OverflowMenuEntry entry = entries[index];
+                if (entry.IsEnabled) menu.AddItem(new GUIContent(entry.Text), entry.IsOn, entry.Invoke);
+                else menu.AddDisabledItem(new GUIContent(entry.Text));
+            }
+        }
+
+        /// <summary>
+        /// Mục của menu ⋮ theo đúng thứ tự [FD §3.3]: Kiểm lại tất cả (F5) · Tắt chuyển động · Mở tài liệu LiveOps · Hiện dữ
+        /// liệu mẫu. "Hiện hướng dẫn phím tắt" là [P1-lùi] (G-OPT-SHORTCUTHELP, W6) nên KHÔNG có mục disabled trỏ tới nó.
+        /// <para>
+        /// Tách khỏi <see cref="AddItemsToMenu"/> vì <c>GenericMenu</c> không cho đọc lại nhãn: phần quyết định (mục nào, chữ gì,
+        /// mục nào bật/khoá) nằm ở đây để test đọc thẳng, cùng lối với <see cref="LiveOpsHubNarrowRailMenu.BuildItems"/>.
+        /// </para>
+        /// </summary>
+        internal IReadOnlyList<OverflowMenuEntry> BuildOverflowMenuEntries()
+        {
             string checkKeyLabel = LiveOpsHubKeyLabels.For(LiveOpsHubShortcuts.CheckAllId);
             string checkAllText = checkKeyLabel.Length == 0
                 ? LiveOpsHubStrings.ShellCheckAllMenuWithoutKey
                 : string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.ShellCheckAllMenuFormat, checkKeyLabel);
-            if (_services != null && _services.Session.Asset != null) menu.AddItem(new GUIContent(checkAllText), false, StartCheckFromShortcut);
-            else menu.AddDisabledItem(new GUIContent(checkAllText));
-
+            bool hasAsset = _services != null && _services.Session.Asset != null;
             bool reduceMotion = EditorPrefs.GetBool(ReduceMotionPreferenceKey, false);
-            menu.AddItem(new GUIContent(LiveOpsHubStrings.ShellReduceMotionMenu), reduceMotion, () =>
+
+            return new[]
             {
-                bool enabled = !EditorPrefs.GetBool(ReduceMotionPreferenceKey, false);
-                EditorPrefs.SetBool(ReduceMotionPreferenceKey, enabled);
-                _hubRoot?.EnableInClassList(LiveOpsHubClassNames.NoMotion, enabled);
-            });
+                new OverflowMenuEntry(checkAllText, hasAsset, false, StartCheckFromShortcut),
+                new OverflowMenuEntry(LiveOpsHubStrings.ShellReduceMotionMenu, true, reduceMotion, ToggleReduceMotion),
+                new OverflowMenuEntry(LiveOpsHubStrings.ShellOpenDocumentationMenu, true, false, OpenDocumentation),
+                new OverflowMenuEntry(LiveOpsHubStrings.ShellShowDesignSampleMenu, true, false, ShowDesignSample),
+            };
+        }
+
+        private void ToggleReduceMotion()
+        {
+            bool enabled = !EditorPrefs.GetBool(ReduceMotionPreferenceKey, false);
+            EditorPrefs.SetBool(ReduceMotionPreferenceKey, enabled);
+            _hubRoot?.EnableInClassList(LiveOpsHubClassNames.NoMotion, enabled);
+        }
+
+        /// <summary>
+        /// "Mở tài liệu LiveOps": README của package — cùng địa chỉ mà link "Vì sao? (tài liệu luật)" của Kiểm lịch mở, và cùng
+        /// <c>documentationUrl</c> trong <c>package.json</c>, nên hub chỉ có MỘT nơi gọi là tài liệu.
+        /// </summary>
+        private void OpenDocumentation()
+        {
+            if (_openUrlForTest != null) _openUrlForTest(LiveOpsHubPaths.RuleDocumentationBaseUrl);
+            else Application.OpenURL(LiveOpsHubPaths.RuleDocumentationBaseUrl);
+        }
+
+        private void ShowDesignSample()
+        {
+            OpenPreviewSample();
+        }
+
+        /// <summary>
+        /// Thay <c>Application.OpenURL</c> cho test — mở trình duyệt thật trong batchmode là tác dụng phụ ra ngoài Unity. Cùng
+        /// seam với <see cref="SetSaveMenuCommandForTest"/>. null = mở thật.
+        /// </summary>
+        internal void SetOpenUrlForTest(Action<string> openUrl)
+        {
+            _openUrlForTest = openUrl;
+        }
+
+        /// <summary>Một mục của menu ⋮ — bất biến, không giữ tham chiếu tới <c>GenericMenu</c>.</summary>
+        internal readonly struct OverflowMenuEntry
+        {
+            private readonly Action _invoke;
+
+            internal OverflowMenuEntry(string text, bool isEnabled, bool isOn, Action invoke)
+            {
+                Text = text;
+                IsEnabled = isEnabled;
+                IsOn = isOn;
+                _invoke = invoke;
+            }
+
+            internal string Text { get; }
+
+            /// <summary>false = mục xám (vd chưa có asset lịch thì "Kiểm lại tất cả" không làm được gì).</summary>
+            internal bool IsEnabled { get; }
+
+            /// <summary>Mục có dấu tích ("Tắt chuyển động" đang bật).</summary>
+            internal bool IsOn { get; }
+
+            internal void Invoke()
+            {
+                _invoke?.Invoke();
+            }
         }
 
         // ------------------------------------------------------------------------------------------------------------ phím tắt
@@ -1138,9 +1240,15 @@ namespace DreamTech.LiveOps.Editor
         {
             if (_services == null) return;
             // R-25: domain reload/đóng cửa sổ giữa lúc kéo hoặc kiểm — phiên huỷ kéo dở (không để Undo group mở) và dừng nhịp kiểm.
-            if (_ownsServices) _services.Session.Dispose();
+            if (_ownsServices || _ownsInjectedServices) _services.Session.Dispose();
             _services = null;
             _ownsServices = false;
+            _ownsInjectedServices = false;
+            _injectedServices = null;
+            if (_ownedPreviewAsset == null) return;
+            // DontSave gồm DontUnloadUnusedAsset: không tay nào dọn thì asset mẫu sống tới khi tắt Unity.
+            DestroyImmediate(_ownedPreviewAsset);
+            _ownedPreviewAsset = null;
         }
 
         private void OnSessionDocumentChanged()
