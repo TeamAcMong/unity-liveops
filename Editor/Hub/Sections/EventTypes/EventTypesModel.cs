@@ -261,7 +261,8 @@ namespace DreamTech.LiveOps.Editor
                 if (text.Length > 0) text.Append(LiveOpsHubStrings.EventTypesPartSeparator);
                 text.Append(LiveOpsHubStrings.EventTypesUsageRecurringRule);
             }
-            if (TryFindNextFixedEventStart(typeId, DateTime.SpecifyKind(nowUtc, DateTimeKind.Utc), out DateTime nextStartUtc))
+            if (TryFindNextFixedEvent(typeId, DateTime.SpecifyKind(nowUtc, DateTimeKind.Utc), out FixedLiveEventEntry nextEntry,
+                out DateTime nextStartUtc))
             {
                 if (text.Length > 0) text.Append(LiveOpsHubStrings.EventTypesPartSeparator);
                 text.Append(string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.EventTypesUsageNextFormat,
@@ -271,23 +272,38 @@ namespace DreamTech.LiveOps.Editor
         }
 
         /// <summary>Đợt cố định gần nhất chưa bắt đầu của loại — "Xem trên lịch" căn khung tới đúng đợt này.</summary>
-        public bool TryFindNextFixedEventStart(string typeId, DateTime nowUtc, out DateTime nextStartUtc)
+        public bool TryFindNextFixedEvent(string typeId, DateTime nowUtc, out FixedLiveEventEntry nextEntry, out DateTime nextStartUtc)
         {
+            nextEntry = null;
             nextStartUtc = default(DateTime);
-            bool found = false;
             IReadOnlyList<FixedLiveEventEntry> fixedEvents = _document.FixedEvents;
             for (int index = 0; index < fixedEvents.Count; index++)
             {
                 FixedLiveEventEntry entry = fixedEvents[index];
                 if (!string.Equals(entry.EventType, typeId, StringComparison.Ordinal)) continue;
                 if (!entry.TryGetStartUtc(out DateTime startUtc) || startUtc < nowUtc) continue;
-                if (!found || startUtc < nextStartUtc)
+                if (nextEntry == null || startUtc < nextStartUtc)
                 {
+                    nextEntry = entry;
                     nextStartUtc = startUtc;
-                    found = true;
                 }
             }
-            return found;
+            return nextEntry != null;
+        }
+
+        /// <summary>Id loại đã khai trong nháp — popover "Thêm loại" dùng để báo trùng id ngay khi gõ.</summary>
+        public IReadOnlyList<string> DeclaredTypeIds()
+        {
+            List<string> typeIds = new List<string>();
+            IReadOnlyList<LiveEventTypeDefinition> types = _document.EventTypes;
+            for (int index = 0; index < types.Count; index++) typeIds.Add(types[index].TypeId);
+            return typeIds;
+        }
+
+        /// <summary>Định nghĩa loại trong nháp; null khi loại chưa khai báo — lệnh sửa field dựng bản sao từ đây.</summary>
+        public LiveEventTypeDefinition DeclaredType(string typeId)
+        {
+            return TryGetDeclaredType(typeId, out LiveEventTypeDefinition type) ? type : null;
         }
 
         /// <summary>"ô 6 steel" — dùng cho câu ghi đè và câu toast đổi màu.</summary>

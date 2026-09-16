@@ -217,6 +217,9 @@ namespace DreamTech.LiveOps.Editor
             table.Add(nameof(LiveOpsHubStrings.EventTypesToastColorChangedFormat),
                 vietnamese: "Đã đổi màu {0} sang {1}",
                 english: "Changed the color of {0} to {1}");
+            table.Add(nameof(LiveOpsHubStrings.EventTypesToastTypeIdChangedFormat),
+                vietnamese: "Đã đổi id loại {0} thành {1}",
+                english: "Changed type id {0} to {1}");
             table.Add(nameof(LiveOpsHubStrings.EventTypesToastDisplayNameChangedFormat),
                 vietnamese: "Đã đổi tên hiển thị của {0}",
                 english: "Changed the display name of {0}");
