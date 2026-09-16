@@ -489,19 +489,44 @@ namespace DreamTech.LiveOps.Editor
                 report.Summary.PassedRuleCount, string.Join(RuleIdSeparator, ruleIds.ToArray()));
         }
 
+        /// <summary>
+        /// Nhóm "Đã bỏ qua (n) ▸" (V-15, [SD2 §2.7] ô 6): mở ra là một hàng cho MỖI mục — meta "luật · đích · khoảng", ghi chú
+        /// rút gọn và nút nhỏ "Bỏ bỏ qua". Nút nhỏ có vì menu chuột phải không chụp được (S-24): một tính năng chỉ tới được
+        /// bằng chuột phải là một tính năng không ai chứng minh được là còn sống.
+        /// </summary>
         private static ValidationGroup IgnoredGroup(LiveEventCalendarCheckReport report, LiveOpsHubFormat format)
         {
+            var rows = new List<ValidationRow>();
             var parts = new List<string>();
             for (int index = 0; index < report.IgnoredFindings.Count; index++)
             {
                 LiveEventCalendarFinding finding = report.IgnoredFindings[index];
                 parts.Add(LiveOpsFindingText.PlainText(LiveOpsFindingText.RuleIdLine(finding)));
+                rows.Add(IgnoredRowOf(finding, format));
             }
 
             string title = string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.ValidationGroupIgnoredTitleFormat, report.IgnoredFindings.Count);
-            // INTERIM(G-VALIDATION-DEPTH): nhóm chỉ đọc ở W4 (mục 12 I-7) — không nút "Bỏ bỏ qua", không menu chuột phải.
-            return new ValidationGroup(ValidationGroupKind.Ignored, title, string.Empty, string.Empty, HealthState.Ok, NoRows,
+            return new ValidationGroup(ValidationGroupKind.Ignored, title, string.Empty, string.Empty, HealthState.Ok, rows,
                 report.IgnoredFindings.Count, string.Join(RuleIdSeparator, parts.ToArray()));
+        }
+
+        /// <summary>
+        /// Một hàng đã bỏ qua. Khoảng do <see cref="LiveOpsFindingText.IgnoredWarningRangeText"/> viết (V-21 CC-VALB-4): ghi chú
+        /// hẹn giờ đọc "hẹn tới 14/9 00:00", không "14/9 → mọi" — với người đọc đó là một HẠN, không phải khoảng bị ẩn. Hẹn giờ
+        /// còn được gắn thêm tag cùng chữ đó: hàng có hạn phải nhận ra được từ xa giữa những mục bỏ qua vĩnh viễn.
+        /// </summary>
+        private static ValidationRow IgnoredRowOf(LiveEventCalendarFinding finding, LiveOpsHubFormat format)
+        {
+            IgnoredCalendarWarning warning = finding.IgnoredBy;
+            string rangeText = LiveOpsFindingText.IgnoredWarningRangeText(warning, format);
+            string meta = string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.ValidationDepthIgnoredMetaFormat,
+                LiveOpsFindingText.NoParse(warning.RuleId), LiveOpsFindingText.NoParse(warning.TargetId), rangeText);
+            string note = warning.Note.Length > 0
+                ? LiveOpsFindingText.NoParse(warning.Note)
+                : LiveOpsHubStrings.ValidationDepthIgnoredNoteEmpty;
+            return new ValidationRow(finding, null, HealthState.Ok, note, meta, LiveOpsFindingText.RuleIdLine(finding),
+                ValidationRowAction.Unignore, LiveOpsHubStrings.ValidationDepthUnignoreButton, string.Empty,
+                string.Empty, string.Empty, warning.IsReminder ? rangeText : string.Empty, warning);
         }
 
         private const string RuleIdSeparator = " · ";

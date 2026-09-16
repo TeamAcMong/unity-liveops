@@ -62,6 +62,7 @@ namespace DreamTech.LiveOps.Editor
         private Button _recheckButton;
         private VisualElement _bulkPreviewHost;
         private SafeRepairPreviewCard _bulkPreview;
+        private LiveOpsHoverCardHost _hoverCardHost;
 
         /// <summary>Dấu vân tay của tập lệnh sửa an toàn lúc mở card xem trước; lệch = báo cáo đã đổi, card phải đóng.</summary>
         private string _bulkPreviewKeys = string.Empty;
@@ -98,6 +99,22 @@ namespace DreamTech.LiveOps.Editor
 
         /// <summary>Card xem trước sửa hàng loạt đang mở; null khi chưa bấm "Sửa các lỗi an toàn (n)…" ([SD2 §2.5]).</summary>
         internal SafeRepairPreviewCard BulkPreview => _bulkPreview;
+
+        /// <summary>Card "Đã bỏ qua (n) ▸" (V-15); null khi chưa kiểm lần nào.</summary>
+        internal ValidationGroupCard IgnoredCard
+        {
+            get
+            {
+                for (int index = 0; index < _cards.Count; index++)
+                {
+                    if (_cards[index].Group.Kind == ValidationGroupKind.Ignored) return _cards[index];
+                }
+                return null;
+            }
+        }
+
+        /// <summary>Hover card ghim của "Xem ghi chú"; null khi chưa ai mở lần nào trong lượt dựng này.</summary>
+        internal LiveOpsHoverCardHost HoverCardHost => _hoverCardHost;
 
         public void Bind(IHubHost host)
         {
@@ -448,6 +465,9 @@ namespace DreamTech.LiveOps.Editor
                 card.RowActionRequested += OnRowAction;
                 card.RowLinkRequested += OnRowLink;
                 card.RowSelectionRequested += SelectRow;
+                card.RowCopyDescriptionRequested += OnRowCopyDescription;
+                card.RowOpenRuleDocumentationRequested += OnRowOpenRuleDocumentation;
+                card.IgnoredNoteRequested += ShowIgnoredNoteCard;
                 if (group.IsCollapsible) collapsedRow.Add(card);
                 else _groups.Add(card);
                 _cards.Add(card);
@@ -708,6 +728,9 @@ namespace DreamTech.LiveOps.Editor
                 case ValidationRowAction.IgnoreWarning:
                     OpenIgnorePopover(row.Finding);
                     break;
+                case ValidationRowAction.Unignore:
+                    Unignore(row.IgnoredWarning);
+                    break;
             }
         }
 
@@ -720,6 +743,51 @@ namespace DreamTech.LiveOps.Editor
                 if (ReferenceEquals(_visibleRows[index].Row, row)) return _visibleRows[index].worldBound;
             }
             return _root != null ? _root.worldBound : default(Rect);
+        }
+
+        /// <summary>
+        /// "Bỏ bỏ qua" (V-15): một Undo group "Bỏ bỏ qua &lt;luật&gt; · &lt;đích&gt;" + toast, KHÔNG hỏi lại (bảng 7.0 — việc
+        /// hoàn tác được trong một cú Hoàn tác thì hỏi chỉ làm chậm), rồi tự kiểm lại (PD-10) để phát hiện quay lại nhóm Nên xem.
+        /// </summary>
+        private void Unignore(IgnoredCalendarWarning warning)
+        {
+            if (warning == null) return;
+            string undoName = string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.ValidationDepthUnignoreUndoFormat,
+                warning.RuleId, warning.TargetId);
+            ApplyEdit(new RemoveIgnoredWarningEdit(warning), undoName);
+        }
+
+        private void OnRowCopyDescription(ValidationRow row)
+        {
+            Services.Clipboard.Text = LiveOpsFindingText.PlainText(
+                row.Headline + RuleErrorSeparator + row.MetaText + RuleErrorSeparator + row.RuleIdLine);
+        }
+
+        private void OnRowOpenRuleDocumentation(ValidationRow row)
+        {
+            if (row.Finding == null) return;
+            Application.OpenURL(LiveOpsHubPaths.RuleDocumentationUrl(row.Finding.RuleId));
+        }
+
+        /// <summary>
+        /// "Xem ghi chú" (V-15): hover card GHIM trên chính hàng đó. Thẻ chỉ có khoảng + hạn + ghi chú — asset KHÔNG lưu ai bỏ
+        /// qua và lúc nào, nên thêm hai dòng đó là bịa ra một thứ chỉ git mới trả lời được.
+        /// </summary>
+        private void ShowIgnoredNoteCard(VisualElement rowElement, ValidationRow row)
+        {
+            if (_root == null || row.IgnoredWarning == null) return;
+            if (_hoverCardHost == null) _hoverCardHost = new LiveOpsHoverCardHost(_root);
+
+            VisualElement content = new VisualElement { name = LiveOpsHubPaths.ValidationDepthElementNames.IgnoredNoteCard };
+            content.AddToClassList(LiveOpsHubClassNames.ValidationIgnoredNoteCard);
+            Label title = new Label(string.Format(CultureInfo.InvariantCulture,
+                LiveOpsHubStrings.ValidationDepthIgnoredNoteCardTitleFormat, row.MetaText)) { enableRichText = true };
+            title.AddToClassList(LiveOpsHubClassNames.ValidationDetailTitle);
+            content.Add(title);
+            Label note = new Label(row.Headline) { enableRichText = true };
+            note.AddToClassList(LiveOpsHubClassNames.ValidationIgnoredNote);
+            content.Add(note);
+            _hoverCardHost.ShowPinned(rowElement, content);
         }
 
         private void OnRowLink(ValidationRow row)
@@ -993,6 +1061,7 @@ namespace DreamTech.LiveOps.Editor
             Services.Session.DocumentChanged -= Refresh;
             Services.Session.CheckChanged -= Refresh;
             if (_spinner != null) _spinner.Stop();
+            _hoverCardHost = null;
             _root = null;
         }
 

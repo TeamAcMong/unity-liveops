@@ -70,10 +70,15 @@ namespace DreamTech.LiveOps.Editor
             {
                 header.AddToClassList(LiveOpsHubClassNames.CardHeaderClickable);
                 header.RegisterCallback<PointerDownEvent>(OnHeaderPointerDown);
-                Label collapsedDetail = new Label(group.CollapsedDetailText);
-                collapsedDetail.AddToClassList(LiveOpsHubClassNames.ValidationPassedIds);
-                collapsedDetail.AddToClassList(LiveOpsHubClassNames.Mono);
-                Body.Add(collapsedDetail);
+                // Nhóm "Đã bỏ qua" mở ra là DANH SÁCH mục (V-15); nhóm "n luật đã qua" chỉ có một dòng mono liệt kê id.
+                if (group.Kind == ValidationGroupKind.Ignored && group.Rows.Count > 0) BuildIgnoredRows(group.Rows);
+                else
+                {
+                    Label collapsedDetail = new Label(group.CollapsedDetailText);
+                    collapsedDetail.AddToClassList(LiveOpsHubClassNames.ValidationPassedIds);
+                    collapsedDetail.AddToClassList(LiveOpsHubClassNames.Mono);
+                    Body.Add(collapsedDetail);
+                }
                 SetCollapsed(true);
             }
             else
@@ -88,6 +93,15 @@ namespace DreamTech.LiveOps.Editor
         internal event Action<ValidationRow> RowLinkRequested;
         internal event Action<ValidationRow> RowSelectionRequested;
 
+        /// <summary>"Xem ghi chú" của một mục đã bỏ qua: màn ghim hover card lên chính hàng đó, nên sự kiện mang cả hàng.</summary>
+        internal event Action<VisualElement, ValidationRow> IgnoredNoteRequested;
+
+        /// <summary>"Copy mô tả lỗi" của menu chuột phải hàng phát hiện.</summary>
+        internal event Action<ValidationRow> RowCopyDescriptionRequested;
+
+        /// <summary>"Mở tài liệu luật &lt;id&gt;" của menu chuột phải hàng phát hiện.</summary>
+        internal event Action<ValidationRow> RowOpenRuleDocumentationRequested;
+
         internal ValidationGroup Group { get; }
         internal Label TitleLabel { get; }
         internal Label MetaLabel { get; }
@@ -96,9 +110,14 @@ namespace DreamTech.LiveOps.Editor
         internal LiveOpsChevron Chevron { get; }
         internal VisualElement Body { get; }
         internal IReadOnlyList<ValidationFindingRow> Rows => _rows;
+
+        /// <summary>Hàng của nhóm "Đã bỏ qua" (V-15) — khác họ với hàng phát hiện nên không nằm chung danh sách F8.</summary>
+        internal IReadOnlyList<ValidationIgnoredRow> IgnoredRows => _ignoredRows;
+
         internal bool IsCollapsed => ClassListContains(LiveOpsHubClassNames.CardCollapsed);
 
         private readonly List<ValidationFindingRow> _rows = new List<ValidationFindingRow>();
+        private readonly List<ValidationIgnoredRow> _ignoredRows = new List<ValidationIgnoredRow>();
 
         internal void SetSelectedRow(string selectionKey)
         {
@@ -121,6 +140,20 @@ namespace DreamTech.LiveOps.Editor
             SetCollapsed(!IsCollapsed);
         }
 
+        private void BuildIgnoredRows(IReadOnlyList<ValidationRow> rows)
+        {
+            for (int index = 0; index < rows.Count; index++)
+            {
+                ValidationIgnoredRow row = new ValidationIgnoredRow(rows[index]);
+                row.UnignoreRequested += ignored => RowActionRequested?.Invoke(ignored);
+                row.ViewInCalendarRequested += ignored => RowLinkRequested?.Invoke(ignored);
+                row.ViewNoteRequested += ignored => IgnoredNoteRequested?.Invoke(row, ignored);
+                if (index == rows.Count - 1) row.AddToClassList(LiveOpsHubClassNames.RowLast);
+                Body.Add(row);
+                _ignoredRows.Add(row);
+            }
+        }
+
         private void BuildRows(IReadOnlyList<ValidationRow> rows)
         {
             for (int index = 0; index < rows.Count; index++)
@@ -129,6 +162,8 @@ namespace DreamTech.LiveOps.Editor
                 row.ActionRequested += finding => RowActionRequested?.Invoke(finding);
                 row.LinkRequested += finding => RowLinkRequested?.Invoke(finding);
                 row.SelectionRequested += finding => RowSelectionRequested?.Invoke(finding);
+                row.CopyDescriptionRequested += finding => RowCopyDescriptionRequested?.Invoke(finding);
+                row.OpenRuleDocumentationRequested += finding => RowOpenRuleDocumentationRequested?.Invoke(finding);
                 if (index == rows.Count - 1) row.MarkAsLast();
                 Body.Add(row);
                 _rows.Add(row);
@@ -170,6 +205,83 @@ namespace DreamTech.LiveOps.Editor
                 case HealthState.NotMeasured: return LiveOpsHubClassNames.TextQuiet;
                 default: return LiveOpsHubClassNames.TextQuiet;
             }
+        }
+    }
+
+    /// <summary>
+    /// Một mục trong nhóm "Đã bỏ qua (n) ▸" (V-15, [SD2 §2.7] ô 6): meta "luật · đích · khoảng" · ghi chú rút gọn · tag hạn
+    /// (nếu là ghi chú hẹn giờ) · nút nhỏ "Bỏ bỏ qua".
+    /// <para>
+    /// Nút nhỏ là đường đi CHÍNH, menu chuột phải chỉ là đường phụ: menu gốc của Unity không chụp được (S-24), nên một tính
+    /// năng chỉ tới được bằng chuột phải là tính năng không ảnh nào chứng minh được là còn sống.
+    /// </para>
+    /// </summary>
+    internal sealed class ValidationIgnoredRow : VisualElement
+    {
+        internal ValidationIgnoredRow(ValidationRow row)
+        {
+            Row = row ?? throw new ArgumentNullException(nameof(row));
+            AddToClassList(LiveOpsHubClassNames.FindingRow);
+            AddToClassList(LiveOpsHubClassNames.ValidationIgnoredRow);
+
+            VisualElement text = new VisualElement();
+            text.AddToClassList(LiveOpsHubClassNames.ValidationRowText);
+
+            VisualElement metaLine = new VisualElement();
+            metaLine.AddToClassList(LiveOpsHubClassNames.ValidationRowHeadlineLine);
+            MetaLabel = new Label(row.MetaText) { enableRichText = true };
+            MetaLabel.AddToClassList(LiveOpsHubClassNames.ValidationRowMeta);
+            metaLine.Add(MetaLabel);
+            if (row.TagText.Length > 0)
+            {
+                TagLabel = new Label(row.TagText);
+                TagLabel.AddToClassList(LiveOpsHubClassNames.Tag);
+                metaLine.Add(TagLabel);
+            }
+            text.Add(metaLine);
+
+            NoteLabel = new Label(row.Headline) { enableRichText = true };
+            NoteLabel.AddToClassList(LiveOpsHubClassNames.ValidationIgnoredNote);
+            text.Add(NoteLabel);
+            Add(text);
+
+            VisualElement actions = new VisualElement();
+            actions.AddToClassList(LiveOpsHubClassNames.ValidationRowActions);
+            UnignoreButton = new Button(() => UnignoreRequested?.Invoke(Row)) { text = row.ActionText };
+            UnignoreButton.AddToClassList(LiveOpsHubClassNames.Button);
+            actions.Add(UnignoreButton);
+            Add(actions);
+
+            this.AddManipulator(new ContextualMenuManipulator(PopulateFromEvent));
+        }
+
+        /// <summary>"Bỏ bỏ qua" — gỡ cảnh báo khỏi asset, không hỏi lại (bảng 7.0): toast Hoàn tác là đường lùi.</summary>
+        internal event Action<ValidationRow> UnignoreRequested;
+
+        internal event Action<ValidationRow> ViewNoteRequested;
+        internal event Action<ValidationRow> ViewInCalendarRequested;
+
+        internal ValidationRow Row { get; }
+        internal Label MetaLabel { get; }
+        internal Label NoteLabel { get; }
+        internal Label TagLabel { get; }
+        internal Button UnignoreButton { get; }
+
+        /// <summary>Menu chuột phải: "Bỏ bỏ qua · Xem ghi chú · Xem trong lịch" ([SD2 §2.7]). Test đọc thẳng hàm này (S-24).</summary>
+        internal void PopulateContextMenu(DropdownMenu menu)
+        {
+            if (menu == null) throw new ArgumentNullException(nameof(menu));
+            menu.AppendAction(LiveOpsHubStrings.ValidationDepthUnignoreButton,
+                action => UnignoreRequested?.Invoke(Row), DropdownMenuAction.AlwaysEnabled);
+            menu.AppendAction(LiveOpsHubStrings.ValidationDepthViewNoteMenuItem,
+                action => ViewNoteRequested?.Invoke(Row), DropdownMenuAction.AlwaysEnabled);
+            menu.AppendAction(LiveOpsHubStrings.FindingLinkViewInCalendar,
+                action => ViewInCalendarRequested?.Invoke(Row), DropdownMenuAction.AlwaysEnabled);
+        }
+
+        private void PopulateFromEvent(ContextualMenuPopulateEvent populateEvent)
+        {
+            PopulateContextMenu(populateEvent.menu);
         }
     }
 }

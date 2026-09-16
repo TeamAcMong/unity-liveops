@@ -1,4 +1,5 @@
 using System;
+using System.Globalization;
 using UnityEngine.UIElements;
 
 namespace DreamTech.LiveOps.Editor
@@ -86,6 +87,7 @@ namespace DreamTech.LiveOps.Editor
 
             if (isStale) AddToClassList(LiveOpsHubClassNames.ValidationRowStale);
             RegisterCallback<PointerDownEvent>(OnPointerDown);
+            this.AddManipulator(new ContextualMenuManipulator(PopulateFromEvent));
         }
 
         /// <summary>Người dùng bấm động từ chính của hàng (Sửa, Đề xuất…, Xem diff, Copy lỗi…).</summary>
@@ -96,6 +98,12 @@ namespace DreamTech.LiveOps.Editor
 
         /// <summary>Hàng được chọn (bấm chuột) — màn mở pane Chi tiết.</summary>
         internal event Action<ValidationRow> SelectionRequested;
+
+        /// <summary>Menu chuột phải "Copy mô tả lỗi": chữ đi vào clipboard để dán vào ticket, không phải để đọc trên màn.</summary>
+        internal event Action<ValidationRow> CopyDescriptionRequested;
+
+        /// <summary>Menu chuột phải "Mở tài liệu luật &lt;id&gt;".</summary>
+        internal event Action<ValidationRow> OpenRuleDocumentationRequested;
 
         internal ValidationRow Row { get; }
         internal Label Headline { get; }
@@ -143,6 +151,43 @@ namespace DreamTech.LiveOps.Editor
         private void OnLinkClicked()
         {
             LinkRequested?.Invoke(Row);
+        }
+
+        /// <summary>
+        /// Menu chuột phải của hàng (mục 7.5 "Tương tác"): "Xem trong lịch · Sửa nhanh… · Copy mô tả lỗi · Mở tài liệu luật
+        /// &lt;id&gt;". Menu gốc của Unity không chụp được (S-24) nên test đọc thẳng hàm này; mọi mục ở đây đều có một đường
+        /// đi khác thấy được trên hàng (nút chính, link, pane Chi tiết) — chuột phải là lối tắt, không phải lối duy nhất.
+        /// <para>
+        /// Mục bị khoá ghi lý do NGAY TRONG NHÃN (SPIKE-B SP-3): menu gốc không có chỗ nào khác để in chữ.
+        /// </para>
+        /// </summary>
+        internal void PopulateContextMenu(DropdownMenu menu)
+        {
+            if (menu == null) throw new ArgumentNullException(nameof(menu));
+            if (Row.Finding == null) return;
+
+            menu.AppendAction(LiveOpsHubStrings.FindingLinkViewInCalendar,
+                action => LinkRequested?.Invoke(Row), DropdownMenuAction.AlwaysEnabled);
+
+            bool hasRepair = Row.Finding.Repairs.Count > 0;
+            string quickFixLabel = hasRepair
+                ? LiveOpsHubStrings.ValidationDepthContextQuickFixMenuItem
+                : string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.ValidationDepthMenuDisabledReasonFormat,
+                    LiveOpsHubStrings.ValidationDepthContextQuickFixMenuItem, LiveOpsHubStrings.ValidationDepthContextQuickFixNoRepairReason);
+            menu.AppendAction(quickFixLabel, action => ActionRequested?.Invoke(Row),
+                hasRepair ? DropdownMenuAction.AlwaysEnabled : DropdownMenuAction.AlwaysDisabled);
+
+            menu.AppendAction(LiveOpsHubStrings.ValidationDepthContextCopyDescriptionMenuItem,
+                action => CopyDescriptionRequested?.Invoke(Row), DropdownMenuAction.AlwaysEnabled);
+
+            menu.AppendAction(string.Format(CultureInfo.InvariantCulture,
+                    LiveOpsHubStrings.ValidationDepthContextOpenRuleDocumentationFormat, Row.Finding.RuleId),
+                action => OpenRuleDocumentationRequested?.Invoke(Row), DropdownMenuAction.AlwaysEnabled);
+        }
+
+        private void PopulateFromEvent(ContextualMenuPopulateEvent populateEvent)
+        {
+            PopulateContextMenu(populateEvent.menu);
         }
 
         private void OnPointerDown(PointerDownEvent pointerEvent)
