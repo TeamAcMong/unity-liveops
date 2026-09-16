@@ -85,6 +85,15 @@ namespace DreamTech.LiveOps.Editor
         /// <summary>Vế 3: "đổi luật weekly-pass" — luật lặp đổi là id lần lặp đổi, người chơi mất tiến độ.</summary>
         internal static string PasteReplaceConfirmRulesFormat => LiveOpsHubStringCatalog.Text(nameof(PasteReplaceConfirmRulesFormat));
 
+        /// <summary>
+        /// Vế 4: "xoá luật sky-race" — luật chỉ có trong nháp. Tách khỏi vế "đổi luật" vì hộp cấp 1 tồn tại để nói thứ
+        /// Sẽ MẤT (bảng 7.0): gọi một luật sắp biến mất là "đổi" là nói nhẹ đi đúng cái nguy hiểm nhất (soát W5 P-10).
+        /// </summary>
+        internal static string PasteReplaceConfirmRulesRemovedFormat => LiveOpsHubStringCatalog.Text(nameof(PasteReplaceConfirmRulesRemovedFormat));
+
+        /// <summary>Vế 5: "thêm luật lucky-spin" — luật chỉ có trong bản dán; thêm không làm mất gì nhưng phải nói ra.</summary>
+        internal static string PasteReplaceConfirmRulesAddedFormat => LiveOpsHubStringCatalog.Text(nameof(PasteReplaceConfirmRulesAddedFormat));
+
         /// <summary>Vế thêm khi asset còn thay đổi chưa lưu ([SD2 §2.9] "nêu thêm số chưa lưu").</summary>
         internal static string PasteReplaceConfirmUnsavedFormat => LiveOpsHubStringCatalog.Text(nameof(PasteReplaceConfirmUnsavedFormat));
 
@@ -130,6 +139,12 @@ namespace DreamTech.LiveOps.Editor
 
         /// <summary>Thân hộp báo lỗi: "Không tạo được asset: &lt;đường dẫn&gt;" (V-14 bước 4).</summary>
         internal static string PasteImportCreateFailedFormat => LiveOpsHubStringCatalog.Text(nameof(PasteImportCreateFailedFormat));
+
+        /// <summary>
+        /// Thân hộp khi người dùng chọn nơi lưu NẰM NGOÀI project. Khác hẳn "bấm Huỷ": họ đã quyết định tạo, nên lý do
+        /// không tạo được phải in thành chữ (SPIKE-B SP-3) thay vì luồng tắt im lặng (soát W5 P-5).
+        /// </summary>
+        internal static string PasteImportOutsideProjectFormat => LiveOpsHubStringCatalog.Text(nameof(PasteImportOutsideProjectFormat));
 
         internal static string PasteImportCreateFailedCloseButton => LiveOpsHubStringCatalog.Text(nameof(PasteImportCreateFailedCloseButton));
     }

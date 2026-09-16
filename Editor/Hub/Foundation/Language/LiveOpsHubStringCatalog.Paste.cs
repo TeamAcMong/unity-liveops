@@ -74,6 +74,12 @@ namespace DreamTech.LiveOps.Editor
             table.Add(nameof(LiveOpsHubStrings.PasteReplaceConfirmRulesFormat),
                 vietnamese: "đổi luật {0}",
                 english: "changes rule {0}");
+            table.Add(nameof(LiveOpsHubStrings.PasteReplaceConfirmRulesRemovedFormat),
+                vietnamese: "xoá luật {0}",
+                english: "deletes rule {0}");
+            table.Add(nameof(LiveOpsHubStrings.PasteReplaceConfirmRulesAddedFormat),
+                vietnamese: "thêm luật {0}",
+                english: "adds rule {0}");
             table.Add(nameof(LiveOpsHubStrings.PasteReplaceConfirmUnsavedFormat),
                 vietnamese: "{0} còn {1} thay đổi chưa lưu — thay nháp là mất luôn",
                 english: "{0} still has {1} unsaved changes — replacing the draft loses them");
@@ -117,6 +123,9 @@ namespace DreamTech.LiveOps.Editor
             table.Add(nameof(LiveOpsHubStrings.PasteImportCreateFailedFormat),
                 vietnamese: "Không tạo được asset: {0}",
                 english: "Could not create the asset: {0}");
+            table.Add(nameof(LiveOpsHubStrings.PasteImportOutsideProjectFormat),
+                vietnamese: "Chỉ lưu được asset lịch trong thư mục Assets của project. Nơi bạn chọn nằm ngoài: {0}",
+                english: "The calendar asset can only be saved inside the project's Assets folder. The place you chose is outside it: {0}");
             table.Add(nameof(LiveOpsHubStrings.PasteImportCreateFailedCloseButton),
                 vietnamese: "Đóng",
                 english: "Close");

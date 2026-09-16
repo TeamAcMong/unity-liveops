@@ -36,6 +36,9 @@ namespace DreamTech.LiveOps.Editor.Tests
             Undo.ClearAll();
         }
 
+        /// <summary>Câu lý do của ngữ cảnh khoá — nội dung không quan trọng, điều quan trọng là màn in ĐÚNG câu của port.</summary>
+        private const string PasteUnavailableReason = "Luồng dán bị khoá trong ngữ cảnh test";
+
         /// <summary>
         /// Nút "Dán JSON đang chạy…" khi luồng dán bị khoá: nút khoá và lý do IN THÀNH CHỮ cạnh nút, lấy đúng câu của port —
         /// đường chính theo SPIKE-B SP-3, không test tooltip.
@@ -45,9 +48,6 @@ namespace DreamTech.LiveOps.Editor.Tests
         /// Màn vẫn phải vẽ đúng phía khoá, nên test này không mất đi cùng adapter tạm.
         /// </para>
         /// </summary>
-        /// <summary>Câu lý do của ngữ cảnh khoá — nội dung không quan trọng, điều quan trọng là màn in ĐÚNG câu của port.</summary>
-        private const string PasteUnavailableReason = "Luồng dán bị khoá trong ngữ cảnh test";
-
         [UnityTest]
         public IEnumerator PasteUnavailable_ButtonDisabledWithActionsReason()
         {

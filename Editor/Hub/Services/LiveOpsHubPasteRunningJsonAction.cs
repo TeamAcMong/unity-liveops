@@ -84,7 +84,7 @@ namespace DreamTech.LiveOps.Editor
         /// </summary>
         internal PasteRunningJsonPopover CreatePopover(PasteRunningJsonMode mode)
         {
-            return new PasteRunningJsonPopover(mode, RemoteConfigKeyOfSession(), _jsonReadBack, _layoutLoader,
+            return new PasteRunningJsonPopover(mode, RemoteConfigKeyOfSession(), _jsonReadBack, _layoutLoader, _format,
                 CountUndeclaredEventTypes, Submit);
         }
 
@@ -157,15 +157,13 @@ namespace DreamTech.LiveOps.Editor
         internal LiveOpsConfirmRequest BuildReplaceConfirmRequest(LiveEventCalendarDocument pastedDocument)
         {
             if (pastedDocument == null) throw new ArgumentNullException(nameof(pastedDocument));
-            List<string> replacedEventIds = new List<string>();
-            List<string> droppedEventIds = new List<string>();
-            List<string> changedRuleTypes = new List<string>();
-            CollectReplaceImpact(_session.Document, pastedDocument, replacedEventIds, droppedEventIds, changedRuleTypes);
-            int itemCount = replacedEventIds.Count + droppedEventIds.Count + changedRuleTypes.Count;
+            ReplaceImpact impact = CollectReplaceImpact(_session.Document, pastedDocument);
+            int itemCount = impact.ReplacedEventIds.Count + impact.DroppedEventIds.Count + impact.ChangedRuleTypes.Count
+                + impact.RemovedRuleTypes.Count + impact.AddedRuleTypes.Count;
             return new LiveOpsConfirmRequest.Builder()
                 .WithLevel(LiveOpsConfirmLevel.Level1)
                 .WithTitle(LiveOpsHubStrings.PasteReplaceConfirmTitle)
-                .WithBody(ReplaceConfirmBody(replacedEventIds, droppedEventIds, changedRuleTypes))
+                .WithBody(ReplaceConfirmBody(impact))
                 .WithKeyHint(LiveOpsHubStrings.PasteReplaceConfirmKeyHint)
                 .WithButtons(string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.PasteReplaceConfirmDestructiveFormat,
                         _format.Integer(itemCount)),
@@ -182,8 +180,20 @@ namespace DreamTech.LiveOps.Editor
             string chosenPath = _fileDialog.SaveFile(LiveOpsHubStrings.PasteImportSaveDialogTitle,
                 LiveOpsHubPaths.ImportCalendarAssetDirectory, LiveOpsHubPaths.ImportCalendarAssetDefaultName,
                 LiveOpsHubPaths.ImportCalendarAssetExtension);
-            string assetPath = ToProjectRelativeAssetPath(chosenPath);
-            if (assetPath.Length == 0) return;
+            // BẤM HUỲ và CHỌN RA NGOÀI PROJECT là hai việc khác nhau: huỷ là người dùng tự quyết định không tạo gì (im lặng
+            // mới đúng), còn chọn ra ngoài là họ ĐÃ quyết định tạo mà hub không làm được — lúc đó lý do LUÔN phải in thành chữ
+            // (SPIKE-B SP-3). Trộn hai nhánh làm một là một lần bấm "Lưu" không để lại dấu vết nào.
+            if (string.IsNullOrEmpty(chosenPath)) return;
+
+            string assetPath = ProjectRelativeAssetPathOf(chosenPath);
+            if (assetPath == null)
+            {
+                // Hộp KHÔNG phá huỷ nên vẫn là DisplayDialog (7.0), cùng hộp với ca "không tạo được asset" ở ngay dưới.
+                EditorUtility.DisplayDialog(LiveOpsHubStrings.PasteImportCreateFailedTitle,
+                    string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.PasteImportOutsideProjectFormat, chosenPath),
+                    LiveOpsHubStrings.PasteImportCreateFailedCloseButton);
+                return;
+            }
 
             if (!_session.TryCreateAsset(assetPath))
             {
@@ -295,18 +305,22 @@ namespace DreamTech.LiveOps.Editor
         }
 
         /// <summary>
-        /// Ba vế của thân hộp ([SD2 §2.9]): đợt bị ghi đè (nêu từng id), đợt bị xoá hẳn, luật lặp bị đổi. Vế nào rỗng thì
-        /// bỏ hẳn — "xoá 0 đợt" đọc như một cảnh báo về thứ không xảy ra.
+        /// Năm vế của thân hộp: đợt bị ghi đè (nêu từng id), đợt bị xoá hẳn, luật lặp bị đổi, luật lặp bị XOÁ, luật lặp
+        /// được THÊM. Vế nào rỗng thì bỏ hẳn — "xoá 0 đợt" đọc như một cảnh báo về thứ không xảy ra.
+        /// <para>
+        /// [SD2 §2.9] chỉ vẽ ca "đổi luật", nhưng hộp cấp 1 tồn tại để nói thứ Sẽ MẤT (bảng 7.0): gọi một luật sắp biến mất là
+        /// "đổi luật" là nói nhẹ đi đúng cái nguy hiểm nhất — cùng lý do đợt cố định đã tách "Thay …" với "xoá …" (soát W5 P-10).
+        /// </para>
         /// </summary>
-        private static void CollectReplaceImpact(LiveEventCalendarDocument current, LiveEventCalendarDocument pasted,
-            List<string> replacedEventIds, List<string> droppedEventIds, List<string> changedRuleTypes)
+        private static ReplaceImpact CollectReplaceImpact(LiveEventCalendarDocument current, LiveEventCalendarDocument pasted)
         {
+            ReplaceImpact impact = new ReplaceImpact();
             HashSet<string> pastedEventIds = new HashSet<string>(StringComparer.Ordinal);
             foreach (FixedLiveEventEntry entry in pasted.FixedEvents) pastedEventIds.Add(entry.EventId);
             foreach (FixedLiveEventEntry entry in current.FixedEvents)
             {
-                if (pastedEventIds.Contains(entry.EventId)) replacedEventIds.Add(entry.EventId);
-                else droppedEventIds.Add(entry.EventId);
+                if (pastedEventIds.Contains(entry.EventId)) impact.ReplacedEventIds.Add(entry.EventId);
+                else impact.DroppedEventIds.Add(entry.EventId);
             }
 
             Dictionary<string, string> pastedRuleTextByType = new Dictionary<string, string>(StringComparer.Ordinal);
@@ -316,32 +330,43 @@ namespace DreamTech.LiveOps.Editor
             {
                 seenRuleTypes.Add(rule.EventType);
                 string pastedText;
-                bool kept = pastedRuleTextByType.TryGetValue(rule.EventType, out pastedText);
-                if (!kept || !string.Equals(pastedText, rule.CanonicalText, StringComparison.Ordinal)) changedRuleTypes.Add(rule.EventType);
+                if (!pastedRuleTextByType.TryGetValue(rule.EventType, out pastedText)) impact.RemovedRuleTypes.Add(rule.EventType);
+                else if (!string.Equals(pastedText, rule.CanonicalText, StringComparison.Ordinal)) impact.ChangedRuleTypes.Add(rule.EventType);
             }
             foreach (RecurringLiveEventRule rule in pasted.RecurringRules)
             {
-                if (!seenRuleTypes.Contains(rule.EventType)) changedRuleTypes.Add(rule.EventType);
+                if (!seenRuleTypes.Contains(rule.EventType)) impact.AddedRuleTypes.Add(rule.EventType);
             }
+            return impact;
         }
 
-        private string ReplaceConfirmBody(List<string> replacedEventIds, List<string> droppedEventIds, List<string> changedRuleTypes)
+        private string ReplaceConfirmBody(ReplaceImpact impact)
         {
             List<string> clauses = new List<string>();
-            if (replacedEventIds.Count > 0)
+            if (impact.ReplacedEventIds.Count > 0)
             {
                 clauses.Add(string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.PasteReplaceConfirmReplacedFormat,
-                    _format.Integer(replacedEventIds.Count), string.Join(IdSeparator, replacedEventIds.ToArray())));
+                    _format.Integer(impact.ReplacedEventIds.Count), string.Join(IdSeparator, impact.ReplacedEventIds.ToArray())));
             }
-            if (droppedEventIds.Count > 0)
+            if (impact.DroppedEventIds.Count > 0)
             {
                 clauses.Add(string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.PasteReplaceConfirmDroppedFormat,
-                    string.Join(IdSeparator, droppedEventIds.ToArray())));
+                    string.Join(IdSeparator, impact.DroppedEventIds.ToArray())));
             }
-            if (changedRuleTypes.Count > 0)
+            if (impact.ChangedRuleTypes.Count > 0)
             {
                 clauses.Add(string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.PasteReplaceConfirmRulesFormat,
-                    string.Join(IdSeparator, changedRuleTypes.ToArray())));
+                    string.Join(IdSeparator, impact.ChangedRuleTypes.ToArray())));
+            }
+            if (impact.RemovedRuleTypes.Count > 0)
+            {
+                clauses.Add(string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.PasteReplaceConfirmRulesRemovedFormat,
+                    string.Join(IdSeparator, impact.RemovedRuleTypes.ToArray())));
+            }
+            if (impact.AddedRuleTypes.Count > 0)
+            {
+                clauses.Add(string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.PasteReplaceConfirmRulesAddedFormat,
+                    string.Join(IdSeparator, impact.AddedRuleTypes.ToArray())));
             }
             if (_session.HasUnsavedChanges)
             {
@@ -389,9 +414,13 @@ namespace DreamTech.LiveOps.Editor
         /// <summary>
         /// Hộp lưu của Editor trả đường dẫn TUYỆT ĐỐI, còn <see cref="LiveOpsHubCalendarSession.TryCreateAsset"/> chỉ nhận
         /// đường dẫn trong <c>Assets/</c>. Quy đổi ở đây chứ không sửa port: adapter Manual của test trả thẳng đường dẫn
-        /// dự án, và cả hai đường phải về cùng một dạng trước khi tới phiên. Ngoài project = "" (không tạo gì).
+        /// dự án, và cả hai đường phải về cùng một dạng trước khi tới phiên.
+        /// <para>
+        /// <b>null = ngoài project</b> (Unity không nạp được asset ở đó — luồng phải BÁO), khác hẳn với chuỗi rỗng của "người dùng
+        /// bấm Huỷ". Trả cùng một giá trị cho hai ca là cách làm một nhánh hỏng thành vô hình (soát W5 P-5).
+        /// </para>
         /// </summary>
-        private static string ToProjectRelativeAssetPath(string chosenPath)
+        internal static string ProjectRelativeAssetPathOf(string chosenPath)
         {
             if (string.IsNullOrEmpty(chosenPath)) return string.Empty;
             string normalized = chosenPath.Replace('\\', '/');
@@ -402,8 +431,27 @@ namespace DreamTech.LiveOps.Editor
             {
                 return "Assets/" + normalized.Substring(dataPath.Length + 1);
             }
-            // Người dùng chọn ra ngoài project: Unity không nạp được asset ở đó, báo bằng đường "không tạo gì" thay vì tạo file chết.
-            return string.Empty;
+            return null;
+        }
+
+        /// <summary>
+        /// Năm danh sách của một lần thay nháp — gộp thành một kiểu thay vì năm tham số <c>out</c>: thứ tự năm danh sách
+        /// giống nhau rất dễ tráo cho nhau mà trình biên dịch không nói gì.
+        /// </summary>
+        private sealed class ReplaceImpact
+        {
+            /// <summary>Đợt trùng id giữa nháp và bản dán — nội dung bị ghi đè, id thì còn.</summary>
+            public List<string> ReplacedEventIds { get; } = new List<string>();
+
+            /// <summary>Đợt chỉ có trong nháp — thay nháp là mất hẳn.</summary>
+            public List<string> DroppedEventIds { get; } = new List<string>();
+
+            public List<string> ChangedRuleTypes { get; } = new List<string>();
+
+            /// <summary>Luật chỉ có trong nháp — vế nguy hiểm nhất của hộp, không được gọi chung là "đổi luật".</summary>
+            public List<string> RemovedRuleTypes { get; } = new List<string>();
+
+            public List<string> AddedRuleTypes { get; } = new List<string>();
         }
 
         /// <summary>Tên file asset của đường dẫn — dùng trong câu Undo và toast khi phiên chưa kịp nạp xong.</summary>
