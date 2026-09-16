@@ -1,0 +1,251 @@
+/*
+ * EventTypesSection.uss — màn Loại event (7.2, Hình 10): bảng loại | inspector 300px, footer bảng, dòng loại chưa khai báo
+ * (Hình 10b) và dãy tám ô màu 18×18 của inspector.
+ *
+ * Số đo là hợp đồng với ảnh chụp (inspector 300 · footer 10px opacity 0,82 · ô màu 18×18 chứa swatch 12×12 · swatch bảng 9×9).
+ * UI Toolkit tính width/height GỒM viền và padding (border-box), nên viền 1px của inspector nằm trong 300px.
+ *
+ * Luật: không màu trần (token theme hoặc --unity-colors-*), không gap/:last-child/@media — khoảng cách là margin của phần tử
+ * đứng sau; cửa sổ hẹp dùng class --medium/--narrow/--compact do LiveOpsHubBreakpoints bật trên root.
+ */
+
+.liveops-hub-event-types-body {
+    flex-grow: 1;
+    flex-direction: column;
+}
+
+.liveops-hub-event-types-hidden {
+    display: none;
+}
+
+/* ---------------------------------------------------------------- Bố cục: bảng flex 1 | inspector 300px [SD1 §2.1] */
+
+.liveops-hub-event-types-content {
+    flex-grow: 1;
+    flex-direction: row;
+}
+
+.liveops-hub-event-types-table-column {
+    flex-grow: 1;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.liveops-hub-event-types-table-host {
+    flex-grow: 1;
+    min-height: 60px;
+}
+
+.liveops-hub-event-types-table {
+    flex-grow: 1;
+}
+
+/* Cửa sổ hẹp: inspector xuống 240px thay vì đẩy bảng còn vài chục pixel (bảng mới là thứ người dùng đọc trước). */
+.liveops-hub-event-types-inspector {
+    width: 300px;
+    flex-shrink: 0;
+    flex-direction: column;
+    padding: 6px 4px;
+    border-left-width: 1px;
+    border-left-color: var(--unity-colors-window-border);
+}
+
+.liveops-hub--narrow .liveops-hub-event-types-inspector {
+    width: 240px;
+}
+
+/* ---------------------------------------------------------------- Nút chính "Thêm loại" của section header [SD1 §2.1] */
+
+/*
+ * Button LÀ một TextElement: `Button.text` được chính nút vẽ trên toàn bộ hộp nội dung, nên Image con chỉ chồng lên chữ chứ
+ * không đẩy chữ sang phải. Nút này bỏ `text`, xếp Image rồi Label thành hàng — [FD §2.12]: icon 14×14, margin-left −2,
+ * margin-right 4, flex-shrink 0.
+ */
+.liveops-hub-event-types-add-button {
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+}
+
+.liveops-hub-event-types-add-button-icon {
+    margin-left: -2px;
+    margin-right: 4px;
+}
+
+.liveops-hub-event-types-add-button-label {
+    margin: 0;
+    padding: 0;
+}
+
+/* ---------------------------------------------------------------- Bảng */
+
+.liveops-hub-event-types-cell {
+    flex-grow: 1;
+    margin: 0;
+    padding: 0 4px;
+    overflow: hidden;
+    -unity-text-align: middle-left;
+}
+
+.liveops-hub-event-types-cell--right {
+    -unity-text-align: middle-right;
+}
+
+.liveops-hub-event-types-cell--center {
+    align-items: center;
+    justify-content: center;
+}
+
+/* Hàng loại chưa khai báo (Hình 10b): mờ 0,7 để đọc được mà vẫn khác hẳn hàng thật, KHÔNG ẩn — hàng này là thứ phải xử lý. */
+.liveops-hub-event-types-row--undeclared {
+    opacity: 0.7;
+}
+
+/*
+ * Swatch rỗng viền quiet: loại chưa khai báo thì hub chưa biết màu nào, tô đại một màu là nói dối. Không đặt background-color —
+ * .liveops-hub-swatch không có nền sẵn, hàng chưa khai báo chỉ KHÔNG gắn class liveops-hub-event-color-N nào. Thiết kế vẽ viền
+ * đứt, USS không có border-style nên viền liền màu quiet là bản gần nhất ([API §12]: không có dashed border trong UI Toolkit).
+ */
+.liveops-hub-event-types-swatch--undeclared {
+    border-width: 1px;
+    border-color: var(--liveops-hub-color-quiet);
+}
+
+.liveops-hub-event-types-footer {
+    flex-shrink: 0;
+    margin: 0;
+    padding: 6px 8px;
+    font-size: 10px;
+    opacity: 0.82;
+    white-space: normal;
+    border-top-width: 1px;
+    border-top-color: var(--unity-colors-window-border);
+}
+
+/* ---------------------------------------------------------------- Dòng Blocked của loại chưa khai báo [SD1 §2.2] */
+
+/*
+ * Dải là CỘT: BuildUnknownBar thêm một hàng cho MỖI loại chưa khai báo, mà bản dán có thể có hai loại lạ cùng lúc. Để dải là
+ * hàng ngang thì hai hàng nằm cạnh nhau và bị bóp — và hàng con không có flex-grow nên nút "Khai báo" dừng ngay sau chữ thay
+ * vì ra mép phải như [SD1 §2.2] vẽ.
+ */
+.liveops-hub-event-types-unknown-bar {
+    flex-shrink: 0;
+    flex-direction: column;
+    padding: 6px;
+    border-top-width: 1px;
+    border-top-color: var(--unity-colors-window-border);
+}
+
+.liveops-hub-event-types-unknown-row {
+    flex-direction: row;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+/* Hàng đầu sát viền trên của dải (đã có padding 6); từ hàng thứ hai mới cần khoảng cách — USS không có :first-child. */
+.liveops-hub-event-types-unknown-row--stacked {
+    margin-top: 4px;
+}
+
+/* Chữ giãn đẩy nút "Khai báo" sang mép phải; 8px là khoảng cách gap của thiết kế, USS không có gap nên là margin. */
+.liveops-hub-event-types-unknown-text {
+    flex-grow: 1;
+    margin: 0 8px;
+    padding: 0;
+    white-space: normal;
+}
+
+.liveops-hub-event-types-reference-card {
+    flex-shrink: 0;
+    margin: 0 6px 6px 6px;
+}
+
+.liveops-hub-event-types-reference-text {
+    flex-direction: column;
+    flex-grow: 1;
+    padding: 4px 0;
+    min-width: 0;
+}
+
+/* Icon err 16px của hàng phát hiện ([FD §2.12]: hàng phát hiện dùng cỡ 16); 6px là khoảng cách tới cột chữ. */
+.liveops-hub-event-types-reference-icon {
+    margin-right: 6px;
+}
+
+/* ---------------------------------------------------------------- Inspector */
+
+.liveops-hub-event-types-inspector-title {
+    flex-direction: row;
+    align-items: center;
+    height: 20px;
+    flex-shrink: 0;
+    margin-bottom: 4px;
+}
+
+.liveops-hub-event-types-field {
+    flex-direction: row;
+    align-items: center;
+    margin-top: 4px;
+}
+
+.liveops-hub-event-types-inspector-title-text {
+    flex-grow: 1;
+    margin: 0 4px;
+    padding: 0;
+    -unity-font-style: bold;
+    overflow: hidden;
+}
+
+.liveops-hub-event-types-field-value {
+    flex-grow: 1;
+    margin: 0;
+    min-width: 0;
+}
+
+.liveops-hub-event-types-field-label {
+    width: 99px;
+    flex-shrink: 0;
+    margin: 0;
+    padding: 0 4px 0 0;
+    overflow: hidden;
+}
+
+/* Dòng phụ thẳng cột giá trị (nhãn 99 + padding 4 = 103) — cùng mốc với nút "Về màu theo băm" [SD1 §2.1]. */
+.liveops-hub-event-types-field-sub {
+    margin: 2px 0 0 103px;
+    padding: 0;
+    font-size: 10px;
+    white-space: normal;
+}
+
+.liveops-hub-event-types-color-slots {
+    flex-direction: row;
+    flex-grow: 1;
+}
+
+.liveops-hub-event-types-color-slot {
+    width: 18px;
+    height: 18px;
+    margin: 0;
+    padding: 0;
+    align-items: center;
+    justify-content: center;
+}
+
+.liveops-hub-event-types-color-swatch {
+    width: 12px;
+    height: 12px;
+}
+
+/* Gợi ý ô trống khi còn trùng màu: chỉ viền, KHÔNG tự ghi màu (PD Q1 [SD1 Q1] — người dùng bấm mới ghi). */
+.liveops-hub-event-types-color-slot--suggested {
+    border-width: 1px;
+    border-color: var(--liveops-hub-color-focus);
+}
+
+.liveops-hub-event-types-usage-card {
+    margin: 10px 3px 0 3px;
+    padding: 6px 8px;
+    flex-shrink: 0;
+}
