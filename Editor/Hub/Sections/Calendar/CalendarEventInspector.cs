@@ -19,6 +19,10 @@ namespace DreamTech.LiveOps.Editor
         private readonly VisualElement _titleHost;
         private readonly VisualElement _bodyHost;
 
+        // PD-14: nút đóng dùng icon "clear" — winbtn_win_close NULL ở 6000.6.
+        private const string CloseIconName = "clear";
+        private const int CloseIconSize = 12;
+
         private CalendarInspectorModel _model;
 
         public CalendarEventInspector(LiveOpsHubServices services, CalendarTimelinePresenter presenter, VisualElement titleHost,
@@ -35,6 +39,9 @@ namespace DreamTech.LiveOps.Editor
 
         /// <summary>Bấm "Mở luật" ở trạng thái (b) hoặc link "Sửa ở Loại event".</summary>
         public event Action<LiveOpsHubNavigation> NavigationRequested;
+
+        /// <summary>Bấm nút đóng của drawer (chỉ có nghĩa ở <c>--medium</c>) — màn giấu inspector [SD1 §3.9].</summary>
+        public event Action CloseDrawerRequested;
 
         /// <summary>
         /// (mục 12 I-4) Nút đề xuất trong "Vấn đề (n)" mở popover Đề xuất của màn Kiểm lịch với lựa chọn vừa bấm CHỌN SẴN. Section
@@ -94,11 +101,30 @@ namespace DreamTech.LiveOps.Editor
             id.tooltip = _model.ChangedTooltip;
             _titleHost.Add(id);
 
-            if (_model.PhaseTagText.Length == 0) return;
-            Label phase = new Label(_model.PhaseTagText);
-            phase.AddToClassList(LiveOpsHubClassNames.Tag);
-            LiveOpsHubStyle.SetPhase(phase, _model.Phase, false);
-            _titleHost.Add(phase);
+            if (_model.PhaseTagText.Length > 0)
+            {
+                Label phase = new Label(_model.PhaseTagText);
+                phase.AddToClassList(LiveOpsHubClassNames.Tag);
+                LiveOpsHubStyle.SetPhase(phase, _model.Phase, false);
+                _titleHost.Add(phase);
+            }
+            _titleHost.Add(BuildCloseDrawerButton());
+        }
+
+        /// <summary>
+        /// Nút đóng của drawer [SD1 §3.9]. Luôn có trong cây nhưng USS chỉ hiện nó ở <c>--medium</c>: ở cửa sổ rộng inspector là
+        /// một cột cố định, không đóng được, nên một nút đóng ở đó vừa vô nghĩa vừa làm mọi ảnh Hình 1 khác đi.
+        /// </summary>
+        private VisualElement BuildCloseDrawerButton()
+        {
+            Button close = new Button(() => CloseDrawerRequested?.Invoke())
+            {
+                tooltip = LiveOpsHubStrings.CalendarDepthDrawerCloseTooltip,
+                name = LiveOpsHubPaths.CalendarDepthElementNames.InspectorDrawerClose,
+            };
+            close.AddToClassList(LiveOpsHubClassNames.CalendarDepthDrawerClose);
+            close.Add(LiveOpsHubIcons.CreateImage(CloseIconName, CloseIconSize));
+            return close;
         }
 
         private void BuildNothingSelected()

@@ -75,6 +75,9 @@ namespace DreamTech.LiveOps.Editor
         /// <summary>"1/5" — thứ tự phát hiện đang xem trên TỔNG phát hiện của cả lịch, khớp số của màn Kiểm lịch.</summary>
         internal static string CalendarDepthHoverCounterFormat => LiveOpsHubStringCatalog.Text(nameof(CalendarDepthHoverCounterFormat));
 
+        /// <summary>Tooltip nút đóng drawer — nêu luôn phím, vì Esc là đường nhanh hơn với tay đang ở bàn phím [SD1 §3.9].</summary>
+        internal static string CalendarDepthDrawerCloseTooltip => LiveOpsHubStringCatalog.Text(nameof(CalendarDepthDrawerCloseTooltip));
+
         // ----- Menu chuột phải [FD §3.9] -----
 
         internal static string CalendarDepthMenuEditInInspector => LiveOpsHubStringCatalog.Text(nameof(CalendarDepthMenuEditInInspector));

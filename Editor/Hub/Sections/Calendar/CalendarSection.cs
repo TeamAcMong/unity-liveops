@@ -334,6 +334,7 @@ namespace DreamTech.LiveOps.Editor
             _inspector.AddEventRequested += OpenAddEventPopover;
             _inspector.NavigationRequested += RaiseNavigation;
             _inspector.ProposalRequested = OpenProposalPopover;
+            _inspector.CloseDrawerRequested += CloseInspectorDrawer;
         }
 
         // ============================================================================================================ vẽ lại
@@ -940,6 +941,15 @@ namespace DreamTech.LiveOps.Editor
             AddEventFlowModel flow = AddEventFlowModel.CreateAt(_services.Session, _services.Clock.UtcNow, entry.EventType,
                 targetStartUtc, durationHours).Next();
             ShowAddEventPopover(flow);
+        }
+
+        /// <summary>
+        /// Đóng drawer [SD1 §3.9]: bỏ chọn đợt. Drawer "mở khi chọn", nên cách đóng thật thà nhất là bỏ lựa chọn — giấu riêng
+        /// element sẽ để lại một đợt đang chọn trên trục mà không pane nào nói nó là đợt nào.
+        /// </summary>
+        private void CloseInspectorDrawer()
+        {
+            _presenter.SetSelectedBarKey(string.Empty);
         }
 
         private void FrameBar(LiveOpsTimelineBarModel bar)
