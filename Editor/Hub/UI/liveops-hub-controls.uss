@@ -99,6 +99,19 @@
     flex-shrink: 0;
 }
 
+/* Lý do tab bị khoá in thành chữ ngay bên trái tab (SPIKE-B SP-3) — cùng số đo với .liveops-hub-button-reason của nút bị chặn.
+   Ẩn bằng display:none khi tab mở để không chiếm chỗ; USS không có :disabled cho element cha nên class do C# bật. */
+.liveops-hub-tab-strip__reason {
+    display: none;
+    font-size: 10px;
+    margin-right: 4px;
+    -unity-text-align: middle-right;
+}
+
+.liveops-hub-tab-strip__slot--blocked > .liveops-hub-tab-strip__reason {
+    display: flex;
+}
+
 /* ---------------------------------------------------------------- Thanh chu kỳ — cao 14, viền, bo 2; con chia bằng flex-grow (C#) */
 
 .liveops-hub-cycle-bar {
