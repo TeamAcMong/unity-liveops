@@ -85,6 +85,12 @@ namespace DreamTech.LiveOps.Editor
             get { return _model; }
         }
 
+        /// <summary>Bảng loại của lần dựng gần nhất; null khi chưa dựng view — test đọc thứ tự hàng đang hiện (V-12).</summary>
+        internal EventTypeTable Table
+        {
+            get { return _table; }
+        }
+
         public SectionHealth GetHealth()
         {
             // Nguồn health chính thức của mọi màn là LiveOpsHubFindingRouting (6.4): nó lo cả "chưa có asset" và "kết quả cũ",
