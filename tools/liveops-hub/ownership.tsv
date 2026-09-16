@@ -152,7 +152,7 @@ file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/Language/LiveOpsHubStr
 file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/Language/LiveOpsHubStringTable.cs	G-I18N	G-I18N tạo — bảng chữ một vùng, hai ngôn ngữ
 file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubClassNames.Calendar.cs	G-CALENDAR	G-CALENDAR vùng Calendar
 file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubClassNames.CalendarDepth.cs	G-CALENDAR-DEPTH	G-CALENDAR-DEPTH vùng CalendarDepth
-file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubClassNames.Controls.cs	G-CONTROLS	G-CONTROLS vùng Controls
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubClassNames.Controls.cs	G-CONTROLS,G-SHELLPOLISH	G-CONTROLS vùng Controls; G-SHELLPOLISH vùng Controls (V-34 nợ SP-3: class nhãn lý do cạnh tab — trường region Controls classnames đã ghi G-SHELLPOLISH, dòng file này bị sót)
 file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubClassNames.EventTypes.cs	G-EVENTTYPES	G-EVENTTYPES vùng EventTypes
 file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubClassNames.Export.cs	G-EXPORT	G-EXPORT vùng Export
 file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubClassNames.Feedback.cs	G-FEEDBACK	G-FEEDBACK vùng Feedback
@@ -600,7 +600,7 @@ file	tools/liveops-hub/lint-samples/**	G-TOOLS,G-I18N	G-TOOLS tạo — bộ m�
 file	tools/liveops-hub/make-temp-project-2022.sh	G-TOOLS	G-TOOLS tạo
 file	tools/liveops-hub/make-worktree.sh	G-TOOLS	G-TOOLS tạo
 file	tools/liveops-hub/measure-capture.py	G-TOOLS	G-TOOLS tạo
-file	tools/liveops-hub/ownership.tsv	G-TOOLS,G-FIX-W2-1,G-I18N,G-HOSTUI,G-INSPECTOR,G-FIX-W4-1,G-FIX-W4-2	G-TOOLS tạo; G-FIX-W2-1 ghi V-21 (phụ thuộc cùng đợt W2, quyền ghi D-3/CC-SHELL-1/2/5/CC-VALB-1/5); G-I18N sửa (ngôn ngữ, W3.5); G-HOSTUI ghi ngoại lệ quyền ghi liveops-hub-feedback.uss (H-2 của soát 16/9); G-INSPECTOR thêm một dòng file USS của chính thư mục mình (vá review F-4, tự duyệt theo uỷ quyền user 15/9); G-FIX-W4-1/G-FIX-W4-2 ghi quyền sửa của hai gói sửa ở cổng W4 (phiếu D-1…D-6, CC-HOSTUI-4)
+file	tools/liveops-hub/ownership.tsv	G-TOOLS,G-FIX-W2-1,G-I18N,G-HOSTUI,G-INSPECTOR,G-FIX-W4-1,G-FIX-W4-2,G-SHELLPOLISH	G-TOOLS tạo; G-FIX-W2-1 ghi V-21 (phụ thuộc cùng đợt W2, quyền ghi D-3/CC-SHELL-1/2/5/CC-VALB-1/5); G-I18N sửa (ngôn ngữ, W3.5); G-HOSTUI ghi ngoại lệ quyền ghi liveops-hub-feedback.uss (H-2 của soát 16/9); G-INSPECTOR thêm một dòng file USS của chính thư mục mình (vá review F-4, tự duyệt theo uỷ quyền user 15/9); G-FIX-W4-1/G-FIX-W4-2 ghi quyền sửa của hai gói sửa ở cổng W4 (phiếu D-1…D-6, CC-HOSTUI-4); G-SHELLPOLISH thêm dòng file LiveOpsHubClassNames.Controls.cs bị sót ở V-34 (region Controls classnames đã ghi gói)
 file	tools/liveops-hub/run-editmode.sh	G-TOOLS	G-TOOLS tạo
 file	tools/liveops-hub/run-playmode.sh	G-TOOLS	G-TOOLS tạo
 file	tools/liveops-hub/unity-slot.sh	G-TOOLS	G-TOOLS tạo
