@@ -59,7 +59,7 @@ namespace DreamTech.LiveOps.Editor
 
             table.Add(nameof(LiveOpsHubStrings.EventTypesFooterFormat),
                 vietnamese: "{0} loại · config key của loại được ghi vào mọi đợt và mục recurring không tự khai khi Xuất JSON",
-                english: "{0} types · the type's config key is written into every event and recurring entry that declares none when exporting JSON");
+                english: "{0} {0|type|types} · the type's config key is written into every event and recurring entry that declares none when exporting JSON");
 
             table.Add(nameof(LiveOpsHubStrings.EventTypesColorSlotNumberFormat),
                 vietnamese: "ô {0}",
@@ -127,7 +127,7 @@ namespace DreamTech.LiveOps.Editor
                 english: "Where it is used");
             table.Add(nameof(LiveOpsHubStrings.EventTypesUsageFixedCountFormat),
                 vietnamese: "{0} đợt cố định",
-                english: "{0} fixed events");
+                english: "{0} fixed {0|event|events}");
             table.Add(nameof(LiveOpsHubStrings.EventTypesUsageRecurringRule),
                 vietnamese: "1 luật lặp",
                 english: "1 recurring rule");
@@ -143,7 +143,7 @@ namespace DreamTech.LiveOps.Editor
 
             table.Add(nameof(LiveOpsHubStrings.EventTypesUnknownTypeInDraftFormat),
                 vietnamese: "{0}: có {1} mục trong lịch nháp nhưng chưa có loại — game sẽ bỏ",
-                english: "{0}: {1} entries in the draft calendar but no such type — the game will drop them");
+                english: "{0}: {1} {1|entry|entries} in the draft calendar but no such type — the game will drop them");
             // (V-8) Một câu người dùng đọc = một chữ. Câu này trùng TỪNG CHỮ với FindingUnknownTypeRemoteConsequenceFormat
             // (vùng Findings, có trước gói này) nhưng phải khai riêng: dòng dưới bảng dựng từ tài liệu + bản dán và phải đúng
             // NGAY CẢ KHI chưa kiểm lần nào, lúc đó không có LiveEventCalendarFinding nào để gọi LiveOpsFindingText. Bản tiếng
@@ -151,7 +151,7 @@ namespace DreamTech.LiveOps.Editor
             // khoá hai khoá bằng nhau ở CẢ HAI ngôn ngữ để sửa một bên là bên kia đỏ.
             table.Add(nameof(LiveOpsHubStrings.EventTypesUnknownTypeInRemoteFormat),
                 vietnamese: "{0}: có {1} đợt trong JSON đã dán nhưng chưa có loại — game sẽ bỏ",
-                english: "{0}: {1} events in the pasted JSON have no declared type — the game will drop them");
+                english: "{0}: {1} {1|event|events} in the pasted JSON have no declared type — the game will drop them");
             table.Add(nameof(LiveOpsHubStrings.EventTypesDeclareButton),
                 vietnamese: "Khai báo",
                 english: "Declare");
@@ -164,13 +164,13 @@ namespace DreamTech.LiveOps.Editor
                 english: "Delete type");
             table.Add(nameof(LiveOpsHubStrings.EventTypesDeleteMenuItemInUseFormat),
                 vietnamese: "Xoá loại (còn {0} đợt)",
-                english: "Delete type ({0} events left)");
+                english: "Delete type ({0} {0|event|events} left)");
             table.Add(nameof(LiveOpsHubStrings.EventTypesDeleteInUseReasonFormat),
                 vietnamese: "Còn {0} đợt hoặc luật dùng loại này — chuyển hoặc xoá chúng trước",
-                english: "{0} events or rules still use this type — move or delete them first");
+                english: "{0} {0|event or rule still uses|events or rules still use} this type — move or delete them first");
             table.Add(nameof(LiveOpsHubStrings.EventTypesTypeIdLockedReasonFormat),
                 vietnamese: "Loại đang có {0} đợt hoặc luật — id khoá để không đổi id của chúng",
-                english: "The type has {0} events or rules — the id is locked so theirs do not change");
+                english: "The type has {0} {0|event or rule|events or rules} — the id is locked so theirs do not change");
 
             table.Add(nameof(LiveOpsHubStrings.EventTypesAddPopoverTitle),
                 vietnamese: "Thêm loại",

@@ -122,7 +122,7 @@ namespace DreamTech.LiveOps.Editor
         /// <summary>Tên Undo group mà lần Áp hiện tại sẽ tạo — dòng 10px của card in đúng chuỗi này, không in một bản gần giống.</summary>
         internal string UndoGroupName
         {
-            get { return string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.ValidationSafeRepairUndoFormat, SelectedCount); }
+            get { return LiveOpsHubStringCatalog.Format(nameof(LiveOpsHubStrings.ValidationSafeRepairUndoFormat), SelectedCount); }
         }
 
         private void BuildRows()
@@ -188,7 +188,7 @@ namespace DreamTech.LiveOps.Editor
             int selectedCount = SelectedCount;
             _title.text = string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.ValidationDepthBulkPreviewTitleFormat, selectedCount);
             _undoLine.text = string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.ValidationDepthBulkPreviewUndoFormat, UndoGroupName);
-            _applySlot.Button.text = string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.ValidationDepthBulkPreviewApplyFormat, selectedCount);
+            _applySlot.Button.text = LiveOpsHubStringCatalog.Format(nameof(LiveOpsHubStrings.ValidationDepthBulkPreviewApplyFormat), selectedCount);
             // SPIKE-B SP-3: lý do nút bị khoá LUÔN in thành chữ cạnh nút, tooltip chỉ phụ.
             _applySlot.SetEnabledWithReason(selectedCount > 0, selectedCount > 0 ? string.Empty : LiveOpsHubStrings.ValidationDepthBulkPreviewNothingReason);
             SelectedCountChanged?.Invoke(selectedCount);

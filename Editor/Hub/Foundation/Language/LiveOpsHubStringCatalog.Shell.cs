@@ -89,10 +89,10 @@ namespace DreamTech.LiveOps.Editor
                 english: "Stopped at {0}");
             table.Add(nameof(LiveOpsHubStrings.ShellRailBlockerDroppedDetailFormat),
                 vietnamese: "{0} đợt sẽ bị game bỏ khi đọc lịch.",
-                english: "The game will drop {0} events when it reads the calendar.");
+                english: "The game will drop {0} {0|event|events} when it reads the calendar.");
             table.Add(nameof(LiveOpsHubStrings.ShellRailBlockerStaleDetailFormat),
                 vietnamese: "Kết quả cũ có {0} đợt bị bỏ — F5 để kiểm lại.",
-                english: "The stale result had {0} events dropped — press F5 to check again.");
+                english: "The stale result had {0} {0|event|events} dropped — press F5 to check again.");
             table.Add(nameof(LiveOpsHubStrings.ShellRailPinTooltip),
                 vietnamese: "Ghim mở rail",
                 english: "Pin the rail open");
@@ -102,7 +102,7 @@ namespace DreamTech.LiveOps.Editor
 
             table.Add(nameof(LiveOpsHubStrings.ShellRailHealthCountMismatchFormat),
                 vietnamese: "Rail nhận {0} health cho {1} màn — mỗi màn đúng một health theo cùng thứ tự registry.",
-                english: "The rail got {0} health values for {1} sections — one health per section, in registry order.");
+                english: "The rail got {0} health {0|value|values} for {1} {1|section|sections} — one health per section, in registry order.");
 
             table.Add(nameof(LiveOpsHubStrings.ShellHealthThrewReason),
                 vietnamese: "Kiểm của màn này ném lỗi — xem Console",
@@ -202,7 +202,7 @@ namespace DreamTech.LiveOps.Editor
                 english: "Open Export JSON to review each change against the published copy.");
             table.Add(nameof(LiveOpsHubStrings.ShellChipDiffersFromPublishedFormat),
                 vietnamese: "Khác bản đã đăng · {0} thay đổi",
-                english: "Differs from published · {0} changes");
+                english: "Differs from published · {0} {0|change|changes}");
             table.Add(nameof(LiveOpsHubStrings.ShellChipNeverPublished),
                 vietnamese: "Chưa có dấu đã đăng",
                 english: "No publish stamp yet");
@@ -216,7 +216,7 @@ namespace DreamTech.LiveOps.Editor
             // Status bar 20 px (G-HOSTUI, W4)
             table.Add(nameof(LiveOpsHubStrings.ShellStatusCheckedFormat),
                 vietnamese: "Kiểm lúc {0} UTC · {1} luật · {2} phát hiện · lịch chưa đổi từ lần kiểm",
-                english: "Checked at {0} UTC · {1} rules · {2} findings · calendar unchanged since the check");
+                english: "Checked at {0} UTC · {1} {1|rule|rules} · {2} {2|finding|findings} · calendar unchanged since the check");
             table.Add(nameof(LiveOpsHubStrings.ShellStatusCheckingFormat),
                 vietnamese: "Đang kiểm {0}/{1} luật…",
                 english: "Checking rule {0}/{1}…");
@@ -269,10 +269,10 @@ namespace DreamTech.LiveOps.Editor
 
             table.Add(nameof(LiveOpsHubStrings.ShellDiskBannerHeadFormat),
                 vietnamese: "{0} trên đĩa đổi lúc {1}, khác bản trong Editor ở {2} mục ({3}).",
-                english: "{0} changed on disk at {1}; it differs from the editor copy in {2} items ({3}).");
+                english: "{0} changed on disk at {1}; it differs from the editor copy in {2} {2|item|items} ({3}).");
             table.Add(nameof(LiveOpsHubStrings.ShellDiskBannerHeadWithoutItemsFormat),
                 vietnamese: "{0} trên đĩa đổi lúc {1}, khác bản trong Editor ở {2} mục.",
-                english: "{0} changed on disk at {1}; it differs from the editor copy in {2} items.");
+                english: "{0} changed on disk at {1}; it differs from the editor copy in {2} {2|item|items}.");
             table.Add(nameof(LiveOpsHubStrings.ShellDiskBannerReloadLineFormat),
                 vietnamese: "Tải lại: mất {0} thay đổi chưa lưu ({1}).",
                 english: "Reload: loses {0} unsaved changes ({1}).");
@@ -281,7 +281,7 @@ namespace DreamTech.LiveOps.Editor
                 english: "Reload: loses {0} unsaved changes.");
             table.Add(nameof(LiveOpsHubStrings.ShellDiskBannerKeepLineFormat),
                 vietnamese: "Giữ bản trong Editor: lần lưu tới ghi đè {0} mục trên đĩa.",
-                english: "Keep the editor copy: the next save overwrites {0} items on disk.");
+                english: "Keep the editor copy: the next save overwrites {0} {0|item|items} on disk.");
             table.Add(nameof(LiveOpsHubStrings.ShellDiskBannerRuleItemFormat),
                 vietnamese: "luật {0}",
                 english: "the {0} rule");
@@ -314,7 +314,7 @@ namespace DreamTech.LiveOps.Editor
 
             table.Add(nameof(LiveOpsHubStrings.ShellOverwriteDiskConfirmTitleFormat),
                 vietnamese: "Ghi đè {0} mục vừa đổi trên đĩa?",
-                english: "Overwrite {0} items that just changed on disk?");
+                english: "Overwrite {0} {0|item|items} that just changed on disk?");
             table.Add(nameof(LiveOpsHubStrings.ShellOverwriteDiskConfirmBodyFormat),
                 vietnamese: "Bản trên đĩa của {0} bị thay bằng bản trong Editor: {1}. Người vừa sửa file mất phần đó; Hoàn tác của hub không lấy lại được bản trên đĩa.",
                 english: "The disk copy of {0} is replaced by the editor copy: {1}. Whoever just edited the file loses that work; the hub's Undo cannot bring the disk copy back.");

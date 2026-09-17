@@ -78,7 +78,7 @@ namespace DreamTech.LiveOps.Editor
                 english: "PUBLISHED");
             table.Add(nameof(LiveOpsHubStrings.OverviewMetricPublishedFootFormat),
                 vietnamese: "sha {0} · {1} thay đổi từ đó",
-                english: "sha {0} · {1} changes since");
+                english: "sha {0} · {1} {1|change|changes} since");
             table.Add(nameof(LiveOpsHubStrings.OverviewMetricPublishedFootUnchangedFormat),
                 vietnamese: "sha {0} · chưa đổi từ đó",
                 english: "sha {0} · unchanged since");
@@ -113,7 +113,7 @@ namespace DreamTech.LiveOps.Editor
 
             table.Add(nameof(LiveOpsHubStrings.OverviewRowDroppedTitleFormat),
                 vietnamese: "{0} đợt sẽ bị game bỏ khi đọc lịch",
-                english: "{0} events will be dropped by the game when it reads the calendar");
+                english: "{0} {0|event|events} will be dropped by the game when it reads the calendar");
             table.Add(nameof(LiveOpsHubStrings.OverviewRowDroppedDetail),
                 vietnamese: "Kiểm lịch (tầng Kiểm) · sửa xong thì Copy JSON mở",
                 english: "Check calendar (Check stage) · fix them and Copy JSON unlocks");
@@ -122,7 +122,7 @@ namespace DreamTech.LiveOps.Editor
                 english: "{0} · players lose progress · must be reviewed in Export JSON");
             table.Add(nameof(LiveOpsHubStrings.OverviewRowShouldReviewTitleFormat),
                 vietnamese: "{0} phát hiện nên xem: {1}",
-                english: "{0} findings to review: {1}");
+                english: "{0} {0|finding|findings} to review: {1}");
             table.Add(nameof(LiveOpsHubStrings.OverviewRowRemoteTitle),
                 vietnamese: "Bản remote chưa dán — không biết Firebase đang giữ gì",
                 english: "Remote snapshot not pasted — nobody knows what Firebase is serving");
@@ -252,7 +252,7 @@ namespace DreamTech.LiveOps.Editor
                 english: "dropped");
             table.Add(nameof(LiveOpsHubStrings.OverviewUpcomingKindGroupedFormat),
                 vietnamese: "{0} đợt",
-                english: "{0} events");
+                english: "{0} {0|event|events}");
             table.Add(nameof(LiveOpsHubStrings.OverviewUpcomingGroupedIdsFormat),
                 vietnamese: "{0}…{1}",
                 english: "{0}…{1}");
@@ -328,7 +328,7 @@ namespace DreamTech.LiveOps.Editor
 
             table.Add(nameof(LiveOpsHubStrings.OverviewMultipleAssetsNoticeFormat),
                 vietnamese: "Có {0} LiveEventCalendarAsset. Hub đang mở {1}.",
-                english: "There are {0} LiveEventCalendarAsset files. The hub has {1} open.");
+                english: "There {0|is|are} {0} LiveEventCalendarAsset {0|file|files}. The hub has {1} open.");
             table.Add(nameof(LiveOpsHubStrings.OverviewSwitchAssetButton),
                 vietnamese: "Đổi…",
                 english: "Switch…");

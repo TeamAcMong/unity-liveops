@@ -69,7 +69,7 @@ namespace DreamTech.LiveOps.Editor
                 english: "Never checked — press F5 to check");
             table.Add(nameof(LiveOpsHubStrings.ServicesHealthRunningFormat),
                 vietnamese: "Đang kiểm {0}/{1} luật…",
-                english: "Checking {0}/{1} rules…");
+                english: "Checking {0}/{1} {1|rule|rules}…");
             table.Add(nameof(LiveOpsHubStrings.ServicesHealthInterruptedByReload),
                 vietnamese: "Lần kiểm bị cắt ngang khi Unity nạp lại script — F5 để kiểm lại",
                 english: "The check was cut short when Unity reloaded scripts — press F5 to check again");
@@ -84,7 +84,7 @@ namespace DreamTech.LiveOps.Editor
                 english: "no findings left from that check");
             table.Add(nameof(LiveOpsHubStrings.ServicesHealthDroppedGroupFormat),
                 vietnamese: "{0} đợt bị bỏ: {1}",
-                english: "{0} events dropped: {1}");
+                english: "{0} {0|event|events} dropped: {1}");
             table.Add(nameof(LiveOpsHubStrings.ServicesHealthProgressLostGroupFormat),
                 vietnamese: "{0} mất tiến độ: {1}",
                 english: "{0} progress loss: {1}");
@@ -93,10 +93,10 @@ namespace DreamTech.LiveOps.Editor
                 english: "{0} worth reviewing: {1}");
             table.Add(nameof(LiveOpsHubStrings.ServicesHealthNotMeasuredGroupFormat),
                 vietnamese: "{0} luật chưa kiểm",
-                english: "{0} rules not measured");
+                english: "{0} {0|rule|rules} not measured");
             table.Add(nameof(LiveOpsHubStrings.ServicesHealthRemoteFindingsFormat),
                 vietnamese: "{0} phát hiện về bản remote",
-                english: "{0} findings on the remote version");
+                english: "{0} {0|finding|findings} on the remote version");
             table.AddShared(nameof(LiveOpsHubStrings.ServicesHealthItemFormat), "{0} ({1})");
             table.AddShared(nameof(LiveOpsHubStrings.ServicesHealthItemSeparator), ", ");
             table.AddShared(nameof(LiveOpsHubStrings.ServicesHealthGroupSeparator), " · ");

@@ -85,7 +85,7 @@ namespace DreamTech.LiveOps.Editor
             if (index < 0 || index >= _tabs.Count)
             {
                 throw new ArgumentOutOfRangeException(nameof(index),
-                    string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.TabStripChoiceOutOfRangeFormat, index, _tabs.Count));
+                    LiveOpsHubStringCatalog.Format(nameof(LiveOpsHubStrings.TabStripChoiceOutOfRangeFormat), index, _tabs.Count));
             }
             if (!enabled && string.IsNullOrEmpty(reason))
             {

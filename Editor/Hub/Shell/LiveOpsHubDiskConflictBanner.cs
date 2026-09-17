@@ -101,9 +101,9 @@ namespace DreamTech.LiveOps.Editor
             string changedItems = ItemListOf(conflict.DiskVersusEditor);
             string changedCount = format.Integer(conflict.DiskVersusEditor.ChangeCount);
             string head = changedItems.Length == 0
-                ? string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.ShellDiskBannerHeadWithoutItemsFormat,
+                ? LiveOpsHubStringCatalog.Format(nameof(LiveOpsHubStrings.ShellDiskBannerHeadWithoutItemsFormat),
                     fileName, format.ShortDateTimeUtc(conflict.DetectedUtc), changedCount)
-                : string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.ShellDiskBannerHeadFormat,
+                : LiveOpsHubStringCatalog.Format(nameof(LiveOpsHubStrings.ShellDiskBannerHeadFormat),
                     fileName, format.ShortDateTimeUtc(conflict.DetectedUtc), changedCount, changedItems);
 
             string lostItems = ChangeListOf(conflict.LostIfReload);
@@ -112,7 +112,7 @@ namespace DreamTech.LiveOps.Editor
                 ? string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.ShellDiskBannerReloadLineWithoutItemsFormat, lostCount)
                 : string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.ShellDiskBannerReloadLineFormat, lostCount, lostItems);
 
-            string keepLine = string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.ShellDiskBannerKeepLineFormat, changedCount);
+            string keepLine = LiveOpsHubStringCatalog.Format(nameof(LiveOpsHubStrings.ShellDiskBannerKeepLineFormat), changedCount);
             return head + LiveOpsHubStrings.ShellDiskBannerSentenceSeparator + reloadLine
                    + LiveOpsHubStrings.ShellDiskBannerSentenceSeparator + keepLine;
         }

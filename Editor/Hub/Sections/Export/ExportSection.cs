@@ -356,7 +356,7 @@ namespace DreamTech.LiveOps.Editor
             // lặp (nháp 8/8 nhưng parser chỉ thấy 4/6) và mọi ca parser đọc khác nháp đều làm hai số lệch nhau.
             LiveEventCalendarCompilation compilation = ReadBackCompilation();
             _jsonMeta.text = readBackRow.State == ExportGateRowState.Ok && compilation != null
-                ? string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.ExportJsonCardMetaFormat,
+                ? LiveOpsHubStringCatalog.Format(nameof(LiveOpsHubStrings.ExportJsonCardMetaFormat),
                     Services.Format.Integer(compilation.KeptCount), Services.Format.Integer(compilation.EntryCount))
                 : readBackRow.Text;
         }
@@ -608,7 +608,7 @@ namespace DreamTech.LiveOps.Editor
             LiveEventCalendarJsonText json = CopyCurrentJsonToClipboard();
             DateTime nowUtc = Services.Session.Clock.UtcNow;
             Services.Bus.ShowOutcome(LiveOpsOutcomeRecord.Ok(
-                string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.ExportOutcomeCopiedHeadlineFormat,
+                LiveOpsHubStringCatalog.Format(nameof(LiveOpsHubStrings.ExportOutcomeCopiedHeadlineFormat),
                     Services.Format.Integer(json.ByteCount), nowUtc.ToString(ClockPattern, CultureInfo.InvariantCulture), json.ShortSha),
                 LiveOpsHubStrings.ExportOutcomeCopiedDetail, nowUtc));
             Services.Bus.InvalidateHealth();
@@ -645,7 +645,7 @@ namespace DreamTech.LiveOps.Editor
             Services.Session.Publish.RecordExport(json, true);
 
             Services.Bus.ShowOutcome(LiveOpsOutcomeRecord.Ok(
-                string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.ExportOutcomeSavedHeadlineFormat,
+                LiveOpsHubStringCatalog.Format(nameof(LiveOpsHubStrings.ExportOutcomeSavedHeadlineFormat),
                     Path.GetFileName(path), Services.Format.Integer(json.ByteCount), savedDirectory),
                 LiveOpsHubStrings.ExportOutcomeSavedDetail, Services.Session.Clock.UtcNow, RevealFileActionId, path));
             Services.Bus.InvalidateHealth();
@@ -800,7 +800,7 @@ namespace DreamTech.LiveOps.Editor
             LiveEventCalendarDiffResult diff = session.Publish.PublishedDiff;
             string body = diff.ChangeCount == 0
                 ? LiveOpsHubStrings.ExportRestoreConfirmBodyNoChanges
-                : string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.ExportRestoreConfirmBodyFormat,
+                : LiveOpsHubStringCatalog.Format(nameof(LiveOpsHubStrings.ExportRestoreConfirmBodyFormat),
                     Services.Format.Integer(diff.ChangeCount), BuildChangedItemList(diff));
             LiveOpsConfirmRequest request = new LiveOpsConfirmRequest.Builder()
                 .WithLevel(LiveOpsConfirmLevel.Level1)
@@ -850,9 +850,9 @@ namespace DreamTech.LiveOps.Editor
             PublishedCalendarStamp previous = PreviousStamp();
             int changeCount = session.Publish.PublishedDiff.ChangeCount;
             string body = previous == null
-                ? string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.ExportRemoveStampConfirmBodyNoBaselineFormat,
+                ? LiveOpsHubStringCatalog.Format(nameof(LiveOpsHubStrings.ExportRemoveStampConfirmBodyNoBaselineFormat),
                     Services.Format.Integer(changeCount))
-                : string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.ExportRemoveStampConfirmBodyFormat,
+                : LiveOpsHubStringCatalog.Format(nameof(LiveOpsHubStrings.ExportRemoveStampConfirmBodyFormat),
                     StampTimeText(previous), previous.ShortSha, Services.Format.Integer(changeCount));
             LiveOpsConfirmRequest request = new LiveOpsConfirmRequest.Builder()
                 .WithLevel(LiveOpsConfirmLevel.Level1)

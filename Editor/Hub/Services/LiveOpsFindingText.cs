@@ -883,9 +883,9 @@ namespace DreamTech.LiveOps.Editor
 
         private static string UnknownTypeHeadline(LiveEventCalendarFinding finding, SentenceInput input)
         {
-            return Format(IsAboutRemoteType(finding)
-                ? LiveOpsHubStrings.FindingUnknownTypeRemoteHeadlineFormat
-                : LiveOpsHubStrings.FindingUnknownTypeDraftHeadlineFormat, NoParse(finding.FoundText), IdText(finding.TargetId));
+            return LiveOpsHubStringCatalog.Format(IsAboutRemoteType(finding)
+                ? nameof(LiveOpsHubStrings.FindingUnknownTypeRemoteHeadlineFormat)
+                : nameof(LiveOpsHubStrings.FindingUnknownTypeDraftHeadlineFormat), NoParse(finding.FoundText), IdText(finding.TargetId));
         }
 
         private static string UnknownTypeShortLabel(LiveEventCalendarFinding finding, SentenceInput input)
@@ -902,8 +902,8 @@ namespace DreamTech.LiveOps.Editor
         private static string UnknownTypeConsequence(LiveEventCalendarFinding finding, SentenceInput input)
         {
             return IsAboutRemoteType(finding)
-                ? Format(LiveOpsHubStrings.FindingUnknownTypeRemoteConsequenceFormat, IdText(finding.TargetId), NoParse(finding.FoundText))
-                : Format(LiveOpsHubStrings.FindingUnknownTypeDraftConsequenceFormat, NoParse(finding.FoundText), IdText(finding.TargetId));
+                ? LiveOpsHubStringCatalog.Format(nameof(LiveOpsHubStrings.FindingUnknownTypeRemoteConsequenceFormat), IdText(finding.TargetId), NoParse(finding.FoundText))
+                : LiveOpsHubStringCatalog.Format(nameof(LiveOpsHubStrings.FindingUnknownTypeDraftConsequenceFormat), NoParse(finding.FoundText), IdText(finding.TargetId));
         }
 
         // =============================================================================================================== luật 9
@@ -1141,12 +1141,12 @@ namespace DreamTech.LiveOps.Editor
         {
             if (IsDetail(finding, LiveEventCalendarDetailCodes.RemoteWithoutStamp))
             {
-                return Format(LiveOpsHubStrings.FindingRemoteNoStampHeadlineFormat, NoParse(finding.FoundText));
+                return LiveOpsHubStringCatalog.Format(nameof(LiveOpsHubStrings.FindingRemoteNoStampHeadlineFormat), NoParse(finding.FoundText));
             }
             PublishedCalendarStamp stamp = input.LatestStamp;
             return stamp != null && stamp.TryGetPublishedUtc(out DateTime publishedUtc)
-                ? Format(LiveOpsHubStrings.FindingRemoteDiffersHeadlineFormat, input.Format.ShortDateTime(publishedUtc), NoParse(finding.ExpectedText))
-                : Format(LiveOpsHubStrings.FindingRemoteDiffersWithoutStampHeadlineFormat, NoParse(finding.ExpectedText));
+                ? LiveOpsHubStringCatalog.Format(nameof(LiveOpsHubStrings.FindingRemoteDiffersHeadlineFormat), input.Format.ShortDateTime(publishedUtc), NoParse(finding.ExpectedText))
+                : LiveOpsHubStringCatalog.Format(nameof(LiveOpsHubStrings.FindingRemoteDiffersWithoutStampHeadlineFormat), NoParse(finding.ExpectedText));
         }
 
         private static string RemoteShortLabel(LiveEventCalendarFinding finding, SentenceInput input)
@@ -1168,7 +1168,7 @@ namespace DreamTech.LiveOps.Editor
         {
             return IsDetail(finding, LiveEventCalendarDetailCodes.RemoteWithoutStamp)
                 ? LiveOpsHubStrings.FindingRemoteNoStampConsequence
-                : Format(LiveOpsHubStrings.FindingRemoteDiffersConsequenceFormat, NoParse(finding.ExpectedText));
+                : LiveOpsHubStringCatalog.Format(nameof(LiveOpsHubStrings.FindingRemoteDiffersConsequenceFormat), NoParse(finding.ExpectedText));
         }
 
         // =============================================================================================================== mảnh dùng chung
@@ -1255,14 +1255,14 @@ namespace DreamTech.LiveOps.Editor
         {
             if (length > TimeSpan.Zero && length.Ticks % TimeSpan.TicksPerHour == 0)
             {
-                return Format(LiveOpsHubStrings.FindingHoursFormat, ((long)length.TotalHours).ToString(CultureInfo.InvariantCulture));
+                return LiveOpsHubStringCatalog.Format(nameof(LiveOpsHubStrings.FindingHoursFormat), ((long)length.TotalHours).ToString(CultureInfo.InvariantCulture));
             }
             return format.Duration(length, false);
         }
 
         private static string Hours(string rawHours)
         {
-            return Format(LiveOpsHubStrings.FindingHoursFormat, NoParse(rawHours));
+            return LiveOpsHubStringCatalog.Format(nameof(LiveOpsHubStrings.FindingHoursFormat), NoParse(rawHours));
         }
 
         /// <summary>Nối hai mảnh bằng " · ", bỏ mảnh rỗng để không ra " ·  · ".</summary>

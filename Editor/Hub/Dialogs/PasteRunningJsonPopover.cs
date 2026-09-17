@@ -284,9 +284,9 @@ namespace DreamTech.LiveOps.Editor
             string eventCountText = _format.Integer(document.FixedEvents.Count);
             if (undeclaredTypeCount <= 0)
             {
-                return string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.PasteReadableFormat, ruleCountText, eventCountText);
+                return LiveOpsHubStringCatalog.Format(nameof(LiveOpsHubStrings.PasteReadableFormat), ruleCountText, eventCountText);
             }
-            return string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.PasteReadableWithUnknownTypesFormat,
+            return LiveOpsHubStringCatalog.Format(nameof(LiveOpsHubStrings.PasteReadableWithUnknownTypesFormat),
                 ruleCountText, eventCountText, _format.Integer(undeclaredTypeCount));
         }
 

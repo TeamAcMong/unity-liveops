@@ -10,6 +10,11 @@ namespace DreamTech.LiveOps.Editor
     /// <see cref="Add"/> nhận hai ngôn ngữ trong cùng một lệnh để không bao giờ có chuyện thêm khoá ở bản này mà quên bản kia;
     /// <see cref="AddShared"/> dành cho ký hiệu trung tính (+ · — × {0} → {1}) mà dịch ra cũng y hệt.
     /// </para>
+    /// <para>
+    /// Bảng giữ NGUYÊN VĂN câu đăng ký, kể cả dấu số ít/số nhiều <c>{i|…|…}</c> của bản tiếng Anh (Q-W5-2). <see cref="TryGet"/>
+    /// bỏ dấu và luôn trả vế số nhiều — lưới an toàn cho mọi chỗ còn tự <c>string.Format</c>; đường đếm đúng đọc nguyên văn
+    /// bằng <see cref="TryGetRaw"/> rồi gọi <see cref="LiveOpsHubEnglishPlural.Resolve"/> trước khi format.
+    /// </para>
     /// </summary>
     internal sealed class LiveOpsHubStringTable
     {
@@ -58,8 +63,19 @@ namespace DreamTech.LiveOps.Editor
             return key != null && _textsByKey.ContainsKey(key);
         }
 
-        /// <summary>Trả false khi không có khoá, hoặc có khoá mà ngôn ngữ đó chưa có chữ (chưa dịch).</summary>
+        /// <summary>
+        /// Trả false khi không có khoá, hoặc có khoá mà ngôn ngữ đó chưa có chữ (chưa dịch). Câu trả về đã BỎ dấu số
+        /// ít/số nhiều (giữ vế số nhiều) nên dùng thẳng với <c>string.Format</c> được — xem chú thích lớp.
+        /// </summary>
         internal bool TryGet(LiveOpsHubLanguageId language, string key, out string text)
+        {
+            if (!TryGetRaw(language, key, out text)) return false;
+            text = LiveOpsHubEnglishPlural.StripToPlural(text);
+            return true;
+        }
+
+        /// <summary>Nguyên văn câu đăng ký, CÒN dấu số ít/số nhiều — đường đếm đúng và test dấu đọc qua đây.</summary>
+        internal bool TryGetRaw(LiveOpsHubLanguageId language, string key, out string text)
         {
             text = null;
             if (key == null) return false;

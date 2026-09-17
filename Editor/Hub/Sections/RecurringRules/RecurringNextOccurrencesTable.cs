@@ -90,7 +90,7 @@ namespace DreamTech.LiveOps.Editor
         {
             ShowComputing(false);
             _rows.Clear();
-            _title.text = string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.RecurringOccurrencesTitleFormat,
+            _title.text = LiveOpsHubStringCatalog.Format(nameof(LiveOpsHubStrings.RecurringOccurrencesTitleFormat),
                 rows != null ? rows.Count : 0);
             _subtitle.text = subtitleText ?? string.Empty;
             if (rows != null)
@@ -102,7 +102,7 @@ namespace DreamTech.LiveOps.Editor
             _emptyReason.EnableInClassList(LiveOpsHubClassNames.RecurringHidden, !hasEmptyReason);
             _addMore.SetEnabled(!atLimit && !hasEmptyReason);
             _limitNote.text = atLimit
-                ? string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.RecurringOccurrenceLimitNoteFormat,
+                ? LiveOpsHubStringCatalog.Format(nameof(LiveOpsHubStrings.RecurringOccurrenceLimitNoteFormat),
                     RecurringRuleModel.MaximumOccurrenceCount)
                 : string.Empty;
         }
