@@ -41,6 +41,10 @@ không đổi: `Parse`, `LiveOpsSystem` và mọi port của 0.1.0 giữ nguyên
   nhanh ngay trên thanh khi kéo ("sẽ bị bỏ", chồng bao nhiêu), dòng gợi ý nói cử chỉ nhấp đúp khi con trỏ đứng ở chỗ
   trống của một làn; minimap, hover card ghim được, menu chuột phải, ⌘+kéo tạo đợt, đưa làn lên/xuống, pane "Danh sách",
   pane "So với" (bản đã đăng hoặc bản trên đĩa), inspector thành drawer khi cửa sổ hẹp.
+- **Chọn nhiều đợt trên timeline:** ⌘-click cộng dồn, Shift-click chọn cả dải, kéo khung chọn trên nền; inspector đổi sang
+  bản tóm tắt ("2 đợt · lava-quest") và các việc làm được cho cả tập chọn. Giữ Shift **sau khi** đã bắt đầu kéo thì mọi đợt
+  phía sau trên cùng làn đi theo, readout nói kéo theo mấy đợt.
+- **Làn thu gọn:** menu header làn "Thu gọn / Mở làn" hạ làn xuống 22 px để lịch dài vẫn nhìn được cả bức.
 - **Luật lặp:** neo / chu kỳ / thời gian chạy / tiền tố id, preset, và foldout "JSON của luật này" sửa thẳng bằng JSON
   với lỗi có dòng và cột.
 - **Kiểm lịch:** sửa an toàn, sửa hàng loạt (một bước Undo), card xem trước, bỏ qua kèm ghi chú và phạm vi, hẹn xem lại
@@ -51,7 +55,8 @@ không đổi: `Parse`, `LiveOpsSystem` và mọi port của 0.1.0 giữ nguyên
   dán, hoặc nhập thành asset mới khi project chưa có asset nào.
 - **Khung:** rail thu còn 36 px kèm menu tầng ở cửa sổ hẹp, băng "asset đã đổi trên đĩa" (tự so hash, không tự đè),
   "Đổi key remote…", "Hiện dữ liệu mẫu" không ghi đĩa. Lý do một nút/ô/tab bị khoá luôn in **thành chữ**, không chỉ
-  tooltip.
+  tooltip. Menu ⋮ có "Hiện hướng dẫn phím tắt": popover liệt kê mọi phím của hub đọc thẳng từ Shortcut Manager (không chép
+  tay, nên nhãn phím đúng theo máy và theo nền tảng) kèm nút mở cửa sổ Shortcuts.
 - Hai bộ chữ đầy đủ **Tiếng Việt + English**, mặc định English; mọi chuỗi đọc qua catalog theo khoá.
 
 ### Changed
@@ -77,8 +82,6 @@ không đổi: `Parse`, `LiveOpsSystem` và mọi port của 0.1.0 giữ nguyên
 - **Mốc thưởng / battle pass** là module 0.3.0; **backend** (định danh người chơi, cloud save, điểm
   server-authoritative) là 0.4.0.
 - **Không có API đổi lịch giữa phiên.** Remote config về muộn thì chờ có hạn giờ rồi mới `Build()` — README mục 4.4.
-- Timeline chưa có: **chọn nhiều đợt + khung chọn**, **làn thu gọn**, **Shift kéo theo đợt sau**, và **popover hướng
-  dẫn phím tắt**. Bốn mục này đã lên kế hoạch, lùi sang đợt sau của 0.2.0.
 - Chưa chặn triệt để việc vặn giờ tới lúc offline để vào đợt sau sớm (cần giờ server khi vào đợt).
 
 ## [0.1.0] - 2026-09-13
