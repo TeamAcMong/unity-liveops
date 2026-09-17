@@ -5,9 +5,11 @@ using UnityEngine.UIElements;
 namespace DreamTech.LiveOps.Editor
 {
     /// <summary>
-    /// Dòng gợi ý 18px ở đáy timeline [SD1 §3.6]: đổi theo ngữ cảnh nghỉ / đang chọn / đang kéo để phím và cử chỉ có đường tìm ra ngay
-    /// tại chỗ. Chỉ nhắc thứ đã có ở bản này (I-5: không nhắc Shift kéo theo, chọn dải). Id đợt đang chọn mono đậm, phần mô tả mờ 0,82
-    /// + ellipsis. Nhãn phím Edit (⌘D, ⌘⌫) đọc binding thật qua <see cref="LiveOpsHubKeyLabels"/>; không có binding thì bỏ vế đó.
+    /// Dòng gợi ý 18px ở đáy timeline [SD1 §3.6]: đổi theo ngữ cảnh nghỉ / đang chọn / chọn nhiều / đang kéo để phím và cử chỉ có
+    /// đường tìm ra ngay tại chỗ. Chỉ nhắc thứ đã có ở bản này — W5 bỏ vế "Shift kéo theo" và "chọn dải" vì chưa làm (I-5);
+    /// G-OPT-TIMELINE làm xong cả hai nên hai vế đó trở lại đúng [SD1 §3.8 khung 5 và khung 9]. Id đợt đang chọn mono đậm, phần
+    /// mô tả mờ 0,82 + ellipsis. Nhãn phím Edit (⌘D, ⌘⌫) đọc binding thật qua <see cref="LiveOpsHubKeyLabels"/>; không có binding
+    /// thì bỏ vế đó.
     /// </summary>
     internal sealed class LiveOpsTimelineHintLine : VisualElement
     {
@@ -42,6 +44,21 @@ namespace DreamTech.LiveOps.Editor
         internal void ShowDragging()
         {
             SetText(string.Empty, LiveOpsHubStrings.TimelineHintDragging);
+        }
+
+        /// <summary>
+        /// (G-OPT-TIMELINE, Hình 12 khung 9) Đang chọn nhiều đợt: "2 đợt · treasure-hunt · ⌘-click bật tắt · Shift-click chọn dải".
+        /// Phím hành động in theo nền tảng như trạng thái nghỉ — người dùng Windows không có phím ⌘ để mà bấm.
+        /// </summary>
+        /// <param name="selectionCount">Số đợt đang chọn (≥ 2 mới gọi tới đây).</param>
+        /// <param name="laneText">Tên loại khi cả tập cùng một loại, không thì "3 loại".</param>
+        internal void ShowMultiSelected(int selectionCount, string laneText)
+        {
+            string actionKey = Application.platform == RuntimePlatform.OSXEditor
+                ? LiveOpsHubStrings.TimelineActionKeyMac
+                : LiveOpsHubStrings.TimelineActionKeyOther;
+            SetText(string.Empty, string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.TimelineHintMultiSelectedFormat,
+                selectionCount, laneText ?? string.Empty, actionKey));
         }
 
         /// <summary>

@@ -740,3 +740,74 @@
     text-overflow: ellipsis;
     white-space: nowrap;
 }
+
+/* ============================================================================================ G-OPT-TIMELINE (P1-lùi, Hình 12)
+   Khung chọn, làn thu gọn và chevron gập. Ba thứ này chỉ đổi HÌNH, mọi quyết định (làn nào thu gọn, thanh nào trong tập chọn)
+   nằm ở model + element — USS không được là nơi thứ hai giữ trạng thái. */
+
+/* Khung chọn kéo trên chỗ trống (khung 9): nền highlight 0,2 + viền 1px highlight, không nhận chuột. */
+.liveops-hub-timeline-marquee {
+    position: absolute;
+    border-width: 1px;
+    border-color: var(--unity-colors-highlight-background);
+    background-color: var(--unity-colors-highlight-background);
+    opacity: 0.2;
+}
+
+/* Làn thu gọn (khung 12): cao 22px. Chiều cao thật do C# ghi inline theo LaneHeight; luật này giữ mép dưới không bị nền
+   của làn mở đè khi pool tái dùng element. */
+.liveops-hub-timeline-lane--collapsed {
+    max-height: 22px;
+}
+
+/* Thanh trong làn thu gọn: dải 6px bo 1, opacity 0,85, không nhãn, không icon, không tay nắm — chỉ còn màu loại. */
+.liveops-hub-timeline-bar--collapsed {
+    height: 6px;
+    padding: 0;
+    border-radius: 1px;
+    opacity: 0.85;
+}
+
+.liveops-hub-timeline-bar--collapsed > .liveops-hub-timeline-bar__label {
+    display: none;
+}
+
+.liveops-hub-timeline-bar--collapsed > .liveops-hub-timeline-bar__loop-icon {
+    display: none;
+}
+
+.liveops-hub-timeline-bar--collapsed > .liveops-hub-timeline-bar__lock-icon {
+    display: none;
+}
+
+.liveops-hub-timeline-bar--collapsed > .liveops-hub-timeline-bar__edge {
+    display: none;
+}
+
+/* Chevron gập ở dòng tên làn (khung 12): 9×8, opacity 0,8. Hình là một ô vuông 5×5 chỉ có hai cạnh, xoay 45° — cùng cách
+   dựng với dấu cắt mép của thanh, vì font của Editor không chắc có glyph chevron. */
+.liveops-hub-timeline-lane-chevron {
+    width: 9px;
+    height: 8px;
+    flex-shrink: 0;
+    margin-right: 5px;
+    align-items: center;
+    justify-content: center;
+    opacity: 0.8;
+}
+
+.liveops-hub-timeline-lane-chevron-shape {
+    width: 5px;
+    height: 5px;
+    border-right-width: 1px;
+    border-bottom-width: 1px;
+    border-color: var(--unity-colors-default-text);
+    rotate: 45deg;
+    translate: 0 -1px;
+}
+
+/* Làn thu gọn: chevron quay sang phải (gập) thay vì xuống (mở). */
+.liveops-hub-timeline-lane-chevron--collapsed > .liveops-hub-timeline-lane-chevron-shape {
+    rotate: -45deg;
+    translate: -1px 0;
+}
