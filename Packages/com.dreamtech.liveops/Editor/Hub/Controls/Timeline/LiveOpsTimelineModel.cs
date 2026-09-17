@@ -112,8 +112,9 @@ namespace DreamTech.LiveOps.Editor
     {
         public LiveOpsTimelineLaneModel(string typeId, int colorSlot, bool isRecurring, int rowCount, IReadOnlyList<LiveOpsTimelineBarModel> bars,
             IReadOnlyList<(DateTime startUtc, DateTime endUtc)> overlapRanges, int unplaceableCount, LiveOpsTimelineBarModel nextOutsideRange,
-            string metaText, string secondaryMetaText, HealthState chipState, int chipCount)
+            string metaText, string secondaryMetaText, HealthState chipState, int chipCount, bool isCollapsed = false)
         {
+            IsCollapsed = isCollapsed;
             TypeId = typeId ?? string.Empty;
             ColorSlot = colorSlot;
             IsRecurring = isRecurring;
@@ -157,6 +158,12 @@ namespace DreamTech.LiveOps.Editor
 
         /// <summary>Số phát hiện đúng ở mức <see cref="ChipState"/>; 0 khi không chip.</summary>
         public int ChipCount { get; }
+
+        /// <summary>
+        /// (G-OPT-TIMELINE, Hình 12 khung 12) Làn đang thu gọn: view vẽ làn cao 22px với dải 6px không nhãn. Cờ nằm ở MODEL chứ
+        /// không ở view vì chiều cao làn quyết định cả ước lượng vertex lẫn toạ độ hàng phụ — hai thứ model đã tính sẵn.
+        /// </summary>
+        public bool IsCollapsed { get; }
     }
 
     /// <summary>Một dải 3px của minimap — mỗi làn đang hiện một dải, theo thứ tự làn.</summary>
@@ -409,7 +416,7 @@ namespace DreamTech.LiveOps.Editor
             ComputeChip(context, typeId, out HealthState chipState, out int chipCount);
 
             return new LiveOpsTimelineLaneModel(typeId, colorSlot, isRecurring, composition.RowCount, composition.Bars, composition.OverlapRanges,
-                unplaceableCount, nextOutsideBar, metaText, secondaryMetaText, chipState, chipCount);
+                unplaceableCount, nextOutsideBar, metaText, secondaryMetaText, chipState, chipCount, context.Input.IsLaneCollapsed(typeId));
         }
 
         /// <summary>

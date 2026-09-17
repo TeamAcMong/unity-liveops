@@ -15,6 +15,7 @@ namespace DreamTech.LiveOps.Editor
         private static readonly string[] IntentTypeNames =
         {
             nameof(SelectBarIntent),
+            nameof(SelectManyIntent),
             nameof(MoveBarIntent),
             nameof(AddAtTimeIntent),
             nameof(DeleteBarIntent),
@@ -27,6 +28,7 @@ namespace DreamTech.LiveOps.Editor
             nameof(HideLaneIntent),
             nameof(ShowAllLanesIntent),
             nameof(MoveLaneIntent),
+            nameof(ToggleLaneCollapsedIntent),
         };
 
         private protected LiveOpsTimelineIntent()
@@ -67,20 +69,87 @@ namespace DreamTech.LiveOps.Editor
         public bool Range { get; }
     }
 
+    /// <summary>
+    /// (G-OPT-TIMELINE) Lựa chọn NHIỀU thanh sau ⌘/Ctrl-click, Shift-click chọn dải hoặc khung chọn kéo trên chỗ trống
+    /// (Hình 12 khung 9). Mang cả TẬP kết quả chứ không mang thao tác ("thêm khoá này"), để presenter không phải dựng lại luật
+    /// bật tắt lần thứ hai và test đọc thẳng được tập cuối cùng.
+    /// </summary>
+    internal sealed class SelectManyIntent : LiveOpsTimelineIntent
+    {
+        private static readonly string[] EmptyKeys = new string[0];
+
+        public SelectManyIntent(IReadOnlyList<string> barKeys, string primaryBarKey)
+        {
+            BarKeys = barKeys ?? EmptyKeys;
+            PrimaryBarKey = primaryBarKey ?? string.Empty;
+        }
+
+        /// <summary>Tập thanh đang chọn sau thao tác, theo thứ tự trên trục; rỗng = bỏ chọn hết.</summary>
+        public IReadOnlyList<string> BarKeys { get; }
+
+        /// <summary>Thanh vừa chạm tới — neo của lần Shift-click sau và là thanh inspector lấy làm mốc; "" khi tập rỗng.</summary>
+        public string PrimaryBarKey { get; }
+    }
+
+    /// <summary>(G-OPT-TIMELINE, Hình 12 khung 12) Thu gọn / mở một làn; presenter giữ danh sách trong view state như làn ẩn.</summary>
+    internal sealed class ToggleLaneCollapsedIntent : LiveOpsTimelineIntent
+    {
+        public ToggleLaneCollapsedIntent(string typeId, bool collapsed)
+        {
+            TypeId = typeId ?? string.Empty;
+            Collapsed = collapsed;
+        }
+
+        public string TypeId { get; }
+
+        /// <summary>true = thu gọn làn, false = mở lại.</summary>
+        public bool Collapsed { get; }
+    }
+
+    /// <summary>(G-OPT-TIMELINE) Một đợt bị kéo theo: giờ mới của đợt PHÍA SAU khi giữ Shift lúc đang kéo.</summary>
+    internal sealed class LiveOpsTimelineBarMove
+    {
+        public LiveOpsTimelineBarMove(string barKey, DateTime newStartUtc, DateTime newEndUtc)
+        {
+            BarKey = barKey ?? string.Empty;
+            NewStartUtc = newStartUtc;
+            NewEndUtc = newEndUtc;
+        }
+
+        public string BarKey { get; }
+        public DateTime NewStartUtc { get; }
+        public DateTime NewEndUtc { get; }
+    }
+
     internal sealed class MoveBarIntent : LiveOpsTimelineIntent
     {
+        private static readonly LiveOpsTimelineBarMove[] NoFollowers = new LiveOpsTimelineBarMove[0];
+
         public MoveBarIntent(string barKey, DateTime newStartUtc, DateTime newEndUtc, LiveOpsTimelineGesturePhase phase)
+            : this(barKey, newStartUtc, newEndUtc, phase, null)
+        {
+        }
+
+        public MoveBarIntent(string barKey, DateTime newStartUtc, DateTime newEndUtc, LiveOpsTimelineGesturePhase phase,
+            IReadOnlyList<LiveOpsTimelineBarMove> followers)
         {
             BarKey = barKey ?? string.Empty;
             NewStartUtc = newStartUtc;
             NewEndUtc = newEndUtc;
             Phase = phase;
+            Followers = followers ?? NoFollowers;
         }
 
         public string BarKey { get; }
         public DateTime NewStartUtc { get; }
         public DateTime NewEndUtc { get; }
         public LiveOpsTimelineGesturePhase Phase { get; }
+
+        /// <summary>
+        /// (G-OPT-TIMELINE) Đợt phía sau bị kéo theo vì người dùng nhấn Shift SAU khi đã bắt đầu kéo. Rỗng ở mọi cử chỉ thường —
+        /// một cử chỉ vẫn là MỘT bước Undo, nên đợt kéo theo đi cùng intent chứ không thành lệnh sửa riêng.
+        /// </summary>
+        public IReadOnlyList<LiveOpsTimelineBarMove> Followers { get; }
         public bool IsPreview => Phase == LiveOpsTimelineGesturePhase.Preview;
         public bool IsCommit => Phase == LiveOpsTimelineGesturePhase.Commit;
         public bool IsCancel => Phase == LiveOpsTimelineGesturePhase.Cancel;
