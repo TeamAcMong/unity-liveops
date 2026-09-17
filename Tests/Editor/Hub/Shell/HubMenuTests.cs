@@ -58,8 +58,9 @@ namespace DreamTech.LiveOps.Editor.Tests
         }
 
         /// <summary>
-        /// Menu ⋮ đủ mục theo [FD §3.3] và ĐÚNG THỨ TỰ. "Hiện hướng dẫn phím tắt" là [P1-lùi] (W6) nên không được có mục xám
-        /// trỏ tới thứ chưa dựng — đó là luật của mục 12 cho mọi nhánh tạm.
+        /// Menu ⋮ đủ mục theo [FD §3.3] và ĐÚNG THỨ TỰ. Từ W6, "Hiện hướng dẫn phím tắt" là mục THẬT (G-OPT-SHORTCUTHELP dựng
+        /// popover của nó) nên nó đứng thứ ba và luôn bật — trước đó gói P1-lùi chưa làm thì luật của mục 12 cấm để lại một mục
+        /// xám trỏ vào thứ chưa dựng.
         /// </summary>
         [UnityTest]
         public IEnumerator OverflowMenu_HasAllItems()
@@ -71,16 +72,18 @@ namespace DreamTech.LiveOps.Editor.Tests
             List<string> texts = new List<string>();
             foreach (LiveOpsHubWindow.OverflowMenuEntry entry in entries) texts.Add(entry.Text);
 
-            Assert.AreEqual(4, entries.Count, "đủ bốn mục P1, không thừa mục nào: " + string.Join(" · ", texts));
+            Assert.AreEqual(5, entries.Count, "đủ năm mục P1, không thừa mục nào: " + string.Join(" · ", texts));
             Assert.AreEqual(LiveOpsHubStrings.ShellReduceMotionMenu, texts[1]);
-            Assert.AreEqual(LiveOpsHubStrings.ShellOpenDocumentationMenu, texts[2]);
-            Assert.AreEqual(LiveOpsHubStrings.ShellShowDesignSampleMenu, texts[3]);
+            Assert.AreEqual(LiveOpsHubStrings.ShortcutHelpMenuItem, texts[2]);
+            Assert.AreEqual(LiveOpsHubStrings.ShellOpenDocumentationMenu, texts[3]);
+            Assert.AreEqual(LiveOpsHubStrings.ShellShowDesignSampleMenu, texts[4]);
             StringAssert.Contains("Kiểm lại tất cả", texts[0]);
 
             // OpenForTest dựng phiên KHÔNG asset: "Kiểm lại tất cả" phải xám vì F5 lúc này không làm gì (câu L-1 của soát 16/9).
             Assert.IsFalse(entries[0].IsEnabled, "chưa có asset lịch thì mục kiểm phải xám, không mời bấm một phím không làm gì");
-            Assert.IsTrue(entries[2].IsEnabled);
+            Assert.IsTrue(entries[2].IsEnabled, "bảng phím đọc được cả khi chưa có lịch — nó nói về cửa sổ, không về dữ liệu");
             Assert.IsTrue(entries[3].IsEnabled);
+            Assert.IsTrue(entries[4].IsEnabled);
             LogAssert.NoUnexpectedReceived();
         }
 
