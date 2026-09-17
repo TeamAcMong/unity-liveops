@@ -28,14 +28,21 @@ namespace DreamTech.LiveOps.Editor.Tests
         private const string HostElementName = "shortcut-help-popover-host";
         private static readonly string[] SampleSectionTitles = { "Tổng quan", "Loại event", "Lịch", "Luật lặp", "Kiểm lịch", "Xuất JSON" };
 
-        /// <summary>Phím một ký tự mà timeline tự xử lý — không phím nào trong đây được nằm trong hồ sơ phím của Editor (SP-7b).</summary>
-        private static readonly string[] TimelineSingleKeyNames = { "A", "Esc" };
+        /// <summary>Id hub không có trong bảng hằng — dựng trạng thái "bản sau thêm lệnh mà quên câu".</summary>
+        private const string UnknownShortcutName = "Some Future Command";
+
+        /// <summary>Hai ký hiệu phím của macOS, dùng để chứng minh chúng KHÔNG lọt sang nền tảng khác.</summary>
+        private const string MacShiftGlyph = "⇧";
+        private const string MacOptionGlyph = "⌥";
 
         private LiveOpsHubWindowTestScope _scope;
 
         [TearDown]
         public void TearDown()
         {
+            // Đóng cửa sổ Shortcuts Ở ĐÂY chứ không ở cuối thân test: assert đỏ thì phần sau assert không chạy, và một cửa
+            // sổ Shortcuts thật còn mở sẽ cướp focus của các test UI chạy sau (đúng loại đỏ ngẫu nhiên của bài học W5).
+            CloseShortcutManagerWindows();
             LiveOpsPopoverContent.CloseCurrent();
             _scope?.Dispose();
             _scope = null;
@@ -117,7 +124,19 @@ namespace DreamTech.LiveOps.Editor.Tests
             IReadOnlyList<ShortcutHelpGroup> groups = ShortcutHelpModel.Build(SampleSectionTitles);
             ShortcutHelpGroup timeline = groups[1];
             Assert.AreEqual(LiveOpsHubStrings.ShortcutHelpTimelineGroupTitle, timeline.Title);
-            Assert.AreEqual(9, timeline.Rows.Count, "chín nhánh phím của LiveOpsTimelineElement.OnKeyDown");
+            // Chín nhánh phím của LiveOpsTimelineElement.OnKeyDown, trừ nhánh KeyCode.Menu trên macOS: bàn phím Apple không có
+            // phím Menu nên hàng đó là một lời hứa suông đúng trên chính máy chụp ảnh.
+            bool isMacEditor = Application.platform == RuntimePlatform.OSXEditor;
+            Assert.AreEqual(isMacEditor ? 8 : 9, timeline.Rows.Count, "số hàng timeline phải theo nền tảng đang chạy");
+
+            string contextMenuDescription = LiveOpsHubStrings.ShortcutHelpTimelineContextMenu;
+            bool hasContextMenuRow = false;
+            for (int index = 0; index < timeline.Rows.Count; index++)
+            {
+                if (string.Equals(timeline.Rows[index].Description, contextMenuDescription, StringComparison.Ordinal)) hasContextMenuRow = true;
+            }
+            Assert.AreEqual(!isMacEditor, hasContextMenuRow,
+                "hàng 'phím Menu' chỉ có ngoài macOS — in nó trên macOS là hứa một phím người đọc không bấm được");
 
             for (int index = 0; index < timeline.Rows.Count; index++)
             {
@@ -126,12 +145,66 @@ namespace DreamTech.LiveOps.Editor.Tests
                 Assert.IsFalse(timeline.Rows[index].IsUnbound, "phím của timeline là hằng trong code, không bao giờ 'chưa gán'");
             }
 
-            HashSet<string> available = new HashSet<string>(ShortcutManager.instance.GetAvailableShortcutIds(), StringComparer.Ordinal);
-            for (int index = 0; index < TimelineSingleKeyNames.Length; index++)
+            // Vế "ShortcutManager KHÔNG biết chúng" do HubShortcutTests giữ (SingleKeyTimelineKeys_NoGlobalConflict +
+            // SingleKeyT_NotRegisteredInShortcutManager duyệt keyCode của MỌI binding hub). Lặp lại ở đây bằng cách dò id
+            // "LiveOps Hub/A" / "LiveOps Hub/Esc" là một assert xanh vĩnh viễn: hai id đó chưa bao giờ tồn tại.
+        }
+
+        /// <summary>
+        /// Ba hàng ⇧ / ⌥ / ⌥⇧ phải đi CÙNG nhánh nền tảng với phím lệnh: trên macOS in ký hiệu, ngoài macOS in chữ
+        /// ("Shift" / "Alt") — ghi cứng ký hiệu Mac thì người dùng Windows/Linux đọc "⌥ ← →" và không biết bấm phím nào.
+        /// </summary>
+        [Test]
+        [Category(LiveOpsHubTestCategories.Logic)]
+        public void ShortcutHelp_TimelineModifierKeys_FollowThePlatform()
+        {
+            ShortcutHelpGroup timelineGroup = ShortcutHelpModel.Build(SampleSectionTitles)[1];
+            string nudgeByDayKey = KeyLabelOf(timelineGroup, LiveOpsHubStrings.ShortcutHelpTimelineNudgeByDay);
+            string moveEndKey = KeyLabelOf(timelineGroup, LiveOpsHubStrings.ShortcutHelpTimelineMoveEndEdge);
+            string moveStartKey = KeyLabelOf(timelineGroup, LiveOpsHubStrings.ShortcutHelpTimelineMoveStartEdge);
+
+            if (Application.platform == RuntimePlatform.OSXEditor)
             {
-                Assert.IsFalse(available.Contains(ShortcutHelpModel.HubShortcutIdPrefix + TimelineSingleKeyNames[index]),
-                    "phím một ký tự của timeline không bao giờ đăng ký qua ShortcutManager (SP-7b)");
+                StringAssert.Contains(LiveOpsHubStrings.ShortcutHelpShiftKeyMac, nudgeByDayKey);
+                StringAssert.Contains(LiveOpsHubStrings.ShortcutHelpOptionKeyMac, moveEndKey);
+                StringAssert.Contains(LiveOpsHubStrings.ShortcutHelpOptionKeyMac, moveStartKey);
+                StringAssert.Contains(LiveOpsHubStrings.ShortcutHelpShiftKeyMac, moveStartKey);
+                return;
             }
+
+            StringAssert.Contains(LiveOpsHubStrings.KeyLabelShift, nudgeByDayKey);
+            StringAssert.Contains(LiveOpsHubStrings.KeyLabelOption, moveEndKey);
+            StringAssert.Contains(LiveOpsHubStrings.KeyLabelOption, moveStartKey);
+            StringAssert.Contains(LiveOpsHubStrings.KeyLabelShift, moveStartKey);
+            StringAssert.DoesNotContain(MacOptionGlyph, moveEndKey, "ngoài macOS không được in ký hiệu phím của Mac");
+            StringAssert.DoesNotContain(MacShiftGlyph, nudgeByDayKey, "ngoài macOS không được in ký hiệu phím của Mac");
+        }
+
+        /// <summary>
+        /// Nhánh dự phòng của <see cref="ShortcutHelpModel.DescriptionOf"/>: một lệnh mới đăng ký mà quên câu vẫn phải HIỆN RA
+        /// (in phần sau tiền tố id) chứ không biến mất khỏi hướng dẫn. Không gọi thẳng được thì nhánh này là code chết —
+        /// hồ sơ phím thật không bao giờ có id lạ, chính test <see cref="ShortcutHelp_ListsEveryHubShortcutIdFromShortcutManager"/>
+        /// cấm trạng thái đó.
+        /// </summary>
+        [Test]
+        [Category(LiveOpsHubTestCategories.Logic)]
+        public void ShortcutHelp_UnknownShortcutId_FallsBackToTheIdSuffix()
+        {
+            string description = ShortcutHelpModel.DescriptionOf(ShortcutHelpModel.HubShortcutIdPrefix + UnknownShortcutName,
+                SampleSectionTitles);
+            Assert.AreEqual(UnknownShortcutName, description,
+                "id lạ phải in phần sau tiền tố — hàng vẫn còn, và chữ ASCII lộ ra là lời nhắc thêm câu");
+        }
+
+        /// <summary>Nhãn phím của hàng mang đúng câu mô tả <paramref name="description"/>; hàng không có thì test đỏ ngay.</summary>
+        private static string KeyLabelOf(ShortcutHelpGroup group, string description)
+        {
+            for (int index = 0; index < group.Rows.Count; index++)
+            {
+                if (string.Equals(group.Rows[index].Description, description, StringComparison.Ordinal)) return group.Rows[index].KeyLabel;
+            }
+            Assert.Fail("không có hàng nào mang câu mô tả này: " + description);
+            return string.Empty;
         }
 
         // ------------------------------------------------------------------------------------------------------ view
@@ -212,9 +285,7 @@ namespace DreamTech.LiveOps.Editor.Tests
             Assert.IsTrue(LiveOpsShortcutManagerWindow.IsOpen(), "nút phải mở được cửa sổ Shortcuts thật");
             Assert.IsTrue(popover.OpenFailedReasonLabel.ClassListContains(LiveOpsHubClassNames.ShortcutHelpHidden),
                 "mở được thì không in lý do hỏng");
-
-            CloseShortcutManagerWindows();
-            yield return null;
+            // Không đóng ở đây: [TearDown] đóng, và nó chạy cả khi hai assert trên đỏ.
         }
 
         /// <summary>Mục menu ⋮ "Hiện hướng dẫn phím tắt" mở đúng popover này — menu là lối vào DUY NHẤT của nó.</summary>

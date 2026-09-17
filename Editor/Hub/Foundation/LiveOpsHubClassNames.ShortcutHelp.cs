@@ -31,7 +31,10 @@ namespace DreamTech.LiveOps.Editor
         /// <summary>Câu mô tả — giãn hết chỗ còn lại và xuống dòng được, vì bản tiếng Anh dài hơn bản gốc.</summary>
         internal const string ShortcutHelpRowDescription = "liveops-hub-shortcut-help-row-description";
 
-        /// <summary>Nhãn phím — chữ mono, không co, dính mép phải để mắt dò theo một cột thẳng.</summary>
+        /// <summary>
+        /// Nhãn phím — không co, dính mép phải để mắt dò theo một cột thẳng. KHÔNG dùng class <c>Mono</c>: RobotoMono thiếu
+        /// ← → ↑ ↓ ⌘ ⇧ ⌥ ⌫ ([API §12.3]), đúng họ ký tự mà cột này chứa; font Label mặc định có đủ.
+        /// </summary>
         internal const string ShortcutHelpRowKey = "liveops-hub-shortcut-help-row-key";
 
         /// <summary>Lệnh bị gỡ phím trong profile của người dùng: chữ "chưa gán phím" phải nhạt hơn nhãn phím thật.</summary>
