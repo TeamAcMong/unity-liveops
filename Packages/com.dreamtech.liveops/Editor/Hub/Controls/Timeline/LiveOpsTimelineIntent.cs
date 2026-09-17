@@ -52,21 +52,18 @@ namespace DreamTech.LiveOps.Editor
 
     internal sealed class SelectBarIntent : LiveOpsTimelineIntent
     {
-        public SelectBarIntent(string barKey, bool additive, bool range)
+        /// <summary>
+        /// (G-OPT-TIMELINE) Chỉ còn khoá thanh. Hai cờ <c>additive</c>/<c>range</c> của W3 đã bỏ: từ khung 9, ⌘/Ctrl-click và
+        /// Shift-click phát <see cref="SelectManyIntent"/> kèm CẢ tập, nên hai cờ đó không còn nơi nào đặt và không còn nơi nào
+        /// đọc — giữ lại là để một ý định nói dối rằng nó mang thông tin.
+        /// </summary>
+        public SelectBarIntent(string barKey)
         {
             BarKey = barKey ?? string.Empty;
-            Additive = additive;
-            Range = range;
         }
 
         /// <summary>"" = bỏ chọn (bấm chỗ trống).</summary>
         public string BarKey { get; }
-
-        /// <summary>⌘/Ctrl + click: bật tắt từng thanh.</summary>
-        public bool Additive { get; }
-
-        /// <summary>Shift + click: chọn dải trong làn.</summary>
-        public bool Range { get; }
     }
 
     /// <summary>
@@ -123,21 +120,19 @@ namespace DreamTech.LiveOps.Editor
 
     internal sealed class MoveBarIntent : LiveOpsTimelineIntent
     {
-        private static readonly LiveOpsTimelineBarMove[] NoFollowers = new LiveOpsTimelineBarMove[0];
-
         public MoveBarIntent(string barKey, DateTime newStartUtc, DateTime newEndUtc, LiveOpsTimelineGesturePhase phase)
-            : this(barKey, newStartUtc, newEndUtc, phase, null)
+            : this(barKey, newStartUtc, newEndUtc, phase, false)
         {
         }
 
         public MoveBarIntent(string barKey, DateTime newStartUtc, DateTime newEndUtc, LiveOpsTimelineGesturePhase phase,
-            IReadOnlyList<LiveOpsTimelineBarMove> followers)
+            bool followsLaterEvents)
         {
             BarKey = barKey ?? string.Empty;
             NewStartUtc = newStartUtc;
             NewEndUtc = newEndUtc;
             Phase = phase;
-            Followers = followers ?? NoFollowers;
+            FollowsLaterEvents = followsLaterEvents;
         }
 
         public string BarKey { get; }
@@ -146,10 +141,12 @@ namespace DreamTech.LiveOps.Editor
         public LiveOpsTimelineGesturePhase Phase { get; }
 
         /// <summary>
-        /// (G-OPT-TIMELINE) Đợt phía sau bị kéo theo vì người dùng nhấn Shift SAU khi đã bắt đầu kéo. Rỗng ở mọi cử chỉ thường —
-        /// một cử chỉ vẫn là MỘT bước Undo, nên đợt kéo theo đi cùng intent chứ không thành lệnh sửa riêng.
+        /// (G-OPT-TIMELINE) Người dùng đang giữ Shift giữa cử chỉ kéo: đợt phía sau phải đi theo. Intent chỉ mang CỜ, không mang
+        /// danh sách đợt — control chỉ dựng thanh cho đợt giao với khoảng đang xem, nên một danh sách lấy từ thanh sẽ thiếu đúng
+        /// những đợt nằm ngoài khung nhìn và cùng một cử chỉ dời được nhiều hay ít tuỳ mức zoom. Tập thật do presenter tính từ
+        /// tài liệu lúc bắt đầu kéo, và vẫn gộp vào MỘT bước Undo cùng đợt đang kéo.
         /// </summary>
-        public IReadOnlyList<LiveOpsTimelineBarMove> Followers { get; }
+        public bool FollowsLaterEvents { get; }
         public bool IsPreview => Phase == LiveOpsTimelineGesturePhase.Preview;
         public bool IsCommit => Phase == LiveOpsTimelineGesturePhase.Commit;
         public bool IsCancel => Phase == LiveOpsTimelineGesturePhase.Cancel;

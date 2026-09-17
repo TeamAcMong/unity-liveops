@@ -746,10 +746,20 @@
    nằm ở model + element — USS không được là nơi thứ hai giữ trạng thái. */
 
 /* Khung chọn kéo trên chỗ trống (khung 9): nền highlight 0,2 + viền 1px highlight, không nhận chuột. */
+/* Khung chọn (khung 9): viền 1px ĐỤC ở element ngoài, nền 0,2 ở con `__fill`. Gộp hai thứ vào một element thì `opacity`
+   nhuộm luôn viền — đo trên ảnh chụp: viền chỉ hơn nền cửa sổ 4-6 mức, coi như không có viền. */
 .liveops-hub-timeline-marquee {
     position: absolute;
     border-width: 1px;
     border-color: var(--unity-colors-highlight-background);
+}
+
+.liveops-hub-timeline-marquee__fill {
+    position: absolute;
+    left: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
     background-color: var(--unity-colors-highlight-background);
     opacity: 0.2;
 }

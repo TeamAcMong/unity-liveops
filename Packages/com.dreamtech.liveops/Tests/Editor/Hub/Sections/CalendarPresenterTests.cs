@@ -176,7 +176,7 @@ namespace DreamTech.LiveOps.Editor.Tests
 
             LiveOpsTimelineBarModel strip = FindStrip(presenter.Model);
             Assert.IsNotNull(strip, "ở zoom Tháng sky-race gom thành dải — fixture cần có dải để kiểm luật này");
-            presenter.HandleIntent(new SelectBarIntent(strip.BarKey, false, false));
+            presenter.HandleIntent(new SelectBarIntent(strip.BarKey));
 
             Assert.AreEqual(1, zoomRequests, "bấm dải là zoom vào, không phải chọn đợt (V-22 CC-TLMODEL-1)");
             Assert.AreEqual(string.Empty, presenter.SelectedBarKey, "dải không ánh xạ ra đợt nên không được coi khoá là EntryKey");

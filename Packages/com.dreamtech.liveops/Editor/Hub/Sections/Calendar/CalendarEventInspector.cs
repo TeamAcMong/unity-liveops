@@ -37,6 +37,16 @@ namespace DreamTech.LiveOps.Editor
             _presenter.SelectionSetChanged += OnSelectionSetChanged;
         }
 
+        /// <summary>
+        /// Nhả đăng ký <see cref="CalendarTimelinePresenter.SelectionSetChanged"/>. Màn gọi trước khi dựng inspector mới:
+        /// presenter sống lâu hơn inspector (một thể hiện mỗi lần <c>CreateView</c>), nên không nhả là mỗi lần vào màn lại
+        /// thêm một người nghe vẽ lên <c>_titleHost</c>/<c>_bodyHost</c> của cây element đã bỏ.
+        /// </summary>
+        internal void Detach()
+        {
+            _presenter.SelectionSetChanged -= OnSelectionSetChanged;
+        }
+
         /// <summary>Bấm "Thêm đợt" ở trạng thái (a) — section mở popover.</summary>
         public event Action AddEventRequested;
 

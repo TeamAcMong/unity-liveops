@@ -161,7 +161,9 @@ namespace DreamTech.LiveOps.Editor
 
         /// <summary>
         /// (G-OPT-TIMELINE, Hình 12 khung 12) Làn đang thu gọn: view vẽ làn cao 22px với dải 6px không nhãn. Cờ nằm ở MODEL chứ
-        /// không ở view vì chiều cao làn quyết định cả ước lượng vertex lẫn toạ độ hàng phụ — hai thứ model đã tính sẵn.
+        /// không ở view vì toạ độ hàng phụ của làn tính từ đây, và vì kịch bản chụp dựng lại làn thu gọn từ input chứ không gọi
+        /// một hàm của view. <see cref="LiveOpsTimelineVertexBudget.EstimateLane"/> KHÔNG đọc cờ này: nó vẫn cộng đủ thanh và
+        /// gạch chéo như làn mở, nên ước lượng chỉ dư ra — an toàn cho ngân sách, và đó là lý do không cần cho nó đọc cờ.
         /// </summary>
         public bool IsCollapsed { get; }
     }

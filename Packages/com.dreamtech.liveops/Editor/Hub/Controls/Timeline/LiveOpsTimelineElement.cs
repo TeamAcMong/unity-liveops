@@ -131,6 +131,11 @@ namespace DreamTech.LiveOps.Editor
             _marquee = new VisualElement { pickingMode = PickingMode.Ignore };
             _marquee.AddToClassList(LiveOpsHubClassNames.TimelineMarquee);
             _marquee.AddToClassList(LiveOpsHubClassNames.TimelineHidden);
+            // Nền mờ 0,2 là một con riêng: `opacity` trong USS nhuộm cả element, nên nền và viền phải nằm ở hai element khác
+            // nhau thì viền 1px mới còn đục đúng như [SD1 §3.8 khung 9].
+            VisualElement marqueeFill = new VisualElement { pickingMode = PickingMode.Ignore };
+            marqueeFill.AddToClassList(LiveOpsHubClassNames.TimelineMarqueeFill);
+            _marquee.Add(marqueeFill);
             _overlay.Add(_marquee);
 
             _ghost = new VisualElement { pickingMode = PickingMode.Ignore };
@@ -763,7 +768,7 @@ namespace DreamTech.LiveOps.Editor
                 return;
             }
             Select(model.BarKey, false);
-            IntentRaised?.Invoke(new SelectBarIntent(model.BarKey, false, false));
+            IntentRaised?.Invoke(new SelectBarIntent(model.BarKey));
             float trackPosition = row.Lane.WorldToLocal(pointerEvent.position).x;
             if (DragController.BeginBar(row.Lane.Model, row.Lane.Geometry, model, hit.BarRegion, trackPosition))
             {
@@ -834,7 +839,7 @@ namespace DreamTech.LiveOps.Editor
         {
             if (_marqueeActive)
             {
-                EndMarquee(true);
+                EndMarquee(true, pointerEvent.position);
                 if (this.HasPointerCapture(pointerEvent.pointerId)) this.ReleasePointer(pointerEvent.pointerId);
                 pointerEvent.StopPropagation();
                 return;
@@ -848,7 +853,7 @@ namespace DreamTech.LiveOps.Editor
 
         private void OnPointerCaptureOut(PointerCaptureOutEvent captureEvent)
         {
-            if (_marqueeActive) EndMarquee(false);
+            if (_marqueeActive) EndMarquee(false, Vector2.zero);
             if (DragController.IsActive) EndDrag(false);
         }
 
@@ -883,7 +888,9 @@ namespace DreamTech.LiveOps.Editor
         /// Thả khung chọn: chưa qua ngưỡng 4px thì đây là một cú bấm chỗ trống = bỏ chọn (hành vi W4 giữ nguyên); qua ngưỡng thì
         /// chọn mọi thanh CHẠM khung. Dải gom không vào tập — nó không ánh xạ ra một đợt nào (V-22 CC-TLMODEL-1).
         /// </summary>
-        private void EndMarquee(bool commit)
+        /// <param name="commit">false = mất capture giữa chừng, khung tắt mà không đổi tập chọn.</param>
+        /// <param name="worldPosition">Vị trí con trỏ của CHÍNH sự kiện nhả chuột; bỏ qua khi <paramref name="commit"/> false.</param>
+        private void EndMarquee(bool commit, Vector2 worldPosition)
         {
             bool passedThreshold = _marqueePassedThreshold;
             _marqueeActive = false;
@@ -894,12 +901,30 @@ namespace DreamTech.LiveOps.Editor
             {
                 if (_selectedBarKeys.Count == 0) return;
                 Select(string.Empty, false);
-                IntentRaised?.Invoke(new SelectBarIntent(string.Empty, false, false));
+                IntentRaised?.Invoke(new SelectBarIntent(string.Empty));
                 return;
             }
-            List<string> inside = BarKeysInMarquee();
+            List<string> inside = BarKeysInMarquee(MarqueeWorldRect(worldPosition));
             SelectMany(inside, inside.Count > 0 ? inside[inside.Count - 1] : string.Empty, false);
             IntentRaised?.Invoke(new SelectManyIntent(inside, SelectedBarKey));
+        }
+
+        /// <summary>
+        /// Hình world của khung chọn, dựng từ điểm neo và VỊ TRÍ CON TRỎ của sự kiện nhả chuột — không đọc
+        /// <c>_marquee.worldBound</c>. <c>worldBound</c> là kết quả của lần layout gần nhất: nếu PointerUp được bơm cùng lượt
+        /// với PointerMove cuối (chuyện thường gặp khi chuột đi nhanh, và là cách test bơm sự kiện), layout chưa chạy lại nên
+        /// tập chọn sẽ là tập của bước kéo TRƯỚC đó.
+        /// </summary>
+        private Rect MarqueeWorldRect(Vector2 worldPosition)
+        {
+            Vector2 current = _overlay.WorldToLocal(worldPosition);
+            Vector2 minimum = new Vector2(Math.Min(_marqueeOriginInOverlay.x, current.x),
+                Math.Min(_marqueeOriginInOverlay.y, current.y));
+            Vector2 maximum = new Vector2(Math.Max(_marqueeOriginInOverlay.x, current.x),
+                Math.Max(_marqueeOriginInOverlay.y, current.y));
+            Vector2 worldMinimum = _overlay.LocalToWorld(minimum);
+            Vector2 worldMaximum = _overlay.LocalToWorld(maximum);
+            return new Rect(worldMinimum, worldMaximum - worldMinimum);
         }
 
         /// <summary>
@@ -945,10 +970,9 @@ namespace DreamTech.LiveOps.Editor
             _marquee.style.height = bottom - top + margin * 2f; // style-inline-allowed: 4
         }
 
-        private List<string> BarKeysInMarquee()
+        private List<string> BarKeysInMarquee(Rect marqueeWorld)
         {
             var keys = new List<string>();
-            Rect marqueeWorld = _marquee.worldBound;
             foreach (LaneRow row in _rows)
             {
                 if (!row.IsActive) continue;
@@ -1259,7 +1283,7 @@ namespace DreamTech.LiveOps.Editor
                     // Hết đợt thì không làm gì để focus rời timeline như bình thường — không bẫy focus [FD §5.2].
                     if (nextKey.Length == 0) return;
                     Select(nextKey, true);
-                    IntentRaised?.Invoke(new SelectBarIntent(nextKey, false, false));
+                    IntentRaised?.Invoke(new SelectBarIntent(nextKey));
                     navigationEvent.StopPropagation();
 #if UNITY_2023_2_OR_NEWER
                     focusController?.IgnoreEvent(navigationEvent);
@@ -1375,7 +1399,7 @@ namespace DreamTech.LiveOps.Editor
                 }
                 if (nearest == null) continue;
                 Select(nearest.BarKey, true);
-                IntentRaised?.Invoke(new SelectBarIntent(nearest.BarKey, false, false));
+                IntentRaised?.Invoke(new SelectBarIntent(nearest.BarKey));
                 return true;
             }
             return true;

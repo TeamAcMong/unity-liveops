@@ -67,7 +67,11 @@ namespace DreamTech.LiveOps.Editor
         /// </summary>
         public bool FollowLaterEvents { get; set; }
 
-        /// <summary>Đợt bị kéo theo ở bước xem trước hiện hành; rỗng khi không giữ Shift hoặc chưa dời được giờ nào.</summary>
+        /// <summary>
+        /// Đợt bị kéo theo ở bước xem trước hiện hành; rỗng khi không giữ Shift hoặc chưa dời được giờ nào. Đây là tập để VẼ:
+        /// nó chỉ gồm đợt có thanh trong khung nhìn, vì ngoài khung nhìn thì không có gì để vẽ. Tập thật sự được ghi vào tài liệu
+        /// do presenter tính từ tài liệu (xem <see cref="MoveBarIntent.FollowsLaterEvents"/>).
+        /// </summary>
         public IReadOnlyList<LiveOpsTimelineBarMove> FollowerMoves => _followerMoves;
 
         public string BarKey { get; private set; } = string.Empty;
@@ -325,6 +329,8 @@ namespace DreamTech.LiveOps.Editor
         /// đi, dời đúng bằng khoảng mép cuối vừa dời. Lấy mốc là mép cuối gốc (không phải mép cuối xem trước) để tập đợt kéo theo
         /// đứng yên trong suốt cử chỉ — nếu không, kéo dài ra một chút là nuốt thêm đợt, kéo ngắn lại là nhả ra, và người dùng
         /// không đoán nổi mình sắp dời những gì.
+        /// Chỉ dùng để VẼ xem trước (thanh mờ + vùng chồng giờ): <c>_lane.Bars</c> chỉ có đợt giao với khoảng đang xem, nên tập
+        /// này thiếu đợt ngoài khung nhìn. Lệnh sửa thật lấy tập từ tài liệu ở presenter — xem vá F-4 của cổng soát W6.
         /// </summary>
         private void ComputeFollowerMoves()
         {
@@ -423,7 +429,7 @@ namespace DreamTech.LiveOps.Editor
         {
             LiveOpsTimelineIntent intent = Gesture == DragGesture.Create
                 ? (LiveOpsTimelineIntent)new CreateByDragIntent(LaneTypeId, PreviewStartUtc, PreviewEndUtc, phase)
-                : new MoveBarIntent(BarKey, PreviewStartUtc, PreviewEndUtc, phase, _followerMoves.ToArray());
+                : new MoveBarIntent(BarKey, PreviewStartUtc, PreviewEndUtc, phase, FollowLaterEvents);
             IntentRaised?.Invoke(intent);
         }
 
