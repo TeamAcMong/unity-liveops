@@ -18,10 +18,10 @@ namespace DreamTech.LiveOps.Editor
                 english: "fixed");
             table.Add(nameof(LiveOpsHubStrings.TimelineFixedLaneMetaCountFormat),
                 vietnamese: "cố định · {0} đợt",
-                english: "fixed · {0} events");
+                english: "fixed · {0} {0|event|events}");
             table.Add(nameof(LiveOpsHubStrings.TimelineFixedLaneMetaOutsideRangeFormat),
                 vietnamese: "cố định · {0} đợt, ngoài khung",
-                english: "fixed · {0} events, outside the range");
+                english: "fixed · {0} {0|event|events}, outside the range");
             table.Add(nameof(LiveOpsHubStrings.TimelineFixedLaneMetaEmpty),
                 vietnamese: "cố định · chưa có đợt",
                 english: "fixed · no events yet");
@@ -34,7 +34,7 @@ namespace DreamTech.LiveOps.Editor
                 english: "no type set");
             table.Add(nameof(LiveOpsHubStrings.TimelineUntypedLaneMetaCountFormat),
                 vietnamese: "chưa ghi loại · {0} đợt",
-                english: "no type set · {0} events");
+                english: "no type set · {0} {0|event|events}");
 
             table.AddShared(nameof(LiveOpsHubStrings.TimelineStripIdSeparator), "…");
             table.AddShared(nameof(LiveOpsHubStrings.TimelineBarLabelEllipsis), "…");

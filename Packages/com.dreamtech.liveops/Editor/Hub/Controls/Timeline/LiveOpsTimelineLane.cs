@@ -567,7 +567,7 @@ namespace DreamTech.LiveOps.Editor
             {
                 ChipMark.SetHealth(lane.ChipState);
                 ChipCount.text = lane.ChipCount.ToString(CultureInfo.InvariantCulture);
-                Chip.tooltip = string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.TimelineLaneChipTooltipFormat, lane.ChipCount);
+                Chip.tooltip = LiveOpsHubStringCatalog.Format(nameof(LiveOpsHubStrings.TimelineLaneChipTooltipFormat), lane.ChipCount);
             }
 
             MetaLabel.text = lane.MetaText;

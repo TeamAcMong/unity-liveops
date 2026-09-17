@@ -781,7 +781,7 @@ namespace DreamTech.LiveOps.Editor
                 : string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.ShellOverwriteDiskConfirmBodyFormat, fileName, itemList);
             LiveOpsConfirmRequest request = new LiveOpsConfirmRequest.Builder()
                 .WithLevel(LiveOpsConfirmLevel.Level1)
-                .WithTitle(string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.ShellOverwriteDiskConfirmTitleFormat,
+                .WithTitle(LiveOpsHubStringCatalog.Format(nameof(LiveOpsHubStrings.ShellOverwriteDiskConfirmTitleFormat),
                     _services.Format.Integer(diff.ChangeCount)))
                 .WithBody(body)
                 .WithKeyHint(LiveOpsHubStrings.ShellOverwriteDiskConfirmKeyHint)

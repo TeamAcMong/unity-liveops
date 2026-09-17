@@ -32,7 +32,7 @@ namespace DreamTech.LiveOps.Editor
                 english: "also wrong: ");
             table.Add(nameof(LiveOpsHubStrings.FindingHoursFormat),
                 vietnamese: "{0} giờ",
-                english: "{0} hours");
+                english: "{0} {0|hour|hours}");
 
             table.Add(nameof(LiveOpsHubStrings.FindingButtonSafeRepair),
                 vietnamese: "Sửa",
@@ -306,10 +306,10 @@ namespace DreamTech.LiveOps.Editor
 
             table.Add(nameof(LiveOpsHubStrings.FindingUnknownTypeDraftHeadlineFormat),
                 vietnamese: "{0} đợt {1} thuộc loại chưa khai báo",
-                english: "{0} events use undeclared type {1}");
+                english: "{0} {0|event uses|events use} undeclared type {1}");
             table.Add(nameof(LiveOpsHubStrings.FindingUnknownTypeRemoteHeadlineFormat),
                 vietnamese: "{0} đợt {1} trong JSON đang chạy thuộc loại chưa khai báo",
-                english: "{0} events in the running JSON use undeclared type {1}");
+                english: "{0} {0|event in the running JSON uses|events in the running JSON use} undeclared type {1}");
             table.Add(nameof(LiveOpsHubStrings.FindingUnknownTypeDraftShortLabel),
                 vietnamese: "loại chưa khai báo",
                 english: "undeclared type");
@@ -324,10 +324,10 @@ namespace DreamTech.LiveOps.Editor
                 english: "in the running JSON · does not block Copy JSON of the draft");
             table.Add(nameof(LiveOpsHubStrings.FindingUnknownTypeDraftConsequenceFormat),
                 vietnamese: "Game build với asset này bỏ {0} đợt {1}: người chơi không thấy chúng.",
-                english: "A game built with this asset drops {0} events of type {1}: players never see them.");
+                english: "A game built with this asset drops {0} {0|event|events} of type {1}: players never see them.");
             table.Add(nameof(LiveOpsHubStrings.FindingUnknownTypeRemoteConsequenceFormat),
                 vietnamese: "{0}: có {1} đợt trong JSON đã dán nhưng chưa có loại — game sẽ bỏ",
-                english: "{0}: {1} events in the pasted JSON have no declared type — the game will drop them");
+                english: "{0}: {1} {1|event in the pasted JSON has|events in the pasted JSON have} no declared type — the game will drop them");
 
             table.Add(nameof(LiveOpsHubStrings.FindingRunningPrefixChangedHeadlineFormat),
                 vietnamese: "{0} đổi tiền tố khi {1} đang chạy",
@@ -489,13 +489,13 @@ namespace DreamTech.LiveOps.Editor
 
             table.Add(nameof(LiveOpsHubStrings.FindingRemoteDiffersHeadlineFormat),
                 vietnamese: "Bản remote khác dấu {0}: {1} mục",
-                english: "Remote differs from the {0} published stamp: {1} entries");
+                english: "Remote differs from the {0} published stamp: {1} {1|entry|entries}");
             table.Add(nameof(LiveOpsHubStrings.FindingRemoteDiffersWithoutStampHeadlineFormat),
                 vietnamese: "Bản remote khác dấu đã đăng mới nhất: {0} mục",
-                english: "Remote differs from the latest published stamp: {0} entries");
+                english: "Remote differs from the latest published stamp: {0} {0|entry|entries}");
             table.Add(nameof(LiveOpsHubStrings.FindingRemoteNoStampHeadlineFormat),
                 vietnamese: "Bản remote có {0} mục nhưng chưa có dấu đã đăng để so",
-                english: "Remote has {0} entries but there is no published stamp to compare against");
+                english: "Remote has {0} {0|entry|entries} but there is no published stamp to compare against");
             table.Add(nameof(LiveOpsHubStrings.FindingRemoteDiffersShortLabel),
                 vietnamese: "bản remote khác dấu đã đăng",
                 english: "remote differs from the published stamp");
@@ -513,7 +513,7 @@ namespace DreamTech.LiveOps.Editor
                 english: "does not block Copy JSON of the draft");
             table.Add(nameof(LiveOpsHubStrings.FindingRemoteDiffersConsequenceFormat),
                 vietnamese: "Người chơi đang nhận bản trên remote config, khác bản đã đăng ở {0} mục.",
-                english: "Players are getting the version in remote config, which differs from the published baseline in {0} entries.");
+                english: "Players are getting the version in remote config, which differs from the published baseline in {0} {0|entry|entries}.");
             table.Add(nameof(LiveOpsHubStrings.FindingRemoteNoStampConsequence),
                 vietnamese: "Chưa biết bản đang chạy khác gì lần đăng: chưa có dấu đã đăng nào.",
                 english: "It is not known how the running version differs from the last publish: there is no published stamp yet.");

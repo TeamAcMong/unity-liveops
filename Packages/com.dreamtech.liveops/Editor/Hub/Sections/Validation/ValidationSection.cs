@@ -538,14 +538,14 @@ namespace DreamTech.LiveOps.Editor
             {
                 case ValidationBodyState.NeverChecked:
                     FillEmpty(LiveOpsHubStrings.ValidationNeverCheckedTitle,
-                        string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.ValidationNeverCheckedBodyFormat,
+                        LiveOpsHubStringCatalog.Format(nameof(LiveOpsHubStrings.ValidationNeverCheckedBodyFormat),
                             Services.Session.Check.RuleCount),
                         string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.ValidationNeverCheckedActionFormat,
                             CheckAllKeyLabel()), OnRecheckClicked);
                     break;
                 case ValidationBodyState.NoErrors:
                     FillEmpty(LiveOpsHubStrings.ValidationNoErrorsTitle,
-                        string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.ValidationNoErrorsBodyFormat,
+                        LiveOpsHubStringCatalog.Format(nameof(LiveOpsHubStrings.ValidationNoErrorsBodyFormat),
                             PassedCountOf(model), NotMeasuredCountOf(model)), string.Empty, null);
                     break;
             }
@@ -681,7 +681,7 @@ namespace DreamTech.LiveOps.Editor
                 edits.Add(items[index].Repair.Edit);
             }
 
-            string undoName = string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.ValidationSafeRepairUndoFormat, items.Count);
+            string undoName = LiveOpsHubStringCatalog.Format(nameof(LiveOpsHubStrings.ValidationSafeRepairUndoFormat), items.Count);
             if (_bulkPreview != null) _bulkPreview.RemoveFromHierarchy();
             _bulkPreview = null;
             _bulkPreviewKeys = string.Empty;
@@ -718,7 +718,7 @@ namespace DreamTech.LiveOps.Editor
                     if (row.Finding.Repairs.Count > 0)
                     {
                         ApplyRepair(row.Finding, row.Finding.Repairs[0],
-                            string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.ValidationSafeRepairUndoFormat, 1));
+                            LiveOpsHubStringCatalog.Format(nameof(LiveOpsHubStrings.ValidationSafeRepairUndoFormat), 1));
                     }
                     break;
                 case ValidationRowAction.Proposal:
@@ -825,7 +825,7 @@ namespace DreamTech.LiveOps.Editor
             if (finding.RepairKind == LiveEventCalendarRepairKind.SafeRepair && repairIndex < finding.Repairs.Count)
             {
                 ApplyRepair(finding, finding.Repairs[repairIndex],
-                    string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.ValidationSafeRepairUndoFormat, 1));
+                    LiveOpsHubStringCatalog.Format(nameof(LiveOpsHubStrings.ValidationSafeRepairUndoFormat), 1));
                 return;
             }
             // "Đề xuất…" đổi điều người chơi thấy: nút ở pane Chi tiết mở ĐÚNG popover của hàng, chọn sẵn lựa chọn vừa bấm.

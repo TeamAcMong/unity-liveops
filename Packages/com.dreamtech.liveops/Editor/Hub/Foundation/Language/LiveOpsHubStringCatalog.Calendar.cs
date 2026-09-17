@@ -59,7 +59,7 @@ namespace DreamTech.LiveOps.Editor
                 english: "Find event id");
             table.Add(nameof(LiveOpsHubStrings.CalendarHiddenLanesChipFormat),
                 vietnamese: "Đang ẩn {0} làn · Hiện",
-                english: "{0} lanes hidden · Show");
+                english: "{0} {0|lane|lanes} hidden · Show");
 
             table.Add(nameof(LiveOpsHubStrings.CalendarAddEventButton),
                 vietnamese: "Thêm đợt",
@@ -81,7 +81,7 @@ namespace DreamTech.LiveOps.Editor
                 english: "Select an event on the axis to view and edit it.");
             table.Add(nameof(LiveOpsHubStrings.CalendarInspectorSummaryFormat),
                 vietnamese: "{0} đợt cố định · {1} luật lặp · {2} không đặt được",
-                english: "{0} fixed events · {1} recurring rules · {2} cannot be placed");
+                english: "{0} fixed {0|event|events} · {1} recurring {1|rule|rules} · {2} cannot be placed");
 
             table.AddShared(nameof(LiveOpsHubStrings.CalendarFieldIdLabel), "Id");
             table.Add(nameof(LiveOpsHubStrings.CalendarFieldTypeLabel),

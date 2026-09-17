@@ -12,17 +12,17 @@ namespace DreamTech.LiveOps.Editor
         {
             table.Add(nameof(LiveOpsHubStrings.InspectorSummaryFormat),
                 vietnamese: "{0} loại · {1} luật lặp · {2} đợt cố định",
-                english: "{0} event types · {1} recurring rules · {2} fixed events");
+                english: "{0} event {0|type|types} · {1} recurring {1|rule|rules} · {2} fixed {2|event|events}");
             table.Add(nameof(LiveOpsHubStrings.InspectorRemoteConfigKeyFormat),
                 vietnamese: "Khoá remote config: {0}",
                 english: "Remote config key: {0}");
             table.Add(nameof(LiveOpsHubStrings.InspectorIgnoredWarningsFormat),
                 vietnamese: "{0} cảnh báo Kiểm lịch đã bỏ qua",
-                english: "{0} calendar-check warnings ignored");
+                english: "{0} calendar-check {0|warning|warnings} ignored");
 
             table.Add(nameof(LiveOpsHubStrings.InspectorPublishedFormat),
                 vietnamese: "Đã đăng {0} lần · lần cuối {1}",
-                english: "Published {0} times · last one {1}");
+                english: "Published {0} {0|time|times} · last one {1}");
             table.Add(nameof(LiveOpsHubStrings.InspectorPublishedNone),
                 vietnamese: "Chưa đăng lần nào",
                 english: "Never published");
@@ -33,14 +33,14 @@ namespace DreamTech.LiveOps.Editor
 
             table.Add(nameof(LiveOpsHubStrings.InspectorBrokenEventTypesFormat),
                 vietnamese: "{0} loại event trong asset không dùng được (id rỗng, sai ký tự hoặc trùng id) — game bỏ chúng, kèm mọi đợt thuộc chúng.",
-                english: "{0} event types in this asset cannot be used (empty id, invalid characters, or a duplicate id) — the game drops them, and every event that belongs to them.");
+                english: "{0} event {0|type|types} in this asset cannot be used (empty id, invalid characters, or a duplicate id) — the game drops them, and every event that belongs to them.");
             table.Add(nameof(LiveOpsHubStrings.InspectorDroppedEntriesFormat),
                 vietnamese: "{0} mục của lịch bị bỏ khi game đọc asset này. Mở hub rồi chạy Kiểm lịch để xem từng mục và cách sửa.",
-                english: "{0} calendar entries are dropped when the game reads this asset. Open the hub and run the calendar check to see each one and how to fix it.");
+                english: "{0} calendar {0|entry is|entries are} dropped when the game reads this asset. Open the hub and run the calendar check to see each one and how to fix it.");
 
             table.Add(nameof(LiveOpsHubStrings.InspectorManyStampsFormat),
                 vietnamese: "Lịch sử đăng có {0} bản chụp, nhiều hơn mốc {1}. Mỗi bản khoảng 2 KB nên asset phình dần — gỡ bớt bản cũ ở màn Xuất JSON của hub; hub không tự xoá bản nào.",
-                english: "The publish history holds {0} snapshots, more than the {1} mark. Each one is about 2 KB, so the asset keeps growing — remove old ones on the hub's Export JSON screen; the hub never deletes any by itself.");
+                english: "The publish history holds {0} {0|snapshot|snapshots}, more than the {1} mark. Each one is about 2 KB, so the asset keeps growing — remove old ones on the hub's Export JSON screen; the hub never deletes any by itself.");
 
             table.Add(nameof(LiveOpsHubStrings.InspectorOpenInHubButton),
                 vietnamese: "Mở trong LiveOps Hub",

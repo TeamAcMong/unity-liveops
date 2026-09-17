@@ -50,7 +50,7 @@ namespace DreamTech.LiveOps.Editor
             if (healths == null) throw new ArgumentNullException(nameof(healths));
             if (healths.Count != sections.Count)
             {
-                throw new ArgumentException(string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.ShellRailHealthCountMismatchFormat,
+                throw new ArgumentException(LiveOpsHubStringCatalog.Format(nameof(LiveOpsHubStrings.ShellRailHealthCountMismatchFormat),
                     healths.Count, sections.Count), nameof(healths));
             }
 
@@ -86,8 +86,10 @@ namespace DreamTech.LiveOps.Editor
                 blockerTitle = string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.ShellRailBlockerTitleFormat, blockedRow.Title);
                 if (gate.Stage == PipelineStage.Check && summary != null && summary.DroppedCount > 0)
                 {
-                    blockerDetail = string.Format(CultureInfo.InvariantCulture,
-                        isCheckStale ? LiveOpsHubStrings.ShellRailBlockerStaleDetailFormat : LiveOpsHubStrings.ShellRailBlockerDroppedDetailFormat,
+                    blockerDetail = LiveOpsHubStringCatalog.Format(
+                        isCheckStale
+                            ? nameof(LiveOpsHubStrings.ShellRailBlockerStaleDetailFormat)
+                            : nameof(LiveOpsHubStrings.ShellRailBlockerDroppedDetailFormat),
                         summary.DroppedCount);
                 }
                 else
@@ -105,7 +107,7 @@ namespace DreamTech.LiveOps.Editor
                 {
                     LiveOpsHubRailSectionRow checkRow = checkStage.Rows[0];
                     blockerTitle = string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.ShellRailBlockerTitleFormat, checkRow.Title);
-                    blockerDetail = string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.ShellRailBlockerStaleDetailFormat, summary.DroppedCount);
+                    blockerDetail = LiveOpsHubStringCatalog.Format(nameof(LiveOpsHubStrings.ShellRailBlockerStaleDetailFormat), summary.DroppedCount);
                     blockerNavigation = NavigationFor(PipelineStage.Check, checkRow.SectionId);
                 }
             }

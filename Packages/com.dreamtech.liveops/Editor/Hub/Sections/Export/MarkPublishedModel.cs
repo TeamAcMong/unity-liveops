@@ -180,7 +180,7 @@ namespace DreamTech.LiveOps.Editor
                 ? string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.ExportMarkBodyDraftChangedFormat, currentShort, exportedShort)
                 // Câu ExportMarkBodyFormat ĐÃ mang chữ " UTC" và " byte"; dùng ShortDateTimeUtc/Bytes ở đây là in hai lần
                 // ("09:04 UTC UTC", "1.612 byte byte") — nơi gọi chỉ đưa SỐ, đơn vị thuộc về câu.
-                : string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.ExportMarkBodyFormat, input.AssetFileName,
+                : LiveOpsHubStringCatalog.Format(nameof(LiveOpsHubStrings.ExportMarkBodyFormat), input.AssetFileName,
                     input.Format.ShortDateTime(input.NowUtc), input.Publisher, input.PublisherSource, currentShort,
                     input.Format.Integer(input.ByteCount));
 

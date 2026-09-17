@@ -45,7 +45,7 @@ namespace DreamTech.LiveOps.Editor
                 english: "JSON to publish");
             table.Add(nameof(LiveOpsHubStrings.ExportJsonCardMetaFormat),
                 vietnamese: "parser của game giữ {0}/{1} mục · khớp Kiểm lịch",
-                english: "the game parser keeps {0}/{1} entries · matches the calendar check");
+                english: "the game parser keeps {0}/{1} {1|entry|entries} · matches the calendar check");
 
             // ---------------------------------------------------------------------------------------------------- card diff
             table.Add(nameof(LiveOpsHubStrings.ExportDiffCardTitleFormat),
@@ -151,7 +151,7 @@ namespace DreamTech.LiveOps.Editor
                 english: "Restore the {0} version into the draft?");
             table.Add(nameof(LiveOpsHubStrings.ExportRestoreConfirmBodyFormat),
                 vietnamese: "Nháp mất {0} thay đổi: {1}.",
-                english: "The draft loses {0} changes: {1}.");
+                english: "The draft loses {0} {0|change|changes}: {1}.");
             table.Add(nameof(LiveOpsHubStrings.ExportRestoreConfirmBodyNoChanges),
                 vietnamese: "Nháp đang giống bản này — khôi phục chỉ bỏ những sửa chưa lưu của loại và luật.",
                 english: "The draft already matches this version — restoring only drops unsaved edits to types and rules.");
@@ -173,10 +173,10 @@ namespace DreamTech.LiveOps.Editor
                 english: "Remove the stamp published {0}?");
             table.Add(nameof(LiveOpsHubStrings.ExportRemoveStampConfirmBodyFormat),
                 vietnamese: "Bản so quay về {0} · sha {1}; Xuất JSON sẽ tính lại {2} thay đổi.",
-                english: "The comparison base goes back to {0} · sha {1}; Export JSON will recount {2} changes.");
+                english: "The comparison base goes back to {0} · sha {1}; Export JSON will recount {2} {2|change|changes}.");
             table.Add(nameof(LiveOpsHubStrings.ExportRemoveStampConfirmBodyNoBaselineFormat),
                 vietnamese: "Không còn dấu nào khác: Xuất JSON quay về lần đăng đầu và sẽ tính lại {0} thay đổi.",
-                english: "No other stamp is left: Export JSON goes back to a first publish and will recount {0} changes.");
+                english: "No other stamp is left: Export JSON goes back to a first publish and will recount {0} {0|change|changes}.");
             table.Add(nameof(LiveOpsHubStrings.ExportRemoveStampConfirmDestructive),
                 vietnamese: "Gỡ dấu",
                 english: "Remove the stamp");
@@ -196,7 +196,7 @@ namespace DreamTech.LiveOps.Editor
                 english: "bytes");
             table.Add(nameof(LiveOpsHubStrings.ExportMetricSizeFootFormat),
                 vietnamese: "{0} dòng",
-                english: "{0} lines");
+                english: "{0} {0|line|lines}");
             table.Add(nameof(LiveOpsHubStrings.ExportMetricFormatCaption),
                 vietnamese: "ĐỊNH DẠNG",
                 english: "FORMAT");
@@ -222,13 +222,13 @@ namespace DreamTech.LiveOps.Editor
             // ----------------------------------------------------------------------------------------------------- outcome
             table.Add(nameof(LiveOpsHubStrings.ExportOutcomeCopiedHeadlineFormat),
                 vietnamese: "Đã copy {0} byte vào clipboard lúc {1} UTC · sha {2}",
-                english: "Copied {0} bytes to the clipboard at {1} UTC · sha {2}");
+                english: "Copied {0} {0|byte|bytes} to the clipboard at {1} UTC · sha {2}");
             table.Add(nameof(LiveOpsHubStrings.ExportOutcomeCopiedDetail),
                 vietnamese: "Dán vào key liveops_calendar rồi bấm Đánh dấu đã đăng",
                 english: "Paste it into key liveops_calendar, then press Mark as published");
             table.Add(nameof(LiveOpsHubStrings.ExportOutcomeSavedHeadlineFormat),
                 vietnamese: "Đã lưu {0} ({1} byte) vào {2}",
-                english: "Saved {0} ({1} bytes) to {2}");
+                english: "Saved {0} ({1} {1|byte|bytes}) to {2}");
             table.Add(nameof(LiveOpsHubStrings.ExportOutcomeSavedDetail),
                 vietnamese: "Dán nội dung file vào key liveops_calendar rồi bấm Đánh dấu đã đăng",
                 english: "Paste the file contents into key liveops_calendar, then press Mark as published");
@@ -254,7 +254,7 @@ namespace DreamTech.LiveOps.Editor
                 english: "The draft changed after the {0} copy");
             table.Add(nameof(LiveOpsHubStrings.ExportMarkBodyFormat),
                 vietnamese: "Hub sẽ ghi vào {0}: {1} UTC, {2} ({3}), sha {4}, {5} byte và bản chụp JSON để so lần sau, rồi lưu {0}. Hub không gửi gì lên Firebase.",
-                english: "The hub writes into {0}: {1} UTC, {2} ({3}), sha {4}, {5} bytes and a JSON snapshot for the next comparison, then saves {0}. The hub sends nothing to Firebase.");
+                english: "The hub writes into {0}: {1} UTC, {2} ({3}), sha {4}, {5} {5|byte|bytes} and a JSON snapshot for the next comparison, then saves {0}. The hub sends nothing to Firebase.");
             table.Add(nameof(LiveOpsHubStrings.ExportMarkBodyDraftChangedFormat),
                 vietnamese: "Nháp hiện tại có sha {0}, khác JSON bạn đã copy ({1}). Ghi dấu lúc này sẽ lưu một bản chụp khác thứ đã dán lên Firebase, và mọi lần so sau đều lệch.",
                 english: "The current draft has sha {0}, which differs from the JSON you copied ({1}). Stamping now would store a snapshot different from what is on Firebase, and every later comparison would be wrong.");

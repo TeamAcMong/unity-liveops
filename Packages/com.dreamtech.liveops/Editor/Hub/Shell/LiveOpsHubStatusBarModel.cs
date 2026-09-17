@@ -101,7 +101,7 @@ namespace DreamTech.LiveOps.Editor
             mark = summary.WorstConsequence.HasValue
                 ? LiveOpsHubFindingRouting.StateOf(summary.WorstConsequence.Value)
                 : HealthState.Ok;
-            return string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.ShellStatusCheckedFormat,
+            return LiveOpsHubStringCatalog.Format(nameof(LiveOpsHubStrings.ShellStatusCheckedFormat),
                 ClockWithSeconds(check.CheckedAtUtc), summary.RuleCount, summary.NeedsActionCount);
         }
 

@@ -120,7 +120,7 @@ namespace DreamTech.LiveOps.Editor
 
             table.Add(nameof(LiveOpsHubStrings.RecurringOccurrencesTitleFormat),
                 vietnamese: "{0} đợt kế tiếp",
-                english: "Next {0} occurrences");
+                english: "Next {0} {0|occurrence|occurrences}");
             table.Add(nameof(LiveOpsHubStrings.RecurringOccurrencesSubtitleFormat),
                 vietnamese: "theo nháp · {0}",
                 english: "from the draft · {0}");
@@ -159,7 +159,7 @@ namespace DreamTech.LiveOps.Editor
                 english: "computing…");
             table.Add(nameof(LiveOpsHubStrings.RecurringOccurrenceLimitNoteFormat),
                 vietnamese: "Đã hiện tối đa {0} đợt",
-                english: "Showing the maximum of {0} occurrences");
+                english: "Showing the maximum of {0} {0|occurrence|occurrences}");
             table.Add(nameof(LiveOpsHubStrings.RecurringOccurrencesEmptyReason),
                 vietnamese: "Không đợt nào sinh ra: luật đang lỗi ở trên nên game bỏ hẳn luật này — sửa ô lỗi rồi bảng mới có đợt.",
                 english: "No occurrence is generated: the rule above is invalid so the game drops it entirely — fix the field in error and the table fills in.");

@@ -35,7 +35,7 @@ namespace DreamTech.LiveOps.Editor
 
             table.Add(nameof(LiveOpsHubStrings.TabStripChoiceOutOfRangeFormat),
                 vietnamese: "Tab thứ {0} không tồn tại — dải tab chỉ có {1} lựa chọn.",
-                english: "Tab {0} does not exist — the tab strip only has {1} choices.");
+                english: "Tab {0} does not exist — the tab strip only has {1} {1|choice|choices}.");
 
             table.Add(nameof(LiveOpsHubStrings.JsonViewFormattedTab),
                 vietnamese: "Đã định dạng",

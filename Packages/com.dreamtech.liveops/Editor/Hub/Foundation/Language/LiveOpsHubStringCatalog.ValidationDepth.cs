@@ -25,7 +25,7 @@ namespace DreamTech.LiveOps.Editor
                 english: "Undo group: {0}");
             table.Add(nameof(LiveOpsHubStrings.ValidationDepthBulkPreviewApplyFormat),
                 vietnamese: "Áp {0} thay đổi",
-                english: "Apply {0} changes");
+                english: "Apply {0} {0|change|changes}");
             table.Add(nameof(LiveOpsHubStrings.ValidationDepthBulkPreviewCancelButton),
                 vietnamese: "Huỷ",
                 english: "Cancel");

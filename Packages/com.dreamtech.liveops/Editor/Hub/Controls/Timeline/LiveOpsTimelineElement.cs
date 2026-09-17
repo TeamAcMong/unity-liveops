@@ -398,7 +398,7 @@ namespace DreamTech.LiveOps.Editor
             string range;
             if (bar.IsStrip)
             {
-                range = string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.TimelineStripTooltipFormat, bar.EventId, bar.StripCount,
+                range = LiveOpsHubStringCatalog.Format(nameof(LiveOpsHubStrings.TimelineStripTooltipFormat), bar.EventId, bar.StripCount,
                     _format.ShortDateTime(bar.StartUtc), _format.ShortDateTime(bar.EndUtc));
             }
             else

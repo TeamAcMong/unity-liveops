@@ -394,7 +394,7 @@ namespace DreamTech.LiveOps.Editor
             {
                 if (check.IsRunning)
                 {
-                    return SectionHealth.NotMeasured(string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.ServicesHealthRunningFormat,
+                    return SectionHealth.NotMeasured(LiveOpsHubStringCatalog.Format(nameof(LiveOpsHubStrings.ServicesHealthRunningFormat),
                         check.CompletedRuleCount, check.RuleCount));
                 }
                 if (check.LastReport == null)
@@ -485,11 +485,11 @@ namespace DreamTech.LiveOps.Editor
             }
 
             StringBuilder reason = new StringBuilder();
-            AppendGroup(reason, LiveOpsHubStrings.ServicesHealthDroppedGroupFormat, dropped);
-            AppendGroup(reason, LiveOpsHubStrings.ServicesHealthProgressLostGroupFormat, progressLost);
-            AppendGroup(reason, LiveOpsHubStrings.ServicesHealthShouldReviewGroupFormat, shouldReview);
-            if (counts.NotMeasured > 0) AppendPart(reason, string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.ServicesHealthNotMeasuredGroupFormat, counts.NotMeasured));
-            if (remoteFindingCount > 0) AppendPart(reason, string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.ServicesHealthRemoteFindingsFormat, remoteFindingCount));
+            AppendGroup(reason, nameof(LiveOpsHubStrings.ServicesHealthDroppedGroupFormat), dropped);
+            AppendGroup(reason, nameof(LiveOpsHubStrings.ServicesHealthProgressLostGroupFormat), progressLost);
+            AppendGroup(reason, nameof(LiveOpsHubStrings.ServicesHealthShouldReviewGroupFormat), shouldReview);
+            if (counts.NotMeasured > 0) AppendPart(reason, LiveOpsHubStringCatalog.Format(nameof(LiveOpsHubStrings.ServicesHealthNotMeasuredGroupFormat), counts.NotMeasured));
+            if (remoteFindingCount > 0) AppendPart(reason, LiveOpsHubStringCatalog.Format(nameof(LiveOpsHubStrings.ServicesHealthRemoteFindingsFormat), remoteFindingCount));
 
             // (V-17) loại chưa khai báo — kể cả loại chỉ có trong JSON đang chạy — chặn màn Loại event (tầng CẤU HÌNH không phải cổng).
             if (counts.Dropped > 0 || hasUnknownType)
@@ -559,7 +559,11 @@ namespace DreamTech.LiveOps.Editor
             }
         }
 
-        private static void AppendGroup(StringBuilder reason, string groupFormat, List<LiveEventCalendarFinding> findings)
+        /// <param name="groupKey">
+        /// KHOÁ chữ (không phải câu đã tra): nhóm có số đếm nên câu tiếng Anh mang dấu số ít/số nhiều, mà dấu chỉ chọn được
+        /// vế khi biết đối số — <c>LiveOpsHubStringCatalog.Format</c> làm việc đó (Q-W5-2).
+        /// </param>
+        private static void AppendGroup(StringBuilder reason, string groupKey, List<LiveEventCalendarFinding> findings)
         {
             if (findings.Count == 0) return;
             StringBuilder items = new StringBuilder();
@@ -569,7 +573,7 @@ namespace DreamTech.LiveOps.Editor
                 items.Append(string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.ServicesHealthItemFormat,
                     LiveOpsFindingText.PlainText(finding.TargetId), LiveOpsFindingText.PlainText(LiveOpsFindingText.ShortLabel(finding))));
             }
-            AppendPart(reason, string.Format(CultureInfo.InvariantCulture, groupFormat, findings.Count, items));
+            AppendPart(reason, LiveOpsHubStringCatalog.Format(groupKey, findings.Count, items));
         }
 
         private static void AppendPart(StringBuilder reason, string part)
