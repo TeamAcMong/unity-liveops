@@ -110,8 +110,10 @@ namespace DreamTech.LiveOps.Editor
         /// một câu đo được (byte, giờ) không được đổi cách đọc chỉ vì người gọi đổi kiểu số.
         /// <para>
         /// Chuỗi cũng được nhận và ĐỌC THÀNH SỐ vì rất nhiều chỗ trong hub đưa số đếm đã định dạng sẵn vào câu
-        /// (<c>LiveOpsHubFormat.Integer</c> — có dấu phân nhóm hàng nghìn). Không nhận chuỗi thì luật số ít im lặng
-        /// không chạy ở đúng những câu cần nó nhất, mà chẳng test nào đỏ.
+        /// (<c>LiveOpsHubFormat.Integer</c>). Chỉ n = 1 mới đổi được cách đọc, và <c>Integer(1)</c> ra đúng <c>"1"</c> nên
+        /// đường chuỗi này luôn đọc được đúng ca duy nhất cần nó. Số lớn hơn thì hub in dấu phân nhóm bằng dấu CHẤM
+        /// ("1.000") — <c>InvariantCulture</c> ngăn hàng nghìn bằng dấu PHẨY nên chuỗi ấy không parse được và rơi về vế số
+        /// nhiều; đó CHÍNH LÀ vế đúng, không phải một ca hỏng cần vá.
         /// </para>
         /// </summary>
         private static bool IsExactlyOne(object argument)

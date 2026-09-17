@@ -15,16 +15,22 @@ namespace DreamTech.LiveOps.Editor.Tests
     internal static class LiveOpsHubEnglishPluralExceptions
     {
         /// <summary>
-        /// Từ kết thúc bằng "s" nhưng KHÔNG phải danh từ đếm được: động từ chia ngôi thứ ba và một giới từ. Gặp
+        /// Từ kết thúc bằng "s" nhưng KHÔNG phải danh từ đếm được: động từ chia ngôi thứ ba, một giới từ và hai đại từ. Gặp
         /// <c>"{0} is running"</c> thì <c>{0}</c> là TÊN đợt, không phải số đếm — chia số ở đó là vô nghĩa.
         /// <para>
         /// Danh sách đóng: thêm một câu tiếng Anh dùng động từ mới ngay sau <c>{i}</c> thì test đỏ cho tới khi người viết
         /// xếp nó vào đây (hoặc đánh dấu câu) — đó chính là chỗ chặn "quên chia số".
         /// </para>
+        /// <para>
+        /// Từ ở đây chặn cả khi nó đứng XEN GIỮA <c>{i}</c> và danh từ: bộ dò của <see cref="EnglishPluralTests"/> cho phép
+        /// tới ba từ chen giữa (Q-W5-2 quét lại, 17/9/2026 — "{0} unsaved changes" từng lọt vì tính từ chen vào), nên gặp
+        /// <c>"{0} field still holds an unsaved draft"</c> thì động từ "holds" phải cắt đường dò, không thì mọi câu có
+        /// <c>{i}</c> rồi vài từ rồi một động từ đều thành ứng viên giả.
+        /// </para>
         /// </summary>
         internal static IReadOnlyList<string> WordsThatAreNotCountedNouns { get; } = Array.AsReadOnly(new[]
         {
-            "as", "is", "was", "has", "does", "ends", "runs", "contains", "overlaps",
+            "as", "is", "was", "has", "does", "ends", "runs", "contains", "overlaps", "holds", "this", "its",
         });
 
         /// <summary>

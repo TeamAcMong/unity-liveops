@@ -183,8 +183,20 @@ namespace DreamTech.LiveOps.Editor
         /// <summary>Ô này nhận đúng MỘT object luật lặp: dán cả mảng <c>recurring</c> vào đây là nhầm chỗ, nói thẳng ra.</summary>
         internal static string RecurringJsonNotOneRuleReason => LiveOpsHubStringCatalog.Text(nameof(RecurringJsonNotOneRuleReason));
 
+        /// <summary>
+        /// Vế NGẮN của <see cref="RecurringJsonNotOneRuleReason"/> cho nhãn cạnh nút "Áp" (Q-W5-3): mọi nhánh khoá-vì-lỗi của
+        /// ô JSON đều phải nói hai câu khác nhau ở hai chỗ, không chỉ riêng nhánh parser không đọc được.
+        /// </summary>
+        internal static string RecurringJsonNotOneRuleShortReason => LiveOpsHubStringCatalog.Text(nameof(RecurringJsonNotOneRuleShortReason));
+
         /// <summary>Đổi <c>"type"</c> trong JSON = luật khác hẳn — cùng lý do ô "Loại event" bị khoá sau khi tạo (mục 7.4).</summary>
         internal static string RecurringJsonTypeLockedFormat => LiveOpsHubStringCatalog.Text(nameof(RecurringJsonTypeLockedFormat));
+
+        /// <summary>
+        /// Vế NGẮN của <see cref="RecurringJsonTypeLockedFormat"/> cho nhãn cạnh nút "Áp" (Q-W5-3). Bỏ cả tên loại lẫn vế
+        /// "đổi loại thì thêm luật mới" — chỗ cạnh nút không đủ rộng, và dòng lỗi ngay dưới ô vẫn nói đủ.
+        /// </summary>
+        internal static string RecurringJsonTypeLockedShortReason => LiveOpsHubStringCatalog.Text(nameof(RecurringJsonTypeLockedShortReason));
 
         /// <summary>
         /// (Q-W4-4, user duyệt 16/9) Ba ô còn lại bị khoá trong lúc ô thứ tư giữ nháp chưa ghi. Lý do in THÀNH CHỮ cạnh ô,

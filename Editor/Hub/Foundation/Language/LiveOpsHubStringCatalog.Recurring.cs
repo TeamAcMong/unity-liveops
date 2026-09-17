@@ -297,9 +297,15 @@ namespace DreamTech.LiveOps.Editor
             table.Add(nameof(LiveOpsHubStrings.RecurringJsonNotOneRuleReason),
                 vietnamese: "Ô này nhận đúng một object luật lặp, không phải mảng hay nhiều luật",
                 english: "This box takes exactly one recurring rule object, not an array and not several rules");
+            table.Add(nameof(LiveOpsHubStrings.RecurringJsonNotOneRuleShortReason),
+                vietnamese: "Không phải một object luật lặp",
+                english: "Not a single recurring rule object");
             table.Add(nameof(LiveOpsHubStrings.RecurringJsonTypeLockedFormat),
                 vietnamese: "Không đổi được \"type\" ở đây — luật này của loại {0}; đổi loại thì thêm luật mới",
                 english: "\"type\" cannot be changed here — this rule belongs to type {0}; to change the type, add a new rule");
+            table.Add(nameof(LiveOpsHubStrings.RecurringJsonTypeLockedShortReason),
+                vietnamese: "Không đổi được \"type\" ở đây",
+                english: "\"type\" cannot be changed here");
 
             table.Add(nameof(LiveOpsHubStrings.RecurringFieldLockedByDraftFormat),
                 vietnamese: "Khoá trong lúc ô {0} còn nháp chưa ghi",

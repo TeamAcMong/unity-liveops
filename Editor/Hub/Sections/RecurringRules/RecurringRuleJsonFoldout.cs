@@ -164,7 +164,11 @@ namespace DreamTech.LiveOps.Editor
             // dấu phẩy KHÔNG phải lỗi cú pháp — nó phải ra câu thân thiện "nhận đúng một object luật lặp" ở dưới.
             if (LiveOpsJsonSyntaxLocator.TryFindFirstError(text, true, out syntaxError))
             {
-                ShowBlocked(LiveOpsJsonSyntaxLocator.Describe(syntaxError), showAsError: true);
+                // Q-W5-3: đây là nhánh mà ảnh ghim h14e đi qua — câu của bộ dò ("Dòng 3, ký tự 18: thiếu dấu phẩy") ở lại dòng
+                // lỗi, còn cạnh nút chỉ nói "JSON chưa đọc được". Cú pháp hỏng cũng là một kiểu không đọc được, nên dùng chung
+                // câu ngắn với nhánh parser bên dưới.
+                ShowBlocked(LiveOpsJsonSyntaxLocator.Describe(syntaxError), showAsError: true,
+                    LiveOpsHubStrings.RecurringJsonUnreadableShortReason);
                 return;
             }
 
@@ -172,7 +176,8 @@ namespace DreamTech.LiveOps.Editor
             // của JsonUtility, trong khi câu đúng — và đã hứa sẵn trong RecurringJsonNotOneRuleReason — là "không phải mảng".
             if (!StartsWithObject(text))
             {
-                ShowBlocked(LiveOpsHubStrings.RecurringJsonNotOneRuleReason, showAsError: true);
+                ShowBlocked(LiveOpsHubStrings.RecurringJsonNotOneRuleReason, showAsError: true,
+                    LiveOpsHubStrings.RecurringJsonNotOneRuleShortReason);
                 return;
             }
 
@@ -187,7 +192,8 @@ namespace DreamTech.LiveOps.Editor
             }
             if (result.Document.RecurringRules.Count != 1)
             {
-                ShowBlocked(LiveOpsHubStrings.RecurringJsonNotOneRuleReason, showAsError: true);
+                ShowBlocked(LiveOpsHubStrings.RecurringJsonNotOneRuleReason, showAsError: true,
+                    LiveOpsHubStrings.RecurringJsonNotOneRuleShortReason);
                 return;
             }
 
@@ -195,7 +201,7 @@ namespace DreamTech.LiveOps.Editor
             if (!string.Equals(parsed.EventType, _eventType, StringComparison.Ordinal))
             {
                 ShowBlocked(string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.RecurringJsonTypeLockedFormat,
-                    _eventType), showAsError: true);
+                    _eventType), showAsError: true, LiveOpsHubStrings.RecurringJsonTypeLockedShortReason);
                 return;
             }
 
@@ -208,6 +214,10 @@ namespace DreamTech.LiveOps.Editor
         /// <summary>
         /// Khoá "Áp" kèm lý do. Lý do đi cả vào nhãn cạnh nút (<c>LiveOpsButtonSlot</c>, SP-3) lẫn dòng lỗi khi đó là LỖI của
         /// JSON; "chưa đổi gì" không phải lỗi nên không tô dòng đỏ dưới ô — chỉ nút nói vì sao nó đứng yên.
+        /// <para>
+        /// Bản hai tham số này chỉ còn cho hai ca KHÔNG phải lỗi (khoá vì nháp, chưa đổi gì): ở đó dòng lỗi ẩn nên câu chỉ in
+        /// một chỗ. Mọi nhánh LỖI phải truyền câu ngắn riêng (Q-W5-3) — nếu không, cùng một câu in hai lần trong một khung nhìn.
+        /// </para>
         /// </summary>
         private void ShowBlocked(string reason, bool showAsError)
         {

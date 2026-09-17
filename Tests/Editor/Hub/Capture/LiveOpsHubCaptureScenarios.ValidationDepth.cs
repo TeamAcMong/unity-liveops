@@ -121,7 +121,21 @@ namespace DreamTech.LiveOps.Editor.Tests
             return window;
         }
 
-        /// <summary>Ô 6: một mục đã bỏ qua, nhóm MỞ sẵn — thu gọn thì ảnh chỉ còn cái tiêu đề đã có ở Hình 15.</summary>
+        /// <summary>
+        /// Hạn của ghi chú hẹn giờ trong ảnh ô 6. Phải SAU <c>LiveOpsDesignSample.NowUtc</c> (13/9 08:47) — hạn đã qua thì
+        /// <c>LiveEventCalendarCheckRun</c> coi cảnh báo hết hiệu lực và mục rời nhóm "Đã bỏ qua", ảnh mất đúng hàng cần chụp.
+        /// Ngày 1/10 khớp chính ghi chú của ảnh ("lava-quest nghỉ đến mùa tháng 10").
+        /// </summary>
+        private const string ValidationDepthIgnoreReminderUtc = "2026-10-01T00:00:00Z";
+
+        /// <summary>
+        /// Ô 6: một mục đã bỏ qua, nhóm MỞ sẵn — thu gọn thì ảnh chỉ còn cái tiêu đề đã có ở Hình 15.
+        /// <para>
+        /// Ghi chú có HẸN GIỜ (Q-W5-4, user chốt 17/9/2026): hàng phải đọc tag "hẹn tới 1/10 00:00" THAY cho vế khoảng, chứ
+        /// không in hạn hai lần. Bản trước của kịch bản dùng ghi chú không hẹn giờ, nên ảnh ghim này không chứng minh được
+        /// quyết định Q-W5-4 — chụp lại vẫn ra đúng từng pixel của W5 mà không ai thấy.
+        /// </para>
+        /// </summary>
         private static EditorWindow OpenValidationIgnoredGroup()
         {
             LiveOpsHubServices services = LiveOpsHubTestServices.FromDesignSample();
@@ -131,7 +145,7 @@ namespace DreamTech.LiveOps.Editor.Tests
                 var warning = new IgnoredCalendarWarning(finding.RuleId, finding.TargetId,
                     finding.RangeStartUtc.HasValue ? LiveEventUtcText.Format(finding.RangeStartUtc.Value) : string.Empty,
                     finding.RangeEndUtc.HasValue ? LiveEventUtcText.Format(finding.RangeEndUtc.Value) : string.Empty,
-                    ValidationDepthIgnoreNote, string.Empty);
+                    ValidationDepthIgnoreNote, ValidationDepthIgnoreReminderUtc);
                 services.Session.Apply(new AddIgnoredWarningEdit(warning), LiveOpsHubStrings.ValidationDepthIgnoreHeader);
                 services.Session.RunCheckToCompletion();
             }

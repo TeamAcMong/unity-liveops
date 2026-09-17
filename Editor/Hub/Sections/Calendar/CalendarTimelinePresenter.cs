@@ -485,6 +485,10 @@ namespace DreamTech.LiveOps.Editor
             }
             LiveOpsHubEditOutcome outcome = session.Apply(edit, toastMessage);
             if (!outcome.Applied) return false;
+            // Q-W5-5: TÊN BƯỚC THẬT trong Undo History phải là câu ngắn, y như đường kéo thanh (CommitDrag). Phiên đặt tên group
+            // bằng câu toast vì nó không biết câu ngắn — hợp đồng đóng băng PD-35 khoá chữ ký Apply(edit, undoName) nên đổi tên
+            // ngay sau khi gộp là đường duy nhất không phải ra phiếu đổi hợp đồng. Lệnh chưa có câu ngắn thì giữ nguyên câu toast.
+            if (!string.IsNullOrEmpty(undoneStepName)) Undo.SetCurrentGroupName(undoneStepName);
             ToastRequested?.Invoke(LiveOpsToastModel.ForEdit(toastMessage, outcome.UndoGroup, toastTooltip, undoneStepName));
             DocumentEdited?.Invoke();
             return true;
