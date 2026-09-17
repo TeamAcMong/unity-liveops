@@ -1,0 +1,105 @@
+/*
+ * Popover "Hiện hướng dẫn phím tắt" (G-OPT-SHORTCUTHELP, W6). Số đo bám khuôn popover của hub: rộng 320 ([FD §7]),
+ * padding 10, khe giữa các khối 6. Popover là panel RIÊNG nên sheet này được nạp thẳng lên cây popover; mọi màu đi qua
+ * token của liveops-hub-theme.uss để hai skin cùng đọc được.
+ * USS không có gap nên khoảng cách là margin của từng khối.
+ */
+
+/* Ẩn bằng class: trạng thái không được gán style inline ([FD §2.14]). */
+.liveops-hub-shortcut-help-hidden {
+    display: none;
+}
+
+/*
+ * KHÔNG đặt width: 320px ở đây — 320 là bề rộng CỬA SỔ popover, mà gốc `.liveops-hub-popover` đã có padding 10 trái/phải
+ * (cùng bài học với popover dán ở W5: thân rộng 320 trong cửa sổ 320 thì lề phải bị cắt).
+ * flex-grow: 1 — thân phải cao đúng cửa sổ thì hàng nút mới dính đáy được.
+ */
+.liveops-hub-shortcut-help {
+    flex-grow: 1;
+    padding: var(--liveops-hub-space-10);
+}
+
+.liveops-hub-shortcut-help-header {
+    -unity-font-style: bold;
+    margin-bottom: var(--liveops-hub-space-6);
+}
+
+/*
+ * Khung cuộn của danh sách: flex-grow 1 + flex-shrink 1 để nó ăn đúng phần còn lại giữa tiêu đề và hàng nút. Đây là chỗ
+ * duy nhất được co: ghi chú và hàng nút không được đẩy ra ngoài cửa sổ dù bảng phím dài bao nhiêu.
+ */
+.liveops-hub-shortcut-help-scroll {
+    flex-grow: 1;
+    flex-shrink: 1;
+}
+
+.liveops-hub-shortcut-help-groups {
+    flex-grow: 1;
+}
+
+/*
+ * Tiêu đề nhóm: khe TRÊN lớn hơn khe dưới để mắt gom được các hàng vào đúng nhóm của nó. Nhóm đầu không cần khe trên nhưng
+ * USS của hub không dùng :first-child (luật sheet), nên khe trên nhỏ vừa đủ cho cả hai chỗ.
+ */
+.liveops-hub-shortcut-help-group-title {
+    -unity-font-style: bold;
+    color: var(--liveops-hub-color-quiet);
+    margin-top: var(--liveops-hub-space-8);
+    margin-bottom: var(--liveops-hub-space-2);
+}
+
+/*
+ * Một hàng = câu mô tả (co giãn, xuống dòng được) + nhãn phím (không co) dính mép phải.
+ * align-items: flex-start vì câu tiếng Anh dài hơn thường xuống hai dòng — canh giữa thì nhãn phím trôi xuống giữa hai dòng
+ * và cột phím không còn thẳng.
+ */
+.liveops-hub-shortcut-help-row {
+    flex-direction: row;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: var(--liveops-hub-space-2);
+}
+
+.liveops-hub-shortcut-help-row-description {
+    flex-grow: 1;
+    flex-shrink: 1;
+    white-space: normal;
+    margin-right: var(--liveops-hub-space-8);
+}
+
+/*
+ * Nhãn phím: KHÔNG đeo class `liveops-hub-mono` (RobotoMono thiếu ← → ↑ ↓ ⌘ ⇧ ⌥ ⌫ — [API §12.3]) nên cột này dùng font
+ * Label mặc định. Cột vẫn thẳng nhờ canh phải + không co.
+ */
+.liveops-hub-shortcut-help-row-key {
+    flex-grow: 0;
+    flex-shrink: 0;
+    -unity-text-align: middle-right;
+}
+
+/* "chưa gán phím" là một câu, không phải ký hiệu phím — nhạt đi để cột phím vẫn đọc được như một cột phím. */
+.liveops-hub-shortcut-help-row-key--unbound {
+    color: var(--liveops-hub-color-quiet);
+    -unity-font-style: italic;
+}
+
+.liveops-hub-shortcut-help-note {
+    margin-top: var(--liveops-hub-space-6);
+    font-size: 10px;
+    color: var(--liveops-hub-color-quiet);
+    white-space: normal;
+}
+
+/*
+ * Hàng nút dính đáy bằng margin-top: auto (cùng cách hộp xác nhận và popover dán làm). flex-shrink: 0 vì hàng nút là thứ
+ * duy nhất không được co: không thấy nút thì popover chỉ còn là một bảng chữ không lối ra.
+ */
+.liveops-hub-shortcut-help-footer {
+    flex-direction: row;
+    justify-content: flex-end;
+    align-items: center;
+    flex-shrink: 0;
+    margin-top: auto;
+    padding-top: var(--liveops-hub-space-8);
+}
