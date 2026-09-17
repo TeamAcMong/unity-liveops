@@ -291,6 +291,9 @@ namespace DreamTech.LiveOps.Editor
             table.Add(nameof(LiveOpsHubStrings.RecurringJsonUnreadableFormat),
                 vietnamese: "Parser của game không đọc được JSON này: {0}",
                 english: "The game parser cannot read this JSON: {0}");
+            table.Add(nameof(LiveOpsHubStrings.RecurringJsonUnreadableShortReason),
+                vietnamese: "JSON chưa đọc được",
+                english: "The JSON cannot be read");
             table.Add(nameof(LiveOpsHubStrings.RecurringJsonNotOneRuleReason),
                 vietnamese: "Ô này nhận đúng một object luật lặp, không phải mảng hay nhiều luật",
                 english: "This box takes exactly one recurring rule object, not an array and not several rules");
