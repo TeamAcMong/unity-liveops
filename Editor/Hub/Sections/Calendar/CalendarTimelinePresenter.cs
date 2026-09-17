@@ -46,7 +46,9 @@ namespace DreamTech.LiveOps.Editor
         /// <summary>
         /// (G-OPT-TIMELINE, Hình 12 khung 9) Tập chọn NHIỀU đợt đổi. Tách khỏi <see cref="SelectionChanged"/> vì nơi nghe câu
         /// đó (màn) trả lời bằng <c>timeline.Select(barKey)</c> — tức là thu tập về đúng một thanh, đúng thứ vừa bị phá.
-        /// Tập một phần tử hoặc rỗng KHÔNG phát qua đây; đường cũ lo trọn hai ca đó.
+        /// CHỈ phát khi tập có từ hai phần tử trở lên: thu tập về một đợt hay bỏ chọn đi đường <see cref="SelectionChanged"/>,
+        /// và người nghe duy nhất (inspector) bỏ qua mọi tập nhỏ hơn hai. Tham số là BẢN SAO — danh sách nội bộ bị ghi đè ngay
+        /// ở lệnh kế tiếp, nên trao thẳng nó ra ngoài là trao một thứ đổi sau lưng người nhận.
         /// </summary>
         public event Action<IReadOnlyList<string>> SelectionSetChanged;
 
@@ -172,19 +174,19 @@ namespace DreamTech.LiveOps.Editor
         {
             string next = barKey ?? string.Empty;
             bool wasMultiple = _selectedBarKeys.Count > 1;
-            // Đang chọn nhiều thì PHẢI phát dù khoá mốc không đổi: inspector đang vẽ trạng thái (c) và chỉ câu này gọi nó về
-            // trạng thái một đợt.
+            // Đang chọn nhiều thì PHẢI đi tiếp dù khoá mốc không đổi: inspector đang vẽ trạng thái (c) và chỉ câu
+            // SelectionChanged dưới đây mới gọi nó về trạng thái một đợt.
             if (!wasMultiple && string.Equals(next, _selectedBarKey, StringComparison.Ordinal)) return;
             _selectedBarKey = next;
             _selectedBarKeys.Clear();
             if (next.Length > 0) _selectedBarKeys.Add(next);
-            if (wasMultiple) SelectionSetChanged?.Invoke(_selectedBarKeys);
             SelectionChanged?.Invoke(_selectedBarKey);
         }
 
         /// <summary>
         /// (Hình 12 khung 9) Đặt cả tập chọn. Tập từ hai phần tử trở lên chỉ phát <see cref="SelectionSetChanged"/> — phát
-        /// <see cref="SelectionChanged"/> ở đây là tự tay bảo màn thu tập về một thanh.
+        /// <see cref="SelectionChanged"/> ở đây là tự tay bảo màn thu tập về một thanh. Tập nhỏ hơn hai rơi về
+        /// <see cref="SetSelectedBarKey"/>, tức đi đường <see cref="SelectionChanged"/> như mọi lần chọn thường.
         /// </summary>
         public void SetSelectedBarKeys(IReadOnlyList<string> barKeys, string primaryBarKey)
         {
@@ -207,7 +209,7 @@ namespace DreamTech.LiveOps.Editor
             _selectedBarKeys.Clear();
             _selectedBarKeys.AddRange(next);
             _selectedBarKey = primary;
-            SelectionSetChanged?.Invoke(_selectedBarKeys);
+            SelectionSetChanged?.Invoke(next.ToArray());
         }
 
         /// <summary>
@@ -408,7 +410,7 @@ namespace DreamTech.LiveOps.Editor
             ResetDragState();
             if (!outcome.Applied) return;
 
-            string message = DragToastMessage(beforeEntry, after) + FollowerToastSuffix(intent);
+            string message = DragToastMessage(beforeEntry, after) + FollowerToastSuffix(before, beforeEntry, intent);
             // Tên bước Undo chỉ biết được lúc nhả chuột (giờ cuối), nên đổi tên ngay sau khi gộp: Undo History và toast phải nói
             // cùng một câu để người dùng tìm lại được bước đó khi toast đã tắt (8.5).
             Undo.SetCurrentGroupName(message);
@@ -432,40 +434,79 @@ namespace DreamTech.LiveOps.Editor
         /// </summary>
         private LiveEventCalendarEdit BuildDragEdit(FixedLiveEventEntry entry, MoveBarIntent intent)
         {
-            var main = new ReplaceFixedEventEdit(ClampedEntry(entry, intent));
-            if (intent.Followers.Count == 0) return main;
+            FixedLiveEventEntry after = ClampedEntry(entry, intent);
+            var main = new ReplaceFixedEventEdit(after);
+            if (!intent.FollowsLaterEvents) return main;
+            long shiftTicks = FollowerShiftTicks(entry, after);
+            if (shiftTicks == 0L) return main;
             LiveEventCalendarDocument document = _dragStartDocument ?? _services.Session.Document ?? LiveEventCalendarDocument.Empty;
+            List<FixedLiveEventEntry> followers = FollowerEntries(document, entry);
+            if (followers.Count == 0) return main;
             var edits = new List<LiveEventCalendarEdit> { main };
-            for (int index = 0; index < intent.Followers.Count; index++)
+            for (int index = 0; index < followers.Count; index++)
             {
-                LiveOpsTimelineBarMove follower = intent.Followers[index];
-                if (!document.TryGetFixedEvent(follower.BarKey, out FixedLiveEventEntry followerEntry)) continue;
-                if (PhaseOf(followerEntry) != LiveEventPhase.Upcoming) continue;
-                edits.Add(new ReplaceFixedEventEdit(followerEntry.WithTimes(LiveEventUtcText.Format(follower.NewStartUtc),
-                    LiveEventUtcText.Format(follower.NewEndUtc))));
+                FixedLiveEventEntry follower = followers[index];
+                if (!follower.TryGetStartUtc(out DateTime startUtc) || !follower.TryGetEndUtc(out DateTime endUtc)) continue;
+                edits.Add(new ReplaceFixedEventEdit(follower.WithTimes(
+                    LiveEventUtcText.Format(LiveOpsTimelineGeometry.AddTicksClamped(startUtc, shiftTicks)),
+                    LiveEventUtcText.Format(LiveOpsTimelineGeometry.AddTicksClamped(endUtc, shiftTicks)))));
             }
             return edits.Count == 1 ? (LiveEventCalendarEdit)main : new CompositeCalendarEdit(edits);
         }
 
-        /// <summary>Vế "· 2 đợt sau đi theo" của toast; "" khi không giữ Shift. Toast phải nói ra thứ người dùng vừa dời KÈM.</summary>
-        private string FollowerToastSuffix(MoveBarIntent intent)
+        /// <summary>
+        /// (vá F-4) Tập đợt đi theo, tính từ TÀI LIỆU lúc bắt đầu kéo chứ không từ thanh đang vẽ: model timeline chỉ dựng thanh
+        /// cho đợt giao với khoảng đang xem, nên lấy theo thanh thì cùng một cử chỉ dời được nhiều hay ít tuỳ mức zoom — ở "3
+        /// tuần" đợt đầu tháng sau đứng yên, ở "Tháng" nó đi theo, mà không dòng gợi ý nào nói ra điều kiện đó.
+        /// Luật: cùng loại event, bắt đầu từ mép cuối GỐC của đợt đang kéo trở đi, và còn ở giai đoạn Sắp tới — bảng 7.0 không
+        /// cho cử chỉ nào dời đợt đang chạy hay đã khép.
+        /// </summary>
+        private List<FixedLiveEventEntry> FollowerEntries(LiveEventCalendarDocument document, FixedLiveEventEntry draggedEntry)
         {
-            int count = CountMovableFollowers(intent);
+            var followers = new List<FixedLiveEventEntry>();
+            if (!draggedEntry.TryGetEndUtc(out DateTime originalEndUtc)) return followers;
+            IReadOnlyList<FixedLiveEventEntry> entries = document.FixedEvents;
+            for (int index = 0; index < entries.Count; index++)
+            {
+                FixedLiveEventEntry other = entries[index];
+                if (string.Equals(other.EntryKey, draggedEntry.EntryKey, StringComparison.Ordinal)) continue;
+                if (!string.Equals(other.EventType, draggedEntry.EventType, StringComparison.Ordinal)) continue;
+                if (!other.TryGetStartUtc(out DateTime startUtc) || !other.TryGetEndUtc(out DateTime _)) continue;
+                if (startUtc < originalEndUtc) continue;
+                if (PhaseOf(other) != LiveEventPhase.Upcoming) continue;
+                followers.Add(other);
+            }
+            return followers;
+        }
+
+        /// <summary>Khoảng dời của cả dãy = khoảng MÉP CUỐI vừa dời (kéo thân và kéo mép cuối dùng chung một mốc).</summary>
+        private static long FollowerShiftTicks(FixedLiveEventEntry draggedEntry, FixedLiveEventEntry after)
+        {
+            if (!draggedEntry.TryGetEndUtc(out DateTime originalEndUtc) || !after.TryGetEndUtc(out DateTime newEndUtc)) return 0L;
+            return (newEndUtc - originalEndUtc).Ticks;
+        }
+
+        /// <summary>
+        /// Vế "· 2 đợt sau đi theo" của toast; "" khi không giữ Shift. Toast phải nói ra thứ người dùng vừa dời KÈM. Đọc tài liệu
+        /// TRƯỚC cử chỉ (tham số), không đọc tài liệu hiện hành: lúc gọi thì lệnh sửa đã áp xong, các đợt đi theo đã đứng ở giờ
+        /// mới và đếm lại trên đó là đếm nhầm.
+        /// </summary>
+        private string FollowerToastSuffix(LiveEventCalendarDocument beforeDocument, FixedLiveEventEntry beforeEntry,
+            MoveBarIntent intent)
+        {
+            int count = CountMovableFollowers(beforeDocument, beforeEntry, intent);
             return count == 0
                 ? string.Empty
                 : string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.TimelineDragFollowersToastSuffixFormat, count);
         }
 
-        private int CountMovableFollowers(MoveBarIntent intent)
+        private int CountMovableFollowers(LiveEventCalendarDocument beforeDocument, FixedLiveEventEntry beforeEntry,
+            MoveBarIntent intent)
         {
-            LiveEventCalendarDocument document = _dragStartDocument ?? _services.Session.Document ?? LiveEventCalendarDocument.Empty;
-            int count = 0;
-            for (int index = 0; index < intent.Followers.Count; index++)
-            {
-                if (!document.TryGetFixedEvent(intent.Followers[index].BarKey, out FixedLiveEventEntry followerEntry)) continue;
-                if (PhaseOf(followerEntry) == LiveEventPhase.Upcoming) count++;
-            }
-            return count;
+            if (!intent.FollowsLaterEvents || beforeEntry == null) return 0;
+            LiveEventCalendarDocument document = beforeDocument ?? _services.Session.Document ?? LiveEventCalendarDocument.Empty;
+            if (FollowerShiftTicks(beforeEntry, ClampedEntry(beforeEntry, intent)) == 0L) return 0;
+            return FollowerEntries(document, beforeEntry).Count;
         }
 
         // ============================================================================================ chọn nhiều (khung 9)
@@ -489,9 +530,10 @@ namespace DreamTech.LiveOps.Editor
                     LiveEventUtcText.Format(endUtc.AddHours(hours)))));
             }
             if (edits.Count == 0) return false;
-            string hoursText = hours.ToString(SignedHoursFormat, CultureInfo.InvariantCulture);
+            // Truyền SỐ, không truyền chuỗi đã nướng dấu: dấu +/- do chính câu trong catalog định dạng, và luật số ít/số nhiều
+            // tiếng Anh (Q-W5-2) cần đọc được tham số này như một số để chọn "hour" hay "hours".
             string message = string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.TimelineMultiSelectShiftToastFormat,
-                edits.Count, hoursText);
+                edits.Count, hours);
             string undoneStepName = string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.TimelineMultiSelectShiftUndoStepFormat,
                 edits.Count);
             return ApplyEdit(new CompositeCalendarEdit(edits), LiveOpsEditOperation.ChangeFixedEventTimes, _selectedBarKey, message,
@@ -724,7 +766,6 @@ namespace DreamTech.LiveOps.Editor
         }
 
         /// <summary>Số giờ có dấu cho toast: "+12", "-6", "0" — dấu là phần của câu, không phải phần của số.</summary>
-        private const string SignedHoursFormat = "+0.##;-0.##;0";
 
         private LiveEventPhase PhaseOf(FixedLiveEventEntry entry)
         {

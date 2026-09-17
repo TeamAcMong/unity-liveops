@@ -241,8 +241,8 @@ namespace DreamTech.LiveOps.Editor.Tests
         }
 
         /// <summary>
-        /// Shift nhấn giữa chừng: đợt bắt đầu TỪ mép cuối gốc trở đi dời đúng bằng khoảng vừa dời, và đi cùng MỘT intent Commit
-        /// (một bước Undo). Thả Shift ra thì tập kéo theo rỗng ngay bước sau.
+        /// Shift nhấn giữa chừng: đợt bắt đầu TỪ mép cuối gốc trở đi dời đúng bằng khoảng vừa dời (tập XEM TRƯỚC của control),
+        /// và cử chỉ phát đúng MỘT intent Commit mang cờ Shift. Thả Shift ra thì tập kéo theo rỗng ngay bước sau.
         /// </summary>
         [Test]
         public void ShiftDuringDrag_MovesLaterEventsAlong_InTheSameCommit()
@@ -269,9 +269,9 @@ namespace DreamTech.LiveOps.Editor.Tests
             Assert.AreEqual(BonusEndUtc.AddHours(12), controller.FollowerMoves[0].NewEndUtc);
 
             controller.Commit();
-            Assert.AreEqual(1, commits.Count, "một cử chỉ = một Commit, đợt đi theo nằm TRONG intent đó");
-            Assert.AreEqual(1, commits[0].Followers.Count);
-            Assert.AreEqual(LiveOpsDesignSample.HuntBonusEntryKey, commits[0].Followers[0].BarKey);
+            Assert.AreEqual(1, commits.Count, "một cử chỉ = một Commit, đợt đi theo gộp vào chính bước Undo đó");
+            Assert.IsTrue(commits[0].FollowsLaterEvents,
+                "intent mang CỜ Shift; tập đợt thật do presenter tính từ tài liệu (vá F-4) nên không phụ thuộc mức zoom");
         }
 
         [Test]
@@ -335,6 +335,256 @@ namespace DreamTech.LiveOps.Editor.Tests
                 if (string.Equals(lane.Bars[index].BarKey, barKey, StringComparison.Ordinal)) return lane.Bars[index];
             }
             throw new AssertionException("không tìm thấy thanh " + barKey);
+        }
+    }
+
+    /// <summary>
+    /// (G-OPT-TIMELINE, việc (b) của 10.3) Hai lệnh của bảng inspector trạng thái (c) và tập đợt kéo theo ở tầng presenter —
+    /// những thứ <see cref="TimelineMultiSelectLogicTests"/> không chạm tới vì chúng nằm sau tài liệu, không sau con trỏ.
+    /// </summary>
+    [TestFixture]
+    [Category(LiveOpsHubTestCategories.Logic)]
+    public sealed class CalendarMultiSelectCommandTests
+    {
+        private static readonly DateTime RangeStartUtc = new DateTime(2026, 9, 8, 0, 0, 0, DateTimeKind.Utc);
+        private const float DesignTrackWidth = 635f;
+
+        private ScriptedLiveOpsHubConfirmationPresenter _confirmation;
+
+        [TearDown]
+        public void TearDown()
+        {
+            LiveOpsHubTestServices.ReleaseAll();
+        }
+
+        /// <summary>
+        /// Ô "Dời cả hai (giờ)": đợt đã khép bị bỏ qua (bảng 7.0), đợt sắp tới dời đủ số giờ, và cả lệnh là MỘT toast có Hoàn tác
+        /// — tức một bước Undo, không phải mỗi đợt một bước. Toast đếm số đợt THẬT SỰ dời, không đếm cả tập đang chọn.
+        /// </summary>
+        [Test]
+        public void ShiftSelectedEvents_SkipsEndedEvents_AndCountsOnlyWhatMoved()
+        {
+            LiveOpsHubServices services = CreateServices(LiveOpsDesignSample.Document);
+            CalendarTimelinePresenter presenter = CreatePresenter(services);
+            var toasts = new List<LiveOpsToastModel>();
+            presenter.ToastRequested += toast => toasts.Add(toast);
+            presenter.HandleIntent(new SelectManyIntent(
+                new[] { LiveOpsDesignSample.LavaQuestEarlyEntryKey, LiveOpsDesignSample.LavaQuestMidEntryKey },
+                LiveOpsDesignSample.LavaQuestMidEntryKey));
+            Assert.AreEqual(2, presenter.SelectedBarKeys.Count);
+
+            Assert.IsTrue(presenter.ShiftSelectedEvents(12d));
+
+            Assert.IsTrue(services.Session.Document.TryGetFixedEvent(LiveOpsDesignSample.LavaQuestMidEntryKey,
+                out FixedLiveEventEntry moved));
+            Assert.AreEqual("2026-09-17T12:00:00Z", moved.StartUtcText, "đợt sắp tới dời đủ 12 giờ");
+            Assert.AreEqual("2026-09-20T12:00:00Z", moved.EndUtcText);
+            Assert.IsTrue(services.Session.Document.TryGetFixedEvent(LiveOpsDesignSample.LavaQuestEarlyEntryKey,
+                out FixedLiveEventEntry ended));
+            Assert.AreEqual("2026-09-10T00:00:00Z", ended.StartUtcText, "đợt đã khép đứng yên — bảng 7.0 không cho dời");
+
+            Assert.AreEqual(1, toasts.Count, "cả lệnh gộp vào một bước Undo nên chỉ một toast");
+            Assert.IsTrue(toasts[0].HasUndo);
+            Assert.AreEqual("Đã dời 1 đợt +12 giờ", toasts[0].Message, "toast đếm đợt thật sự dời, không đếm cả tập chọn");
+            Assert.AreEqual("Dời 1 đợt", toasts[0].UndoneStepName, "tên bước ngắn cho toast sau ⌘Z (8.5)");
+        }
+
+        /// <summary>Không đợt nào trong tập dời được thì lệnh không chạy: không toast, không bước Undo rỗng.</summary>
+        [Test]
+        public void ShiftSelectedEvents_AllEndedOrUnreadable_DoesNothing()
+        {
+            LiveOpsHubServices services = CreateServices(LiveOpsDesignSample.Document);
+            CalendarTimelinePresenter presenter = CreatePresenter(services);
+            var toasts = new List<LiveOpsToastModel>();
+            presenter.ToastRequested += toast => toasts.Add(toast);
+            presenter.HandleIntent(new SelectManyIntent(
+                new[] { LiveOpsDesignSample.LavaQuestEarlyEntryKey, LiveOpsDesignSample.LavaQuestLateEntryKey },
+                LiveOpsDesignSample.LavaQuestEarlyEntryKey));
+
+            Assert.IsFalse(presenter.ShiftSelectedEvents(12d), "đã khép + giờ không đọc được = không có gì để dời");
+            Assert.AreEqual(0, toasts.Count);
+        }
+
+        /// <summary>Nút "Xoá n đợt…": xoá đủ tập trong MỘT bước Undo, rồi bỏ chọn (không giữ khoá của đợt vừa biến mất).</summary>
+        [Test]
+        public void DeleteSelectedEvents_RemovesWholeSelection_InOneUndoStep()
+        {
+            LiveOpsHubServices services = CreateServices(LiveOpsDesignSample.Document);
+            CalendarTimelinePresenter presenter = CreatePresenter(services);
+            var toasts = new List<LiveOpsToastModel>();
+            presenter.ToastRequested += toast => toasts.Add(toast);
+            _confirmation.Enqueue(LiveOpsConfirmResult.Destructive);
+            presenter.HandleIntent(new SelectManyIntent(
+                new[] { LiveOpsDesignSample.HuntEarlyEntryKey, LiveOpsDesignSample.HuntBonusEntryKey },
+                LiveOpsDesignSample.HuntBonusEntryKey));
+
+            Assert.IsTrue(presenter.DeleteSelectedEvents());
+
+            Assert.IsFalse(services.Session.Document.TryGetFixedEvent(LiveOpsDesignSample.HuntEarlyEntryKey, out FixedLiveEventEntry _));
+            Assert.IsFalse(services.Session.Document.TryGetFixedEvent(LiveOpsDesignSample.HuntBonusEntryKey, out FixedLiveEventEntry _));
+            Assert.AreEqual(1, toasts.Count, "xoá cả tập là một bước Undo");
+            Assert.AreEqual("Đã xoá 2 đợt", toasts[0].Message);
+            Assert.AreEqual("Xoá 2 đợt", toasts[0].UndoneStepName);
+            Assert.AreEqual(0, presenter.SelectedBarKeys.Count, "đợt không còn thì tập chọn phải rỗng theo");
+        }
+
+        /// <summary>Tập một đợt KHÔNG đi đường này — hai lệnh của bảng (c) chỉ có nghĩa từ hai đợt trở lên.</summary>
+        [Test]
+        public void MultiSelectCommands_NeedAtLeastTwoEvents()
+        {
+            LiveOpsHubServices services = CreateServices(LiveOpsDesignSample.Document);
+            CalendarTimelinePresenter presenter = CreatePresenter(services);
+            presenter.SetSelectedBarKey(LiveOpsDesignSample.HuntBonusEntryKey);
+
+            Assert.IsFalse(presenter.ShiftSelectedEvents(12d));
+            Assert.IsFalse(presenter.DeleteSelectedEvents());
+            Assert.IsTrue(services.Session.Document.TryGetFixedEvent(LiveOpsDesignSample.HuntBonusEntryKey, out FixedLiveEventEntry _));
+        }
+
+        /// <summary>
+        /// (vá F-4) Giữ Shift lúc kéo dời cả đợt phía sau NẰM NGOÀI khung nhìn: tập đi theo tính từ tài liệu, không từ thanh đang
+        /// vẽ. Trước khi vá, đúng cử chỉ này ở mức zoom "3 tuần" không dời gì cả còn ở "Tháng" thì dời — mà không dòng chữ nào nói
+        /// ra điều kiện đó.
+        /// </summary>
+        [Test]
+        public void DragWithShift_MovesLaterEvent_EvenWhenItHasNoBarInTheVisibleRange()
+        {
+            LiveEventCalendarDocument document = TimelineViewInputs.WithFixedTimes(LiveOpsDesignSample.Document,
+                LiveOpsDesignSample.LavaQuestLateEntryKey, "2026-10-01T00:00:00Z", "2026-10-03T00:00:00Z");
+            LiveOpsHubServices services = CreateServices(document);
+            CalendarTimelinePresenter presenter = CreatePresenter(services);
+            var toasts = new List<LiveOpsToastModel>();
+            var deferred = new List<Action>();
+            presenter.ToastRequested += toast => toasts.Add(toast);
+            presenter.DeferConfirmation = action => deferred.Add(action);
+            Assert.IsNull(presenter.FindBar(LiveOpsDesignSample.LavaQuestLateEntryKey),
+                "đợt tháng 10 nằm ngoài khoảng ba tuần đang xem nên KHÔNG có thanh nào trên trục");
+
+            DateTime newStartUtc = new DateTime(2026, 9, 18, 0, 0, 0, DateTimeKind.Utc);
+            DateTime newEndUtc = new DateTime(2026, 9, 21, 0, 0, 0, DateTimeKind.Utc);
+            presenter.HandleIntent(new MoveBarIntent(LiveOpsDesignSample.LavaQuestMidEntryKey, newStartUtc, newEndUtc,
+                LiveOpsTimelineGesturePhase.Preview, true));
+            presenter.HandleIntent(new MoveBarIntent(LiveOpsDesignSample.LavaQuestMidEntryKey, newStartUtc, newEndUtc,
+                LiveOpsTimelineGesturePhase.Commit, true));
+
+            Assert.IsTrue(services.Session.Document.TryGetFixedEvent(LiveOpsDesignSample.LavaQuestLateEntryKey,
+                out FixedLiveEventEntry follower));
+            Assert.AreEqual("2026-10-02T00:00:00Z", follower.StartUtcText, "đợt sau dời đúng một ngày như đợt đang kéo");
+            Assert.AreEqual("2026-10-04T00:00:00Z", follower.EndUtcText);
+            Assert.AreEqual(1, toasts.Count, "đợt đi theo nằm TRONG cùng một bước Undo");
+            Assert.IsTrue(toasts[0].Message.EndsWith(" · 1 đợt sau đi theo", StringComparison.Ordinal),
+                "toast nói ra đợt vừa bị dời KÈM: " + toasts[0].Message);
+        }
+
+        /// <summary>Không giữ Shift thì không đợt nào đi theo, dù dãy phía sau vẫn ở đó.</summary>
+        [Test]
+        public void DragWithoutShift_LeavesLaterEventsAlone()
+        {
+            LiveEventCalendarDocument document = TimelineViewInputs.WithFixedTimes(LiveOpsDesignSample.Document,
+                LiveOpsDesignSample.LavaQuestLateEntryKey, "2026-10-01T00:00:00Z", "2026-10-03T00:00:00Z");
+            LiveOpsHubServices services = CreateServices(document);
+            CalendarTimelinePresenter presenter = CreatePresenter(services);
+            var toasts = new List<LiveOpsToastModel>();
+            presenter.ToastRequested += toast => toasts.Add(toast);
+            presenter.DeferConfirmation = action => { };
+
+            DateTime newStartUtc = new DateTime(2026, 9, 18, 0, 0, 0, DateTimeKind.Utc);
+            DateTime newEndUtc = new DateTime(2026, 9, 21, 0, 0, 0, DateTimeKind.Utc);
+            presenter.HandleIntent(new MoveBarIntent(LiveOpsDesignSample.LavaQuestMidEntryKey, newStartUtc, newEndUtc,
+                LiveOpsTimelineGesturePhase.Preview));
+            presenter.HandleIntent(new MoveBarIntent(LiveOpsDesignSample.LavaQuestMidEntryKey, newStartUtc, newEndUtc,
+                LiveOpsTimelineGesturePhase.Commit));
+
+            Assert.IsTrue(services.Session.Document.TryGetFixedEvent(LiveOpsDesignSample.LavaQuestLateEntryKey,
+                out FixedLiveEventEntry untouched));
+            Assert.AreEqual("2026-10-01T00:00:00Z", untouched.StartUtcText);
+            Assert.AreEqual(1, toasts.Count);
+            Assert.IsFalse(toasts[0].Message.Contains("đi theo"), "không giữ Shift thì toast không có vế kéo theo");
+        }
+
+        private LiveOpsHubServices CreateServices(LiveEventCalendarDocument document)
+        {
+            ManualLiveOpsClock clock = LiveOpsHubTestServices.CreateClock();
+            _confirmation = new ScriptedLiveOpsHubConfirmationPresenter();
+            LiveOpsHubServices services = LiveOpsHubTestServices.Build(LiveOpsHubTestServices.CreateBuilder(clock)
+                .WithConfirmation(_confirmation)
+                .WithCalendarAsset(LiveOpsHubTestServices.CreateMemoryAsset(document)));
+            services.Session.RunCheckToCompletion();
+            return services;
+        }
+
+        private static CalendarTimelinePresenter CreatePresenter(LiveOpsHubServices services)
+        {
+            CalendarTimelinePresenter presenter = new CalendarTimelinePresenter(services);
+            DateTime rangeEndUtc = LiveOpsTimelineGeometry.AddTicksClamped(RangeStartUtc,
+                LiveOpsTimelineGeometry.RangeLengthOf(LiveOpsTimelineZoom.ThreeWeeks).Ticks);
+            presenter.BuildModel(RangeStartUtc, rangeEndUtc, DesignTrackWidth);
+            return presenter;
+        }
+    }
+
+    /// <summary>
+    /// (G-OPT-TIMELINE, việc (b) của 10.3) Bảng inspector trạng thái (c) [SD1 §3.10]: titlebar nói SỐ đợt và làn, nút xoá nói số
+    /// đợt. Dựng inspector thẳng trên hai element rỗng — pane này không cần cả màn Lịch để trả lời "tôi đang giữ cái gì".
+    /// </summary>
+    [TestFixture]
+    [Category(LiveOpsHubTestCategories.UI)]
+    public sealed class CalendarMultiSelectInspectorTests
+    {
+        private static readonly DateTime RangeStartUtc = new DateTime(2026, 9, 8, 0, 0, 0, DateTimeKind.Utc);
+        private const float DesignTrackWidth = 635f;
+
+        [TearDown]
+        public void TearDown()
+        {
+            LiveOpsHubTestServices.ReleaseAll();
+        }
+
+        [Test]
+        public void RefreshMultiple_SameLane_TitleNamesTheEventType()
+        {
+            VisualElement title = new VisualElement();
+            VisualElement body = new VisualElement();
+            CalendarEventInspector inspector = BuildInspector(title, body);
+
+            inspector.RefreshMultiple(new[] { LiveOpsDesignSample.LavaQuestEarlyEntryKey, LiveOpsDesignSample.LavaQuestMidEntryKey });
+
+            Assert.AreEqual("2 đợt · lava-quest", title.Q<Label>().text, "cả tập cùng một loại thì titlebar nêu tên loại");
+            Assert.AreEqual("Xoá 2 đợt…", DangerButtonText(body), "nút xoá nói đúng số đợt sắp mất");
+        }
+
+        [Test]
+        public void RefreshMultiple_MixedLanes_TitleCountsTheTypes()
+        {
+            VisualElement title = new VisualElement();
+            VisualElement body = new VisualElement();
+            CalendarEventInspector inspector = BuildInspector(title, body);
+
+            inspector.RefreshMultiple(new[] { LiveOpsDesignSample.HuntEarlyEntryKey, LiveOpsDesignSample.LavaQuestMidEntryKey });
+
+            Assert.AreEqual("2 đợt · 2 loại", title.Q<Label>().text, "lẫn loại thì titlebar KHÔNG bịa một tên làn");
+        }
+
+        private static string DangerButtonText(VisualElement body)
+        {
+            foreach (Button button in body.Query<Button>().ToList())
+            {
+                if (button.ClassListContains(LiveOpsHubClassNames.ButtonDanger)) return button.text;
+            }
+            return string.Empty;
+        }
+
+        private static CalendarEventInspector BuildInspector(VisualElement title, VisualElement body)
+        {
+            LiveOpsHubServices services = LiveOpsHubTestServices.Build(
+                LiveOpsHubTestServices.CreateBuilder(LiveOpsHubTestServices.CreateClock())
+                    .WithCalendarAsset(LiveOpsHubTestServices.CreateMemoryAsset(LiveOpsDesignSample.Document)));
+            services.Session.RunCheckToCompletion();
+            CalendarTimelinePresenter presenter = new CalendarTimelinePresenter(services);
+            DateTime rangeEndUtc = LiveOpsTimelineGeometry.AddTicksClamped(RangeStartUtc,
+                LiveOpsTimelineGeometry.RangeLengthOf(LiveOpsTimelineZoom.ThreeWeeks).Ticks);
+            presenter.BuildModel(RangeStartUtc, rangeEndUtc, DesignTrackWidth);
+            return new CalendarEventInspector(services, presenter, title, body);
         }
     }
 }

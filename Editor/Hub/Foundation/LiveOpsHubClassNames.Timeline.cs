@@ -60,8 +60,10 @@ namespace DreamTech.LiveOps.Editor
         // (G-OPT-TIMELINE) Thanh trong làn thu gọn: dải 6px bo 1, không nhãn, không tay nắm (Hình 12 khung 12).
         internal const string TimelineBarCollapsed = "liveops-hub-timeline-bar--collapsed";
 
-        // (G-OPT-TIMELINE, Hình 12 khung 9) Khung chọn kéo trên chỗ trống: nền highlight 0,2 + viền 1px highlight.
+        // (G-OPT-TIMELINE, Hình 12 khung 9) Khung chọn kéo trên chỗ trống: nền highlight 0,2 + viền 1px highlight. Hai phần vì
+        // opacity trong USS nhuộm CẢ element: đặt 0,2 lên khung thì viền mờ theo nền và biến mất — nền mờ là một con riêng.
         internal const string TimelineMarquee = "liveops-hub-timeline-marquee";
+        internal const string TimelineMarqueeFill = "liveops-hub-timeline-marquee__fill";
 
         // Thước ba tầng (V-11): tầng 1 tháng/tuần/cờ bây giờ · tầng 2 ngày hoặc giờ UTC + bubble · hàng dấu (cờ đã đăng) · tầng 3 giờ máy.
         internal const string TimelineRulerDayZoom = "liveops-hub-timeline-ruler--day-zoom";

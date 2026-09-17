@@ -205,9 +205,12 @@ namespace DreamTech.LiveOps.Editor
             table.Add(nameof(LiveOpsHubStrings.TimelineMultiSelectHelpText),
                 vietnamese: "Số dương dời về sau, số âm dời về trước. Đợt đang chạy và đợt đã khép không dời.",
                 english: "A positive number moves later, a negative one moves earlier. Running and ended events are not moved.");
+            // (G-OPT-TIMELINE) Dấu +/- nằm trong CHÍNH câu ("{1:+0.##;-0.##;0}") chứ không nướng sẵn vào tham số: luật số
+            // ít/số nhiều tiếng Anh của Q-W5-2 chọn "hour"/"hours" bằng cách đọc tham số như một SỐ, mà một chuỗi "+1" thì
+            // không phải số. Chữ in ra không đổi.
             table.Add(nameof(LiveOpsHubStrings.TimelineMultiSelectShiftToastFormat),
-                vietnamese: "Đã dời {0} đợt {1} giờ",
-                english: "Moved {0} events by {1} hours");
+                vietnamese: "Đã dời {0} đợt {1:+0.##;-0.##;0} giờ",
+                english: "Moved {0} events by {1:+0.##;-0.##;0} hours");
             table.Add(nameof(LiveOpsHubStrings.TimelineMultiSelectShiftUndoStepFormat),
                 vietnamese: "Dời {0} đợt",
                 english: "Move {0} events");
