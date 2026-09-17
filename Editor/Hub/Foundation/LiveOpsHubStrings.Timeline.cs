@@ -103,6 +103,9 @@ namespace DreamTech.LiveOps.Editor
         internal static string TimelineMultiSelectDeleteToastFormat => LiveOpsHubStringCatalog.Text(nameof(TimelineMultiSelectDeleteToastFormat));
         internal static string TimelineMultiSelectDeleteUndoStepFormat => LiveOpsHubStringCatalog.Text(nameof(TimelineMultiSelectDeleteUndoStepFormat));
 
+        /// <summary>Vế nối vào cuối toast khi giữ Shift lúc kéo: toast phải nói ra những đợt vừa bị dời KÈM, không lặng lẽ dời.</summary>
+        internal static string TimelineDragFollowersToastSuffixFormat => LiveOpsHubStringCatalog.Text(nameof(TimelineDragFollowersToastSuffixFormat));
+
         // (G-OPT-TIMELINE, Hình 12 khung 12) Mục menu header làn — I-5 của W5 giấu mục này vì tính năng chưa có; nay có thật.
         internal static string TimelineMenuCollapseLane => LiveOpsHubStringCatalog.Text(nameof(TimelineMenuCollapseLane));
         internal static string TimelineMenuExpandLane => LiveOpsHubStringCatalog.Text(nameof(TimelineMenuExpandLane));
