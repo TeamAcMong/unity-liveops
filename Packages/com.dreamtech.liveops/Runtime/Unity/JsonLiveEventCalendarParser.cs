@@ -111,11 +111,11 @@ namespace DreamTech.LiveOps.Unity
     public static class JsonLiveEventCalendarParser
     {
         /// <summary>
-        /// Chính sách của overload hai tham số khi JSON remote có chữ nhưng hỏng. Từ 0.2.0 là
+        /// Chính sách của overload hai tham số khi JSON remote có chữ nhưng không dùng được. Từ 0.2.0 là
         /// <see cref="LiveEventCalendarRemoteFailurePolicy.UseDefaultCalendar"/> (user chốt Q-9): một bản remote hỏng không
         /// được làm cả game mất sạch event, vì "không đợt nào chạy" là hỏng nặng hơn "lịch trong build có thể cũ".
-        /// ĐỔI HÀNH VI so với 0.1.0 — game muốn giữ cách cũ thì gọi overload ba tham số với
-        /// <see cref="LiveEventCalendarRemoteFailurePolicy.KeepRemoteResult"/>.
+        /// Không phải đổi hành vi của 0.1.0 (bản đó chưa có <c>ParseOrDefault</c>) — muốn cách cũ của <see cref="Parse"/>
+        /// thì gọi overload ba tham số với <see cref="LiveEventCalendarRemoteFailurePolicy.KeepRemoteResult"/>.
         /// </summary>
         public const LiveEventCalendarRemoteFailurePolicy DefaultRemoteFailurePolicy = LiveEventCalendarRemoteFailurePolicy.UseDefaultCalendar;
 
@@ -229,8 +229,11 @@ namespace DreamTech.LiveOps.Unity
         }
 
         /// <summary>
-        /// (D1) JSON remote trống → lịch trong asset; JSON có chữ nhưng hỏng → theo <see cref="DefaultRemoteFailurePolicy"/>
-        /// (0.2.0: cũng là lịch trong asset, kèm Problem nói remote hỏng — ĐỔI HÀNH VI so với 0.1.0, Q-9).
+        /// (D1) JSON remote trống → lịch trong asset; JSON có chữ nhưng KHÔNG DÙNG ĐƯỢC → theo
+        /// <see cref="DefaultRemoteFailurePolicy"/> (0.2.0: cũng là lịch trong asset, kèm Problem nói vì sao — Q-9).
+        /// Đây là mặc định của MỘT API MỚI, không phải đổi hành vi của bản cũ: 0.1.0 không có <c>ParseOrDefault</c>
+        /// (chỉ có <see cref="Parse"/>, và <see cref="Parse"/> giữ nguyên), nên game bump 0.1.0 → 0.2.0 không bị đổi gì.
+        /// Chỉ các bản dựng trước của nhánh 0.2.0 — lúc mặc định còn là <c>KeepRemoteResult</c> — mới thấy khác.
         /// </summary>
         public static LiveEventCalendarParseResult ParseOrDefault(string json, LiveEventCalendarAsset defaultCalendar)
         {
@@ -239,9 +242,10 @@ namespace DreamTech.LiveOps.Unity
 
         /// <summary>
         /// JSON null/khoảng trắng → <c>defaultCalendar.ToParseResult()</c> (<c>CameFromDefaultCalendar</c> = true).
-        /// <c>defaultCalendar</c> null → như <see cref="Parse"/>. JSON có chữ nhưng <c>JsonUtility</c> không đọc được →
-        /// theo <paramref name="remoteFailurePolicy"/>. JSON đọc được nhưng có mục hỏng → LUÔN dùng kết quả remote (mục hỏng
-        /// bị bỏ + Problems), không bao giờ trộn với asset: trộn hai nguồn sinh lịch không ai đã đăng.
+        /// <c>defaultCalendar</c> null → như <see cref="Parse"/>. JSON có chữ nhưng KHÔNG DÙNG ĐƯỢC (xem
+        /// <see cref="IsRemoteCalendarUnusable"/>: <c>JsonUtility</c> không đọc nổi, HOẶC đọc được mà không mang mảng lịch
+        /// nào) → theo <paramref name="remoteFailurePolicy"/>. JSON có mảng lịch nhưng vài mục hỏng → LUÔN dùng kết quả
+        /// remote (mục hỏng bị bỏ + Problems), không bao giờ trộn với asset: trộn hai nguồn sinh lịch không ai đã đăng.
         /// </summary>
         public static LiveEventCalendarParseResult ParseOrDefault(string json, LiveEventCalendarAsset defaultCalendar,
             LiveEventCalendarRemoteFailurePolicy remoteFailurePolicy)
@@ -254,17 +258,43 @@ namespace DreamTech.LiveOps.Unity
             if (string.IsNullOrWhiteSpace(json)) return defaultCalendar.ToParseResult();
 
             LiveEventCalendarDocumentParseResult readResult = ParseDocument(json);
-            if (!readResult.IsReadable && remoteFailurePolicy == LiveEventCalendarRemoteFailurePolicy.UseDefaultCalendar)
+            if (remoteFailurePolicy == LiveEventCalendarRemoteFailurePolicy.UseDefaultCalendar && IsRemoteCalendarUnusable(readResult))
             {
                 LiveEventCalendarParseResult assetResult = defaultCalendar.ToParseResult();
                 var problems = new List<string>(assetResult.Problems.Count + 1)
                 {
-                    "JSON remote hỏng, dùng lịch mặc định trong asset: " + readResult.ReadErrorText,
+                    DescribeUnusableRemoteCalendar(readResult),
                 };
                 problems.AddRange(assetResult.Problems);
                 return LiveEventCalendarParseResult.FromCompilation(assetResult.Compilation, problems, assetResult.FormatVersion, true);
             }
             return CompileReadResult(readResult);
+        }
+
+        /// <summary>
+        /// Remote KHÔNG DÙNG ĐƯỢC = <c>JsonUtility</c> không đọc nổi (sai cú pháp, BOM, gốc không phải object), HOẶC đọc
+        /// được nhưng không mang mảng lịch nào (<c>"{}"</c>, gõ sai tên mảng thành <c>"evets"</c>, một định dạng sau này
+        /// đổi tên mảng). Hai ca cho ra CÙNG một hậu quả với người chơi — không đợt nào chạy — nên Q-9 xử như nhau, kẻo
+        /// lời hứa "remote hỏng thì trong build vẫn còn lịch" có một lỗ đúng bằng ca dễ gặp nhất.
+        /// <c>"events": []</c> KHÔNG rơi vào đây: mảng có mặt nghĩa là designer cố ý đăng một lịch rỗng.
+        /// </summary>
+        private static bool IsRemoteCalendarUnusable(LiveEventCalendarDocumentParseResult readResult)
+        {
+            return !readResult.IsReadable || readResult.IsMissingCalendarArrays;
+        }
+
+        /// <summary>
+        /// Câu Problem đứng đầu khi quay về lịch trong asset. Hai ca nói hai câu KHÁC NHAU để dev đọc log biết ngay phải
+        /// sửa gì: JSON sai cú pháp thì kèm được message gốc của <c>JsonUtility</c>, còn JSON đúng cú pháp mà thiếu mảng
+        /// thì không có message nào để kèm — nói thẳng là thiếu mảng.
+        /// </summary>
+        private static string DescribeUnusableRemoteCalendar(LiveEventCalendarDocumentParseResult readResult)
+        {
+            if (!readResult.IsReadable)
+            {
+                return "JSON remote hỏng, dùng lịch mặc định trong asset: " + readResult.ReadErrorText;
+            }
+            return "JSON remote không có mảng lịch nào, dùng lịch mặc định trong asset.";
         }
 
         /// <summary>
