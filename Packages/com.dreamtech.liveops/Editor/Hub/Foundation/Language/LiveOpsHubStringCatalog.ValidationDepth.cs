@@ -70,6 +70,9 @@ namespace DreamTech.LiveOps.Editor
             table.Add(nameof(LiveOpsHubStrings.ValidationDepthIgnoredMetaFormat),
                 vietnamese: "{0} · {1} · {2}",
                 english: "{0} · {1} · {2}");
+            table.Add(nameof(LiveOpsHubStrings.ValidationDepthIgnoredMetaWithTagFormat),
+                vietnamese: "{0} · {1}",
+                english: "{0} · {1}");
             table.Add(nameof(LiveOpsHubStrings.ValidationDepthIgnoredNoteEmpty),
                 vietnamese: "(chưa ghi chú)",
                 english: "(no note)");
