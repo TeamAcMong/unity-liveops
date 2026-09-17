@@ -387,11 +387,13 @@ namespace DreamTech.LiveOps.Editor.Tests
         [Test]
         public void Intents_ClosedFamily_AllHandledOrIgnoredByName()
         {
+            // (G-OPT-TIMELINE, W6) SelectManyIntent + ToggleLaneCollapsedIntent vào họ; LiveOpsTimelineBarMove KHÔNG phải ý
+            // định (nó là dữ liệu bên trong MoveBarIntent) nên không có mặt ở đây.
             string[] expectedNames =
             {
-                "SelectBarIntent", "MoveBarIntent", "AddAtTimeIntent", "DeleteBarIntent", "DuplicateBarIntent", "CopyBarIntent",
-                "PasteAtTimeIntent", "OpenRuleIntent", "ShowFindingIntent", "CreateByDragIntent", "HideLaneIntent", "ShowAllLanesIntent",
-                "MoveLaneIntent",
+                "SelectBarIntent", "SelectManyIntent", "MoveBarIntent", "AddAtTimeIntent", "DeleteBarIntent", "DuplicateBarIntent",
+                "CopyBarIntent", "PasteAtTimeIntent", "OpenRuleIntent", "ShowFindingIntent", "CreateByDragIntent", "HideLaneIntent",
+                "ShowAllLanesIntent", "MoveLaneIntent", "ToggleLaneCollapsedIntent",
             };
             CollectionAssert.AreEqual(expectedNames, LiveOpsTimelineIntent.KnownIntentTypeNames,
                 "danh sách tên cố định — presenter W4/W5 đối chiếu nhánh xử lý với danh sách này");
