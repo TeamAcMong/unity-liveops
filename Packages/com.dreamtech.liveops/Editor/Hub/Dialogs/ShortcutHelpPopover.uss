@@ -68,6 +68,10 @@
     margin-right: var(--liveops-hub-space-8);
 }
 
+/*
+ * Nhãn phím: KHÔNG đeo class `liveops-hub-mono` (RobotoMono thiếu ← → ↑ ↓ ⌘ ⇧ ⌥ ⌫ — [API §12.3]) nên cột này dùng font
+ * Label mặc định. Cột vẫn thẳng nhờ canh phải + không co.
+ */
 .liveops-hub-shortcut-help-row-key {
     flex-grow: 0;
     flex-shrink: 0;

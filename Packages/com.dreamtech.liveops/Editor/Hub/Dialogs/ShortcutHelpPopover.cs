@@ -111,8 +111,13 @@ namespace DreamTech.LiveOps.Editor
         /// Câu của lệnh theo ngôn ngữ đang chọn (PD-15: <c>displayName</c> trong thuộc tính C# là hằng ASCII nên không theo
         /// ngôn ngữ được). Id lạ — bản sau thêm lệnh mà chưa thêm câu — in phần sau tiền tố thay vì bỏ hàng: người đọc vẫn
         /// thấy phím đó tồn tại, và chữ ASCII lộ ra là lời nhắc thêm câu.
+        /// <para>
+        /// <c>internal</c> chứ không <c>private</c>: trạng thái "id lạ" là trạng thái mà test
+        /// <c>ShortcutHelp_ListsEveryHubShortcutIdFromShortcutManager</c> CẤM tồn tại trong hồ sơ phím thật, nên nhánh dự
+        /// phòng chỉ đi qua được khi test gọi thẳng hàm này với một id giả — không mở ra thì nó là code không ai chạy.
+        /// </para>
         /// </summary>
-        private static string DescriptionOf(string shortcutId, IReadOnlyList<string> sectionTitles)
+        internal static string DescriptionOf(string shortcutId, IReadOnlyList<string> sectionTitles)
         {
             if (string.Equals(shortcutId, LiveOpsHubShortcuts.OpenPaletteId, StringComparison.Ordinal)) return LiveOpsHubStrings.ShellShortcutOpenPalette;
             if (string.Equals(shortcutId, LiveOpsHubShortcuts.SaveCalendarId, StringComparison.Ordinal)) return LiveOpsHubStrings.ShellShortcutSaveCalendar;
@@ -133,32 +138,57 @@ namespace DreamTech.LiveOps.Editor
         }
 
         /// <summary>
-        /// Chín hàng phím của timeline, chép đúng nhánh <c>switch</c> trong <c>LiveOpsTimelineElement.OnKeyDown</c>. Bảng này
+        /// Các hàng phím của timeline, chép đúng nhánh <c>switch</c> trong <c>LiveOpsTimelineElement.OnKeyDown</c>. Bảng này
         /// là thứ DUY NHẤT nói ra chúng: chúng không nằm trong cửa sổ Shortcuts của Unity, nên không có bảng nào khác để tra.
+        /// <para>
+        /// Phím bổ trợ đi theo NỀN TẢNG y như phím lệnh: macOS in ký hiệu (⌘ ⇧ ⌥), chỗ khác in chữ ("Ctrl", "Shift", "Alt").
+        /// Ghi cứng ký hiệu của Mac thì người dùng Windows/Linux đọc "⌥ ← →" và không biết phải bấm gì.
+        /// </para>
+        /// <para>
+        /// Hàng cuối (<c>KeyCode.Menu</c>) CHỈ có ngoài macOS: bàn phím Apple không có phím Menu, nên in hàng đó trên macOS là
+        /// hứa một phím người đọc không bấm được — và bảng này thì không có nguồn nào khác để đối chiếu lại.
+        /// </para>
         /// </summary>
         private static IReadOnlyList<ShortcutHelpRow> TimelineRows()
         {
-            string actionKey = Application.platform == RuntimePlatform.OSXEditor
-                ? LiveOpsHubStrings.TimelineActionKeyMac
-                : LiveOpsHubStrings.TimelineActionKeyOther;
-            string actionArrows = LiveOpsHubKeyLabels.ReplaceMissingGlyphs(string.Format(CultureInfo.InvariantCulture,
-                LiveOpsHubStrings.ShortcutHelpKeyActionArrowsUpDownFormat, actionKey));
+            bool isMacEditor = Application.platform == RuntimePlatform.OSXEditor;
+            string actionKey = isMacEditor ? LiveOpsHubStrings.TimelineActionKeyMac : LiveOpsHubStrings.TimelineActionKeyOther;
+            string shiftKey = isMacEditor ? LiveOpsHubStrings.ShortcutHelpShiftKeyMac : LiveOpsHubStrings.KeyLabelShift;
+            string optionKey = isMacEditor ? LiveOpsHubStrings.ShortcutHelpOptionKeyMac : LiveOpsHubStrings.KeyLabelOption;
+            // Ký hiệu Mac dính liền nhau ("⌥⇧") đúng như Unity in; tên chữ thì phải tách bằng khoảng trắng, không thì ra "AltShift".
+            string optionShiftKey = isMacEditor ? optionKey + shiftKey : optionKey + " " + shiftKey;
 
-            return new[]
+            List<ShortcutHelpRow> rows = new List<ShortcutHelpRow>(9);
+            rows.Add(TimelineRow(LiveOpsHubStrings.ShortcutHelpTimelineNudgeByStep, LiveOpsHubStrings.ShortcutHelpKeyArrowsLeftRight));
+            rows.Add(TimelineRow(LiveOpsHubStrings.ShortcutHelpTimelineNudgeByDay, ModifierArrowsLeftRight(shiftKey)));
+            rows.Add(TimelineRow(LiveOpsHubStrings.ShortcutHelpTimelineMoveEndEdge, ModifierArrowsLeftRight(optionKey)));
+            rows.Add(TimelineRow(LiveOpsHubStrings.ShortcutHelpTimelineMoveStartEdge, ModifierArrowsLeftRight(optionShiftKey)));
+            rows.Add(TimelineRow(LiveOpsHubStrings.ShortcutHelpTimelineSelectAdjacentLane,
+                string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.ShortcutHelpKeyActionArrowsUpDownFormat, actionKey)));
+            rows.Add(TimelineRow(LiveOpsHubStrings.ShortcutHelpTimelineFrameAll, LiveOpsHubStrings.ShortcutHelpKeyFrameAll));
+            rows.Add(TimelineRow(LiveOpsHubStrings.ShortcutHelpTimelineZoom, LiveOpsHubStrings.ShortcutHelpKeyZoom));
+            rows.Add(TimelineRow(LiveOpsHubStrings.ShortcutHelpTimelineCancelDrag, LiveOpsHubStrings.ShortcutHelpKeyEscape));
+            // Phím Menu chỉ có trên bàn phím Windows/Linux — test đọc lại điều kiện này từ Application.platform, không từ đây.
+            if (!isMacEditor)
             {
-                TimelineRow(LiveOpsHubStrings.ShortcutHelpTimelineNudgeByStep, LiveOpsHubStrings.ShortcutHelpKeyArrowsLeftRight),
-                TimelineRow(LiveOpsHubStrings.ShortcutHelpTimelineNudgeByDay, LiveOpsHubStrings.ShortcutHelpKeyShiftArrowsLeftRight),
-                TimelineRow(LiveOpsHubStrings.ShortcutHelpTimelineMoveEndEdge, LiveOpsHubStrings.ShortcutHelpKeyOptionArrowsLeftRight),
-                TimelineRow(LiveOpsHubStrings.ShortcutHelpTimelineMoveStartEdge, LiveOpsHubStrings.ShortcutHelpKeyOptionShiftArrowsLeftRight),
-                new ShortcutHelpRow(LiveOpsHubStrings.ShortcutHelpTimelineSelectAdjacentLane, actionArrows, false),
-                TimelineRow(LiveOpsHubStrings.ShortcutHelpTimelineFrameAll, LiveOpsHubStrings.ShortcutHelpKeyFrameAll),
-                TimelineRow(LiveOpsHubStrings.ShortcutHelpTimelineZoom, LiveOpsHubStrings.ShortcutHelpKeyZoom),
-                TimelineRow(LiveOpsHubStrings.ShortcutHelpTimelineCancelDrag, LiveOpsHubStrings.ShortcutHelpKeyEscape),
-                TimelineRow(LiveOpsHubStrings.ShortcutHelpTimelineContextMenu, LiveOpsHubStrings.ShortcutHelpKeyContextMenu),
-            };
+                rows.Add(TimelineRow(LiveOpsHubStrings.ShortcutHelpTimelineContextMenu, LiveOpsHubStrings.ShortcutHelpKeyContextMenu));
+            }
+            return rows;
         }
 
-        /// <summary>Nhãn phím của timeline luôn đi qua bộ đổi ký hiệu: font Editor thiếu "⇧" thì in "Shift" chứ không in ô vuông.</summary>
+        /// <summary>Nhãn "&lt;phím bổ trợ&gt; ← →" — phím bổ trợ đã dựng sẵn theo nền tảng trước khi vào đây.</summary>
+        private static string ModifierArrowsLeftRight(string modifierKey)
+        {
+            return string.Format(CultureInfo.InvariantCulture,
+                LiveOpsHubStrings.ShortcutHelpKeyModifierArrowsLeftRightFormat, modifierKey);
+        }
+
+        /// <summary>
+        /// Một hàng timeline. Nhãn phím đi qua <see cref="LiveOpsHubKeyLabels.ReplaceMissingGlyphs"/> — bộ đó CHỈ đổi bốn ký
+        /// hiệu ⇧ ⌥ ⌘ ⌫ sang chữ khi font Label của Editor thiếu chúng; mũi tên ← → ↑ ↓ và dấu − thì không đổi. Đủ dùng vì
+        /// [API §12.3] đã đo: font Label mặc định (Inter-Regular SDF) có đủ cả họ mũi tên lẫn bốn ký hiệu đó ở hai bản Unity —
+        /// đó cũng là lý do cột phím KHÔNG đeo class Mono (RobotoMono thiếu đúng những ký tự này).
+        /// </summary>
         private static ShortcutHelpRow TimelineRow(string description, string keyLabel)
         {
             return new ShortcutHelpRow(description, LiveOpsHubKeyLabels.ReplaceMissingGlyphs(keyLabel), false);
@@ -225,7 +255,7 @@ namespace DreamTech.LiveOps.Editor
             {
                 // Kiểu internal đổi giữa hai bản là chuyện có thật; nuốt im lặng thì nút thành nút chết không ai dò ra.
                 Debug.LogWarning(string.Format(CultureInfo.InvariantCulture,
-                    LiveOpsHubStrings.ShortcutHelpOpenShortcutManagerFailedReason + " ({0})", openFailure.Message));
+                    LiveOpsHubStrings.ShortcutHelpOpenShortcutManagerFailedLogFormat, openFailure.Message));
                 return false;
             }
         }
@@ -372,7 +402,8 @@ namespace DreamTech.LiveOps.Editor
 
             Label key = new Label(row.KeyLabel);
             key.AddToClassList(LiveOpsHubClassNames.ShortcutHelpRowKey);
-            key.AddToClassList(LiveOpsHubClassNames.Mono);
+            // KHÔNG đeo class Mono: RobotoMono thiếu ← → ↑ ↓ ⌘ ⇧ ⌥ ⌫ ([API §12.3]) — đúng những ký tự mà cột này toàn là.
+            // Cột đã thẳng nhờ canh phải + flex-shrink 0, nên nó không cần font đều chữ để đọc theo một cột.
             // Chữ "chưa gán phím" là một câu, không phải ký hiệu phím: nhạt đi để cột phím vẫn đọc được như một cột phím.
             key.EnableInClassList(LiveOpsHubClassNames.ShortcutHelpRowKeyUnbound, row.IsUnbound);
             rowElement.Add(key);

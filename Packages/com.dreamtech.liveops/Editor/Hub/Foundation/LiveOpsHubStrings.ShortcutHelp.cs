@@ -66,6 +66,13 @@ namespace DreamTech.LiveOps.Editor
         /// </summary>
         internal static string ShortcutHelpOpenShortcutManagerFailedReason => LiveOpsHubStringCatalog.Text(nameof(ShortcutHelpOpenShortcutManagerFailedReason));
 
+        /// <summary>
+        /// Câu cảnh báo GHI RA CONSOLE khi đường reflection ném — {0} là câu của ngoại lệ. Một khoá riêng chứ không ghép chuỗi
+        /// từ câu cạnh nút: câu trên giao diện và câu trong log có hai người đọc khác nhau, ghép literal ngoài catalog là mở
+        /// đường cho một nửa câu không đi qua bản dịch (cùng khuôn với <c>FeedbackWarningStyleSheetMissingFormat</c>).
+        /// </summary>
+        internal static string ShortcutHelpOpenShortcutManagerFailedLogFormat => LiveOpsHubStringCatalog.Text(nameof(ShortcutHelpOpenShortcutManagerFailedLogFormat));
+
         // ----- Nhãn phím của nhóm timeline -----
         // Chín hàng dưới đây là phím CỐ ĐỊNH trong code của timeline (SP-7b: không qua ShortcutManager), nên nhãn phím là hằng
         // chữ chứ không đọc được từ profile của người dùng. Chúng vào catalog dạng AddShared: ký hiệu phím không dịch.
@@ -73,14 +80,17 @@ namespace DreamTech.LiveOps.Editor
         /// <summary>Nhãn phím "← →".</summary>
         internal static string ShortcutHelpKeyArrowsLeftRight => LiveOpsHubStringCatalog.Text(nameof(ShortcutHelpKeyArrowsLeftRight));
 
-        /// <summary>Nhãn phím "⇧ ← →".</summary>
-        internal static string ShortcutHelpKeyShiftArrowsLeftRight => LiveOpsHubStringCatalog.Text(nameof(ShortcutHelpKeyShiftArrowsLeftRight));
+        /// <summary>
+        /// Nhãn phím "{0} ← →" — {0} là phím bổ trợ theo nền tảng đã dựng sẵn (một phím hoặc hai phím ghép). Ba hàng ⇧ / ⌥ /
+        /// ⌥⇧ dùng chung khuôn này: ghi cứng ký hiệu của macOS là người dùng Windows/Linux đọc một phím họ không có.
+        /// </summary>
+        internal static string ShortcutHelpKeyModifierArrowsLeftRightFormat => LiveOpsHubStringCatalog.Text(nameof(ShortcutHelpKeyModifierArrowsLeftRightFormat));
 
-        /// <summary>Nhãn phím "⌥ ← →".</summary>
-        internal static string ShortcutHelpKeyOptionArrowsLeftRight => LiveOpsHubStringCatalog.Text(nameof(ShortcutHelpKeyOptionArrowsLeftRight));
+        /// <summary>Ký hiệu phím Shift trên macOS ("⇧"); ngoài macOS popover dùng chữ <c>KeyLabelShift</c> ("Shift").</summary>
+        internal static string ShortcutHelpShiftKeyMac => LiveOpsHubStringCatalog.Text(nameof(ShortcutHelpShiftKeyMac));
 
-        /// <summary>Nhãn phím "⌥⇧ ← →".</summary>
-        internal static string ShortcutHelpKeyOptionShiftArrowsLeftRight => LiveOpsHubStringCatalog.Text(nameof(ShortcutHelpKeyOptionShiftArrowsLeftRight));
+        /// <summary>Ký hiệu phím Option trên macOS ("⌥"); ngoài macOS popover dùng chữ <c>KeyLabelOption</c> ("Alt").</summary>
+        internal static string ShortcutHelpOptionKeyMac => LiveOpsHubStringCatalog.Text(nameof(ShortcutHelpOptionKeyMac));
 
         /// <summary>
         /// Nhãn phím "{0}↑ {0}↓" — {0} là phím lệnh theo nền tảng (⌘ trên macOS, Ctrl chỗ khác), lấy từ
@@ -91,13 +101,16 @@ namespace DreamTech.LiveOps.Editor
         /// <summary>Nhãn phím "A".</summary>
         internal static string ShortcutHelpKeyFrameAll => LiveOpsHubStringCatalog.Text(nameof(ShortcutHelpKeyFrameAll));
 
-        /// <summary>Nhãn phím "+ −".</summary>
+        /// <summary>Nhãn phím "= −" — đúng hai <c>KeyCode</c> mà timeline nghe, và đúng chữ của bảng phím 5.2.</summary>
         internal static string ShortcutHelpKeyZoom => LiveOpsHubStringCatalog.Text(nameof(ShortcutHelpKeyZoom));
 
         /// <summary>Nhãn phím "Esc".</summary>
         internal static string ShortcutHelpKeyEscape => LiveOpsHubStringCatalog.Text(nameof(ShortcutHelpKeyEscape));
 
-        /// <summary>Nhãn phím menu ngữ cảnh của bàn phím (phím "Menu" trên bàn phím Windows).</summary>
+        /// <summary>
+        /// Nhãn phím menu ngữ cảnh ("Menu"). Hàng này CHỈ hiện ngoài macOS: bàn phím Apple không có phím Menu, in nó trên
+        /// macOS là hứa một phím người đọc không bao giờ bấm được.
+        /// </summary>
         internal static string ShortcutHelpKeyContextMenu => LiveOpsHubStringCatalog.Text(nameof(ShortcutHelpKeyContextMenu));
 
         // ----- Câu mô tả của nhóm timeline -----
@@ -108,10 +121,10 @@ namespace DreamTech.LiveOps.Editor
         /// <summary>Shift + mũi tên: bước một ngày, không phụ thuộc lưới.</summary>
         internal static string ShortcutHelpTimelineNudgeByDay => LiveOpsHubStringCatalog.Text(nameof(ShortcutHelpTimelineNudgeByDay));
 
-        /// <summary>Alt + mũi tên: kéo riêng cạnh KẾT THÚC — đây cũng là thao tác duy nhất còn làm được trên đợt đang chạy.</summary>
+        /// <summary>Option/Alt + mũi tên: kéo riêng cạnh KẾT THÚC — đây cũng là thao tác duy nhất còn làm được trên đợt đang chạy.</summary>
         internal static string ShortcutHelpTimelineMoveEndEdge => LiveOpsHubStringCatalog.Text(nameof(ShortcutHelpTimelineMoveEndEdge));
 
-        /// <summary>Alt + Shift + mũi tên: kéo riêng cạnh BẮT ĐẦU.</summary>
+        /// <summary>Option/Alt + Shift + mũi tên: kéo riêng cạnh BẮT ĐẦU.</summary>
         internal static string ShortcutHelpTimelineMoveStartEdge => LiveOpsHubStringCatalog.Text(nameof(ShortcutHelpTimelineMoveStartEdge));
 
         /// <summary>Phím lệnh + mũi tên dọc: nhảy chọn sang đợt ở làn trên/dưới mà không đụng chuột.</summary>
@@ -120,13 +133,13 @@ namespace DreamTech.LiveOps.Editor
         /// <summary>A: thu cả lịch vào khung nhìn.</summary>
         internal static string ShortcutHelpTimelineFrameAll => LiveOpsHubStringCatalog.Text(nameof(ShortcutHelpTimelineFrameAll));
 
-        /// <summary>+ / −: đổi bậc zoom.</summary>
+        /// <summary>= / −: đổi bậc zoom.</summary>
         internal static string ShortcutHelpTimelineZoom => LiveOpsHubStringCatalog.Text(nameof(ShortcutHelpTimelineZoom));
 
         /// <summary>Esc: huỷ cử chỉ kéo đang làm, trả thanh về chỗ cũ.</summary>
         internal static string ShortcutHelpTimelineCancelDrag => LiveOpsHubStringCatalog.Text(nameof(ShortcutHelpTimelineCancelDrag));
 
-        /// <summary>Phím Menu: mở đúng menu chuột phải của đợt đang chọn.</summary>
+        /// <summary>Phím Menu: mở đúng menu chuột phải của đợt đang chọn (hàng chỉ có ngoài macOS — xem nhãn phím).</summary>
         internal static string ShortcutHelpTimelineContextMenu => LiveOpsHubStringCatalog.Text(nameof(ShortcutHelpTimelineContextMenu));
     }
 }

@@ -4,8 +4,10 @@ namespace DreamTech.LiveOps.Editor
     /// Bảng chữ vùng ShortcutHelp (G-OPT-SHORTCUTHELP, W6) — popover "Hiện hướng dẫn phím tắt". Bản tiếng Việt là bản gốc,
     /// bản tiếng Anh dịch cùng lúc (G-I18N §4). Comment "vì sao" của từng câu ở <c>LiveOpsHubStrings.ShortcutHelp.cs</c>.
     /// <para>
-    /// Chín nhãn phím đi bằng <see cref="LiveOpsHubStringTable.AddShared"/>: ký hiệu phím ("← →", "Esc") là ký hiệu bàn phím,
-    /// dịch ra vẫn y hệt — tách hai bản chỉ tạo chỗ cho chúng trôi khỏi nhau.
+    /// Nhãn phím đi bằng <see cref="LiveOpsHubStringTable.AddShared"/>: ký hiệu phím ("← →", "Esc") là ký hiệu bàn phím,
+    /// dịch ra vẫn y hệt — tách hai bản chỉ tạo chỗ cho chúng trôi khỏi nhau. Riêng tên chữ của phím bổ trợ ngoài macOS
+    /// ("Alt", "Shift") KHÔNG khai lại ở đây: chúng đã có ở vùng Foundation (<c>KeyLabelOption</c> / <c>KeyLabelShift</c>) và
+    /// popover đọc thẳng từ đó — khai lại là hai câu cho cùng một phím.
     /// </para>
     /// <para>
     /// Không câu nào của vùng này đếm số, nên không câu nào cần dấu số ít/số nhiều của bản tiếng Anh (luật Q-W5-2 do
@@ -51,14 +53,21 @@ namespace DreamTech.LiveOps.Editor
             table.Add(nameof(LiveOpsHubStrings.ShortcutHelpOpenShortcutManagerFailedReason),
                 vietnamese: "Bản Unity này không mở được cửa sổ Shortcuts từ đây",
                 english: "This Unity version cannot open the Shortcuts window from here");
+            table.Add(nameof(LiveOpsHubStrings.ShortcutHelpOpenShortcutManagerFailedLogFormat),
+                vietnamese: "LiveOps Hub: không mở được cửa sổ Shortcuts của Unity — {0}",
+                english: "LiveOps Hub: cannot open Unity's Shortcuts window — {0}");
 
             table.AddShared(nameof(LiveOpsHubStrings.ShortcutHelpKeyArrowsLeftRight), "← →");
-            table.AddShared(nameof(LiveOpsHubStrings.ShortcutHelpKeyShiftArrowsLeftRight), "⇧ ← →");
-            table.AddShared(nameof(LiveOpsHubStrings.ShortcutHelpKeyOptionArrowsLeftRight), "⌥ ← →");
-            table.AddShared(nameof(LiveOpsHubStrings.ShortcutHelpKeyOptionShiftArrowsLeftRight), "⌥⇧ ← →");
+            // {0} = phím bổ trợ theo NỀN TẢNG (⇧/⌥ trên macOS, "Shift"/"Alt" chỗ khác) — ghi cứng ký hiệu Mac thì người dùng
+            // Windows/Linux đọc "⌥ ← →" không biết bấm phím nào.
+            table.AddShared(nameof(LiveOpsHubStrings.ShortcutHelpKeyModifierArrowsLeftRightFormat), "{0} ← →");
+            table.AddShared(nameof(LiveOpsHubStrings.ShortcutHelpShiftKeyMac), "⇧");
+            table.AddShared(nameof(LiveOpsHubStrings.ShortcutHelpOptionKeyMac), "⌥");
             table.AddShared(nameof(LiveOpsHubStrings.ShortcutHelpKeyActionArrowsUpDownFormat), "{0}↑ {0}↓");
             table.AddShared(nameof(LiveOpsHubStrings.ShortcutHelpKeyFrameAll), "A");
-            table.AddShared(nameof(LiveOpsHubStrings.ShortcutHelpKeyZoom), "+ −");
+            // "= −" đúng phím mà LiveOpsTimelineElement nghe (KeyCode.Equals / KeyCode.Minus) và đúng chữ bảng phím 5.2 của
+            // thiết kế; "+" là phím đó khi giữ Shift nên nhãn "+ −" hứa một tổ hợp không có nhánh nào xử lý.
+            table.AddShared(nameof(LiveOpsHubStrings.ShortcutHelpKeyZoom), "= −");
             table.AddShared(nameof(LiveOpsHubStrings.ShortcutHelpKeyEscape), "Esc");
             table.AddShared(nameof(LiveOpsHubStrings.ShortcutHelpKeyContextMenu), "Menu");
 
