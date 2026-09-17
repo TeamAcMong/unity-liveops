@@ -275,10 +275,10 @@ namespace DreamTech.LiveOps.Editor
                 english: "{0} changed on disk at {1}; it differs from the editor copy in {2} {2|item|items}.");
             table.Add(nameof(LiveOpsHubStrings.ShellDiskBannerReloadLineFormat),
                 vietnamese: "Tải lại: mất {0} thay đổi chưa lưu ({1}).",
-                english: "Reload: loses {0} unsaved changes ({1}).");
+                english: "Reload: loses {0} {0|unsaved change|unsaved changes} ({1}).");
             table.Add(nameof(LiveOpsHubStrings.ShellDiskBannerReloadLineWithoutItemsFormat),
                 vietnamese: "Tải lại: mất {0} thay đổi chưa lưu.",
-                english: "Reload: loses {0} unsaved changes.");
+                english: "Reload: loses {0} {0|unsaved change|unsaved changes}.");
             table.Add(nameof(LiveOpsHubStrings.ShellDiskBannerKeepLineFormat),
                 vietnamese: "Giữ bản trong Editor: lần lưu tới ghi đè {0} mục trên đĩa.",
                 english: "Keep the editor copy: the next save overwrites {0} {0|item|items} on disk.");
@@ -310,7 +310,7 @@ namespace DreamTech.LiveOps.Editor
                 english: "Keep the editor copy");
             table.Add(nameof(LiveOpsHubStrings.ShellDiskBannerReloadTooltipFormat),
                 vietnamese: "Lấy bản trên đĩa; {0} thay đổi chưa lưu sẽ mất.",
-                english: "Take the disk copy; {0} unsaved changes are lost.");
+                english: "Take the disk copy; {0} {0|unsaved change|unsaved changes} {0|is|are} lost.");
 
             table.Add(nameof(LiveOpsHubStrings.ShellOverwriteDiskConfirmTitleFormat),
                 vietnamese: "Ghi đè {0} mục vừa đổi trên đĩa?",

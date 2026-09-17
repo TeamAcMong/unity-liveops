@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.IO;
 using System.Text.RegularExpressions;
 using DreamTech.LiveOps.Tests;
 using NUnit.Framework;
@@ -18,8 +19,18 @@ namespace DreamTech.LiveOps.Editor.Tests
     [Category(LiveOpsHubTestCategories.Logic)]
     public sealed class EnglishPluralTests
     {
-        /// <summary>Ứng viên khoá đếm: một <c>{i}</c> (có thể là <c>{i}/{j}</c>) rồi tới một từ thường kết thúc bằng "s".</summary>
-        private static readonly Regex CountedNounCandidate = new Regex(@"\{(\d)\}(?:/\{(\d)\})?\s+([a-z][a-z\-]*s)\b", RegexOptions.CultureInvariant);
+        /// <summary>
+        /// Ứng viên khoá đếm: một <c>{i}</c> (có thể là <c>{i}/{j}</c>), rồi TỚI BA từ thường chen giữa, rồi một từ thường
+        /// kết thúc bằng "s". Ba từ chen giữa là chỗ của tính từ ("{0} unsaved changes", "{0} safe changes"): bản đầu của
+        /// luật chỉ nhìn từ đứng NGAY SAU <c>{i}</c> nên bốn câu đếm ấy không bao giờ thành ứng viên, không đỏ, không vào sổ
+        /// ngoại lệ — đúng lỗ hổng phải bịt khi quét lại toàn catalog (Q-W5-2, 17/9/2026).
+        /// <para>
+        /// Từ nào trong khoảng chen giữa nằm ở <see cref="LiveOpsHubEnglishPluralExceptions.WordsThatAreNotCountedNouns"/>
+        /// thì ứng viên bị bỏ: <c>"{0} is running"</c> hay <c>"{0} field still holds an unsaved draft"</c> không phải câu đếm.
+        /// </para>
+        /// </summary>
+        private static readonly Regex CountedNounCandidate = new Regex(
+            @"\{(\d)\}(?:/\{(\d)\})?\s+((?:[a-z][a-z\-]*\s+){0,3}?)([a-z][a-z\-]*s)\b", RegexOptions.CultureInvariant);
 
         /// <summary>Dấu số ít/số nhiều trong câu — dùng để biết khoá nào đã theo luật.</summary>
         private static readonly Regex PluralMark = new Regex(@"\{(\d)\|([^|{}]*)\|([^|{}]*)\}", RegexOptions.CultureInvariant);
@@ -47,15 +58,20 @@ namespace DreamTech.LiveOps.Editor.Tests
 
         /// <summary>
         /// Số đếm đã định dạng sẵn (<c>LiveOpsHubFormat.Integer</c>) vẫn phải chọn đúng vế: rất nhiều câu của hub đưa CHUỖI
-        /// vào chỗ số, không nhận chuỗi thì luật im lặng không chạy ở đúng chỗ cần nó.
+        /// vào chỗ số, không nhận chuỗi thì luật im lặng không chạy ở đúng chỗ cần nó. Chỉ có n = 1 là quan trọng, và
+        /// <c>Integer(1)</c> ra đúng <c>"1"</c>; mọi số lớn hơn đọc vế số nhiều dù dấu phân nhóm của hub (dấu CHẤM, "1.000")
+        /// không phải dấu phân nhóm của <c>CultureInfo.InvariantCulture</c> — nên test lấy CHÍNH chuỗi mà hub sinh ra, chứ
+        /// không ghim một khuôn "1,000" mà hub chẳng bao giờ in.
         /// </summary>
         [Test]
         public void Resolve_ReadsPreFormattedCountStrings()
         {
             const string text = "{0} {0|entry|entries} kept";
+            LiveOpsHubFormat format = new LiveOpsHubFormat(TimeSpan.Zero);
 
-            Assert.AreEqual("1 entry kept", Format(text, "1"));
-            Assert.AreEqual("1,000 entries kept", Format(text, "1,000"));
+            Assert.AreEqual("1", format.Integer(1), "luật số ít chỉ gặp n = 1, và hub in n = 1 thành đúng một chữ số");
+            Assert.AreEqual("1 entry kept", Format(text, format.Integer(1)));
+            Assert.AreEqual(format.Integer(1000) + " entries kept", Format(text, format.Integer(1000)));
             Assert.AreEqual("lava-quest entries kept", Format(text, "lava-quest"), "chuỗi không đọc được thành số thì lấy vế số nhiều");
         }
 
@@ -85,8 +101,7 @@ namespace DreamTech.LiveOps.Editor.Tests
                 if (LiveOpsHubEnglishPluralExceptions.KeysWithoutMark.ContainsKey(key)) continue;
                 foreach (Match match in CountedNounCandidate.Matches(english))
                 {
-                    string noun = match.Groups[3].Value;
-                    if (Contains(LiveOpsHubEnglishPluralExceptions.WordsThatAreNotCountedNouns, noun)) continue;
+                    if (!IsCountedNounPhrase(match)) continue;
                     missing.Add(key + " → \"" + match.Value + "\"");
                     break;
                 }
@@ -159,6 +174,97 @@ namespace DreamTech.LiveOps.Editor.Tests
                 FormatKey(nameof(LiveOpsHubStrings.ExportGateReasonDroppedFormat), 0));
         }
 
+        /// <summary>
+        /// (5) Khoá đã đánh dấu thì CHỖ GỌI phải đưa KHOÁ cho <c>LiveOpsHubStringCatalog.Format</c>, không được đọc câu trần
+        /// qua <c>LiveOpsHubStrings.&lt;Khoá&gt;</c> rồi tự <c>string.Format</c>: đường trần đi qua <c>StripToPlural</c> nên nó
+        /// im lặng trả vế SỐ NHIỀU cho mọi n. Không test nào khác thấy chuyện đó — cả bộ test UI ghim tiếng Việt, mà câu
+        /// tiếng Việt không mang dấu nên hai đường cho kết quả y hệt nhau (Q-W5-2, lưới gác thêm 17/9/2026).
+        /// <para>
+        /// Quét MÃ NGUỒN của <c>Editor/</c> chứ không quét runtime: lỗi này là lỗi lúc VIẾT, và quét runtime thì phải gọi
+        /// được hết mọi màn mới thấy. Bỏ qua dòng chú thích và mọi <c>nameof(...)</c> — đó là hai cách nhắc tên khoá hợp lệ.
+        /// </para>
+        /// </summary>
+        [Test]
+        public void MarkedKeys_AreNeverReadAsABareStringsProperty()
+        {
+            List<string> markedKeys = new List<string>();
+            foreach (string key in LiveOpsHubStringCatalog.Keys)
+            {
+                string english;
+                if (!LiveOpsHubStringCatalog.TryGetExactRaw(LiveOpsHubLanguageId.English, key, out english)) continue;
+                if (LiveOpsHubEnglishPlural.ContainsMark(english)) markedKeys.Add(key);
+            }
+            CollectionAssert.IsNotEmpty(markedKeys, "catalog phải có khoá mang dấu — không thì chính test này vô nghĩa");
+
+            string editorDirectory = Path.Combine(PackageDirectory(), EditorFolderName);
+            Assert.IsTrue(Directory.Exists(editorDirectory), "không thấy thư mục mã nguồn Editor ở " + editorDirectory);
+            string[] sourceFiles = Directory.GetFiles(editorDirectory, CSharpSearchPattern, SearchOption.AllDirectories);
+            Assert.Greater(sourceFiles.Length, 0, "không đọc được file .cs nào dưới Editor/");
+
+            List<string> bareUses = new List<string>();
+            for (int fileIndex = 0; fileIndex < sourceFiles.Length; fileIndex++)
+            {
+                string[] lines = File.ReadAllText(sourceFiles[fileIndex]).Replace("\r\n", "\n").Split('\n');
+                for (int lineIndex = 0; lineIndex < lines.Length; lineIndex++)
+                {
+                    string line = lines[lineIndex];
+                    if (line.TrimStart().StartsWith(CommentPrefix, StringComparison.Ordinal)) continue;
+                    for (int keyIndex = 0; keyIndex < markedKeys.Count; keyIndex++)
+                    {
+                        if (!ReadsBareProperty(line, markedKeys[keyIndex])) continue;
+                        bareUses.Add(Path.GetFileName(sourceFiles[fileIndex]) + ":" + (lineIndex + 1).ToString(CultureInfo.InvariantCulture)
+                            + " → " + markedKeys[keyIndex]);
+                    }
+                }
+            }
+            CollectionAssert.IsEmpty(bareUses,
+                "khoá mang dấu phải gọi qua LiveOpsHubStringCatalog.Format(nameof(LiveOpsHubStrings.<Khoá>), …)");
+        }
+
+        /// <summary>Dòng này có đọc <c>LiveOpsHubStrings.&lt;Khoá&gt;</c> trần (không nằm trong <c>nameof</c>) hay không.</summary>
+        private static bool ReadsBareProperty(string line, string key)
+        {
+            string reference = StringsTypeName + "." + key;
+            int searchFrom = 0;
+            while (searchFrom <= line.Length - reference.Length)
+            {
+                int found = line.IndexOf(reference, searchFrom, StringComparison.Ordinal);
+                if (found < 0) return false;
+                int afterReference = found + reference.Length;
+                bool isWholeName = afterReference >= line.Length || !IsNameCharacter(line[afterReference]);
+                bool insideNameOf = found >= NameOfPrefix.Length
+                    && string.Equals(line.Substring(found - NameOfPrefix.Length, NameOfPrefix.Length), NameOfPrefix, StringComparison.Ordinal);
+                if (isWholeName && !insideNameOf) return true;
+                searchFrom = found + 1;
+            }
+            return false;
+        }
+
+        private static bool IsNameCharacter(char character)
+        {
+            return character == '_' || (character >= '0' && character <= '9')
+                || (character >= 'a' && character <= 'z') || (character >= 'A' && character <= 'Z');
+        }
+
+        /// <summary>
+        /// Gốc package ĐANG ĐƯỢC THỬ, hỏi Package Manager qua assembly của chính file này — không suy từ thư mục hiện hành:
+        /// lượt 2022.3 chạy trong project tạm trỏ <c>file:</c> vào worktree, cwd ở đó không nói gì về bộ file vừa biên dịch.
+        /// </summary>
+        private static string PackageDirectory()
+        {
+            UnityEditor.PackageManager.PackageInfo package =
+                UnityEditor.PackageManager.PackageInfo.FindForAssembly(typeof(EnglishPluralTests).Assembly);
+            Assert.IsNotNull(package,
+                "không hỏi được gốc package từ assembly test — bộ test này phải chạy như một phần của com.dreamtech.liveops");
+            return Path.GetFullPath(package.resolvedPath);
+        }
+
+        private const string EditorFolderName = "Editor";
+        private const string CSharpSearchPattern = "*.cs";
+        private const string CommentPrefix = "//";
+        private const string StringsTypeName = "LiveOpsHubStrings";
+        private const string NameOfPrefix = "nameof(";
+
         /// <summary>(4) Tiếng Việt không chia số — một dấu lọt vào bản tiếng Việt là câu in ra kèm ngoặc nhọn.</summary>
         [Test]
         public void VietnameseSentences_NeverCarryAMark()
@@ -186,6 +292,21 @@ namespace DreamTech.LiveOps.Editor.Tests
             object[] arguments = new object[highestIndex + 1];
             for (int index = 0; index < arguments.Length; index++) arguments[index] = 1;
             return arguments;
+        }
+
+        /// <summary>
+        /// Cụm khớp có thật sự là "số đếm + danh từ" không: cả danh từ LẪN mọi từ chen giữa đều phải nằm ngoài sổ từ không
+        /// đếm được. Chỉ lọc mỗi danh từ thì "{0} field still holds …" thành ứng viên giả vì "holds" kết thúc bằng "s".
+        /// </summary>
+        private static bool IsCountedNounPhrase(Match match)
+        {
+            if (Contains(LiveOpsHubEnglishPluralExceptions.WordsThatAreNotCountedNouns, match.Groups[4].Value)) return false;
+            string[] wordsBetween = match.Groups[3].Value.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+            for (int index = 0; index < wordsBetween.Length; index++)
+            {
+                if (Contains(LiveOpsHubEnglishPluralExceptions.WordsThatAreNotCountedNouns, wordsBetween[index])) return false;
+            }
+            return true;
         }
 
         private static bool Contains(IReadOnlyList<string> words, string word)

@@ -10,7 +10,7 @@ namespace DreamTech.LiveOps.Editor
         {
             table.Add(nameof(LiveOpsHubStrings.ValidationDepthBulkPreviewTitleFormat),
                 vietnamese: "Sẽ áp {0} thay đổi an toàn",
-                english: "Will apply {0} safe changes");
+                english: "Will apply {0} {0|safe change|safe changes}");
             table.Add(nameof(LiveOpsHubStrings.ValidationDepthBulkPreviewMeta),
                 vietnamese: "không đổi điều người chơi thấy",
                 english: "nothing players see will change");

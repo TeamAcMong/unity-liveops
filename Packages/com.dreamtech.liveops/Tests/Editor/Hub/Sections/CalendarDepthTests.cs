@@ -5,6 +5,7 @@ using System.Diagnostics;
 using System.Globalization;
 using DreamTech.LiveOps.Tests;
 using NUnit.Framework;
+using UnityEditor;
 using UnityEngine;
 using UnityEngine.TestTools;
 using UnityEngine.UIElements;
@@ -390,6 +391,34 @@ namespace DreamTech.LiveOps.Editor.Tests
             Assert.AreEqual(shortStep, toast.UndoGroupName, "tên bước trong Undo History là câu ngắn \"Đổi …\"");
             Assert.AreEqual(shortStep, _window.WindowState.RecentActionText,
                 "status bar \"Vừa làm: …\" đọc cùng câu ngắn đó, không đọc câu toast");
+            LogAssert.NoUnexpectedReceived();
+        }
+
+        /// <summary>
+        /// Q-W5-5 cho LỆNH (không phải đường kéo): tên bước trong Undo History của Unity — <c>Undo.GetCurrentGroupName()</c>,
+        /// thứ người dùng thật sự đọc — phải là CÂU NGẮN. Phiên đặt tên group bằng câu toast vì nó không biết câu ngắn, nên
+        /// mọi lệnh đi qua <c>ApplyEdit</c> từng để lại câu dài trong Undo History dù toast model đã mang câu ngắn; đọc mỗi
+        /// <c>LiveOpsToastModel.UndoGroupName</c> thì không thấy — property đó chỉ có test đọc, không có bề mặt sản phẩm nào.
+        /// </summary>
+        [UnityTest]
+        public IEnumerator LaneCommand_RealUnityUndoGroupName_IsTheShortStep()
+        {
+            yield return OpenCalendar(LiveOpsHubTestServices.DesignSampleScenario);
+            CalendarSection section = Calendar();
+            LiveOpsToastModel toast = null;
+            section.Services.Bus.ToastRequested += model => toast = model;
+
+            string laneTypeId = section.Services.Session.Document.EventTypes[1].TypeId;
+            Assert.IsTrue(section.CommandHandler.MoveLane(laneTypeId, -1), "đưa làn thứ hai lên phải chạy được");
+            yield return null;
+
+            string shortStep = string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.CalendarDepthMoveLaneUndoStepFormat,
+                laneTypeId);
+            Assert.IsNotNull(toast, "lệnh đưa làn phải phát toast");
+            Assert.AreNotEqual(shortStep, toast.Message, "toast giữ câu dài (có hướng lên/xuống)");
+            Assert.AreEqual(shortStep, Undo.GetCurrentGroupName(),
+                "Undo History của Unity phải đọc câu ngắn — đây là bề mặt thật, không phải property của toast model");
+            Assert.AreEqual(shortStep, toast.UndoGroupName, "toast model nói cùng câu ngắn đó");
             LogAssert.NoUnexpectedReceived();
         }
 
