@@ -316,11 +316,11 @@ namespace DreamTech.LiveOps.Editor
             if (!outcome.Applied) return;
 
             string message = DragToastMessage(beforeEntry, after);
-            // Tên bước Undo chỉ biết được lúc nhả chuột (giờ cuối), nên đổi tên ngay sau khi gộp: Undo History và toast phải nói
-            // cùng một câu để người dùng tìm lại được bước đó khi toast đã tắt (8.5).
-            Undo.SetCurrentGroupName(message);
-            // Tên bước ngắn để toast sau ⌘Z đọc "Đã hoàn tác: Dời hunt-0916-bonus" [SD1 §3.8 khung 14] thay vì hai lần "Đã".
-            string undoneStepName = string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.CalendarMoveUndoStepFormat, after.EventId);
+            // Câu ngắn của bước chỉ biết được lúc nhả chuột (giờ cuối), nên đặt tên ngay sau khi gộp.
+            // Q-W5-5: Undo History và status bar đọc CÂU NGẮN [SD1 §3.4] — hai chỗ đó chỉ có một dòng và người đọc lại sau
+            // nhiều thao tác; toast bên cạnh giữ CÂU DÀI vì người vừa làm xong cần đủ trước/sau.
+            string undoneStepName = DragUndoStepName(beforeEntry, after);
+            Undo.SetCurrentGroupName(undoneStepName);
             ToastRequested?.Invoke(LiveOpsToastModel.ForEdit(message, outcome.UndoGroup, string.Empty, undoneStepName));
             DocumentEdited?.Invoke();
 
@@ -370,6 +370,31 @@ namespace DreamTech.LiveOps.Editor
         {
             return string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.CalendarMoveToastFormat, entry.EventId,
                 entry.StartUtcText, entry.EndUtcText);
+        }
+
+        /// <summary>
+        /// Tên bước NGẮN của một lần kéo (Q-W5-5, [SD1 §3.4]). Ba kiểu kéo chia làm hai lời: kéo cả thanh là "Dời …", kéo một
+        /// mép là "Đổi …" — với người đọc lại Undo History đó là hai việc khác nhau. Phân nhánh bằng CÙNG phép đo mép của
+        /// <see cref="DragToastMessage"/> để hai câu không bao giờ nói về hai thao tác khác nhau.
+        /// </summary>
+        internal string DragUndoStepName(FixedLiveEventEntry before, FixedLiveEventEntry after)
+        {
+            string format = IsEdgeDrag(before, after)
+                ? LiveOpsHubStrings.CalendarResizeUndoStepFormat
+                : LiveOpsHubStrings.CalendarMoveUndoStepFormat;
+            return string.Format(CultureInfo.InvariantCulture, format, after.EventId);
+        }
+
+        /// <summary>Kéo một mép (chỉ bắt đầu hoặc chỉ kết thúc đổi) chứ không phải dời cả thanh.</summary>
+        private static bool IsEdgeDrag(FixedLiveEventEntry before, FixedLiveEventEntry after)
+        {
+            if (before == null) return false;
+            if (!before.TryGetStartUtc(out DateTime beforeStartUtc) || !before.TryGetEndUtc(out DateTime beforeEndUtc)) return false;
+            after.TryGetStartUtc(out DateTime afterStartUtc);
+            after.TryGetEndUtc(out DateTime afterEndUtc);
+            bool startMoved = beforeStartUtc != afterStartUtc;
+            bool endMoved = beforeEndUtc != afterEndUtc;
+            return startMoved != endMoved;
         }
 
         /// <summary>Câu toast nêu đúng mép đã đổi: chỉ kết thúc, chỉ bắt đầu, hay cả hai (kéo thân).</summary>

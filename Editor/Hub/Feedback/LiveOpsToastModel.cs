@@ -5,8 +5,9 @@ namespace DreamTech.LiveOps.Editor
     /// <summary>
     /// Dữ liệu một toast (8.5) — bất biến, để section chỉ phát model lên <see cref="LiveOpsHubSectionBus"/> còn view toast
     /// (G-FEEDBACK) tự quyết cách vẽ, và test section assert được sự kiện trên bus mà không cần panel.
-    /// Tên Undo group trùng câu toast (<see cref="UndoGroupName"/> = <see cref="Message"/>) để Edit → Undo History và toast
-    /// nói cùng một câu; nhờ vậy người dùng tìm lại được bước đó khi toast đã tắt.
+    /// Toast giữ CÂU DÀI (đủ trước/sau — người vừa làm xong cần đọc đúng cái mình vừa đổi); còn Edit → Undo History và
+    /// status bar "Vừa làm: …" đọc CÂU NGẮN <see cref="StepName"/> (Q-W5-5, user chốt 17/9/2026): hai chỗ đó chỉ có một
+    /// dòng và người đọc lại sau nhiều thao tác. Lệnh chưa có câu ngắn riêng vẫn rơi về câu toast như cũ.
     /// </summary>
     internal sealed class LiveOpsToastModel
     {
@@ -36,7 +37,13 @@ namespace DreamTech.LiveOps.Editor
 
         public int UndoGroup { get; }
 
-        public string UndoGroupName => UndoGroup == NoUndoGroup ? string.Empty : Message;
+        /// <summary>
+        /// Câu NGẮN của bước — một nguồn duy nhất cho Undo History và status bar (Q-W5-5). Rơi về <see cref="Message"/> khi
+        /// lệnh chưa đặt tên bước riêng, nên không màn nào phải sửa theo.
+        /// </summary>
+        public string StepName => string.IsNullOrEmpty(UndoneStepName) ? Message : UndoneStepName;
+
+        public string UndoGroupName => UndoGroup == NoUndoGroup ? string.Empty : StepName;
 
         public bool IsUndone { get; }
 
@@ -46,9 +53,7 @@ namespace DreamTech.LiveOps.Editor
         /// Câu hiện trên toast: sau Hoàn tác thêm tiền tố "Đã hoàn tác: " trước TÊN BƯỚC (<see cref="UndoneStepName"/>, mặc định là
         /// chính câu toast), nút đổi thành Làm lại.
         /// </summary>
-        public string DisplayMessage => IsUndone ? LiveOpsHubStrings.KitToastUndonePrefix + StepNameOrMessage : Message;
-
-        private string StepNameOrMessage => string.IsNullOrEmpty(UndoneStepName) ? Message : UndoneStepName;
+        public string DisplayMessage => IsUndone ? LiveOpsHubStrings.KitToastUndonePrefix + StepName : Message;
 
         /// <summary>
         /// Tooltip hiện trên toast: sau Hoàn tác cũng thêm tiền tố "Đã hoàn tác: " trước <see cref="Tooltip"/>. Tooltip riêng

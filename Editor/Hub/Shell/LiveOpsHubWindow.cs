@@ -542,7 +542,9 @@ namespace DreamTech.LiveOps.Editor
             _toast?.Show(toast);
             if (toast != null && toast.HasUndo)
             {
-                windowState.RecentActionText = toast.Message;
+                // Q-W5-5: status bar chỉ có MỘT dòng và người đọc lại sau nhiều thao tác, nên nó đọc câu NGẮN của bước;
+                // toast bên cạnh vẫn giữ câu dài. Cùng phép rơi với Undo History (LiveOpsToastModel.StepName).
+                windowState.RecentActionText = toast.StepName;
                 windowState.RecentActionUndoGroup = toast.UndoGroup;
             }
             RefreshStatusBar();
