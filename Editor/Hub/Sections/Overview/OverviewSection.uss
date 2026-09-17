@@ -10,6 +10,14 @@
     padding: var(--liveops-hub-space-10);
 }
 
+/*
+ * Q-W5-1: ScrollView bọc thân mặc định chiếm hết chỗ còn lại của trang, còn chính thân thì cao theo nội dung — có vậy phần
+ * dư mới tràn ra và thanh cuộn mới có việc. Thanh cuộn ngang tắt từ C# (bố cục đã co theo `--narrow`).
+ */
+.liveops-hub-overview-scroll {
+    flex-grow: 1;
+}
+
 .liveops-hub-overview-default {
     flex-grow: 1;
 }
