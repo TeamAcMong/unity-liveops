@@ -607,7 +607,7 @@ namespace DreamTech.LiveOps.Editor
                 if (typeId.Length > 0 && !laneTypeIds.Contains(typeId)) laneTypeIds.Add(typeId);
             }
             if (laneTypeIds.Count == 1) return laneTypeIds[0];
-            return string.Format(System.Globalization.CultureInfo.InvariantCulture, LiveOpsHubStrings.TimelineMultiSelectMixedTypesFormat,
+            return LiveOpsHubStringCatalog.Format(nameof(LiveOpsHubStrings.TimelineMultiSelectMixedTypesFormat),
                 laneTypeIds.Count);
         }
 
