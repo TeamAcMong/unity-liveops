@@ -179,8 +179,10 @@ namespace DreamTech.LiveOps.Editor
             LiveEventCalendarDocumentParseResult result = _jsonReadBack.ReadBackDocument(DocumentPrefix + text + DocumentSuffix);
             if (!result.IsReadable)
             {
+                // Q-W5-3: dòng lỗi dưới ô giữ CÂU ĐẦY ĐỦ (có nguyên văn câu của parser — người sửa cần đúng câu game sẽ gặp),
+                // còn chỗ cạnh nút "Áp" chỉ đủ một vế ngắn. Hai chỗ, hai câu — không in hai lần cùng một câu trong một khung nhìn.
                 ShowBlocked(string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.RecurringJsonUnreadableFormat,
-                    result.ReadErrorText), showAsError: true);
+                    result.ReadErrorText), showAsError: true, LiveOpsHubStrings.RecurringJsonUnreadableShortReason);
                 return;
             }
             if (result.Document.RecurringRules.Count != 1)
@@ -209,9 +211,17 @@ namespace DreamTech.LiveOps.Editor
         /// </summary>
         private void ShowBlocked(string reason, bool showAsError)
         {
+            ShowBlocked(reason, showAsError, string.Empty);
+        }
+
+        /// <param name="shortReason">
+        /// Câu ngắn riêng cho nhãn cạnh nút (Q-W5-3); rỗng = nhãn dùng luôn <paramref name="reason"/> như các ca khác.
+        /// </param>
+        private void ShowBlocked(string reason, bool showAsError, string shortReason)
+        {
             _errorLabel.text = showAsError ? reason : string.Empty;
             _errorLabel.EnableInClassList(LiveOpsHubClassNames.RecurringHidden, !showAsError);
-            _applySlot.SetEnabledWithReason(false, reason);
+            _applySlot.SetEnabledWithReason(false, shortReason.Length > 0 ? shortReason : reason);
         }
 
         /// <summary>Ký tự đáng kể đầu tiên có phải '{' — chuỗi đã qua bộ dò cú pháp nên không rỗng và không chỉ có khoảng trắng.</summary>

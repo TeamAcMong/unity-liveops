@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using DreamTech.LiveOps.Tests;
 using NUnit.Framework;
@@ -60,6 +61,12 @@ namespace DreamTech.LiveOps.Editor.Tests
 
         /// <summary>Câu lỗi nguyên văn của thiết kế (mục 7.4) — ghim cả vị trí lẫn lời, không chỉ "có lỗi gì đó".</summary>
         private const string MissingCommaSentence = "Dòng 3, ký tự 18: thiếu dấu phẩy";
+
+        /// <summary>Chuỗi mà seam viết lại đưa cho parser THẬT: cú pháp hỏng nên parser của game không đọc được (V-16).</summary>
+        private const string UnreadableRewrite = "{ not json";
+
+        /// <summary>Đầu câu đầy đủ của dòng lỗi — phần đuôi là nguyên văn lời parser, không ghim vào test.</summary>
+        private const string UnreadableFullSentencePrefix = "Parser của game không đọc được JSON này: ";
 
         /// <summary>Vòng chờ của test UI (V-23): chỉ fail khi quá CẢ 60 khung LẪN 5 giây.</summary>
         private const int MaximumWaitFrames = 60;
@@ -284,6 +291,50 @@ namespace DreamTech.LiveOps.Editor.Tests
             LogAssert.NoUnexpectedReceived();
         }
 
+        /// <summary>
+        /// Q-W5-3 (user chốt 17/9/2026): khi parser của game không đọc được JSON, cạnh nút "Áp" chỉ in CÂU NGẮN
+        /// ("JSON chưa đọc được") còn CÂU ĐẦY ĐỦ — có nguyên văn lời của parser — ở lại dòng lỗi dưới ô. Một khung nhìn
+        /// không in hai lần cùng một câu; test đếm số lần câu đầy đủ xuất hiện trong CẢ cây element để luật đó không lặng lẽ
+        /// mất đi khi ai đó nối thêm một nhãn nữa.
+        /// </summary>
+        [UnityTest]
+        public IEnumerator UnreadableJson_ReasonBesideApply_IsShortSentence_ErrorLineKeepsFullSentence()
+        {
+            yield return OpenDesignSample(new ScriptedLiveOpsHubConfirmationPresenter(),
+                new RewritingLiveOpsHubJsonReadBack(text => UnreadableRewrite));
+            yield return OpenJsonFoldout();
+
+            using (LiveOpsHubLanguage.Override(LiveOpsHubLanguageId.Vietnamese))
+            {
+                // Vẫn là JSON hợp lệ, chỉ khác chuỗi đang ghi — bộ dò cú pháp và cửa "phải là object" đều qua, nên ca rơi
+                // đúng vào nhánh "parser không đọc được".
+                Foldout.Editor.value = Foldout.Editor.value + "\n";
+                yield return null;
+
+                Assert.IsTrue(Foldout.ApplySlot.IsBlocked, "parser không đọc được thì Áp phải khoá");
+                Assert.AreEqual(LiveOpsHubStrings.RecurringJsonUnreadableShortReason, Foldout.ApplySlot.Reason,
+                    "cạnh nút chỉ đủ chỗ cho câu ngắn (Q-W5-3)");
+                StringAssert.StartsWith(UnreadableFullSentencePrefix, Foldout.ErrorText,
+                    "dòng lỗi dưới ô giữ câu đầy đủ, kèm nguyên văn lời của parser");
+                Assert.AreNotEqual(Foldout.ApplySlot.Reason, Foldout.ErrorText, "hai chỗ phải là hai câu khác nhau");
+                Assert.AreEqual(1, CountLabelsWithText(_scope.Window.rootVisualElement, Foldout.ErrorText),
+                    "câu đầy đủ chỉ được xuất hiện ĐÚNG MỘT lần trong cây element");
+                Assert.IsNull(Foldout.Candidate, "parser không đọc được thì không đẻ ra luật ứng viên nào");
+            }
+            LogAssert.NoUnexpectedReceived();
+        }
+
+        /// <summary>Đếm nhãn mang đúng một câu — dùng để chặn ca "in hai lần cùng một câu trong một khung nhìn".</summary>
+        private static int CountLabelsWithText(VisualElement root, string text)
+        {
+            int count = 0;
+            foreach (Label label in root.Query<Label>().ToList())
+            {
+                if (string.Equals(label.text, text, StringComparison.Ordinal)) count++;
+            }
+            return count;
+        }
+
         private RecurringRulesSection Section => (RecurringRulesSection)_scope.Section;
 
         private RecurringRuleJsonFoldout Foldout => Section.Form.JsonFoldout;
@@ -342,9 +393,20 @@ namespace DreamTech.LiveOps.Editor.Tests
 
         private IEnumerator OpenDesignSample(ScriptedLiveOpsHubConfirmationPresenter presenter)
         {
-            LiveOpsHubServices services = LiveOpsHubTestServices.Build(LiveOpsHubTestServices.CreateBuilder(null)
+            return OpenDesignSample(presenter, null);
+        }
+
+        /// <param name="jsonReadBack">
+        /// (V-16) Kịch bản "parser của game không đọc được" dựng bằng cách VIẾT LẠI đầu vào rồi vẫn chạy parser thật, chứ
+        /// không giả kết quả — hub và game phải hỏng ở cùng một chỗ.
+        /// </param>
+        private IEnumerator OpenDesignSample(ScriptedLiveOpsHubConfirmationPresenter presenter, ILiveOpsHubJsonReadBack jsonReadBack)
+        {
+            LiveOpsHubServicesBuilder builder = LiveOpsHubTestServices.CreateBuilder(null)
                 .WithConfirmation(presenter)
-                .WithCalendarAsset(LiveOpsHubTestServices.CreateMemoryAsset(LiveOpsDesignSample.Document)));
+                .WithCalendarAsset(LiveOpsHubTestServices.CreateMemoryAsset(LiveOpsDesignSample.Document));
+            if (jsonReadBack != null) builder.WithJsonReadBack(jsonReadBack);
+            LiveOpsHubServices services = LiveOpsHubTestServices.Build(builder);
             _scope = SectionTestScope.Open(new RecurringRulesSection(services));
             yield return _scope.WaitForLayout();
         }

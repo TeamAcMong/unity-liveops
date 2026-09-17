@@ -173,6 +173,13 @@ namespace DreamTech.LiveOps.Editor
         /// </summary>
         internal static string RecurringJsonUnreadableFormat => LiveOpsHubStringCatalog.Text(nameof(RecurringJsonUnreadableFormat));
 
+        /// <summary>
+        /// Câu NGẮN in cạnh nút "Áp" khi JSON không đọc được (Q-W5-3, user chốt 17/9/2026). Câu đầy đủ
+        /// (<see cref="RecurringJsonUnreadableFormat"/>) ở lại dòng lỗi dưới ô: một khung nhìn không in hai lần cùng một câu,
+        /// và chỗ cạnh nút chỉ đủ một vế ngắn.
+        /// </summary>
+        internal static string RecurringJsonUnreadableShortReason => LiveOpsHubStringCatalog.Text(nameof(RecurringJsonUnreadableShortReason));
+
         /// <summary>Ô này nhận đúng MỘT object luật lặp: dán cả mảng <c>recurring</c> vào đây là nhầm chỗ, nói thẳng ra.</summary>
         internal static string RecurringJsonNotOneRuleReason => LiveOpsHubStringCatalog.Text(nameof(RecurringJsonNotOneRuleReason));
 
