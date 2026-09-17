@@ -8,13 +8,15 @@ namespace DreamTech.LiveOps.Unity
     public enum LiveEventCalendarRemoteFailurePolicy
     {
         /// <summary>
-        /// Như 0.1.0: lịch rỗng + Problem "JSON lịch event hỏng: …". Người chơi không thấy đợt mới mở, nhưng không bao giờ
-        /// thấy lại lịch trong build có thể cũ hơn bản đã đăng (đợt đã gỡ mở lại, id đổi làm mất tiến độ).
+        /// Hành vi 0.1.0, từ 0.2.0 phải CHỌN TAY: lịch rỗng + Problem "JSON lịch event hỏng: …". Người chơi không thấy đợt
+        /// mới mở, nhưng không bao giờ thấy lại lịch trong build có thể cũ hơn bản đã đăng (đợt đã gỡ mở lại, id đổi làm
+        /// mất tiến độ).
         /// </summary>
         KeepRemoteResult = 0,
 
         /// <summary>
-        /// Dùng lịch trong asset + Problem báo remote hỏng. Người chơi vẫn có event, đổi lại lịch có thể cũ hơn bản đã đăng.
+        /// MẶC ĐỊNH từ 0.2.0 (Q-9): dùng lịch trong asset + Problem báo remote hỏng. Người chơi vẫn có event, đổi lại lịch
+        /// có thể cũ hơn bản đã đăng. Chọn làm mặc định vì "cả game không đợt nào chạy" là hỏng nặng hơn "lịch hơi cũ".
         /// </summary>
         UseDefaultCalendar = 1,
     }

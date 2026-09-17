@@ -141,8 +141,11 @@ cảnh báo đã bỏ qua. Hệ quả chọn có chủ đích:
 Hai tình huống khác nhau, hai cách xử khác nhau — cả hai đều **không** đoán thay game:
 
 - **JSON có chữ nhưng hỏng.** `LiveEventCalendarRemoteFailurePolicy` là enum chứ không phải `bool`, để người đọc code
-  thấy ngay hệ quả và để thêm cách thứ ba sau này mà không đổi chữ ký. Mặc định `KeepRemoteResult` giữ đúng hành vi
-  0.1.0: đổi mặc định là đổi hành vi của game đang chạy khi chỉ bump package.
+  thấy ngay hệ quả và để thêm cách thứ ba sau này mà không đổi chữ ký. Mặc định ở 0.2.0 là `UseDefaultCalendar`
+  (user chốt Q-9): đổi mặc định **là đổi hành vi** khi game chỉ bump package, nhưng "một bản remote hỏng làm cả game
+  không đợt nào chạy" là hỏng nặng hơn "lịch trong build có thể cũ hơn bản đã đăng" — và cái sau còn tự lành ở lần
+  đăng tiếp theo. Bản hỏng vẫn để lại `Problem` nên dev không mất dấu; game nào cần đúng cách cũ thì gọi overload ba
+  tham số với `KeepRemoteResult`.
 - **JSON đọc được nhưng có mục hỏng** thì LUÔN dùng kết quả remote, không bao giờ trộn với asset. Trộn hai nguồn sinh
   ra một lịch **không ai từng đăng** — không ai kiểm được nó.
 - **Remote về muộn (async).** 0.2.0 cố tình *không* thêm API đổi lịch giữa phiên (giữ luật "chỉ thêm API khi có thiết
