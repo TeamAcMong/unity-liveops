@@ -513,14 +513,20 @@ namespace DreamTech.LiveOps.Editor
         /// <summary>
         /// Một hàng đã bỏ qua. Khoảng do <see cref="LiveOpsFindingText.IgnoredWarningRangeText"/> viết (V-21 CC-VALB-4): ghi chú
         /// hẹn giờ đọc "hẹn tới 14/9 00:00", không "14/9 → mọi" — với người đọc đó là một HẠN, không phải khoảng bị ẩn. Hẹn giờ
-        /// còn được gắn thêm tag cùng chữ đó: hàng có hạn phải nhận ra được từ xa giữa những mục bỏ qua vĩnh viễn.
+        /// được gắn TAG mang đúng chữ đó, và khi có tag thì meta BỎ vế khoảng: hàng chỉ nói một hạn một lần (Q-W5-4, user chốt
+        /// 17/9/2026). Meta dựng MỘT lần theo nhánh có-tag / không-tag, không nối rồi cắt.
         /// </summary>
         private static ValidationRow IgnoredRowOf(LiveEventCalendarFinding finding, LiveOpsHubFormat format)
         {
             IgnoredCalendarWarning warning = finding.IgnoredBy;
             string rangeText = LiveOpsFindingText.IgnoredWarningRangeText(warning, format);
-            string meta = string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.ValidationDepthIgnoredMetaFormat,
-                LiveOpsFindingText.NoParse(warning.RuleId), LiveOpsFindingText.NoParse(warning.TargetId), rangeText);
+            string ruleText = LiveOpsFindingText.NoParse(warning.RuleId);
+            string targetText = LiveOpsFindingText.NoParse(warning.TargetId);
+            string meta = warning.IsReminder
+                ? string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.ValidationDepthIgnoredMetaWithTagFormat,
+                    ruleText, targetText)
+                : string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.ValidationDepthIgnoredMetaFormat,
+                    ruleText, targetText, rangeText);
             string note = IgnoredNoteShortText(warning);
             return new ValidationRow(finding, null, HealthState.Ok, note, meta, LiveOpsFindingText.RuleIdLine(finding),
                 ValidationRowAction.Unignore, LiveOpsHubStrings.ValidationDepthUnignoreButton, string.Empty,

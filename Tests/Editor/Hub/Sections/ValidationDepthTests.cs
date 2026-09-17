@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using DreamTech.LiveOps.Tests;
@@ -500,8 +501,10 @@ namespace DreamTech.LiveOps.Editor.Tests
             string expectedRange = LiveOpsFindingText.IgnoredWarningRangeText(services.Session.Document.IgnoredWarnings[0], services.Format);
             Assert.IsNotNull(row.TagLabel, "hàng hẹn giờ phải nhận ra được từ xa giữa những mục bỏ qua vĩnh viễn");
             Assert.AreEqual(expectedRange, row.TagLabel.text);
-            StringAssert.Contains(LiveOpsFindingText.PlainText(expectedRange), LiveOpsFindingText.PlainText(row.MetaLabel.text),
-                "(CC-VALB-4) meta khoảng của ghi chú hẹn đọc \"hẹn tới …\"");
+            // Q-W5-4 (user chốt 17/9/2026): tag THAY vế khoảng. Trước đó meta cũng in "hẹn tới 14/9 00:00" nên một hàng đọc
+            // đúng một hạn HAI lần; nay chỉ tag nói hạn.
+            StringAssert.DoesNotContain(LiveOpsFindingText.PlainText(expectedRange), LiveOpsFindingText.PlainText(row.MetaLabel.text),
+                "hàng có tag hẹn giờ thì meta bỏ vế khoảng — không in một hạn hai lần (Q-W5-4)");
             _scope.Dispose();
             _scope = null;
 
@@ -516,6 +519,61 @@ namespace DreamTech.LiveOps.Editor.Tests
             Assert.IsNotNull(backRow.TagLabel, "hàng phải nói được vì sao nó quay lại");
             Assert.AreEqual(LiveOpsFindingText.DueReminderTag, backRow.TagLabel.text);
             LogAssert.NoUnexpectedReceived();
+        }
+
+        /// <summary>
+        /// Q-W5-4: hàng "đã bỏ qua" của một ghi chú HẸN GIỜ nói mốc hẹn đúng MỘT lần. Test đếm số lần mốc xuất hiện trong
+        /// meta (phải bằng 0 vì tag đã nói) và ghim rằng tag vẫn mang đúng mốc đó; ca KHÔNG có hẹn giữ nguyên vế khoảng,
+        /// vì ở đó không có tag nào nói thay.
+        /// </summary>
+        [UnityTest]
+        public IEnumerator IgnoredRow_WithDeferTag_DoesNotRepeatTheDeadline()
+        {
+            LiveOpsHubServices services = LiveOpsHubTestServices.FromDesignSample();
+            LiveEventCalendarFinding finding = FindFinding(services, LiveEventCalendarRuleIds.LongGapBetweenEvents);
+            Assume.That(finding, Is.Not.Null);
+            ApplyIgnore(services, finding, IgnoreNote, true, ReminderDeadlineUtcText);
+            yield return Open(services);
+
+            ValidationIgnoredRow row = FirstIgnoredRow();
+            Assert.IsNotNull(row);
+            string deadlineText = LiveOpsFindingText.PlainText(
+                LiveOpsFindingText.IgnoredWarningRangeText(services.Session.Document.IgnoredWarnings[0], services.Format));
+            Assert.IsNotNull(row.TagLabel, "ca hẹn giờ phải có tag");
+            Assert.AreEqual(deadlineText, LiveOpsFindingText.PlainText(row.TagLabel.text), "tag mang đúng mốc hẹn");
+            Assert.AreEqual(1, OccurrenceCount(deadlineText, deadlineText + LiveOpsFindingText.PlainText(row.MetaLabel.text)),
+                "mốc hẹn xuất hiện đúng một lần trên hàng: ở tag, không lặp lại trong meta");
+            _scope.Dispose();
+            _scope = null;
+
+            // Ca KHÔNG hẹn giờ: không có tag nào nói thay, nên meta giữ nguyên vế khoảng.
+            LiveOpsHubServices permanentServices = LiveOpsHubTestServices.FromDesignSample();
+            LiveEventCalendarFinding permanentFinding = FindFinding(permanentServices, LiveEventCalendarRuleIds.LongGapBetweenEvents);
+            ApplyIgnore(permanentServices, permanentFinding, IgnoreNote, true, string.Empty);
+            yield return Open(permanentServices);
+
+            ValidationIgnoredRow permanentRow = FirstIgnoredRow();
+            Assert.IsNotNull(permanentRow);
+            Assert.IsNull(permanentRow.TagLabel, "bỏ qua vĩnh viễn thì không có tag hạn");
+            string permanentRange = LiveOpsFindingText.PlainText(
+                LiveOpsFindingText.IgnoredWarningRangeText(permanentServices.Session.Document.IgnoredWarnings[0], permanentServices.Format));
+            StringAssert.Contains(permanentRange, LiveOpsFindingText.PlainText(permanentRow.MetaLabel.text),
+                "không có tag thì meta vẫn phải nói khoảng bị ẩn");
+            LogAssert.NoUnexpectedReceived();
+        }
+
+        /// <summary>Số lần một chuỗi xuất hiện trong chuỗi khác — đếm vế lặp, không chỉ "có chứa".</summary>
+        private static int OccurrenceCount(string needle, string haystack)
+        {
+            if (string.IsNullOrEmpty(needle)) return 0;
+            int count = 0;
+            int index = haystack.IndexOf(needle, StringComparison.Ordinal);
+            while (index >= 0)
+            {
+                count++;
+                index = haystack.IndexOf(needle, index + needle.Length, StringComparison.Ordinal);
+            }
+            return count;
         }
 
         [UnityTest]
