@@ -84,6 +84,29 @@ namespace DreamTech.LiveOps.Editor
         internal static string TimelineHintDelete => LiveOpsHubStringCatalog.Text(nameof(TimelineHintDelete));
         internal static string TimelineHintDragging => LiveOpsHubStringCatalog.Text(nameof(TimelineHintDragging));
 
+        // (G-OPT-TIMELINE, Hình 12 khung 9) Chọn nhiều: dòng gợi ý nói SỐ đợt, làn, và hai phím làm ra tập đó. Không nói tên đợt
+        // nào cả — chọn nhiều thì không có "đợt đang chọn" để nêu, và dòng gợi ý phải trả lời "tôi đang giữ cái gì trong tay".
+        internal static string TimelineHintMultiSelectedFormat => LiveOpsHubStringCatalog.Text(nameof(TimelineHintMultiSelectedFormat));
+
+        /// <summary>Titlebar inspector khi chọn nhiều đợt cùng loại: "2 đợt · lava-quest" [SD1 §3.10 (c)].</summary>
+        internal static string TimelineMultiSelectTitleFormat => LiveOpsHubStringCatalog.Text(nameof(TimelineMultiSelectTitleFormat));
+
+        /// <summary>Tập chọn trải nhiều loại: không nêu được một tên làn nào nên nêu số loại ("3 loại") vào đúng chỗ tên làn.</summary>
+        internal static string TimelineMultiSelectMixedTypesFormat => LiveOpsHubStringCatalog.Text(nameof(TimelineMultiSelectMixedTypesFormat));
+
+        internal static string TimelineMultiSelectShiftFieldLabel => LiveOpsHubStringCatalog.Text(nameof(TimelineMultiSelectShiftFieldLabel));
+        internal static string TimelineMultiSelectApplyButton => LiveOpsHubStringCatalog.Text(nameof(TimelineMultiSelectApplyButton));
+        internal static string TimelineMultiSelectDeleteButtonFormat => LiveOpsHubStringCatalog.Text(nameof(TimelineMultiSelectDeleteButtonFormat));
+        internal static string TimelineMultiSelectHelpText => LiveOpsHubStringCatalog.Text(nameof(TimelineMultiSelectHelpText));
+        internal static string TimelineMultiSelectShiftToastFormat => LiveOpsHubStringCatalog.Text(nameof(TimelineMultiSelectShiftToastFormat));
+        internal static string TimelineMultiSelectShiftUndoStepFormat => LiveOpsHubStringCatalog.Text(nameof(TimelineMultiSelectShiftUndoStepFormat));
+        internal static string TimelineMultiSelectDeleteToastFormat => LiveOpsHubStringCatalog.Text(nameof(TimelineMultiSelectDeleteToastFormat));
+        internal static string TimelineMultiSelectDeleteUndoStepFormat => LiveOpsHubStringCatalog.Text(nameof(TimelineMultiSelectDeleteUndoStepFormat));
+
+        // (G-OPT-TIMELINE, Hình 12 khung 12) Mục menu header làn — I-5 của W5 giấu mục này vì tính năng chưa có; nay có thật.
+        internal static string TimelineMenuCollapseLane => LiveOpsHubStringCatalog.Text(nameof(TimelineMenuCollapseLane));
+        internal static string TimelineMenuExpandLane => LiveOpsHubStringCatalog.Text(nameof(TimelineMenuExpandLane));
+
         // (nợ D-3(b), Hình 12 khung 13) Con trỏ đứng trên chỗ trống của một làn cố định. Nhấp đúp là đường DUY NHẤT tạo đợt
         // bằng chuột ở chỗ trống; không nói ra thì cử chỉ đó chỉ ai đọc tài liệu mới biết.
         internal static string TimelineHintEmptyLaneFormat => LiveOpsHubStringCatalog.Text(nameof(TimelineHintEmptyLaneFormat));

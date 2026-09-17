@@ -179,9 +179,51 @@ namespace DreamTech.LiveOps.Editor
             table.Add(nameof(LiveOpsHubStrings.TimelineHintDelete),
                 vietnamese: "xoá",
                 english: "delete");
+            // (G-OPT-TIMELINE) Vế Shift vào ĐẦU câu đúng [SD1 §3.8 khung 5]; W5 bỏ vế này vì tính năng chưa có (I-5), nay có thật.
             table.Add(nameof(LiveOpsHubStrings.TimelineHintDragging),
-                vietnamese: "Alt: bỏ bắt lưới · Esc: huỷ",
-                english: "Alt: ignore grid snap · Esc: cancel");
+                vietnamese: "Shift nhấn khi đang kéo: kéo theo đợt sau · Alt: bỏ bắt lưới · Esc: huỷ",
+                english: "Press Shift while dragging: drag the later events along · Alt: ignore grid snap · Esc: cancel");
+            table.Add(nameof(LiveOpsHubStrings.TimelineHintMultiSelectedFormat),
+                vietnamese: "{0} đợt · {1} · {2}-click bật tắt · Shift-click chọn dải",
+                english: "{0} events · {1} · {2}-click toggles · Shift-click selects a range");
+
+            table.Add(nameof(LiveOpsHubStrings.TimelineMultiSelectTitleFormat),
+                vietnamese: "{0} đợt · {1}",
+                english: "{0} events · {1}");
+            table.Add(nameof(LiveOpsHubStrings.TimelineMultiSelectMixedTypesFormat),
+                vietnamese: "{0} loại",
+                english: "{0} types");
+            table.Add(nameof(LiveOpsHubStrings.TimelineMultiSelectShiftFieldLabel),
+                vietnamese: "Dời cả hai (giờ)",
+                english: "Shift both (hours)");
+            table.Add(nameof(LiveOpsHubStrings.TimelineMultiSelectApplyButton),
+                vietnamese: "Áp",
+                english: "Apply");
+            table.Add(nameof(LiveOpsHubStrings.TimelineMultiSelectDeleteButtonFormat),
+                vietnamese: "Xoá {0} đợt…",
+                english: "Delete {0} events…");
+            table.Add(nameof(LiveOpsHubStrings.TimelineMultiSelectHelpText),
+                vietnamese: "Số dương dời về sau, số âm dời về trước. Đợt đang chạy và đợt đã khép không dời.",
+                english: "A positive number moves later, a negative one moves earlier. Running and ended events are not moved.");
+            table.Add(nameof(LiveOpsHubStrings.TimelineMultiSelectShiftToastFormat),
+                vietnamese: "Đã dời {0} đợt {1} giờ",
+                english: "Moved {0} events by {1} hours");
+            table.Add(nameof(LiveOpsHubStrings.TimelineMultiSelectShiftUndoStepFormat),
+                vietnamese: "Dời {0} đợt",
+                english: "Move {0} events");
+            table.Add(nameof(LiveOpsHubStrings.TimelineMultiSelectDeleteToastFormat),
+                vietnamese: "Đã xoá {0} đợt",
+                english: "Deleted {0} events");
+            table.Add(nameof(LiveOpsHubStrings.TimelineMultiSelectDeleteUndoStepFormat),
+                vietnamese: "Xoá {0} đợt",
+                english: "Delete {0} events");
+
+            table.Add(nameof(LiveOpsHubStrings.TimelineMenuCollapseLane),
+                vietnamese: "Thu gọn làn",
+                english: "Collapse lane");
+            table.Add(nameof(LiveOpsHubStrings.TimelineMenuExpandLane),
+                vietnamese: "Mở làn",
+                english: "Expand lane");
 
             table.Add(nameof(LiveOpsHubStrings.TimelineHintEmptyLaneFormat),
                 vietnamese: "{0} · nhấp đúp chỗ trống để thêm đợt",
