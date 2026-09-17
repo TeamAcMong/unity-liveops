@@ -901,8 +901,9 @@ namespace DreamTech.LiveOps.Editor
         }
 
         /// <summary>
-        /// Mục của menu ⋮ theo đúng thứ tự [FD §3.3]: Kiểm lại tất cả (F5) · Tắt chuyển động · Mở tài liệu LiveOps · Hiện dữ
-        /// liệu mẫu. "Hiện hướng dẫn phím tắt" là [P1-lùi] (G-OPT-SHORTCUTHELP, W6) nên KHÔNG có mục disabled trỏ tới nó.
+        /// Mục của menu ⋮ theo đúng thứ tự [FD §3.3]: Kiểm lại tất cả (F5) · Tắt chuyển động · Hiện hướng dẫn phím tắt ·
+        /// Mở tài liệu LiveOps · Hiện dữ liệu mẫu. Mục thứ ba do G-OPT-SHORTCUTHELP (W6) dựng — trước đó nó là [P1-lùi] và
+        /// cố tình KHÔNG có mục xám trỏ tới thứ chưa dựng.
         /// <para>
         /// Tách khỏi <see cref="AddItemsToMenu"/> vì <c>GenericMenu</c> không cho đọc lại nhãn: phần quyết định (mục nào, chữ gì,
         /// mục nào bật/khoá) nằm ở đây để test đọc thẳng, cùng lối với <see cref="LiveOpsHubNarrowRailMenu.BuildItems"/>.
@@ -921,9 +922,33 @@ namespace DreamTech.LiveOps.Editor
             {
                 new OverflowMenuEntry(checkAllText, hasAsset, false, StartCheckFromShortcut),
                 new OverflowMenuEntry(LiveOpsHubStrings.ShellReduceMotionMenu, true, reduceMotion, ToggleReduceMotion),
+                // Luôn bật: bảng phím đọc được cả khi chưa có lịch nào — nó nói về CỬA SỔ, không về dữ liệu đang mở.
+                new OverflowMenuEntry(LiveOpsHubStrings.ShortcutHelpMenuItem, true, false, ShowShortcutHelp),
                 new OverflowMenuEntry(LiveOpsHubStrings.ShellOpenDocumentationMenu, true, false, OpenDocumentation),
                 new OverflowMenuEntry(LiveOpsHubStrings.ShellShowDesignSampleMenu, true, false, ShowDesignSample),
             };
+        }
+
+        /// <summary>
+        /// "Hiện hướng dẫn phím tắt" (G-OPT-SHORTCUTHELP, W6): popover 320px neo vào gốc hub, cùng cách mọi popover khác của
+        /// hub neo vào <c>worldBound</c> của element mở nó — menu ⋮ không có element riêng để neo.
+        /// <para>
+        /// Tiêu đề màn truyền từ registry đang chạy: câu "Đi tới màn …" của ⌘1…⌘6 đi theo VỊ TRÍ trong registry ([FD §3.1]),
+        /// nên chép cứng sáu cái tên ở popover là bảng nói sai ngay khi thứ tự màn đổi.
+        /// </para>
+        /// </summary>
+        private void ShowShortcutHelp()
+        {
+            Rect activator = _hubRoot != null ? _hubRoot.worldBound : new Rect();
+            LiveOpsPopoverContent.ShowSingle(activator, new ShortcutHelpPopover(SectionTitles(), _layoutLoader, null));
+        }
+
+        /// <summary>Tiêu đề màn theo thứ tự registry; rỗng khi cửa sổ chưa dựng xong (popover rơi về số vị trí).</summary>
+        private IReadOnlyList<string> SectionTitles()
+        {
+            List<string> titles = new List<string>(_sections.Count);
+            foreach (IHubSection section in _sections) titles.Add(section.Title);
+            return titles;
         }
 
         private void ToggleReduceMotion()
