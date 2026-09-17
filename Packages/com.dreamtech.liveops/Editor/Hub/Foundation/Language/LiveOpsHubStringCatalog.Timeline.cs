@@ -218,6 +218,10 @@ namespace DreamTech.LiveOps.Editor
                 vietnamese: "Xoá {0} đợt",
                 english: "Delete {0} events");
 
+            table.Add(nameof(LiveOpsHubStrings.TimelineDragFollowersToastSuffixFormat),
+                vietnamese: " · {0} đợt sau đi theo",
+                english: " · {0} later events moved along");
+
             table.Add(nameof(LiveOpsHubStrings.TimelineMenuCollapseLane),
                 vietnamese: "Thu gọn làn",
                 english: "Collapse lane");

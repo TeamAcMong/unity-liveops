@@ -32,6 +32,9 @@ namespace DreamTech.LiveOps.Editor
             _presenter = presenter ?? throw new ArgumentNullException(nameof(presenter));
             _titleHost = titleHost ?? throw new ArgumentNullException(nameof(titleHost));
             _bodyHost = bodyHost ?? throw new ArgumentNullException(nameof(bodyHost));
+            // (G-OPT-TIMELINE, Hình 12 khung 9) Inspector tự nghe tập chọn nhiều thay vì chờ màn gọi: đường của màn là
+            // Refresh(mot khoá) — nó KHÔNG diễn tả được "hai đợt", và ép nó diễn tả được thì mọi nơi gọi Refresh phải đổi theo.
+            _presenter.SelectionSetChanged += OnSelectionSetChanged;
         }
 
         /// <summary>Bấm "Thêm đợt" ở trạng thái (a) — section mở popover.</summary>
@@ -64,6 +67,69 @@ namespace DreamTech.LiveOps.Editor
                 return;
             }
             _bodyHost.Q<IntegerField>()?.Focus();
+        }
+
+        /// <summary>Tập chọn từ hai đợt trở lên → trạng thái (c); tập nhỏ hơn đi đường cũ (màn gọi <see cref="Refresh"/>).</summary>
+        private void OnSelectionSetChanged(IReadOnlyList<string> barKeys)
+        {
+            if (barKeys == null || barKeys.Count < 2) return;
+            RefreshMultiple(barKeys);
+        }
+
+        /// <summary>
+        /// (c) chọn nhiều đợt [SD1 §3.10]: titlebar "2 đợt · lava-quest", ô "Dời cả hai (giờ)" + nút Áp, nút "Xoá 2 đợt…".
+        /// Không dựng <see cref="CalendarInspectorModel"/> — model đó tả MỘT đợt, và ở đây không có đợt nào là "đợt đang xem".
+        /// </summary>
+        internal void RefreshMultiple(IReadOnlyList<string> barKeys)
+        {
+            _model = null;
+            _titleHost.Clear();
+            _bodyHost.Clear();
+
+            Label title = new Label(MultiSelectTitleText(barKeys));
+            title.AddToClassList(LiveOpsHubClassNames.CalendarInspectorTitleId);
+            _titleHost.Add(title);
+            _titleHost.Add(BuildCloseDrawerButton());
+
+            IntegerField shiftHours = new IntegerField(LiveOpsHubStrings.TimelineMultiSelectShiftFieldLabel) { value = 0 };
+            VisualElement shiftRow = new VisualElement();
+            shiftRow.AddToClassList(LiveOpsHubClassNames.CalendarFieldRow);
+            shiftRow.Add(shiftHours);
+            Button apply = new Button(() => _presenter.ShiftSelectedEvents(shiftHours.value))
+            {
+                text = LiveOpsHubStrings.TimelineMultiSelectApplyButton,
+            };
+            apply.AddToClassList(LiveOpsHubClassNames.Button);
+            shiftRow.Add(apply);
+            _bodyHost.Add(shiftRow);
+
+            Label help = new Label(LiveOpsHubStrings.TimelineMultiSelectHelpText);
+            help.AddToClassList(LiveOpsHubClassNames.Note);
+            _bodyHost.Add(help);
+
+            Button delete = new Button(() => _presenter.DeleteSelectedEvents())
+            {
+                text = string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.TimelineMultiSelectDeleteButtonFormat, barKeys.Count),
+            };
+            delete.AddToClassList(LiveOpsHubClassNames.Button);
+            delete.AddToClassList(LiveOpsHubClassNames.ButtonDanger);
+            _bodyHost.Add(delete);
+        }
+
+        /// <summary>"2 đợt · lava-quest" khi cả tập cùng một loại; "3 đợt · 2 loại" khi lẫn loại — titlebar không bịa một tên.</summary>
+        private string MultiSelectTitleText(IReadOnlyList<string> barKeys)
+        {
+            var eventTypes = new List<string>();
+            for (int index = 0; index < barKeys.Count; index++)
+            {
+                LiveOpsTimelineBarModel bar = _presenter.FindBar(barKeys[index]);
+                if (bar == null || bar.EventType.Length == 0) continue;
+                if (!eventTypes.Contains(bar.EventType)) eventTypes.Add(bar.EventType);
+            }
+            string laneText = eventTypes.Count == 1
+                ? eventTypes[0]
+                : string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.TimelineMultiSelectMixedTypesFormat, eventTypes.Count);
+            return string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.TimelineMultiSelectTitleFormat, barKeys.Count, laneText);
         }
 
         public void Refresh(string selectedBarKey)

@@ -69,14 +69,18 @@ namespace DreamTech.LiveOps.Editor
         }
 
         /// <summary>
-        /// Menu của header làn [FD §3.9]. "Thu gọn / Mở làn" chưa có ở P1 (G-OPT-TIMELINE) nên KHÔNG xuất hiện — khác với
-        /// "Đưa lên / Đưa xuống" ở mép, vốn có thật nhưng không dùng được lúc này và vì thế in kèm lý do.
+        /// Menu của header làn [FD §3.9]. "Thu gọn / Mở làn" là MỘT mục đổi nhãn theo trạng thái làn (G-OPT-TIMELINE, Hình 12
+        /// khung 12) — hai mục riêng thì lúc nào cũng có một mục vô nghĩa. Mục đó đứng ngay trên "Ẩn làn" vì hai việc cùng họ
+        /// "làn này chiếm bao nhiêu chỗ", và thu gọn là bước nhẹ hơn của ẩn.
         /// </summary>
         public static IReadOnlyList<CalendarMenuItem> ForLaneHeader(CalendarMenuContext context)
         {
             if (context == null) throw new ArgumentNullException(nameof(context));
             return new List<CalendarMenuItem>
             {
+                Enabled(CalendarMenuItemId.ToggleLaneCollapsed, context.IsLaneCollapsed
+                    ? LiveOpsHubStrings.TimelineMenuExpandLane
+                    : LiveOpsHubStrings.TimelineMenuCollapseLane),
                 Enabled(CalendarMenuItemId.HideLane, LiveOpsHubStrings.CalendarDepthMenuHideLane),
                 MoveLaneItem(CalendarMenuItemId.MoveLaneUp, LiveOpsHubStrings.CalendarDepthMenuMoveLaneUp,
                     context.CanMoveLaneUp, LiveOpsHubStrings.CalendarDepthMenuLaneAtTopReason),
@@ -257,6 +261,9 @@ namespace DreamTech.LiveOps.Editor
         OpenEventTypes = 17,
         AddAtCursor = 18,
         PasteAtCursor = 19,
+
+        /// <summary>(G-OPT-TIMELINE, Hình 12 khung 12) Thu gọn hoặc mở làn — một mục, nhãn đổi theo trạng thái.</summary>
+        ToggleLaneCollapsed = 20,
     }
 
     /// <summary>Một mục menu đã tính xong nhãn và trạng thái — view chỉ đổ vào <c>DropdownMenu</c>.</summary>
@@ -297,6 +304,9 @@ namespace DreamTech.LiveOps.Editor
         public bool HasCopiedEvent { get; set; }
         public bool CanMoveLaneUp { get; set; }
         public bool CanMoveLaneDown { get; set; }
+
+        /// <summary>(Hình 12 khung 12) Làn đang thu gọn hay không — quyết nhãn "Thu gọn làn" / "Mở làn".</summary>
+        public bool IsLaneCollapsed { get; set; }
         public LiveOpsHubCompareSource CompareSource { get; set; } = LiveOpsHubCompareSource.Published;
     }
 }

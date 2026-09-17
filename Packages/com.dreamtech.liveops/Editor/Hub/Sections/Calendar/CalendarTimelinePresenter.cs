@@ -20,6 +20,8 @@ namespace DreamTech.LiveOps.Editor
     {
         private readonly LiveOpsHubServices _services;
         private readonly List<string> _hiddenLanes = new List<string>();
+        private readonly List<string> _collapsedLanes = new List<string>();
+        private readonly List<string> _selectedBarKeys = new List<string>();
 
         private LiveOpsTimelineModel _model;
         private CalendarCommandHandler _commandHandler;
@@ -40,6 +42,13 @@ namespace DreamTech.LiveOps.Editor
 
         /// <summary>Chọn đổi (bấm thanh, bấm chỗ trống, tìm theo id) — section cập nhật inspector theo đây.</summary>
         public event Action<string> SelectionChanged;
+
+        /// <summary>
+        /// (G-OPT-TIMELINE, Hình 12 khung 9) Tập chọn NHIỀU đợt đổi. Tách khỏi <see cref="SelectionChanged"/> vì nơi nghe câu
+        /// đó (màn) trả lời bằng <c>timeline.Select(barKey)</c> — tức là thu tập về đúng một thanh, đúng thứ vừa bị phá.
+        /// Tập một phần tử hoặc rỗng KHÔNG phát qua đây; đường cũ lo trọn hai ca đó.
+        /// </summary>
+        public event Action<IReadOnlyList<string>> SelectionSetChanged;
 
         /// <summary>Yêu cầu điều hướng sang màn khác; section chuyển tiếp lên <see cref="LiveOpsHubSectionBus"/>.</summary>
         public event Action<LiveOpsHubNavigation> NavigationRequested;
@@ -71,6 +80,9 @@ namespace DreamTech.LiveOps.Editor
 
         public string SelectedBarKey => _selectedBarKey;
 
+        /// <summary>Cả tập đang chọn, theo thứ tự người dùng gom; một phần tử ở ca chọn thường.</summary>
+        public IReadOnlyList<string> SelectedBarKeys => _selectedBarKeys;
+
         /// <summary>
         /// Bộ xử lý lệnh chiều sâu (W5) — nhân bản, copy/dán, ẩn/đưa làn, ⌘+kéo tạo. Presenter chỉ CHUYỂN TIẾP những loại ý định
         /// nó không tự xử lý: giữ luật "họ ý định là họ đóng" (V-10) mà không nhét cả màn vào một lớp.
@@ -89,6 +101,9 @@ namespace DreamTech.LiveOps.Editor
 
         public IReadOnlyList<string> HiddenLanes => _hiddenLanes;
 
+        /// <summary>(Hình 12 khung 12) Làn đang thu gọn — view state, không đụng JSON, không đụng sha.</summary>
+        public IReadOnlyList<string> CollapsedLanes => _collapsedLanes;
+
         /// <summary>
         /// Làn ẩn do màn giữ qua domain reload; presenter là nơi duy nhất cầm danh sách này (trước đây màn giữ một bản thứ hai
         /// và chip "Đang ẩn n làn" đếm bản không ai đọc).
@@ -101,6 +116,22 @@ namespace DreamTech.LiveOps.Editor
             {
                 if (!string.IsNullOrEmpty(typeId) && !_hiddenLanes.Contains(typeId)) _hiddenLanes.Add(typeId);
             }
+        }
+
+        /// <summary>Thu gọn hoặc mở một làn; trả false khi không đổi gì (mục menu bấm hai lần).</summary>
+        public bool SetLaneCollapsed(string typeId, bool collapsed)
+        {
+            if (string.IsNullOrEmpty(typeId)) return false;
+            bool wasCollapsed = _collapsedLanes.Contains(typeId);
+            if (wasCollapsed == collapsed) return false;
+            if (collapsed) _collapsedLanes.Add(typeId);
+            else _collapsedLanes.Remove(typeId);
+            return true;
+        }
+
+        public bool IsLaneCollapsed(string typeId)
+        {
+            return !string.IsNullOrEmpty(typeId) && _collapsedLanes.Contains(typeId);
         }
 
         /// <summary>
@@ -125,7 +156,8 @@ namespace DreamTech.LiveOps.Editor
                 .WithNowUtc(_services.Clock.UtcNow)
                 .WithRange(rangeStartUtc, rangeEndUtc)
                 .WithTrackWidth(trackWidth)
-                .WithHiddenLanes(_hiddenLanes);
+                .WithHiddenLanes(_hiddenLanes)
+                .WithCollapsedLanes(_collapsedLanes);
             return input;
         }
 
@@ -139,9 +171,43 @@ namespace DreamTech.LiveOps.Editor
         public void SetSelectedBarKey(string barKey)
         {
             string next = barKey ?? string.Empty;
-            if (string.Equals(next, _selectedBarKey, StringComparison.Ordinal)) return;
+            bool wasMultiple = _selectedBarKeys.Count > 1;
+            // Đang chọn nhiều thì PHẢI phát dù khoá mốc không đổi: inspector đang vẽ trạng thái (c) và chỉ câu này gọi nó về
+            // trạng thái một đợt.
+            if (!wasMultiple && string.Equals(next, _selectedBarKey, StringComparison.Ordinal)) return;
             _selectedBarKey = next;
+            _selectedBarKeys.Clear();
+            if (next.Length > 0) _selectedBarKeys.Add(next);
+            if (wasMultiple) SelectionSetChanged?.Invoke(_selectedBarKeys);
             SelectionChanged?.Invoke(_selectedBarKey);
+        }
+
+        /// <summary>
+        /// (Hình 12 khung 9) Đặt cả tập chọn. Tập từ hai phần tử trở lên chỉ phát <see cref="SelectionSetChanged"/> — phát
+        /// <see cref="SelectionChanged"/> ở đây là tự tay bảo màn thu tập về một thanh.
+        /// </summary>
+        public void SetSelectedBarKeys(IReadOnlyList<string> barKeys, string primaryBarKey)
+        {
+            var next = new List<string>();
+            if (barKeys != null)
+            {
+                for (int index = 0; index < barKeys.Count; index++)
+                {
+                    string barKey = barKeys[index];
+                    if (!string.IsNullOrEmpty(barKey) && !next.Contains(barKey)) next.Add(barKey);
+                }
+            }
+            if (next.Count <= 1)
+            {
+                SetSelectedBarKey(next.Count == 1 ? next[0] : string.Empty);
+                return;
+            }
+            string primary = primaryBarKey ?? string.Empty;
+            if (!next.Contains(primary)) primary = next[next.Count - 1];
+            _selectedBarKeys.Clear();
+            _selectedBarKeys.AddRange(next);
+            _selectedBarKey = primary;
+            SelectionSetChanged?.Invoke(_selectedBarKeys);
         }
 
         /// <summary>
@@ -155,6 +221,19 @@ namespace DreamTech.LiveOps.Editor
             if (select != null)
             {
                 HandleSelect(select);
+                return;
+            }
+            SelectManyIntent selectMany = intent as SelectManyIntent;
+            if (selectMany != null)
+            {
+                HandleSelectMany(selectMany);
+                return;
+            }
+            ToggleLaneCollapsedIntent toggleLane = intent as ToggleLaneCollapsedIntent;
+            if (toggleLane != null)
+            {
+                // Thu gọn làn là VIEW STATE: dựng lại view như khi ẩn làn (W5 nối LanesChanged vào cùng chỗ), không ghi tài liệu.
+                if (SetLaneCollapsed(toggleLane.TypeId, toggleLane.Collapsed)) DocumentEdited?.Invoke();
                 return;
             }
             MoveBarIntent move = intent as MoveBarIntent;
@@ -201,6 +280,20 @@ namespace DreamTech.LiveOps.Editor
                 return;
             }
             SetSelectedBarKey(intent.BarKey);
+        }
+
+        /// <summary>(Hình 12 khung 9) Tập chọn từ ⌘-click / Shift-click / khung chọn; dải gom không ánh xạ ra đợt nên bị loại.</summary>
+        private void HandleSelectMany(SelectManyIntent intent)
+        {
+            var keys = new List<string>();
+            for (int index = 0; index < intent.BarKeys.Count; index++)
+            {
+                string barKey = intent.BarKeys[index];
+                LiveOpsTimelineBarModel bar = FindBar(barKey);
+                if (bar != null && bar.IsStrip) continue;
+                keys.Add(barKey);
+            }
+            SetSelectedBarKeys(keys, intent.PrimaryBarKey);
         }
 
         private void HandleAddAtTime(AddAtTimeIntent intent)
@@ -250,7 +343,7 @@ namespace DreamTech.LiveOps.Editor
                 _dragGroup = session.BeginContinuousEdit(ProvisionalUndoName(entry));
                 if (_dragGroup == LiveOpsHubEditOutcome.NoUndoGroup) return;
             }
-            session.UpdateContinuousEdit(new ReplaceFixedEventEdit(ClampedEntry(entry, intent)));
+            session.UpdateContinuousEdit(BuildDragEdit(entry, intent));
             // 7.3: mỗi bước xem trước chạy kiểm nhanh CHÍNH LÀN đó trên nháp vừa đổi. Không có nó thì dấu "bị bỏ" và vế "chồng n
             // giờ" trên khung vẫn là kết quả của lần kiểm cũ — người dùng đã kéo hết chồng giờ mà màn hình còn báo chồng.
             RefreshPreviewQuickCheck(session, entry.EventType);
@@ -307,7 +400,7 @@ namespace DreamTech.LiveOps.Editor
         {
             if (_dragGroup == LiveOpsHubEditOutcome.NoUndoGroup) return;
             FixedLiveEventEntry after = ClampedEntry(_dragStartEntry ?? entry, intent);
-            session.UpdateContinuousEdit(new ReplaceFixedEventEdit(after));
+            session.UpdateContinuousEdit(BuildDragEdit(_dragStartEntry ?? entry, intent));
             LiveOpsHubEditOutcome outcome = session.CommitContinuousEdit(_dragGroup);
             LiveEventCalendarDocument before = _dragStartDocument;
             FixedLiveEventEntry beforeEntry = _dragStartEntry;
@@ -315,7 +408,7 @@ namespace DreamTech.LiveOps.Editor
             ResetDragState();
             if (!outcome.Applied) return;
 
-            string message = DragToastMessage(beforeEntry, after);
+            string message = DragToastMessage(beforeEntry, after) + FollowerToastSuffix(intent);
             // Tên bước Undo chỉ biết được lúc nhả chuột (giờ cuối), nên đổi tên ngay sau khi gộp: Undo History và toast phải nói
             // cùng một câu để người dùng tìm lại được bước đó khi toast đã tắt (8.5).
             Undo.SetCurrentGroupName(message);
@@ -329,6 +422,104 @@ namespace DreamTech.LiveOps.Editor
             if (decision.Requirement != LiveOpsConfirmRequirement.Level1) return;
             LiveOpsConfirmRequest request = BuildShortenRequest(decision, beforeEntry, after);
             DeferConfirmation(() => AskAndUndoIfSafe(request));
+        }
+
+        /// <summary>
+        /// (G-OPT-TIMELINE) Lệnh sửa của một bước kéo. Không giữ Shift thì vẫn đúng một <see cref="ReplaceFixedEventEdit"/> như
+        /// W4; giữ Shift thì gộp cả đợt đi theo vào MỘT <see cref="CompositeCalendarEdit"/> — phiên áp lệnh lên tài liệu lúc bắt
+        /// đầu kéo (không cộng dồn qua từng bước), nên gửi hai lệnh rời nhau thì lệnh sau xoá mất lệnh trước.
+        /// Đợt đang chạy và đợt đã khép bị loại khỏi tập đi theo: bảng 7.0 không cho dời chúng bằng cử chỉ nào cả.
+        /// </summary>
+        private LiveEventCalendarEdit BuildDragEdit(FixedLiveEventEntry entry, MoveBarIntent intent)
+        {
+            var main = new ReplaceFixedEventEdit(ClampedEntry(entry, intent));
+            if (intent.Followers.Count == 0) return main;
+            LiveEventCalendarDocument document = _dragStartDocument ?? _services.Session.Document ?? LiveEventCalendarDocument.Empty;
+            var edits = new List<LiveEventCalendarEdit> { main };
+            for (int index = 0; index < intent.Followers.Count; index++)
+            {
+                LiveOpsTimelineBarMove follower = intent.Followers[index];
+                if (!document.TryGetFixedEvent(follower.BarKey, out FixedLiveEventEntry followerEntry)) continue;
+                if (PhaseOf(followerEntry) != LiveEventPhase.Upcoming) continue;
+                edits.Add(new ReplaceFixedEventEdit(followerEntry.WithTimes(LiveEventUtcText.Format(follower.NewStartUtc),
+                    LiveEventUtcText.Format(follower.NewEndUtc))));
+            }
+            return edits.Count == 1 ? (LiveEventCalendarEdit)main : new CompositeCalendarEdit(edits);
+        }
+
+        /// <summary>Vế "· 2 đợt sau đi theo" của toast; "" khi không giữ Shift. Toast phải nói ra thứ người dùng vừa dời KÈM.</summary>
+        private string FollowerToastSuffix(MoveBarIntent intent)
+        {
+            int count = CountMovableFollowers(intent);
+            return count == 0
+                ? string.Empty
+                : string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.TimelineDragFollowersToastSuffixFormat, count);
+        }
+
+        private int CountMovableFollowers(MoveBarIntent intent)
+        {
+            LiveEventCalendarDocument document = _dragStartDocument ?? _services.Session.Document ?? LiveEventCalendarDocument.Empty;
+            int count = 0;
+            for (int index = 0; index < intent.Followers.Count; index++)
+            {
+                if (!document.TryGetFixedEvent(intent.Followers[index].BarKey, out FixedLiveEventEntry followerEntry)) continue;
+                if (PhaseOf(followerEntry) == LiveEventPhase.Upcoming) count++;
+            }
+            return count;
+        }
+
+        // ============================================================================================ chọn nhiều (khung 9)
+
+        /// <summary>
+        /// Ô "Dời cả hai (giờ)" + nút Áp của inspector trạng thái (c) [SD1 §3.10]: dời MỌI đợt đang chọn đi cùng một số giờ, một
+        /// bước Undo. Đợt đang chạy và đợt đã khép bị bỏ qua (bảng 7.0) — nút không tắt vì tập chọn có thể lẫn cả hai loại, câu
+        /// trợ giúp dưới ô nói trước điều đó và toast nói lại đúng số đợt thật sự đã dời.
+        /// </summary>
+        public bool ShiftSelectedEvents(double hours)
+        {
+            if (_selectedBarKeys.Count < 2 || hours == 0d) return false;
+            LiveEventCalendarDocument document = _services.Session.Document ?? LiveEventCalendarDocument.Empty;
+            var edits = new List<LiveEventCalendarEdit>();
+            for (int index = 0; index < _selectedBarKeys.Count; index++)
+            {
+                if (!document.TryGetFixedEvent(_selectedBarKeys[index], out FixedLiveEventEntry entry)) continue;
+                if (PhaseOf(entry) != LiveEventPhase.Upcoming) continue;
+                if (!entry.TryGetStartUtc(out DateTime startUtc) || !entry.TryGetEndUtc(out DateTime endUtc)) continue;
+                edits.Add(new ReplaceFixedEventEdit(entry.WithTimes(LiveEventUtcText.Format(startUtc.AddHours(hours)),
+                    LiveEventUtcText.Format(endUtc.AddHours(hours)))));
+            }
+            if (edits.Count == 0) return false;
+            string hoursText = hours.ToString(SignedHoursFormat, CultureInfo.InvariantCulture);
+            string message = string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.TimelineMultiSelectShiftToastFormat,
+                edits.Count, hoursText);
+            string undoneStepName = string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.TimelineMultiSelectShiftUndoStepFormat,
+                edits.Count);
+            return ApplyEdit(new CompositeCalendarEdit(edits), LiveOpsEditOperation.ChangeFixedEventTimes, _selectedBarKey, message,
+                string.Empty, undoneStepName);
+        }
+
+        /// <summary>Nút "Xoá n đợt…" của trạng thái (c): một bước Undo; mức hỏi do <see cref="LiveOpsConfirmationPolicy"/> quyết.</summary>
+        public bool DeleteSelectedEvents()
+        {
+            if (_selectedBarKeys.Count < 2) return false;
+            LiveEventCalendarDocument document = _services.Session.Document ?? LiveEventCalendarDocument.Empty;
+            var edits = new List<LiveEventCalendarEdit>();
+            for (int index = 0; index < _selectedBarKeys.Count; index++)
+            {
+                if (!document.TryGetFixedEvent(_selectedBarKeys[index], out FixedLiveEventEntry _)) continue;
+                edits.Add(new RemoveFixedEventEdit(_selectedBarKeys[index]));
+            }
+            if (edits.Count == 0) return false;
+            string message = string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.TimelineMultiSelectDeleteToastFormat, edits.Count);
+            string undoneStepName = string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.TimelineMultiSelectDeleteUndoStepFormat,
+                edits.Count);
+            if (!ApplyEdit(new CompositeCalendarEdit(edits), LiveOpsEditOperation.DeleteFixedEvent, _selectedBarKey, message,
+                string.Empty, undoneStepName))
+            {
+                return false;
+            }
+            SetSelectedBarKey(string.Empty);
+            return true;
         }
 
         private void CancelDrag()
@@ -531,6 +722,9 @@ namespace DreamTech.LiveOps.Editor
         {
             return _services.Session.Publish == null ? null : _services.Session.Publish.ActiveBaseline;
         }
+
+        /// <summary>Số giờ có dấu cho toast: "+12", "-6", "0" — dấu là phần của câu, không phải phần của số.</summary>
+        private const string SignedHoursFormat = "+0.##;-0.##;0";
 
         private LiveEventPhase PhaseOf(FixedLiveEventEntry entry)
         {

@@ -768,6 +768,7 @@ namespace DreamTech.LiveOps.Editor
                 LaneTypeId = hit.LaneTypeId,
                 CursorTimeText = hit.TimeUtc.HasValue ? _services.Format.ShortDateTime(hit.TimeUtc.Value) : string.Empty,
                 HasCopiedEvent = _commandHandler.HasCopiedEvent,
+                IsLaneCollapsed = _presenter.IsLaneCollapsed(hit.LaneTypeId),
                 CanMoveLaneUp = _commandHandler.CanMoveLane(hit.LaneTypeId, MoveLaneIntent.Up),
                 CanMoveLaneDown = _commandHandler.CanMoveLane(hit.LaneTypeId, MoveLaneIntent.Down),
                 CanRevertToCompare = _commandHandler.CanRevertToCompare(hit.BarKey),
@@ -844,6 +845,11 @@ namespace DreamTech.LiveOps.Editor
                 case CalendarMenuItemId.OpenRule:
                     RaiseNavigation(LiveOpsHubNavigation.To(LiveOpsHubSections.Ids.RecurringRules)
                         .WithEventType(context.LaneTypeId, true));
+                    break;
+                case CalendarMenuItemId.ToggleLaneCollapsed:
+                    // Đi qua ý định của timeline chứ không gọi thẳng presenter: cùng một đường với mọi cử chỉ khác của trục,
+                    // nên test đọc được một chỗ duy nhất và ảnh chụp dựng lại được bằng chính intent đó (G-OPT-TIMELINE).
+                    _timeline?.RequestToggleLaneCollapsed(context.LaneTypeId, !context.IsLaneCollapsed);
                     break;
                 case CalendarMenuItemId.HideLane:
                     _commandHandler.HideLane(context.LaneTypeId);
