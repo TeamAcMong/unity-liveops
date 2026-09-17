@@ -165,7 +165,7 @@ namespace DreamTech.LiveOps.Editor
                 .WithTitle(LiveOpsHubStrings.PasteReplaceConfirmTitle)
                 .WithBody(ReplaceConfirmBody(impact))
                 .WithKeyHint(LiveOpsHubStrings.PasteReplaceConfirmKeyHint)
-                .WithButtons(string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.PasteReplaceConfirmDestructiveFormat,
+                .WithButtons(LiveOpsHubStringCatalog.Format(nameof(LiveOpsHubStrings.PasteReplaceConfirmDestructiveFormat),
                         _format.Integer(itemCount)),
                     LiveOpsHubStrings.PasteReplaceConfirmSafe)
                 .Build();
@@ -228,14 +228,14 @@ namespace DreamTech.LiveOps.Editor
         private LiveOpsOutcomeRecord ImportOutcome(PasteRunningJsonSubmission submission, string assetFileName)
         {
             LiveEventCalendarDocument document = submission.Document;
-            string headline = string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.PasteImportOutcomeHeadlineFormat,
+            string headline = LiveOpsHubStringCatalog.Format(nameof(LiveOpsHubStrings.PasteImportOutcomeHeadlineFormat),
                 assetFileName, _format.Integer(document.RecurringRules.Count), _format.Integer(document.FixedEvents.Count));
             int undeclaredTypeCount = CountUndeclaredEventTypes(document);
             if (undeclaredTypeCount <= 0)
             {
                 return LiveOpsOutcomeRecord.Ok(headline, LiveOpsHubStrings.PasteImportOutcomeReadyDetail, _session.Clock.UtcNow);
             }
-            string detail = string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.PasteImportOutcomeUnknownTypesFormat,
+            string detail = LiveOpsHubStringCatalog.Format(nameof(LiveOpsHubStrings.PasteImportOutcomeUnknownTypesFormat),
                 _format.Integer(undeclaredTypeCount));
             // ActionId là id MÀN: khung điều hướng theo id, nên "Mở Loại event" không cần luồng này biết gì về cửa sổ.
             return LiveOpsOutcomeRecord.Ok(headline, detail, _session.Clock.UtcNow, LiveOpsHubSections.Ids.EventTypes);
@@ -345,7 +345,7 @@ namespace DreamTech.LiveOps.Editor
             List<string> clauses = new List<string>();
             if (impact.ReplacedEventIds.Count > 0)
             {
-                clauses.Add(string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.PasteReplaceConfirmReplacedFormat,
+                clauses.Add(LiveOpsHubStringCatalog.Format(nameof(LiveOpsHubStrings.PasteReplaceConfirmReplacedFormat),
                     _format.Integer(impact.ReplacedEventIds.Count), string.Join(IdSeparator, impact.ReplacedEventIds.ToArray())));
             }
             if (impact.DroppedEventIds.Count > 0)
@@ -370,7 +370,7 @@ namespace DreamTech.LiveOps.Editor
             }
             if (_session.HasUnsavedChanges)
             {
-                clauses.Add(string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.PasteReplaceConfirmUnsavedFormat,
+                clauses.Add(LiveOpsHubStringCatalog.Format(nameof(LiveOpsHubStrings.PasteReplaceConfirmUnsavedFormat),
                     _session.AssetFileName, _format.Integer(_session.UnsavedDiff.ChangeCount)));
             }
             string sentence = string.Join(ClauseSeparator, clauses.ToArray());

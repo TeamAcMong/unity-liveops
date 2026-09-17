@@ -27,10 +27,10 @@ namespace DreamTech.LiveOps.Editor
                 english: "Remote key: {0} (you can change it later in Overview)");
             table.Add(nameof(LiveOpsHubStrings.PasteReadableWithUnknownTypesFormat),
                 vietnamese: "Đọc được: {0} luật lặp · {1} đợt · {2} loại chưa khai báo",
-                english: "Readable: {0} recurring rules · {1} events · {2} undeclared types");
+                english: "Readable: {0} recurring {0|rule|rules} · {1} {1|event|events} · {2} undeclared {2|type|types}");
             table.Add(nameof(LiveOpsHubStrings.PasteReadableFormat),
                 vietnamese: "Đọc được: {0} luật lặp · {1} đợt",
-                english: "Readable: {0} recurring rules · {1} events");
+                english: "Readable: {0} recurring {0|rule|rules} · {1} {1|event|events}");
             table.Add(nameof(LiveOpsHubStrings.PasteNothingPastedReason),
                 vietnamese: "Chưa dán gì vào ô JSON",
                 english: "Nothing pasted into the JSON box yet");
@@ -67,7 +67,7 @@ namespace DreamTech.LiveOps.Editor
                 english: "{0} You can undo this until Unity closes.");
             table.Add(nameof(LiveOpsHubStrings.PasteReplaceConfirmReplacedFormat),
                 vietnamese: "Thay {0} đợt: {1}",
-                english: "Replaces {0} events: {1}");
+                english: "Replaces {0} {0|event|events}: {1}");
             table.Add(nameof(LiveOpsHubStrings.PasteReplaceConfirmDroppedFormat),
                 vietnamese: "xoá {0}",
                 english: "deletes {0}");
@@ -82,13 +82,13 @@ namespace DreamTech.LiveOps.Editor
                 english: "adds rule {0}");
             table.Add(nameof(LiveOpsHubStrings.PasteReplaceConfirmUnsavedFormat),
                 vietnamese: "{0} còn {1} thay đổi chưa lưu — thay nháp là mất luôn",
-                english: "{0} still has {1} unsaved changes — replacing the draft loses them");
+                english: "{0} still has {1} unsaved {1|change|changes} — replacing the draft loses them");
             table.Add(nameof(LiveOpsHubStrings.PasteReplaceConfirmKeyHint),
                 vietnamese: "Enter / Esc: Chỉ so sánh",
                 english: "Enter / Esc: Only compare");
             table.Add(nameof(LiveOpsHubStrings.PasteReplaceConfirmDestructiveFormat),
                 vietnamese: "Thay {0} mục",
-                english: "Replace {0} items");
+                english: "Replace {0} {0|item|items}");
             table.Add(nameof(LiveOpsHubStrings.PasteReplaceConfirmSafe),
                 vietnamese: "Chỉ so sánh",
                 english: "Only compare");
@@ -107,10 +107,10 @@ namespace DreamTech.LiveOps.Editor
                 english: "Imported from the running JSON");
             table.Add(nameof(LiveOpsHubStrings.PasteImportOutcomeHeadlineFormat),
                 vietnamese: "Đã tạo {0} từ JSON đang chạy: {1} luật, {2} đợt.",
-                english: "Created {0} from the running JSON: {1} rules, {2} events.");
+                english: "Created {0} from the running JSON: {1} {1|rule|rules}, {2} {2|event|events}.");
             table.Add(nameof(LiveOpsHubStrings.PasteImportOutcomeUnknownTypesFormat),
                 vietnamese: "{0} loại chưa khai báo — khai báo ở Loại event trước khi đăng.",
-                english: "{0} undeclared types — declare them in Event types before publishing.");
+                english: "{0} undeclared {0|type|types} — declare them in Event types before publishing.");
             table.Add(nameof(LiveOpsHubStrings.PasteImportOutcomeReadyDetail),
                 vietnamese: "Mọi loại đã khai báo — kiểm lịch rồi Copy JSON khi cần đăng.",
                 english: "Every type is declared — check the calendar, then Copy JSON when you publish.");

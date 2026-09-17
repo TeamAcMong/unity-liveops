@@ -381,7 +381,7 @@ namespace DreamTech.LiveOps.Editor
                 // Làn giữ chỗ cho đợt/luật chưa ghi loại (luật 3 báo Bị bỏ): tên làn trống nên meta phải tự nói vì sao làn này tồn tại.
                 metaText = unplaceableCount > 0
                     ? LiveOpsHubStrings.TimelineUntypedLaneMeta
-                    : string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.TimelineUntypedLaneMetaCountFormat, fixedCount);
+                    : LiveOpsHubStringCatalog.Format(nameof(LiveOpsHubStrings.TimelineUntypedLaneMetaCountFormat), fixedCount);
             }
             else if (isRecurring)
             {
@@ -399,10 +399,10 @@ namespace DreamTech.LiveOps.Editor
             }
             else
             {
-                string format = fixedCandidates.Count == 0
-                    ? LiveOpsHubStrings.TimelineFixedLaneMetaOutsideRangeFormat
-                    : LiveOpsHubStrings.TimelineFixedLaneMetaCountFormat;
-                metaText = string.Format(CultureInfo.InvariantCulture, format, fixedCount);
+                string key = fixedCandidates.Count == 0
+                    ? nameof(LiveOpsHubStrings.TimelineFixedLaneMetaOutsideRangeFormat)
+                    : nameof(LiveOpsHubStrings.TimelineFixedLaneMetaCountFormat);
+                metaText = LiveOpsHubStringCatalog.Format(key, fixedCount);
             }
             string secondaryMetaText = composition.OverlapRanges.Count > 0 ? LiveOpsHubStrings.TimelineLaneOverlapPolicyMeta : string.Empty;
 

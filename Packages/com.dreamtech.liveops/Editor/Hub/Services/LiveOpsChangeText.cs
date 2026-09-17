@@ -195,7 +195,7 @@ namespace DreamTech.LiveOps.Editor
             }
             if (string.Equals(fieldName, FieldPeriodHours, StringComparison.Ordinal) || string.Equals(fieldName, FieldActiveHours, StringComparison.Ordinal))
             {
-                return LiveOpsFindingText.Format(LiveOpsHubStrings.FindingHoursFormat, LiveOpsFindingText.NoParse(text));
+                return LiveOpsHubStringCatalog.Format(nameof(LiveOpsHubStrings.FindingHoursFormat), LiveOpsFindingText.NoParse(text));
             }
             return text.Length == 0 ? LiveOpsFindingText.Quoted(text) : LiveOpsFindingText.NoParse(text);
         }

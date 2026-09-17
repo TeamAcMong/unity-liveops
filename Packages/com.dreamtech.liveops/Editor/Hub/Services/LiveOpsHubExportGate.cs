@@ -657,7 +657,7 @@ namespace DreamTech.LiveOps.Editor
             }
             bool isCompact = copyAllowed && !exportedCurrent;
             string compactText = isCompact
-                ? string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.ExportGateCompactFormat, format.Integer(compactConditionCount), shortSha, bytesText)
+                ? LiveOpsHubStringCatalog.Format(nameof(LiveOpsHubStrings.ExportGateCompactFormat), format.Integer(compactConditionCount), shortSha, bytesText)
                 : string.Empty;
             ExportGateRow remoteRow = rows[(int)ExportGateRowKind.RemoteSnapshot];
             string compactRemoteText = !isCompact
@@ -719,7 +719,7 @@ namespace DreamTech.LiveOps.Editor
                 }
                 if (recurringCount > 0)
                 {
-                    format1NoticeText = string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.ExportGateFormat1NoticeFormat,
+                    format1NoticeText = LiveOpsHubStringCatalog.Format(nameof(LiveOpsHubStrings.ExportGateFormat1NoticeFormat),
                         format.Integer(recurringCount), format.Integer(fixedCount));
                 }
             }
@@ -747,7 +747,7 @@ namespace DreamTech.LiveOps.Editor
             {
                 // Kết quả cũ không được trông như vẫn đúng (PD-23): vòng rỗng, số cũ chỉ còn ở meta.
                 string staleMeta = droppedCount > 0
-                    ? string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.ExportGateDroppedStaleMetaFormat, format.Integer(droppedCount))
+                    ? LiveOpsHubStringCatalog.Format(nameof(LiveOpsHubStrings.ExportGateDroppedStaleMetaFormat), format.Integer(droppedCount))
                     : string.Empty;
                 return new ExportGateRow(ExportGateRowKind.NoDroppedEntries, ExportGateRowState.NotMeasured, LiveOpsHubStrings.ExportGateDroppedStale,
                     string.Empty, staleMeta, ExportGateRowAction.None, string.Empty, null);
@@ -755,7 +755,7 @@ namespace DreamTech.LiveOps.Editor
             if (droppedCount > 0)
             {
                 return new ExportGateRow(ExportGateRowKind.NoDroppedEntries, ExportGateRowState.Blocked,
-                    string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.ExportGateDroppedBlockedFormat, format.Integer(droppedCount)),
+                    LiveOpsHubStringCatalog.Format(nameof(LiveOpsHubStrings.ExportGateDroppedBlockedFormat), format.Integer(droppedCount)),
                     string.Empty, string.Empty, ExportGateRowAction.OpenValidationDropped, string.Empty,
                     LiveOpsHubNavigation.To(LiveOpsHubSections.Ids.Validation).WithFilter(LiveOpsHubNavigation.FilterDropped));
             }
@@ -806,9 +806,9 @@ namespace DreamTech.LiveOps.Editor
                 string text;
                 if (readBackTotal != expectedEntries.Count)
                 {
-                    text = string.Format(CultureInfo.InvariantCulture, checkAgreesWithCompiler
-                            ? LiveOpsHubStrings.ExportGateReadBackMismatchEntryCountFormat
-                            : LiveOpsHubStrings.ExportGateReadBackMismatchEntryCountCompilerFormat, totalText,
+                    text = LiveOpsHubStringCatalog.Format(checkAgreesWithCompiler
+                            ? nameof(LiveOpsHubStrings.ExportGateReadBackMismatchEntryCountFormat)
+                            : nameof(LiveOpsHubStrings.ExportGateReadBackMismatchEntryCountCompilerFormat), totalText,
                         format.Integer(expectedEntries.Count));
                 }
                 else if (readBackKept != expectedKept)
@@ -830,7 +830,7 @@ namespace DreamTech.LiveOps.Editor
                 var reportLines = new List<string>
                 {
                     string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.ExportGateMismatchReportHeaderFormat, json.ShortSha),
-                    string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.ExportGateMismatchReportCountsFormat, keptText, totalText,
+                    LiveOpsHubStringCatalog.Format(nameof(LiveOpsHubStrings.ExportGateMismatchReportCountsFormat), keptText, totalText,
                         format.Integer(expectedKept), format.Integer(expectedEntries.Count)),
                 };
                 string firstDifference = string.Empty;
@@ -853,9 +853,11 @@ namespace DreamTech.LiveOps.Editor
 
             errorReportText = string.Empty;
             return new ExportGateRow(ExportGateRowKind.ParserReadBack, ExportGateRowState.Ok,
-                string.Format(CultureInfo.InvariantCulture,
-                    checkAgreesWithCompiler ? LiveOpsHubStrings.ExportGateReadBackOkFormat : LiveOpsHubStrings.ExportGateReadBackOkCompilerFormat, keptText, totalText),
-                string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.ExportGateReadBackOkNarrowFormat, keptText, totalText),
+                LiveOpsHubStringCatalog.Format(
+                    checkAgreesWithCompiler
+                        ? nameof(LiveOpsHubStrings.ExportGateReadBackOkFormat)
+                        : nameof(LiveOpsHubStrings.ExportGateReadBackOkCompilerFormat), keptText, totalText),
+                LiveOpsHubStringCatalog.Format(nameof(LiveOpsHubStrings.ExportGateReadBackOkNarrowFormat), keptText, totalText),
                 DropReasonSummary(readBackEntries, format), ExportGateRowAction.None, string.Empty, null);
         }
 
@@ -864,7 +866,7 @@ namespace DreamTech.LiveOps.Editor
             if (isRunning)
             {
                 return new ExportGateRow(ExportGateRowKind.CheckFreshness, ExportGateRowState.Running,
-                    string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.ExportGateFreshnessRunningFormat, format.Integer(input.CompletedRuleCount),
+                    LiveOpsHubStringCatalog.Format(nameof(LiveOpsHubStrings.ExportGateFreshnessRunningFormat), format.Integer(input.CompletedRuleCount),
                         format.Integer(input.RuleCount)),
                     string.Empty, LiveOpsHubStrings.ExportGateFreshnessRunningMeta, ExportGateRowAction.None, string.Empty, null);
             }
@@ -957,11 +959,11 @@ namespace DreamTech.LiveOps.Editor
             if (unreviewedCount == 0)
             {
                 return new ExportGateRow(ExportGateRowKind.RequiredChangesReviewed, ExportGateRowState.Ok,
-                    string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.ExportGateReviewedOkFormat, format.Integer(reviewedCount), format.Integer(requiredCount)),
+                    LiveOpsHubStringCatalog.Format(nameof(LiveOpsHubStrings.ExportGateReviewedOkFormat), format.Integer(reviewedCount), format.Integer(requiredCount)),
                     string.Empty, string.Empty, ExportGateRowAction.ShowPublishedDiff, string.Empty, null);
             }
 
-            string narrow = string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.ExportGateReviewedBlockedFormat, format.Integer(unreviewedCount));
+            string narrow = LiveOpsHubStringCatalog.Format(nameof(LiveOpsHubStrings.ExportGateReviewedBlockedFormat), format.Integer(unreviewedCount));
             string items = UnreviewedItemsText(diff, reviewedCount);
             string text = items.Length > 0
                 ? narrow + string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.ExportGateReviewedItemsSuffixFormat, items)
@@ -984,13 +986,13 @@ namespace DreamTech.LiveOps.Editor
             else if (isStale) parts.Add(LiveOpsHubStrings.ExportGateReasonStale);
             else if (droppedCount > 0)
             {
-                parts.Add(string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.ExportGateReasonDroppedFormat, format.Integer(droppedCount)));
+                parts.Add(LiveOpsHubStringCatalog.Format(nameof(LiveOpsHubStrings.ExportGateReasonDroppedFormat), format.Integer(droppedCount)));
             }
 
             if (diffMissing) parts.Add(LiveOpsHubStrings.ExportGateReasonDiffMissing);
             else if (unreviewedCount > 0)
             {
-                parts.Add(string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.ExportGateReasonUnreviewedFormat, format.Integer(unreviewedCount)));
+                parts.Add(LiveOpsHubStringCatalog.Format(nameof(LiveOpsHubStrings.ExportGateReasonUnreviewedFormat), format.Integer(unreviewedCount)));
             }
             return LiveOpsHubStrings.ExportGateReasonBlockedPrefix + string.Join(LiveOpsHubStrings.ExportGateReasonPartSeparator, parts);
         }
@@ -1007,13 +1009,13 @@ namespace DreamTech.LiveOps.Editor
             else if (rows[(int)ExportGateRowKind.CheckFreshness].State != ExportGateRowState.Ok) parts.Add(LiveOpsHubStrings.ExportGateCopyTooltipStale);
             else if (droppedCount > 0)
             {
-                parts.Add(string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.ExportGateCopyTooltipDroppedFormat, format.Integer(droppedCount)));
+                parts.Add(LiveOpsHubStringCatalog.Format(nameof(LiveOpsHubStrings.ExportGateCopyTooltipDroppedFormat), format.Integer(droppedCount)));
             }
 
             if (diffMissing) parts.Add(LiveOpsHubStrings.ExportGateCopyTooltipDiffMissing);
             else if (unreviewedCount > 0)
             {
-                string unreviewed = string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.ExportGateCopyTooltipUnreviewedFormat, format.Integer(unreviewedCount));
+                string unreviewed = LiveOpsHubStringCatalog.Format(nameof(LiveOpsHubStrings.ExportGateCopyTooltipUnreviewedFormat), format.Integer(unreviewedCount));
                 if (unreviewedItems.Length > 0)
                 {
                     unreviewed += string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.ExportGateReviewedItemsSuffixFormat, unreviewedItems);

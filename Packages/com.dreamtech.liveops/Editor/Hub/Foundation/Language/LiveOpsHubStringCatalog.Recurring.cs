@@ -120,7 +120,7 @@ namespace DreamTech.LiveOps.Editor
 
             table.Add(nameof(LiveOpsHubStrings.RecurringOccurrencesTitleFormat),
                 vietnamese: "{0} đợt kế tiếp",
-                english: "Next {0} occurrences");
+                english: "Next {0} {0|occurrence|occurrences}");
             table.Add(nameof(LiveOpsHubStrings.RecurringOccurrencesSubtitleFormat),
                 vietnamese: "theo nháp · {0}",
                 english: "from the draft · {0}");
@@ -159,7 +159,7 @@ namespace DreamTech.LiveOps.Editor
                 english: "computing…");
             table.Add(nameof(LiveOpsHubStrings.RecurringOccurrenceLimitNoteFormat),
                 vietnamese: "Đã hiện tối đa {0} đợt",
-                english: "Showing the maximum of {0} occurrences");
+                english: "Showing the maximum of {0} {0|occurrence|occurrences}");
             table.Add(nameof(LiveOpsHubStrings.RecurringOccurrencesEmptyReason),
                 vietnamese: "Không đợt nào sinh ra: luật đang lỗi ở trên nên game bỏ hẳn luật này — sửa ô lỗi rồi bảng mới có đợt.",
                 english: "No occurrence is generated: the rule above is invalid so the game drops it entirely — fix the field in error and the table fills in.");
@@ -291,12 +291,21 @@ namespace DreamTech.LiveOps.Editor
             table.Add(nameof(LiveOpsHubStrings.RecurringJsonUnreadableFormat),
                 vietnamese: "Parser của game không đọc được JSON này: {0}",
                 english: "The game parser cannot read this JSON: {0}");
+            table.Add(nameof(LiveOpsHubStrings.RecurringJsonUnreadableShortReason),
+                vietnamese: "JSON chưa đọc được",
+                english: "The JSON cannot be read");
             table.Add(nameof(LiveOpsHubStrings.RecurringJsonNotOneRuleReason),
                 vietnamese: "Ô này nhận đúng một object luật lặp, không phải mảng hay nhiều luật",
                 english: "This box takes exactly one recurring rule object, not an array and not several rules");
+            table.Add(nameof(LiveOpsHubStrings.RecurringJsonNotOneRuleShortReason),
+                vietnamese: "Không phải một object luật lặp",
+                english: "Not a single recurring rule object");
             table.Add(nameof(LiveOpsHubStrings.RecurringJsonTypeLockedFormat),
                 vietnamese: "Không đổi được \"type\" ở đây — luật này của loại {0}; đổi loại thì thêm luật mới",
                 english: "\"type\" cannot be changed here — this rule belongs to type {0}; to change the type, add a new rule");
+            table.Add(nameof(LiveOpsHubStrings.RecurringJsonTypeLockedShortReason),
+                vietnamese: "Không đổi được \"type\" ở đây",
+                english: "\"type\" cannot be changed here");
 
             table.Add(nameof(LiveOpsHubStrings.RecurringFieldLockedByDraftFormat),
                 vietnamese: "Khoá trong lúc ô {0} còn nháp chưa ghi",

@@ -74,6 +74,12 @@ namespace DreamTech.LiveOps.Editor
         /// <summary>Meta một hàng đã bỏ qua: luật · đích · khoảng (khoảng do <c>LiveOpsFindingText.IgnoredWarningRangeText</c> viết).</summary>
         internal static string ValidationDepthIgnoredMetaFormat => LiveOpsHubStringCatalog.Text(nameof(ValidationDepthIgnoredMetaFormat));
 
+        /// <summary>
+        /// Meta một hàng đã bỏ qua CÓ tag hẹn giờ: luật · đích, KHÔNG có vế khoảng — tag đứng cạnh hàng đã nói đúng mốc đó
+        /// rồi (Q-W5-4, user chốt 17/9/2026). In cả hai là đọc một hạn hai lần trong một hàng.
+        /// </summary>
+        internal static string ValidationDepthIgnoredMetaWithTagFormat => LiveOpsHubStringCatalog.Text(nameof(ValidationDepthIgnoredMetaWithTagFormat));
+
         /// <summary>Ghi chú bắt buộc nên chỉ rỗng với dữ liệu của bản cũ — vẫn phải có chữ, không để hàng trống trơn.</summary>
         internal static string ValidationDepthIgnoredNoteEmpty => LiveOpsHubStringCatalog.Text(nameof(ValidationDepthIgnoredNoteEmpty));
 

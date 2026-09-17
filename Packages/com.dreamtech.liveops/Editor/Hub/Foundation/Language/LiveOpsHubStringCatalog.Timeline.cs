@@ -21,7 +21,7 @@ namespace DreamTech.LiveOps.Editor
                 english: "The event has times that cannot be read, so it cannot be placed on the axis — click to select it");
             table.Add(nameof(LiveOpsHubStrings.TimelineLaneChipTooltipFormat),
                 vietnamese: "{0} phát hiện trong làn này",
-                english: "{0} findings in this lane");
+                english: "{0} {0|finding|findings} in this lane");
             table.Add(nameof(LiveOpsHubStrings.TimelineRecurringLaneTooltip),
                 vietnamese: "Làn lặp — sửa ở Luật lặp",
                 english: "Recurring lane — edit it in Recurring rules");
@@ -37,10 +37,10 @@ namespace DreamTech.LiveOps.Editor
             // {2} = nhịp chạy giờ/ngày — dải là một element thay nhiều thanh nên nhãn phải nói dải đặc hay thưa [SD1 §3.8 khung 11].
             table.Add(nameof(LiveOpsHubStrings.TimelineStripLabelFormat),
                 vietnamese: "{0} · {1} đợt · {2} giờ/ngày",
-                english: "{0} · {1} events · {2} h/day");
+                english: "{0} · {1} {1|event|events} · {2} h/day");
             table.Add(nameof(LiveOpsHubStrings.TimelineStripTooltipFormat),
                 vietnamese: "{0} · {1} đợt · bấm để zoom vào {2} → {3} UTC",
-                english: "{0} · {1} events · click to zoom into {2} → {3} UTC");
+                english: "{0} · {1} {1|event|events} · click to zoom into {2} → {3} UTC");
             table.Add(nameof(LiveOpsHubStrings.TimelineBarTooltipFormat),
                 vietnamese: "{0} · {1} → {2} UTC",
                 english: "{0} · {1} → {2} UTC");

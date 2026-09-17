@@ -40,7 +40,7 @@ namespace DreamTech.LiveOps.Editor
             if (json == null) return;
 
             Add(BuildMetric(LiveOpsHubStrings.ExportMetricSizeCaption, _format.Integer(json.ByteCount), LiveOpsHubStrings.ExportMetricSizeUnit,
-                string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.ExportMetricSizeFootFormat, _format.Integer(json.LineCount)),
+                LiveOpsHubStringCatalog.Format(nameof(LiveOpsHubStrings.ExportMetricSizeFootFormat), _format.Integer(json.LineCount)),
                 string.Empty, false));
 
             VisualElement formatTile = BuildMetric(LiveOpsHubStrings.ExportMetricFormatCaption, FormatValueText(json.Format),

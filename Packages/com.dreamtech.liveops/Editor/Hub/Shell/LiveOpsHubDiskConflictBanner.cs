@@ -74,7 +74,9 @@ namespace DreamTech.LiveOps.Editor
 
             Button reloadButton = new Button(reload) { name = ReloadButtonName, text = LiveOpsHubStrings.ShellDiskBannerReloadButton };
             reloadButton.AddToClassList(LiveOpsHubClassNames.Button);
-            reloadButton.tooltip = string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.ShellDiskBannerReloadTooltipFormat,
+            // Q-W5-2: đi qua KHOÁ chứ không qua câu — dấu số ít/số nhiều phải chọn vế TRƯỚC string.Format, mà LiveOpsHubStrings.<Khoá>
+            // đã bỏ dấu (StripToPlural) nên chỗ gọi cũ đọc "1 unsaved changes are lost".
+            reloadButton.tooltip = LiveOpsHubStringCatalog.Format(nameof(LiveOpsHubStrings.ShellDiskBannerReloadTooltipFormat),
                 format.Integer(conflict.LostIfReload.ChangeCount));
             actions.Add(reloadButton);
 
@@ -101,18 +103,19 @@ namespace DreamTech.LiveOps.Editor
             string changedItems = ItemListOf(conflict.DiskVersusEditor);
             string changedCount = format.Integer(conflict.DiskVersusEditor.ChangeCount);
             string head = changedItems.Length == 0
-                ? string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.ShellDiskBannerHeadWithoutItemsFormat,
+                ? LiveOpsHubStringCatalog.Format(nameof(LiveOpsHubStrings.ShellDiskBannerHeadWithoutItemsFormat),
                     fileName, format.ShortDateTimeUtc(conflict.DetectedUtc), changedCount)
-                : string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.ShellDiskBannerHeadFormat,
+                : LiveOpsHubStringCatalog.Format(nameof(LiveOpsHubStrings.ShellDiskBannerHeadFormat),
                     fileName, format.ShortDateTimeUtc(conflict.DetectedUtc), changedCount, changedItems);
 
             string lostItems = ChangeListOf(conflict.LostIfReload);
             string lostCount = format.Integer(conflict.LostIfReload.ChangeCount);
+            // Q-W5-2: đưa KHOÁ cho catalog (xem tooltip nút Tải lại ở trên) — câu tiếng Anh của hai khoá này mang dấu số ít/số nhiều.
             string reloadLine = lostItems.Length == 0
-                ? string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.ShellDiskBannerReloadLineWithoutItemsFormat, lostCount)
-                : string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.ShellDiskBannerReloadLineFormat, lostCount, lostItems);
+                ? LiveOpsHubStringCatalog.Format(nameof(LiveOpsHubStrings.ShellDiskBannerReloadLineWithoutItemsFormat), lostCount)
+                : LiveOpsHubStringCatalog.Format(nameof(LiveOpsHubStrings.ShellDiskBannerReloadLineFormat), lostCount, lostItems);
 
-            string keepLine = string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.ShellDiskBannerKeepLineFormat, changedCount);
+            string keepLine = LiveOpsHubStringCatalog.Format(nameof(LiveOpsHubStrings.ShellDiskBannerKeepLineFormat), changedCount);
             return head + LiveOpsHubStrings.ShellDiskBannerSentenceSeparator + reloadLine
                    + LiveOpsHubStrings.ShellDiskBannerSentenceSeparator + keepLine;
         }

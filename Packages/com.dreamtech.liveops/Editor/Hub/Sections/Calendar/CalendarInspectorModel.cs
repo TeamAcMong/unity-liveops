@@ -186,7 +186,7 @@ namespace DreamTech.LiveOps.Editor
             {
                 if (!IsPlaceable(fixedEvents[index])) unplaceableCount++;
             }
-            model.SummaryText = string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.CalendarInspectorSummaryFormat,
+            model.SummaryText = LiveOpsHubStringCatalog.Format(nameof(LiveOpsHubStrings.CalendarInspectorSummaryFormat),
                 fixedEvents.Count, document.RecurringRules.Count, unplaceableCount);
             model.Phase = LiveEventPhase.None;
             model.NowUtcForTests = nowUtc;

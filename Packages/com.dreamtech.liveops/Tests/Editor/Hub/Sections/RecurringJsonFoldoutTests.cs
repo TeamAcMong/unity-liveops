@@ -1,4 +1,6 @@
+using System;
 using System.Collections;
+using System.Globalization;
 using DreamTech.LiveOps.Tests;
 using NUnit.Framework;
 using UnityEditor;
@@ -61,6 +63,12 @@ namespace DreamTech.LiveOps.Editor.Tests
         /// <summary>Câu lỗi nguyên văn của thiết kế (mục 7.4) — ghim cả vị trí lẫn lời, không chỉ "có lỗi gì đó".</summary>
         private const string MissingCommaSentence = "Dòng 3, ký tự 18: thiếu dấu phẩy";
 
+        /// <summary>Chuỗi mà seam viết lại đưa cho parser THẬT: cú pháp hỏng nên parser của game không đọc được (V-16).</summary>
+        private const string UnreadableRewrite = "{ not json";
+
+        /// <summary>Đầu câu đầy đủ của dòng lỗi — phần đuôi là nguyên văn lời parser, không ghim vào test.</summary>
+        private const string UnreadableFullSentencePrefix = "Parser của game không đọc được JSON này: ";
+
         /// <summary>Vòng chờ của test UI (V-23): chỉ fail khi quá CẢ 60 khung LẪN 5 giây.</summary>
         private const int MaximumWaitFrames = 60;
 
@@ -118,7 +126,9 @@ namespace DreamTech.LiveOps.Editor.Tests
 
                 Assert.AreEqual(MissingCommaSentence, Foldout.ErrorText, "câu lỗi phải nêu đúng dòng, ký tự và lý do");
                 Assert.IsTrue(Foldout.ApplySlot.IsBlocked, "JSON hỏng thì Áp phải khoá");
-                Assert.AreEqual(MissingCommaSentence, Foldout.ApplySlot.Reason,
+                // Q-W5-3 (17/9/2026) đổi luật của đúng dòng này: cạnh nút vẫn in lý do THÀNH CHỮ (SPIKE-B SP-3) nhưng là
+                // CÂU NGẮN — câu có vị trí ở lại dòng lỗi. Bản W5 ghim câu dài ở cả hai chỗ, tức là ghim chính cái user đã bác.
+                Assert.AreEqual(LiveOpsHubStrings.RecurringJsonUnreadableShortReason, Foldout.ApplySlot.Reason,
                     "lý do khoá in THÀNH CHỮ cạnh nút (SPIKE-B SP-3), không phải chỉ tooltip");
                 Assert.IsNull(Foldout.Candidate, "JSON hỏng không đẻ ra luật ứng viên nào");
             }
@@ -284,6 +294,117 @@ namespace DreamTech.LiveOps.Editor.Tests
             LogAssert.NoUnexpectedReceived();
         }
 
+        /// <summary>
+        /// Q-W5-3, nhánh mà ẢNH GHIM h14e đi qua (lỗi CÚ PHÁP, không phải parser). Bản sửa đầu chỉ đặt câu ngắn ở nhánh
+        /// "parser không đọc được" — nhánh cú pháp vẫn in đúng một câu hai lần, nên ảnh h14e không đổi một pixel so với W5 và
+        /// quyết định của user coi như chưa tới nơi. Test này khoá đúng nhánh của ảnh: dòng lỗi giữ câu có VỊ TRÍ, cạnh nút
+        /// đọc câu ngắn, và câu dài chỉ xuất hiện một lần trong cây element.
+        /// </summary>
+        [UnityTest]
+        public IEnumerator SyntaxErrorJson_ReasonBesideApply_IsShortSentence_ErrorLineKeepsPositionSentence()
+        {
+            yield return OpenDesignSample(new ScriptedLiveOpsHubConfirmationPresenter());
+            yield return OpenJsonFoldout();
+
+            using (LiveOpsHubLanguage.Override(LiveOpsHubLanguageId.Vietnamese))
+            {
+                Foldout.Editor.value = MissingCommaOnLineThreeJson();
+                yield return null;
+
+                Assert.IsTrue(Foldout.ApplySlot.IsBlocked, "JSON hỏng cú pháp thì Áp phải khoá");
+                Assert.AreEqual(MissingCommaSentence, Foldout.ErrorText, "dòng lỗi giữ câu có dòng/ký tự");
+                Assert.AreEqual(LiveOpsHubStrings.RecurringJsonUnreadableShortReason, Foldout.ApplySlot.Reason,
+                    "cạnh nút chỉ đủ chỗ cho câu ngắn (Q-W5-3)");
+                Assert.AreNotEqual(Foldout.ApplySlot.Reason, Foldout.ErrorText, "hai chỗ phải là hai câu khác nhau");
+                Assert.AreEqual(1, CountLabelsWithText(_scope.Window.rootVisualElement, Foldout.ErrorText),
+                    "câu có vị trí chỉ được xuất hiện ĐÚNG MỘT lần trong cây element");
+            }
+            LogAssert.NoUnexpectedReceived();
+        }
+
+        /// <summary>
+        /// Q-W5-3, hai nhánh còn lại: JSON đọc được nhưng không phải MỘT object luật lặp, và JSON đổi <c>"type"</c>. Cùng luật
+        /// "hai chỗ, hai câu" — gộp vào một test vì cả hai chỉ khác nhau ở chuỗi đưa vào ô.
+        /// </summary>
+        [UnityTest]
+        public IEnumerator NotOneRuleAndTypeLockedJson_ReasonBesideApply_IsShortSentence()
+        {
+            yield return OpenDesignSample(new ScriptedLiveOpsHubConfirmationPresenter());
+            yield return OpenJsonFoldout();
+
+            using (LiveOpsHubLanguage.Override(LiveOpsHubLanguageId.Vietnamese))
+            {
+                Foldout.Editor.value = "[ ]";
+                yield return null;
+
+                Assert.IsTrue(Foldout.ApplySlot.IsBlocked, "gốc là mảng thì Áp phải khoá");
+                Assert.AreEqual(LiveOpsHubStrings.RecurringJsonNotOneRuleReason, Foldout.ErrorText, "dòng lỗi giữ câu đầy đủ");
+                Assert.AreEqual(LiveOpsHubStrings.RecurringJsonNotOneRuleShortReason, Foldout.ApplySlot.Reason,
+                    "cạnh nút đọc câu ngắn");
+                Assert.AreEqual(1, CountLabelsWithText(_scope.Window.rootVisualElement, Foldout.ErrorText),
+                    "câu đầy đủ chỉ xuất hiện một lần");
+
+                Foldout.Editor.value = MissingCommaOnLineThreeJson()
+                    .Replace("\"type\": \"" + WeeklyPassType + "\"", "\"type\": \"" + OtherType + "\"")
+                    .Replace("\"idPrefix\": \"x\"", "\"idPrefix\": \"x\",");
+                yield return null;
+
+                Assert.IsTrue(Foldout.ApplySlot.IsBlocked, "đổi type trong JSON thì Áp phải khoá");
+                // {0} của câu đầy đủ là loại ĐANG KHOÁ (loại của luật đang mở), không phải loại vừa gõ vào JSON.
+                Assert.AreEqual(string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.RecurringJsonTypeLockedFormat,
+                    WeeklyPassType), Foldout.ErrorText, "dòng lỗi giữ câu đầy đủ, có tên loại đang khoá");
+                Assert.AreEqual(LiveOpsHubStrings.RecurringJsonTypeLockedShortReason, Foldout.ApplySlot.Reason,
+                    "cạnh nút đọc câu ngắn, không nhắc tên loại");
+                Assert.AreEqual(1, CountLabelsWithText(_scope.Window.rootVisualElement, Foldout.ErrorText),
+                    "câu đầy đủ chỉ xuất hiện một lần");
+            }
+            LogAssert.NoUnexpectedReceived();
+        }
+
+        /// <summary>
+        /// Q-W5-3 (user chốt 17/9/2026): khi parser của game không đọc được JSON, cạnh nút "Áp" chỉ in CÂU NGẮN
+        /// ("JSON chưa đọc được") còn CÂU ĐẦY ĐỦ — có nguyên văn lời của parser — ở lại dòng lỗi dưới ô. Một khung nhìn
+        /// không in hai lần cùng một câu; test đếm số lần câu đầy đủ xuất hiện trong CẢ cây element để luật đó không lặng lẽ
+        /// mất đi khi ai đó nối thêm một nhãn nữa.
+        /// </summary>
+        [UnityTest]
+        public IEnumerator UnreadableJson_ReasonBesideApply_IsShortSentence_ErrorLineKeepsFullSentence()
+        {
+            yield return OpenDesignSample(new ScriptedLiveOpsHubConfirmationPresenter(),
+                new RewritingLiveOpsHubJsonReadBack(text => UnreadableRewrite));
+            yield return OpenJsonFoldout();
+
+            using (LiveOpsHubLanguage.Override(LiveOpsHubLanguageId.Vietnamese))
+            {
+                // Vẫn là JSON hợp lệ, chỉ khác chuỗi đang ghi — bộ dò cú pháp và cửa "phải là object" đều qua, nên ca rơi
+                // đúng vào nhánh "parser không đọc được".
+                Foldout.Editor.value = Foldout.Editor.value + "\n";
+                yield return null;
+
+                Assert.IsTrue(Foldout.ApplySlot.IsBlocked, "parser không đọc được thì Áp phải khoá");
+                Assert.AreEqual(LiveOpsHubStrings.RecurringJsonUnreadableShortReason, Foldout.ApplySlot.Reason,
+                    "cạnh nút chỉ đủ chỗ cho câu ngắn (Q-W5-3)");
+                StringAssert.StartsWith(UnreadableFullSentencePrefix, Foldout.ErrorText,
+                    "dòng lỗi dưới ô giữ câu đầy đủ, kèm nguyên văn lời của parser");
+                Assert.AreNotEqual(Foldout.ApplySlot.Reason, Foldout.ErrorText, "hai chỗ phải là hai câu khác nhau");
+                Assert.AreEqual(1, CountLabelsWithText(_scope.Window.rootVisualElement, Foldout.ErrorText),
+                    "câu đầy đủ chỉ được xuất hiện ĐÚNG MỘT lần trong cây element");
+                Assert.IsNull(Foldout.Candidate, "parser không đọc được thì không đẻ ra luật ứng viên nào");
+            }
+            LogAssert.NoUnexpectedReceived();
+        }
+
+        /// <summary>Đếm nhãn mang đúng một câu — dùng để chặn ca "in hai lần cùng một câu trong một khung nhìn".</summary>
+        private static int CountLabelsWithText(VisualElement root, string text)
+        {
+            int count = 0;
+            foreach (Label label in root.Query<Label>().ToList())
+            {
+                if (string.Equals(label.text, text, StringComparison.Ordinal)) count++;
+            }
+            return count;
+        }
+
         private RecurringRulesSection Section => (RecurringRulesSection)_scope.Section;
 
         private RecurringRuleJsonFoldout Foldout => Section.Form.JsonFoldout;
@@ -342,9 +463,20 @@ namespace DreamTech.LiveOps.Editor.Tests
 
         private IEnumerator OpenDesignSample(ScriptedLiveOpsHubConfirmationPresenter presenter)
         {
-            LiveOpsHubServices services = LiveOpsHubTestServices.Build(LiveOpsHubTestServices.CreateBuilder(null)
+            return OpenDesignSample(presenter, null);
+        }
+
+        /// <param name="jsonReadBack">
+        /// (V-16) Kịch bản "parser của game không đọc được" dựng bằng cách VIẾT LẠI đầu vào rồi vẫn chạy parser thật, chứ
+        /// không giả kết quả — hub và game phải hỏng ở cùng một chỗ.
+        /// </param>
+        private IEnumerator OpenDesignSample(ScriptedLiveOpsHubConfirmationPresenter presenter, ILiveOpsHubJsonReadBack jsonReadBack)
+        {
+            LiveOpsHubServicesBuilder builder = LiveOpsHubTestServices.CreateBuilder(null)
                 .WithConfirmation(presenter)
-                .WithCalendarAsset(LiveOpsHubTestServices.CreateMemoryAsset(LiveOpsDesignSample.Document)));
+                .WithCalendarAsset(LiveOpsHubTestServices.CreateMemoryAsset(LiveOpsDesignSample.Document));
+            if (jsonReadBack != null) builder.WithJsonReadBack(jsonReadBack);
+            LiveOpsHubServices services = LiveOpsHubTestServices.Build(builder);
             _scope = SectionTestScope.Open(new RecurringRulesSection(services));
             yield return _scope.WaitForLayout();
         }

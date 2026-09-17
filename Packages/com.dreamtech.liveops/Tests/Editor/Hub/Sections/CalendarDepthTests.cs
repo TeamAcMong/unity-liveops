@@ -2,8 +2,10 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Globalization;
 using DreamTech.LiveOps.Tests;
 using NUnit.Framework;
+using UnityEditor;
 using UnityEngine;
 using UnityEngine.TestTools;
 using UnityEngine.UIElements;
@@ -356,6 +358,68 @@ namespace DreamTech.LiveOps.Editor.Tests
             Assert.IsNotNull(seen);
             Assert.AreEqual(before, section.Services.Session.Document.FixedEvents.Count,
                 "nút đề xuất không áp gì trước khi người dùng bấm Áp trong popover");
+        }
+
+        /// <summary>
+        /// Q-W5-5 (user chốt 17/9/2026) — HAI bề mặt sau một lần kéo MÉP: toast giữ CÂU DÀI (đủ trước/sau, người vừa làm
+        /// xong cần đọc đúng cái mình vừa đổi), còn Undo History và status bar "Vừa làm: …" đọc CÂU NGẮN của thiết kế
+        /// [SD1 §3.4] — hai chỗ đó chỉ có một dòng và người đọc lại sau nhiều thao tác. Kéo mép đọc là "Đổi …", không phải
+        /// "Dời …": với người đọc lại lịch sử đó là hai việc khác nhau.
+        /// </summary>
+        [UnityTest]
+        public IEnumerator ResizeDrag_ToastKeepsLongSentence_UndoAndStatusBarUseShortOne()
+        {
+            yield return OpenCalendar(LiveOpsHubTestServices.DesignSampleScenario);
+            CalendarSection section = Calendar();
+            LiveOpsToastModel toast = null;
+            section.Services.Bus.ToastRequested += model => toast = model;
+
+            // Giữ nguyên giờ bắt đầu của hunt-0916-bonus, chỉ kéo MÉP CUỐI ra xa: đợt chưa bắt đầu nên không có hộp hỏi nào.
+            DateTime startUtc = new DateTime(2026, 9, 16, 12, 0, 0, DateTimeKind.Utc);
+            DateTime laterEndUtc = new DateTime(2026, 9, 19, 0, 0, 0, DateTimeKind.Utc);
+            section.Presenter.HandleIntent(new MoveBarIntent(LiveOpsDesignSample.HuntBonusEntryKey, startUtc, laterEndUtc,
+                LiveOpsTimelineGesturePhase.Preview));
+            section.Presenter.HandleIntent(new MoveBarIntent(LiveOpsDesignSample.HuntBonusEntryKey, startUtc, laterEndUtc,
+                LiveOpsTimelineGesturePhase.Commit));
+            yield return null;
+
+            Assert.IsNotNull(toast, "kéo xong phải có toast");
+            string shortStep = string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.CalendarResizeUndoStepFormat,
+                "hunt-0916-bonus");
+            StringAssert.Contains("→", toast.Message, "toast giữ câu dài: có cả giờ trước lẫn giờ sau");
+            Assert.AreNotEqual(shortStep, toast.Message, "toast KHÔNG rút thành câu ngắn");
+            Assert.AreEqual(shortStep, toast.UndoGroupName, "tên bước trong Undo History là câu ngắn \"Đổi …\"");
+            Assert.AreEqual(shortStep, _window.WindowState.RecentActionText,
+                "status bar \"Vừa làm: …\" đọc cùng câu ngắn đó, không đọc câu toast");
+            LogAssert.NoUnexpectedReceived();
+        }
+
+        /// <summary>
+        /// Q-W5-5 cho LỆNH (không phải đường kéo): tên bước trong Undo History của Unity — <c>Undo.GetCurrentGroupName()</c>,
+        /// thứ người dùng thật sự đọc — phải là CÂU NGẮN. Phiên đặt tên group bằng câu toast vì nó không biết câu ngắn, nên
+        /// mọi lệnh đi qua <c>ApplyEdit</c> từng để lại câu dài trong Undo History dù toast model đã mang câu ngắn; đọc mỗi
+        /// <c>LiveOpsToastModel.UndoGroupName</c> thì không thấy — property đó chỉ có test đọc, không có bề mặt sản phẩm nào.
+        /// </summary>
+        [UnityTest]
+        public IEnumerator LaneCommand_RealUnityUndoGroupName_IsTheShortStep()
+        {
+            yield return OpenCalendar(LiveOpsHubTestServices.DesignSampleScenario);
+            CalendarSection section = Calendar();
+            LiveOpsToastModel toast = null;
+            section.Services.Bus.ToastRequested += model => toast = model;
+
+            string laneTypeId = section.Services.Session.Document.EventTypes[1].TypeId;
+            Assert.IsTrue(section.CommandHandler.MoveLane(laneTypeId, -1), "đưa làn thứ hai lên phải chạy được");
+            yield return null;
+
+            string shortStep = string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.CalendarDepthMoveLaneUndoStepFormat,
+                laneTypeId);
+            Assert.IsNotNull(toast, "lệnh đưa làn phải phát toast");
+            Assert.AreNotEqual(shortStep, toast.Message, "toast giữ câu dài (có hướng lên/xuống)");
+            Assert.AreEqual(shortStep, Undo.GetCurrentGroupName(),
+                "Undo History của Unity phải đọc câu ngắn — đây là bề mặt thật, không phải property của toast model");
+            Assert.AreEqual(shortStep, toast.UndoGroupName, "toast model nói cùng câu ngắn đó");
+            LogAssert.NoUnexpectedReceived();
         }
 
         // ------------------------------------------------------------------------------------------------ nợ D-3(a)

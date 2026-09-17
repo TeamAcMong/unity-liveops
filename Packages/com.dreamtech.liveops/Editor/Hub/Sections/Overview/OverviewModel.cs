@@ -271,7 +271,7 @@ namespace DreamTech.LiveOps.Editor
 
             int bodyState = ResolveBodyState(session, report, rows);
             string notice = session.CalendarAssetCount > 1
-                ? string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.OverviewMultipleAssetsNoticeFormat,
+                ? LiveOpsHubStringCatalog.Format(nameof(LiveOpsHubStrings.OverviewMultipleAssetsNoticeFormat),
                     session.CalendarAssetCount, session.AssetFileName)
                 : string.Empty;
 
@@ -393,7 +393,7 @@ namespace DreamTech.LiveOps.Editor
             }
             int changeCount = session.Publish.PublishedDiff.Changes.Count;
             string foot = changeCount > 0
-                ? string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.OverviewMetricPublishedFootFormat,
+                ? LiveOpsHubStringCatalog.Format(nameof(LiveOpsHubStrings.OverviewMetricPublishedFootFormat),
                     latestStamp.ShortSha, changeCount)
                 : string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.OverviewMetricPublishedFootUnchangedFormat,
                     latestStamp.ShortSha);
@@ -469,7 +469,7 @@ namespace DreamTech.LiveOps.Editor
                 if (finding.Consequence == LiveEventCalendarConsequence.Dropped) dropped++;
             }
             if (dropped == 0) return;
-            string title = string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.OverviewRowDroppedTitleFormat, dropped);
+            string title = LiveOpsHubStringCatalog.Format(nameof(LiveOpsHubStrings.OverviewRowDroppedTitleFormat), dropped);
             rows.Add(new OverviewNeedsActionRow(HealthState.Blocked, title, LiveOpsHubStrings.OverviewRowDroppedDetail, string.Empty,
                 BlocksCopy(exportGate, LiveEventCalendarConsequence.Dropped, false), LiveOpsHubStrings.OverviewOpenValidationButton,
                 OverviewRowAction.Navigate,
@@ -507,7 +507,7 @@ namespace DreamTech.LiveOps.Editor
             if (shouldReview.Count == 0) return;
             List<string> labels = new List<string>();
             foreach (LiveEventCalendarFinding finding in shouldReview) labels.Add(LiveOpsFindingText.ShortLabel(finding));
-            string title = string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.OverviewRowShouldReviewTitleFormat,
+            string title = LiveOpsHubStringCatalog.Format(nameof(LiveOpsHubStrings.OverviewRowShouldReviewTitleFormat),
                 shouldReview.Count, string.Join(LiveOpsHubStrings.OverviewPartSeparator, labels.ToArray()));
             List<string> metas = new List<string>();
             foreach (LiveEventCalendarFinding finding in shouldReview)
@@ -775,7 +775,7 @@ namespace DreamTech.LiveOps.Editor
                     format.ShortDateTime(first.StartUtc), format.ShortDateTime(last.StartUtc));
                 string idText = string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.OverviewUpcomingGroupedIdsFormat,
                     first.EventId, last.EventId);
-                string kindText = string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.OverviewUpcomingKindGroupedFormat,
+                string kindText = LiveOpsHubStringCatalog.Format(nameof(LiveOpsHubStrings.OverviewUpcomingKindGroupedFormat),
                     starts.Count);
                 // Dạng đầy đủ ("20 giờ"), không dạng gọn ("20g"): cùng bảng, dòng phụ cột Lúc đã in "sau 15 giờ 13 phút".
                 string noteText = string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.OverviewUpcomingGroupedNoteFormat,

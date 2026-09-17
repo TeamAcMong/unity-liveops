@@ -88,7 +88,7 @@ namespace DreamTech.LiveOps.Editor
             if (publishedChangeCount > 0)
             {
                 return new LiveOpsHubHeaderChipModel(assetText, assetTooltip, FormDiffersFromPublished,
-                    string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.ShellChipDiffersFromPublishedFormat, publishedChangeCount),
+                    LiveOpsHubStringCatalog.Format(nameof(LiveOpsHubStrings.ShellChipDiffersFromPublishedFormat), publishedChangeCount),
                     string.Empty, false, string.Empty);
             }
 

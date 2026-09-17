@@ -111,6 +111,34 @@ namespace DreamTech.LiveOps.Editor.Tests
             Assert.IsFalse(model.LeftText.Contains("()"), "không có phím gán thì bỏ hẳn ngoặc, không in cặp ngoặc rỗng");
         }
 
+        /// <summary>
+        /// Q-W5-5 (user chốt 17/9/2026): chỗ "Vừa làm: …" chỉ có MỘT dòng và người đọc lại sau nhiều thao tác, nên nó đọc
+        /// CÂU NGẮN của bước — nguồn duy nhất là <see cref="LiveOpsToastModel.StepName"/>, cùng phép rơi với Undo History.
+        /// Lệnh chưa có câu ngắn riêng vẫn hiện câu toast như cũ, nên không màn nào phải sửa theo.
+        /// </summary>
+        [Test]
+        public void RecentAction_ReadsShortStepName_FallsBackToToastSentence()
+        {
+            LiveOpsHubServices services = LiveOpsHubTestServices.ForScenario(LiveOpsHubTestServices.DesignSampleScenario);
+            const string longSentence = "Đã dời kết thúc lava-quest-2026-09b 20/9 → 22/9 UTC";
+            const string shortStep = "Đổi lava-quest-2026-09b";
+
+            LiveOpsToastModel withShortStep = LiveOpsToastModel.ForEdit(longSentence, 11, undoneStepName: shortStep);
+            LiveOpsToastModel withoutShortStep = LiveOpsToastModel.ForEdit(longSentence, 12);
+
+            Assert.AreEqual(shortStep, withShortStep.StepName, "có câu ngắn thì status bar đọc câu ngắn");
+            Assert.AreEqual(longSentence, withoutShortStep.StepName, "chưa có câu ngắn thì rơi về câu toast");
+
+            LiveOpsHubStatusBarModel shortModel = LiveOpsHubStatusBarModel.Build(services.Session.Check, true,
+                withShortStep.StepName, true, NowUtc, services.Session.Publish.ActiveStamp, Format, UndoKeyLabel);
+            LiveOpsHubStatusBarModel fallbackModel = LiveOpsHubStatusBarModel.Build(services.Session.Check, true,
+                withoutShortStep.StepName, true, NowUtc, services.Session.Publish.ActiveStamp, Format, UndoKeyLabel);
+
+            StringAssert.EndsWith(" · Vừa làm: " + shortStep + " (⌘Z)", shortModel.LeftText);
+            Assert.IsFalse(shortModel.LeftText.Contains(longSentence), "câu dài của toast không được tràn sang status bar");
+            StringAssert.EndsWith(" · Vừa làm: " + longSentence + " (⌘Z)", fallbackModel.LeftText);
+        }
+
         [Test]
         public void RightText_NoStamp_OnlyUtcClock()
         {

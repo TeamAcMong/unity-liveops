@@ -284,7 +284,7 @@ namespace DreamTech.LiveOps.Editor
         {
             _hiddenLanesChip.EnableInClassList(LiveOpsHubClassNames.CalendarHidden, hiddenLaneCount <= 0);
             if (hiddenLaneCount <= 0) return;
-            _hiddenLanesChip.text = string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.CalendarHiddenLanesChipFormat,
+            _hiddenLanesChip.text = LiveOpsHubStringCatalog.Format(nameof(LiveOpsHubStrings.CalendarHiddenLanesChipFormat),
                 hiddenLaneCount);
         }
 

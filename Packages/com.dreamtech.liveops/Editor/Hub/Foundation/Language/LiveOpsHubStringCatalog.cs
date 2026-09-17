@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Globalization;
 
 namespace DreamTech.LiveOps.Editor
 {
@@ -35,6 +36,24 @@ namespace DreamTech.LiveOps.Editor
             return Resolve(Table, key);
         }
 
+        /// <summary>
+        /// Chữ của khoá đếm, ĐÃ chọn vế số ít/số nhiều rồi format (Q-W5-2). Lối vào duy nhất của mọi câu có đối số đếm:
+        /// <c>LiveOpsHubEnglishPlural.Resolve</c> chạy TRƯỚC <c>string.Format</c> nên vế được chọn theo chính đối số sắp
+        /// thay vào. Câu không mang dấu (mọi câu tiếng Việt, và câu tiếng Anh không đếm) đi qua đây ra đúng như
+        /// <c>string.Format(CultureInfo.InvariantCulture, Text(key), arguments)</c> — không có nhánh hành vi thứ hai.
+        /// </summary>
+        internal static string Format(string key, params object[] arguments)
+        {
+            string text = RawText(key);
+            return string.Format(CultureInfo.InvariantCulture, LiveOpsHubEnglishPlural.Resolve(text, arguments), arguments);
+        }
+
+        /// <summary>Nguyên văn câu, CÒN dấu số ít/số nhiều — <see cref="Format"/> và test dấu đọc qua đây.</summary>
+        internal static string RawText(string key)
+        {
+            return ResolveRaw(Table, key);
+        }
+
         /// <summary>Đúng thứ tự tra của <see cref="Text"/> nhưng trên một bảng truyền vào — test soi được nhánh dự phòng mà
         /// không phải làm hỏng bảng thật đang dựng cửa sổ.</summary>
         internal static string Resolve(LiveOpsHubStringTable table, string key)
@@ -50,6 +69,20 @@ namespace DreamTech.LiveOps.Editor
             return MissingTextOpenMark + key + MissingTextCloseMark;
         }
 
+        /// <summary>Cùng thứ tự tra của <see cref="Resolve"/> nhưng KHÔNG bỏ dấu số ít/số nhiều (Q-W5-2).</summary>
+        internal static string ResolveRaw(LiveOpsHubStringTable table, string key)
+        {
+            if (table == null) return MissingTextOpenMark + key + MissingTextCloseMark;
+            string text;
+            if (table.TryGetRaw(LiveOpsHubLanguage.Current, key, out text)) return text;
+            if (table.TryGetRaw(FallbackLanguage, key, out text)) return text;
+            foreach (LiveOpsHubLanguageId language in LiveOpsHubLanguage.Available)
+            {
+                if (table.TryGetRaw(language, key, out text)) return text;
+            }
+            return MissingTextOpenMark + key + MissingTextCloseMark;
+        }
+
         /// <summary>Khoá theo thứ tự đăng ký — test phủ khoá và bảng đối chiếu bản dịch duyệt từ đây.</summary>
         internal static IReadOnlyList<string> Keys
         {
@@ -60,6 +93,18 @@ namespace DreamTech.LiveOps.Editor
         internal static bool TryGetExact(LiveOpsHubLanguageId language, string key, out string text)
         {
             return Table.TryGet(language, key, out text);
+        }
+
+        /// <summary>Chữ nguyên văn của đúng một ngôn ngữ, CÒN dấu số ít/số nhiều — test dấu duyệt catalog qua đây (Q-W5-2).</summary>
+        internal static bool TryGetExactRaw(LiveOpsHubLanguageId language, string key, out string text)
+        {
+            return Table.TryGetRaw(language, key, out text);
+        }
+
+        /// <summary>Catalog có khoá này không — sổ ngoại lệ của luật số ít/số nhiều phải chứng minh khoá nó nhắc còn sống.</summary>
+        internal static bool ContainsKey(string key)
+        {
+            return Table.ContainsKey(key);
         }
 
         internal static bool IsShared(string key)

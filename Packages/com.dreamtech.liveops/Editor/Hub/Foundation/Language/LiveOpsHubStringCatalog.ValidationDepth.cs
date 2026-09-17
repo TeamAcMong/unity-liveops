@@ -10,7 +10,7 @@ namespace DreamTech.LiveOps.Editor
         {
             table.Add(nameof(LiveOpsHubStrings.ValidationDepthBulkPreviewTitleFormat),
                 vietnamese: "Sẽ áp {0} thay đổi an toàn",
-                english: "Will apply {0} safe changes");
+                english: "Will apply {0} {0|safe change|safe changes}");
             table.Add(nameof(LiveOpsHubStrings.ValidationDepthBulkPreviewMeta),
                 vietnamese: "không đổi điều người chơi thấy",
                 english: "nothing players see will change");
@@ -25,7 +25,7 @@ namespace DreamTech.LiveOps.Editor
                 english: "Undo group: {0}");
             table.Add(nameof(LiveOpsHubStrings.ValidationDepthBulkPreviewApplyFormat),
                 vietnamese: "Áp {0} thay đổi",
-                english: "Apply {0} changes");
+                english: "Apply {0} {0|change|changes}");
             table.Add(nameof(LiveOpsHubStrings.ValidationDepthBulkPreviewCancelButton),
                 vietnamese: "Huỷ",
                 english: "Cancel");
@@ -70,6 +70,9 @@ namespace DreamTech.LiveOps.Editor
             table.Add(nameof(LiveOpsHubStrings.ValidationDepthIgnoredMetaFormat),
                 vietnamese: "{0} · {1} · {2}",
                 english: "{0} · {1} · {2}");
+            table.Add(nameof(LiveOpsHubStrings.ValidationDepthIgnoredMetaWithTagFormat),
+                vietnamese: "{0} · {1}",
+                english: "{0} · {1}");
             table.Add(nameof(LiveOpsHubStrings.ValidationDepthIgnoredNoteEmpty),
                 vietnamese: "(chưa ghi chú)",
                 english: "(no note)");

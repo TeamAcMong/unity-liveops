@@ -10,6 +10,14 @@
     padding: var(--liveops-hub-space-10);
 }
 
+/*
+ * Q-W5-1: ScrollView bọc thân mặc định chiếm hết chỗ còn lại của trang, còn chính thân thì cao theo nội dung — có vậy phần
+ * dư mới tràn ra và thanh cuộn mới có việc. Thanh cuộn ngang tắt từ C# (bố cục đã co theo `--narrow`).
+ */
+.liveops-hub-overview-scroll {
+    flex-grow: 1;
+}
+
 .liveops-hub-overview-default {
     flex-grow: 1;
 }
@@ -302,8 +310,12 @@
 /*
  * flex-shrink:0 đi kèm: `.liveops-hub-overview-default` có flex-grow:1 nên khi thân cao hơn cửa sổ, flexbox co từng con
  * xuống dưới chiều cao nội dung — chữ vẫn vẽ nguyên và tràn RA NGOÀI hộp, đè lên card dưới (ảnh hs-shell-narrow-820 và
- * hs-shell-compact-700 của W5). Khoá co lại thì phần dư bị CẮT ở đáy: cắt còn đọc được, đè thì không. Cửa sổ ≥ 900 px
- * không đổi gì vì ở đó thân vốn đã vừa.
+ * hs-shell-compact-700 của W5).
+ *
+ * (Q-W5-1, user chốt 17/9/2026) Từ W6 thân màn nằm trong một ScrollView dọc, nên khoá co lại KHÔNG còn nghĩa là "cắt ở
+ * đáy" nữa: nó giữ cho mỗi card cao đúng chiều cao nội dung, và ScrollView có cái để CUỘN. Câu cũ ở đây ("cắt còn đọc
+ * được, để thì không") là lý lẽ của bản trước — chính thứ user đã bác ở cổng W5, đừng đọc nó như luật còn hiệu lực.
+ * Cửa sổ ≥ 900 px không đổi gì vì ở đó thân vốn đã vừa và thanh cuộn (Auto) tự ẩn.
  */
 .liveops-hub--narrow .liveops-hub-overview-metric-row {
     flex-wrap: wrap;

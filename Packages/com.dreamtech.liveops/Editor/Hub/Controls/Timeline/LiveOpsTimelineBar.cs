@@ -128,7 +128,7 @@ namespace DreamTech.LiveOps.Editor
         {
             if (model.IsStrip)
             {
-                string stripText = string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.TimelineStripLabelFormat, model.EventType,
+                string stripText = LiveOpsHubStringCatalog.Format(nameof(LiveOpsHubStrings.TimelineStripLabelFormat), model.EventType,
                     model.StripCount, model.StripHoursPerDay);
                 float room = width - LiveOpsTimelineGeometry.LabelHorizontalPadding;
                 return stripText.Length * LiveOpsTimelineGeometry.LabelCharacterWidth <= room ? stripText : string.Empty;

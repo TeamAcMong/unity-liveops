@@ -122,7 +122,7 @@ namespace DreamTech.LiveOps.Editor
         /// <summary>Tên Undo group mà lần Áp hiện tại sẽ tạo — dòng 10px của card in đúng chuỗi này, không in một bản gần giống.</summary>
         internal string UndoGroupName
         {
-            get { return string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.ValidationSafeRepairUndoFormat, SelectedCount); }
+            get { return LiveOpsHubStringCatalog.Format(nameof(LiveOpsHubStrings.ValidationSafeRepairUndoFormat), SelectedCount); }
         }
 
         private void BuildRows()
@@ -186,9 +186,11 @@ namespace DreamTech.LiveOps.Editor
         private void RefreshCounts()
         {
             int selectedCount = SelectedCount;
-            _title.text = string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.ValidationDepthBulkPreviewTitleFormat, selectedCount);
+            // Q-W5-2: tiêu đề đi qua KHOÁ như nút Áp ngay dưới — hai dòng cùng một thẻ mà một dòng đọc "Will apply 1 safe changes"
+            // còn dòng kia "Apply 1 change" là lỗi người đọc thấy ngay.
+            _title.text = LiveOpsHubStringCatalog.Format(nameof(LiveOpsHubStrings.ValidationDepthBulkPreviewTitleFormat), selectedCount);
             _undoLine.text = string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.ValidationDepthBulkPreviewUndoFormat, UndoGroupName);
-            _applySlot.Button.text = string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.ValidationDepthBulkPreviewApplyFormat, selectedCount);
+            _applySlot.Button.text = LiveOpsHubStringCatalog.Format(nameof(LiveOpsHubStrings.ValidationDepthBulkPreviewApplyFormat), selectedCount);
             // SPIKE-B SP-3: lý do nút bị khoá LUÔN in thành chữ cạnh nút, tooltip chỉ phụ.
             _applySlot.SetEnabledWithReason(selectedCount > 0, selectedCount > 0 ? string.Empty : LiveOpsHubStrings.ValidationDepthBulkPreviewNothingReason);
             SelectedCountChanged?.Invoke(selectedCount);

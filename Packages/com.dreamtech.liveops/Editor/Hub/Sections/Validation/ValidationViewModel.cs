@@ -320,7 +320,7 @@ namespace DreamTech.LiveOps.Editor
         {
             int completed = check.CompletedRuleCount;
             int total = check.RuleCount;
-            string progressText = string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.ValidationProgressFormat, completed, total);
+            string progressText = LiveOpsHubStringCatalog.Format(nameof(LiveOpsHubStrings.ValidationProgressFormat), completed, total);
             string progressRatioText = string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.ValidationProgressRatioFormat, completed, total);
             return new ValidationViewModel(ValidationBodyState.Running, Array.Empty<ValidationTab>(), Array.Empty<ValidationGroup>(),
                 string.Empty, string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.ValidationSafeRepairButtonFormat, 0), 0,
@@ -409,13 +409,13 @@ namespace DreamTech.LiveOps.Editor
                 string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.ValidationSummaryProgressLostFormat, summary.ProgressLostCount),
                 string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.ValidationSummaryShouldReviewFormat, summary.ShouldReviewCount),
                 string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.ValidationSummaryNotMeasuredFormat, notMeasuredCount),
-                string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.ValidationSummaryPassedFormat, summary.PassedRuleCount),
+                LiveOpsHubStringCatalog.Format(nameof(LiveOpsHubStrings.ValidationSummaryPassedFormat), summary.PassedRuleCount),
             };
         }
 
         private static string SummaryRightOf(LiveEventCalendarCheckReport report, int safeRepairCount)
         {
-            return string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.ValidationSummaryRightFormat,
+            return LiveOpsHubStringCatalog.Format(nameof(LiveOpsHubStrings.ValidationSummaryRightFormat),
                 ClockWithSecondsUtc(report.CheckedAtUtc), report.RuleResults.Count, safeRepairCount);
         }
 
@@ -446,8 +446,8 @@ namespace DreamTech.LiveOps.Editor
             }
 
             string meta = safeRepairCount > 0
-                ? string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.ValidationGroupMetaSafeRepairFormat, totalCount, safeRepairCount, totalCount)
-                : string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.ValidationGroupMetaFindingsFormat, totalCount);
+                ? LiveOpsHubStringCatalog.Format(nameof(LiveOpsHubStrings.ValidationGroupMetaSafeRepairFormat), totalCount, safeRepairCount, totalCount)
+                : LiveOpsHubStringCatalog.Format(nameof(LiveOpsHubStrings.ValidationGroupMetaFindingsFormat), totalCount);
             return new ValidationGroup(kind, TitleOf(kind), BlurbOf(kind), meta, LiveOpsHubFindingRouting.StateOf(consequence), rows,
                 totalCount, string.Empty);
         }
@@ -465,7 +465,7 @@ namespace DreamTech.LiveOps.Editor
                 if (filter.AcceptsRuleResult(result)) rows.Add(RuleResultRowOf(result, format, context));
             }
 
-            string meta = string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.ValidationGroupMetaNotMeasuredFormat, totalCount);
+            string meta = LiveOpsHubStringCatalog.Format(nameof(LiveOpsHubStrings.ValidationGroupMetaNotMeasuredFormat), totalCount);
             return new ValidationGroup(ValidationGroupKind.NotMeasured, LiveOpsHubStrings.ValidationGroupNotMeasuredTitle, string.Empty, meta,
                 HealthState.NotMeasured, rows, totalCount, string.Empty);
         }
@@ -484,7 +484,7 @@ namespace DreamTech.LiveOps.Editor
                 }
             }
 
-            string title = string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.ValidationGroupPassedTitleFormat, report.Summary.PassedRuleCount);
+            string title = LiveOpsHubStringCatalog.Format(nameof(LiveOpsHubStrings.ValidationGroupPassedTitleFormat), report.Summary.PassedRuleCount);
             return new ValidationGroup(ValidationGroupKind.Passed, title, string.Empty, string.Empty, HealthState.Ok, NoRows,
                 report.Summary.PassedRuleCount, string.Join(RuleIdSeparator, ruleIds.ToArray()));
         }
@@ -513,14 +513,20 @@ namespace DreamTech.LiveOps.Editor
         /// <summary>
         /// Một hàng đã bỏ qua. Khoảng do <see cref="LiveOpsFindingText.IgnoredWarningRangeText"/> viết (V-21 CC-VALB-4): ghi chú
         /// hẹn giờ đọc "hẹn tới 14/9 00:00", không "14/9 → mọi" — với người đọc đó là một HẠN, không phải khoảng bị ẩn. Hẹn giờ
-        /// còn được gắn thêm tag cùng chữ đó: hàng có hạn phải nhận ra được từ xa giữa những mục bỏ qua vĩnh viễn.
+        /// được gắn TAG mang đúng chữ đó, và khi có tag thì meta BỎ vế khoảng: hàng chỉ nói một hạn một lần (Q-W5-4, user chốt
+        /// 17/9/2026). Meta dựng MỘT lần theo nhánh có-tag / không-tag, không nối rồi cắt.
         /// </summary>
         private static ValidationRow IgnoredRowOf(LiveEventCalendarFinding finding, LiveOpsHubFormat format)
         {
             IgnoredCalendarWarning warning = finding.IgnoredBy;
             string rangeText = LiveOpsFindingText.IgnoredWarningRangeText(warning, format);
-            string meta = string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.ValidationDepthIgnoredMetaFormat,
-                LiveOpsFindingText.NoParse(warning.RuleId), LiveOpsFindingText.NoParse(warning.TargetId), rangeText);
+            string ruleText = LiveOpsFindingText.NoParse(warning.RuleId);
+            string targetText = LiveOpsFindingText.NoParse(warning.TargetId);
+            string meta = warning.IsReminder
+                ? string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.ValidationDepthIgnoredMetaWithTagFormat,
+                    ruleText, targetText)
+                : string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.ValidationDepthIgnoredMetaFormat,
+                    ruleText, targetText, rangeText);
             string note = IgnoredNoteShortText(warning);
             return new ValidationRow(finding, null, HealthState.Ok, note, meta, LiveOpsFindingText.RuleIdLine(finding),
                 ValidationRowAction.Unignore, LiveOpsHubStrings.ValidationDepthUnignoreButton, string.Empty,

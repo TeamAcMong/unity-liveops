@@ -80,10 +80,10 @@ namespace DreamTech.LiveOps.Editor
                 english: "{0} not measured");
             table.Add(nameof(LiveOpsHubStrings.ValidationSummaryPassedFormat),
                 vietnamese: "{0} luật đã qua",
-                english: "{0} rules passed");
+                english: "{0} {0|rule|rules} passed");
             table.Add(nameof(LiveOpsHubStrings.ValidationSummaryRightFormat),
                 vietnamese: "Kiểm lúc {0} · {1} luật · {2} lỗi sửa nhanh an toàn được",
-                english: "Checked at {0} · {1} rules · {2} errors can be fixed safely");
+                english: "Checked at {0} · {1} {1|rule|rules} · {2} {2|error|errors} can be fixed safely");
 
             table.Add(nameof(LiveOpsHubStrings.ValidationGroupDroppedTitle),
                 vietnamese: "Bị bỏ khi game đọc lịch",
@@ -105,20 +105,20 @@ namespace DreamTech.LiveOps.Editor
                 english: "Not measured");
             table.Add(nameof(LiveOpsHubStrings.ValidationGroupPassedTitleFormat),
                 vietnamese: "{0} luật đã qua",
-                english: "{0} rules passed");
+                english: "{0} {0|rule|rules} passed");
             table.Add(nameof(LiveOpsHubStrings.ValidationGroupIgnoredTitleFormat),
                 vietnamese: "Đã bỏ qua ({0})",
                 english: "Ignored ({0})");
 
             table.Add(nameof(LiveOpsHubStrings.ValidationGroupMetaFindingsFormat),
                 vietnamese: "{0} phát hiện",
-                english: "{0} findings");
+                english: "{0} {0|finding|findings}");
             table.Add(nameof(LiveOpsHubStrings.ValidationGroupMetaSafeRepairFormat),
                 vietnamese: "{0} phát hiện · sửa nhanh được {1}/{2}",
-                english: "{0} findings · {1}/{2} can be fixed safely");
+                english: "{0} {0|finding|findings} · {1}/{2} can be fixed safely");
             table.Add(nameof(LiveOpsHubStrings.ValidationGroupMetaNotMeasuredFormat),
                 vietnamese: "{0} luật · không tính là đã qua",
-                english: "{0} rules · this does not count as passed");
+                english: "{0} {0|rule|rules} · this does not count as passed");
 
             table.Add(nameof(LiveOpsHubStrings.ValidationStaleTag),
                 vietnamese: "cũ",
@@ -138,14 +138,14 @@ namespace DreamTech.LiveOps.Editor
                 english: "This calendar has not been checked");
             table.Add(nameof(LiveOpsHubStrings.ValidationNeverCheckedBodyFormat),
                 vietnamese: "Kết quả chỉ có sau khi chạy {0} luật; chưa kiểm không có nghĩa là không có lỗi.",
-                english: "Results only exist after the {0} rules run; not checked does not mean no errors.");
+                english: "Results only exist after the {0} {0|rule runs|rules run}; not checked does not mean no errors.");
             table.Add(nameof(LiveOpsHubStrings.ValidationNeverCheckedActionFormat),
                 vietnamese: "Kiểm ngay ({0})",
                 english: "Check now ({0})");
 
             table.Add(nameof(LiveOpsHubStrings.ValidationProgressFormat),
                 vietnamese: "Đang kiểm {0}/{1} luật…",
-                english: "Checking {0}/{1} rules…");
+                english: "Checking {0}/{1} {1|rule|rules}…");
             table.Add(nameof(LiveOpsHubStrings.ValidationProgressRatioFormat),
                 vietnamese: "{0} / {1}",
                 english: "{0} / {1}");
@@ -155,14 +155,14 @@ namespace DreamTech.LiveOps.Editor
                 english: "No event is dropped and no progress is lost");
             table.Add(nameof(LiveOpsHubStrings.ValidationNoErrorsBodyFormat),
                 vietnamese: "{0} luật đã qua · {1} chưa kiểm. Chưa kiểm không tính là đã qua.",
-                english: "{0} rules passed · {1} not measured. Not measured does not count as passed.");
+                english: "{0} {0|rule|rules} passed · {1} not measured. Not measured does not count as passed.");
             table.Add(nameof(LiveOpsHubStrings.ValidationShouldReviewOnlyNote),
                 vietnamese: "Không có đợt nào bị bỏ hay mất tiến độ",
                 english: "No event is dropped and no progress is lost");
 
             table.Add(nameof(LiveOpsHubStrings.ValidationSafeRepairUndoFormat),
                 vietnamese: "LiveOps: Sửa nhanh {0} lỗi",
-                english: "LiveOps: Quick fix {0} errors");
+                english: "LiveOps: Quick fix {0} {0|error|errors}");
 
             table.Add(nameof(LiveOpsHubStrings.ValidationDetailTitle),
                 vietnamese: "Chi tiết",
@@ -203,7 +203,7 @@ namespace DreamTech.LiveOps.Editor
                 english: "quick check on this lane: no overlap");
             table.Add(nameof(LiveOpsHubStrings.ValidationProposalQuickCheckOverlapFormat),
                 vietnamese: "kiểm nhanh làn này: vẫn còn {0} vấn đề",
-                english: "quick check on this lane: {0} issues remain");
+                english: "quick check on this lane: {0} {0|issue remains|issues remain}");
             table.Add(nameof(LiveOpsHubStrings.ValidationProposalEnterHint),
                 vietnamese: "Enter: Quay lại",
                 english: "Enter: Back");

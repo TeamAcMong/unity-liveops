@@ -22,7 +22,7 @@ namespace DreamTech.LiveOps.Editor
                 english: "Calendar check: no events dropped");
             table.Add(nameof(LiveOpsHubStrings.ExportGateDroppedBlockedFormat),
                 vietnamese: "Kiểm lịch: {0} đợt bị bỏ",
-                english: "Calendar check: {0} events dropped");
+                english: "Calendar check: {0} {0|event|events} dropped");
             table.Add(nameof(LiveOpsHubStrings.ExportGateDroppedNeverChecked),
                 vietnamese: "Kiểm lịch chưa chạy — chưa biết đợt nào bị bỏ",
                 english: "The calendar check has not run — which events get dropped is unknown");
@@ -34,15 +34,15 @@ namespace DreamTech.LiveOps.Editor
                 english: "The calendar check is stale — check again to see whether events are still dropped");
             table.Add(nameof(LiveOpsHubStrings.ExportGateDroppedStaleMetaFormat),
                 vietnamese: "lần kiểm trước: {0} đợt bị bỏ",
-                english: "previous check: {0} events dropped");
+                english: "previous check: {0} {0|event|events} dropped");
 
             table.Add(nameof(LiveOpsHubStrings.ExportGateReadBackOkFormat),
                 vietnamese: "Parser của game xác nhận: giữ {0}/{1} mục, khớp Kiểm lịch",
-                english: "The game parser confirms: {0}/{1} entries kept, matches the calendar check");
+                english: "The game parser confirms: {0}/{1} {1|entry|entries} kept, matches the calendar check");
 
             table.Add(nameof(LiveOpsHubStrings.ExportGateReadBackOkCompilerFormat),
                 vietnamese: "Parser của game xác nhận: giữ {0}/{1} mục, khớp bộ biên dịch của hub",
-                english: "The game parser confirms: {0}/{1} entries kept, matches the hub compiler");
+                english: "The game parser confirms: {0}/{1} {1|entry|entries} kept, matches the hub compiler");
             table.Add(nameof(LiveOpsHubStrings.ExportGateReadBackMismatchKeptCompilerFormat),
                 vietnamese: "Parser giữ {0}/{1} nhưng bộ biên dịch của hub bỏ {2} — lỗi của hub",
                 english: "The parser keeps {0}/{1} but the hub compiler drops {2} — hub bug");
@@ -51,10 +51,10 @@ namespace DreamTech.LiveOps.Editor
                 english: "The parser keeps {0}/{1}, the hub compiler also drops {2} but not the same entries — hub bug");
             table.Add(nameof(LiveOpsHubStrings.ExportGateReadBackMismatchEntryCountCompilerFormat),
                 vietnamese: "Parser đọc {0} mục nhưng bộ biên dịch của hub có {1} mục — lỗi của hub",
-                english: "The parser reads {0} entries but the hub compiler has {1} entries — hub bug");
+                english: "The parser reads {0} {0|entry|entries} but the hub compiler has {1} {1|entry|entries} — hub bug");
             table.Add(nameof(LiveOpsHubStrings.ExportGateReadBackOkNarrowFormat),
                 vietnamese: "Parser của game xác nhận: giữ {0}/{1} mục",
-                english: "The game parser confirms: {0}/{1} entries kept");
+                english: "The game parser confirms: {0}/{1} {1|entry|entries} kept");
             table.Add(nameof(LiveOpsHubStrings.ExportGateReadBackMismatchKeptFormat),
                 vietnamese: "Parser giữ {0}/{1} nhưng Kiểm lịch báo {2} bị bỏ — lỗi của hub",
                 english: "The parser keeps {0}/{1} but the calendar check reports {2} dropped — hub bug");
@@ -63,7 +63,7 @@ namespace DreamTech.LiveOps.Editor
                 english: "The parser keeps {0}/{1}, the calendar check also reports {2} dropped but not the same entries — hub bug");
             table.Add(nameof(LiveOpsHubStrings.ExportGateReadBackMismatchEntryCountFormat),
                 vietnamese: "Parser đọc {0} mục nhưng Kiểm lịch có {1} mục — lỗi của hub",
-                english: "The parser reads {0} entries but the calendar check has {1} entries — hub bug");
+                english: "The parser reads {0} {0|entry|entries} but the calendar check has {1} {1|entry|entries} — hub bug");
             table.Add(nameof(LiveOpsHubStrings.ExportGateReadBackMismatchNarrow),
                 vietnamese: "Parser lệch Kiểm lịch — lỗi của hub",
                 english: "The parser disagrees with the calendar check — hub bug");
@@ -121,7 +121,7 @@ namespace DreamTech.LiveOps.Editor
                 english: "LiveOps Hub: the game parser read the JSON back (sha {0}) and disagrees with the calendar check");
             table.Add(nameof(LiveOpsHubStrings.ExportGateMismatchReportCountsFormat),
                 vietnamese: "Parser giữ {0}/{1} mục · Kiểm lịch giữ {2}/{3} mục",
-                english: "The parser keeps {0}/{1} entries · the calendar check keeps {2}/{3} entries");
+                english: "The parser keeps {0}/{1} {1|entry|entries} · the calendar check keeps {2}/{3} {3|entry|entries}");
 
             table.Add(nameof(LiveOpsHubStrings.ExportGateFreshnessOkFormat),
                 vietnamese: "Kiểm lịch chạy sau lần sửa cuối ({0} UTC)",
@@ -144,7 +144,7 @@ namespace DreamTech.LiveOps.Editor
                 english: "The calendar check has never run");
             table.Add(nameof(LiveOpsHubStrings.ExportGateFreshnessRunningFormat),
                 vietnamese: "Đang kiểm lại {0}/{1} luật…",
-                english: "Checking {0}/{1} rules…");
+                english: "Checking {0}/{1} {1|rule|rules}…");
             table.Add(nameof(LiveOpsHubStrings.ExportGateFreshnessRunningMeta),
                 vietnamese: "tự chạy khi mở màn",
                 english: "runs automatically when the screen opens");
@@ -185,13 +185,13 @@ namespace DreamTech.LiveOps.Editor
 
             table.Add(nameof(LiveOpsHubStrings.ExportGateReviewedOkFormat),
                 vietnamese: "Đã xem {0}/{1} thay đổi bắt buộc",
-                english: "Reviewed {0}/{1} required changes");
+                english: "Reviewed {0}/{1} required {1|change|changes}");
             table.Add(nameof(LiveOpsHubStrings.ExportGateReviewedNothingRequired),
                 vietnamese: "Không có thay đổi bắt buộc cần xem",
                 english: "No required changes to review");
             table.Add(nameof(LiveOpsHubStrings.ExportGateReviewedBlockedFormat),
                 vietnamese: "Chưa xem {0} thay đổi làm người chơi mất tiến độ",
-                english: "{0} changes causing player progress loss not reviewed");
+                english: "{0} {0|change|changes} causing player progress loss not reviewed");
             table.AddShared(nameof(LiveOpsHubStrings.ExportGateReviewedItemsSuffixFormat), " ({0})");
             table.Add(nameof(LiveOpsHubStrings.ExportGateReviewedDiffMissing),
                 vietnamese: "Chưa so được với bản đã đăng",
@@ -223,7 +223,7 @@ namespace DreamTech.LiveOps.Editor
 
             table.Add(nameof(LiveOpsHubStrings.ExportGateCompactFormat),
                 vietnamese: "{0} điều kiện đạt · sha {1} · {2}",
-                english: "{0} conditions met · sha {1} · {2}");
+                english: "{0} {0|condition|conditions} met · sha {1} · {2}");
 
             table.Add(nameof(LiveOpsHubStrings.ExportGateReasonBlockedPrefix),
                 vietnamese: "Chặn: ",
@@ -246,10 +246,10 @@ namespace DreamTech.LiveOps.Editor
                 english: "checking the calendar again");
             table.Add(nameof(LiveOpsHubStrings.ExportGateReasonDroppedFormat),
                 vietnamese: "{0} đợt bị bỏ",
-                english: "{0} events dropped");
+                english: "{0} {0|event|events} dropped");
             table.Add(nameof(LiveOpsHubStrings.ExportGateReasonUnreviewedFormat),
                 vietnamese: "{0} thay đổi bắt buộc chưa xem",
-                english: "{0} required changes not reviewed");
+                english: "{0} required {0|change|changes} not reviewed");
             table.Add(nameof(LiveOpsHubStrings.ExportGateReasonDiffMissing),
                 vietnamese: "chưa so được với bản đã đăng",
                 english: "cannot compare with the published baseline");
@@ -268,10 +268,10 @@ namespace DreamTech.LiveOps.Editor
                 english: ", and ");
             table.Add(nameof(LiveOpsHubStrings.ExportGateCopyTooltipDroppedFormat),
                 vietnamese: "còn {0} đợt game sẽ bỏ",
-                english: "{0} events will still be dropped by the game");
+                english: "{0} {0|event|events} will still be dropped by the game");
             table.Add(nameof(LiveOpsHubStrings.ExportGateCopyTooltipUnreviewedFormat),
                 vietnamese: "{0} thay đổi đụng đợt đang chạy chưa xem",
-                english: "{0} changes touching running events are not reviewed");
+                english: "{0} {0|change|changes} touching running events {0|is|are} not reviewed");
             table.Add(nameof(LiveOpsHubStrings.ExportGateCopyTooltipReadBackFailed),
                 vietnamese: "parser của game không đọc lại được JSON do hub tạo",
                 english: "the game parser cannot read back the JSON the hub produced");
@@ -345,7 +345,7 @@ namespace DreamTech.LiveOps.Editor
                 english: "Undo restore");
             table.Add(nameof(LiveOpsHubStrings.ExportGateFormat1NoticeFormat),
                 vietnamese: "Định dạng 1 không có recurring: {0} luật lặp sẽ không được xuất, game chỉ thấy {1} đợt cố định",
-                english: "Format 1 has no recurring: {0} recurring rules will not be exported, the game only sees {1} fixed events");
+                english: "Format 1 has no recurring: {0} recurring {0|rule|rules} will not be exported, the game only sees {1} fixed {1|event|events}");
 
             table.Add(nameof(LiveOpsHubStrings.ExportGateHealthBlockedBadge),
                 vietnamese: "chặn",

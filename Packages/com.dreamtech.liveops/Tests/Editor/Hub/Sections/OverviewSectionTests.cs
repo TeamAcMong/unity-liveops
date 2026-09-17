@@ -22,6 +22,16 @@ namespace DreamTech.LiveOps.Editor.Tests
     {
         private const double LayoutTimeoutSeconds = 5.0;
 
+        /// <summary>Cỡ cửa sổ hẹp nhất của bộ ảnh (`hs-shell-compact-700`) — chỗ thân màn chắc chắn dài hơn khung.</summary>
+        private const float NarrowWindowWidth = 700f;
+
+        /// <summary>Rộng hơn breakpoint hẹp (900 px) nên bố cục 2×2 của <c>--narrow</c> KHÔNG bật — xem WideButShortWindow.</summary>
+        private const float WideWindowWidth = 1100f;
+        private const float NarrowWindowHeight = 520f;
+
+        /// <summary>Sai số một pixel khi so mép: layout UI Toolkit làm tròn theo dpi, so bằng == sẽ đỏ giả.</summary>
+        private const float LayoutTolerance = 1f;
+
         private LiveOpsHubWindow _window;
 
         [TearDown]
@@ -359,6 +369,83 @@ namespace DreamTech.LiveOps.Editor.Tests
             return false;
         }
 
+        /// <summary>
+        /// Q-W5-1 (user chốt 17/9/2026): dưới 900px thân màn dài hơn cửa sổ. Trước khi có ScrollView phần dư bị CẮT ở đáy —
+        /// mất hẳn note cuối và một phần bảng 7 ngày. Test dựng đúng cỡ hẹp nhất của bộ ảnh (700×520, `hs-shell-compact-700`)
+        /// rồi chứng minh hai vế: nội dung THẬT SỰ cao hơn khung (không thì test này xanh vô nghĩa), và cuộn tới đáy thì phần
+        /// tử CUỐI của thân nằm trọn trong khung nhìn.
+        /// </summary>
+        [UnityTest]
+        public IEnumerator NarrowWindow_BodyScrolls_NothingClipped()
+        {
+            LiveOpsHubServices services = LiveOpsHubTestServices.ForScenario(LiveOpsHubTestServices.DesignSampleScenario);
+            yield return OpenOverview(services, LiveOpsHubSections.Create(services), NarrowWindowWidth, NarrowWindowHeight);
+            VisualElement view = View();
+
+            ScrollView scroll = view.Q<ScrollView>(OverviewSection.ScrollElementName);
+            AssertBodyScrollIsVerticalWithAutoScroller(scroll);
+            Assert.Greater(scroll.contentContainer.worldBound.height, scroll.contentViewport.worldBound.height,
+                "cửa sổ 700×520 phải làm thân dài hơn khung nhìn — nếu không, test không chứng minh được gì");
+
+            Label footerNote = view.Q<Label>(OverviewSection.FooterNoteElementName);
+            Assert.IsNotNull(footerNote, "note cuối thân là phần tử cuối cùng phải cuộn tới được");
+            scroll.verticalScroller.value = scroll.verticalScroller.highValue;
+            yield return null;
+            yield return null;
+
+            Rect viewport = scroll.contentViewport.worldBound;
+            Rect note = footerNote.worldBound;
+            Assert.LessOrEqual(note.yMax, viewport.yMax + LayoutTolerance,
+                "cuộn tới đáy rồi mà note cuối vẫn nằm dưới mép khung = vẫn còn bị cắt");
+            Assert.GreaterOrEqual(note.yMin, viewport.yMin - LayoutTolerance,
+                "note cuối bị đẩy lên trên mép khung = cuộn quá tay, người đọc không thấy chữ");
+            LogAssert.NoUnexpectedReceived();
+        }
+
+        /// <summary>
+        /// Ba dòng của <c>OverviewSection.ConfigureBodyScroll</c> = ba nửa của điều user chốt ("ScrollView DỌC, thanh cuộn
+        /// AUTO, ngang Hidden"). Test cũ chỉ đọc một dòng, nên xoá nhầm hai dòng kia vẫn xanh.
+        /// </summary>
+        private static void AssertBodyScrollIsVerticalWithAutoScroller(ScrollView scroll)
+        {
+            Assert.IsNotNull(scroll, "thân màn phải nằm trong ScrollView dọc (Q-W5-1)");
+            Assert.AreEqual(ScrollViewMode.Vertical, scroll.mode, "thân màn cuộn DỌC (Q-W5-1)");
+            Assert.AreEqual(ScrollerVisibility.Auto, scroll.verticalScrollerVisibility,
+                "thanh cuộn dọc để Auto — hiện khi thân dài hơn khung, tự ẩn khi vừa");
+            Assert.AreEqual(ScrollerVisibility.Hidden, scroll.horizontalScrollerVisibility,
+                "cuộn ngang tắt — bố cục đã co theo breakpoint, chữ không bao giờ nằm ngoài bề ngang");
+        }
+
+        /// <summary>
+        /// Cửa sổ RỘNG mà THẤP: không còn ở breakpoint hẹp (bố cục 2×2 của <c>--narrow</c> không bật) nhưng thân vẫn cao hơn
+        /// khung. Ca này là nửa còn lại của Q-W5-1 — bản sửa nào chỉ bọc ScrollView cho nhánh hẹp sẽ xanh ở 700×520 và vẫn
+        /// cắt mất chữ ở đây.
+        /// </summary>
+        [UnityTest]
+        public IEnumerator WideButShortWindow_BodyStillScrolls()
+        {
+            LiveOpsHubServices services = LiveOpsHubTestServices.ForScenario(LiveOpsHubTestServices.DesignSampleScenario);
+            yield return OpenOverview(services, LiveOpsHubSections.Create(services), WideWindowWidth, NarrowWindowHeight);
+            VisualElement view = View();
+
+            ScrollView scroll = view.Q<ScrollView>(OverviewSection.ScrollElementName);
+            AssertBodyScrollIsVerticalWithAutoScroller(scroll);
+            Assert.Greater(scroll.contentContainer.worldBound.height, scroll.contentViewport.worldBound.height,
+                "cửa sổ rộng mà thấp vẫn phải làm thân dài hơn khung nhìn — nếu không, test không chứng minh được gì");
+
+            Label footerNote = view.Q<Label>(OverviewSection.FooterNoteElementName);
+            Assert.IsNotNull(footerNote, "note cuối thân là phần tử cuối cùng phải cuộn tới được");
+            scroll.verticalScroller.value = scroll.verticalScroller.highValue;
+            yield return null;
+            yield return null;
+
+            Rect viewport = scroll.contentViewport.worldBound;
+            Rect note = footerNote.worldBound;
+            Assert.LessOrEqual(note.yMax, viewport.yMax + LayoutTolerance,
+                "cuộn tới đáy rồi mà note cuối vẫn nằm dưới mép khung = vẫn còn bị cắt");
+            LogAssert.NoUnexpectedReceived();
+        }
+
         private static List<Button> RowButtons(VisualElement view)
         {
             List<Button> buttons = new List<Button>();
@@ -408,6 +495,11 @@ namespace DreamTech.LiveOps.Editor.Tests
 
         private IEnumerator OpenOverview(LiveOpsHubServices services, IReadOnlyList<IHubSection> sections)
         {
+            return OpenOverview(services, sections, LiveOpsHubWindowTestScope.StandardWidth, LiveOpsHubWindowTestScope.StandardHeight);
+        }
+
+        private IEnumerator OpenOverview(LiveOpsHubServices services, IReadOnlyList<IHubSection> sections, float width, float height)
+        {
             if (_window != null)
             {
                 _window.Close();
@@ -415,7 +507,7 @@ namespace DreamTech.LiveOps.Editor.Tests
             }
             _window = LiveOpsHubWindow.OpenWithServices(services, sections, LiveOpsHubSections.Ids.Overview);
             // SP-16: đặt kích thước SAU Show.
-            _window.position = new Rect(0, 0, LiveOpsHubWindowTestScope.StandardWidth, LiveOpsHubWindowTestScope.StandardHeight);
+            _window.position = new Rect(0, 0, width, height);
             int frames = 0;
             double deadline = EditorApplication.timeSinceStartup + LayoutTimeoutSeconds;
             // V-23: chỉ fail khi quá CẢ 60 khung LẪN 5 giây — máy bận (hai Unity song song) không được làm test đỏ giả.

@@ -201,7 +201,7 @@ namespace DreamTech.LiveOps.Editor
         {
             if (length > TimeSpan.Zero && length.Ticks % TimeSpan.TicksPerHour == 0)
             {
-                return string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.FindingHoursFormat,
+                return LiveOpsHubStringCatalog.Format(nameof(LiveOpsHubStrings.FindingHoursFormat),
                     ((long)length.TotalHours).ToString(CultureInfo.InvariantCulture));
             }
             return _format.Duration(length, false);
@@ -238,8 +238,8 @@ namespace DreamTech.LiveOps.Editor
             else if (remaining == 0) _quickCheckLabel.text = LiveOpsHubStrings.ValidationProposalQuickCheckOk;
             else
             {
-                _quickCheckLabel.text = string.Format(CultureInfo.InvariantCulture,
-                    LiveOpsHubStrings.ValidationProposalQuickCheckOverlapFormat, remaining);
+                _quickCheckLabel.text = LiveOpsHubStringCatalog.Format(
+                    nameof(LiveOpsHubStrings.ValidationProposalQuickCheckOverlapFormat), remaining);
             }
         }
 

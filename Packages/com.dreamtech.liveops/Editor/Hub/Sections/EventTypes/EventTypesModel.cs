@@ -81,7 +81,7 @@ namespace DreamTech.LiveOps.Editor
         {
             get
             {
-                return string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.EventTypesFooterFormat,
+                return LiveOpsHubStringCatalog.Format(nameof(LiveOpsHubStrings.EventTypesFooterFormat),
                     _document.EventTypes.Count.ToString(CultureInfo.InvariantCulture));
             }
         }
@@ -182,7 +182,7 @@ namespace DreamTech.LiveOps.Editor
                 reason = string.Empty;
                 return true;
             }
-            reason = string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.EventTypesTypeIdLockedReasonFormat,
+            reason = LiveOpsHubStringCatalog.Format(nameof(LiveOpsHubStrings.EventTypesTypeIdLockedReasonFormat),
                 usageCount.ToString(CultureInfo.InvariantCulture));
             return false;
         }
@@ -202,8 +202,8 @@ namespace DreamTech.LiveOps.Editor
                 return true;
             }
             string countText = usageCount.ToString(CultureInfo.InvariantCulture);
-            menuLabel = string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.EventTypesDeleteMenuItemInUseFormat, countText);
-            reason = string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.EventTypesDeleteInUseReasonFormat, countText);
+            menuLabel = LiveOpsHubStringCatalog.Format(nameof(LiveOpsHubStrings.EventTypesDeleteMenuItemInUseFormat), countText);
+            reason = LiveOpsHubStringCatalog.Format(nameof(LiveOpsHubStrings.EventTypesDeleteInUseReasonFormat), countText);
             return false;
         }
 
@@ -215,10 +215,10 @@ namespace DreamTech.LiveOps.Editor
         {
             if (typeId == null || !_rowByTypeId.TryGetValue(typeId, out EventTypeRow row) || row.IsDeclared) return string.Empty;
             string countText = row.UsageCount.ToString(CultureInfo.InvariantCulture);
-            string format = row.IsFromRemoteSnapshotOnly
-                ? LiveOpsHubStrings.EventTypesUnknownTypeInRemoteFormat
-                : LiveOpsHubStrings.EventTypesUnknownTypeInDraftFormat;
-            return string.Format(CultureInfo.InvariantCulture, format, row.TypeId, countText);
+            string key = row.IsFromRemoteSnapshotOnly
+                ? nameof(LiveOpsHubStrings.EventTypesUnknownTypeInRemoteFormat)
+                : nameof(LiveOpsHubStrings.EventTypesUnknownTypeInDraftFormat);
+            return LiveOpsHubStringCatalog.Format(key, row.TypeId, countText);
         }
 
         /// <summary>
@@ -261,7 +261,7 @@ namespace DreamTech.LiveOps.Editor
             StringBuilder text = new StringBuilder();
             if (row.FixedEventCount > 0)
             {
-                text.Append(string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.EventTypesUsageFixedCountFormat,
+                text.Append(LiveOpsHubStringCatalog.Format(nameof(LiveOpsHubStrings.EventTypesUsageFixedCountFormat),
                     row.FixedEventCount.ToString(CultureInfo.InvariantCulture)));
             }
             if (row.HasRecurringRule)

@@ -122,15 +122,15 @@ namespace DreamTech.LiveOps.Editor
             AddBrokenEventTypesWarning(root, eventTypeCount, document.EventTypes.Count);
             AddDroppedEntriesWarning(root, document);
 
-            root.Add(Line(SummaryElementName, string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.InspectorSummaryFormat,
+            root.Add(Line(SummaryElementName, LiveOpsHubStringCatalog.Format(nameof(LiveOpsHubStrings.InspectorSummaryFormat),
                 Count(eventTypeCount), Count(recurringRuleCount), Count(fixedEventCount))));
             root.Add(Line(RemoteConfigKeyElementName, string.Format(CultureInfo.InvariantCulture,
                 LiveOpsHubStrings.InspectorRemoteConfigKeyFormat, document.RemoteConfigKey)));
             root.Add(Line(PublishedElementName, PublishedText(document)));
             if (ignoredWarningCount > 0)
             {
-                root.Add(Line(IgnoredWarningsElementName, string.Format(CultureInfo.InvariantCulture,
-                    LiveOpsHubStrings.InspectorIgnoredWarningsFormat, Count(ignoredWarningCount))));
+                root.Add(Line(IgnoredWarningsElementName, LiveOpsHubStringCatalog.Format(
+                    nameof(LiveOpsHubStrings.InspectorIgnoredWarningsFormat), Count(ignoredWarningCount))));
             }
 
             AddManyStampsHint(root, publishedStampCount);
@@ -197,8 +197,8 @@ namespace DreamTech.LiveOps.Editor
         {
             int brokenEventTypeCount = eventTypeCount - usableEventTypeCount;
             if (brokenEventTypeCount <= 0) return;
-            root.Add(Help(BrokenEventTypesHelpElementName, string.Format(CultureInfo.InvariantCulture,
-                LiveOpsHubStrings.InspectorBrokenEventTypesFormat, Count(brokenEventTypeCount))));
+            root.Add(Help(BrokenEventTypesHelpElementName, LiveOpsHubStringCatalog.Format(
+                nameof(LiveOpsHubStrings.InspectorBrokenEventTypesFormat), Count(brokenEventTypeCount))));
         }
 
         private static void AddDroppedEntriesWarning(VisualElement root, LiveEventCalendarDocument document)
@@ -207,15 +207,15 @@ namespace DreamTech.LiveOps.Editor
             // thay vì asset.Compile(), vì Compile() dựng lại tài liệu lần nữa (mỗi lần bấm vào asset là hai lượt ToDocument).
             int droppedCount = LiveEventCalendarCompiler.CompileInExportOrder(document).DroppedCount;
             if (droppedCount <= 0) return;
-            root.Add(Help(DroppedEntriesHelpElementName, string.Format(CultureInfo.InvariantCulture,
-                LiveOpsHubStrings.InspectorDroppedEntriesFormat, Count(droppedCount))));
+            root.Add(Help(DroppedEntriesHelpElementName, LiveOpsHubStringCatalog.Format(
+                nameof(LiveOpsHubStrings.InspectorDroppedEntriesFormat), Count(droppedCount))));
         }
 
         private static void AddManyStampsHint(VisualElement root, int publishedStampCount)
         {
             if (publishedStampCount <= ManyStampsThreshold) return;
-            root.Add(Help(ManyStampsHelpElementName, string.Format(CultureInfo.InvariantCulture,
-                LiveOpsHubStrings.InspectorManyStampsFormat, Count(publishedStampCount), Count(ManyStampsThreshold)),
+            root.Add(Help(ManyStampsHelpElementName, LiveOpsHubStringCatalog.Format(
+                nameof(LiveOpsHubStrings.InspectorManyStampsFormat), Count(publishedStampCount), Count(ManyStampsThreshold)),
                 HelpBoxMessageType.Info));
         }
 
@@ -228,7 +228,7 @@ namespace DreamTech.LiveOps.Editor
             // Giờ đăng in NGUYÊN VĂN như trong file (PD-2): dấu do lần xuất trước ghi, inspector không parse lại nên chuỗi
             // hỏng vẫn hiện ra đúng cái người dùng phải đi sửa.
             PublishedCalendarStamp latest = document.PublishedStamps[publishedStampCount - 1];
-            return string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.InspectorPublishedFormat,
+            return LiveOpsHubStringCatalog.Format(nameof(LiveOpsHubStrings.InspectorPublishedFormat),
                 Count(publishedStampCount), latest.PublishedUtcText);
         }
 

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using NUnit.Framework;
 
 using DreamTech.LiveOps.Tests;
@@ -30,7 +31,7 @@ namespace DreamTech.LiveOps.Editor.Tests
         }
 
         [Test]
-        public void Drag_OneUndoGroupNamedAsToast()
+        public void Drag_OneUndoGroupNamedWithShortStepName()
         {
             LiveOpsHubServices services = CreateServices();
             CalendarTimelinePresenter presenter = CreatePresenter(services, LiveOpsTimelineZoom.ThreeWeeks);
@@ -47,8 +48,10 @@ namespace DreamTech.LiveOps.Editor.Tests
             Assert.AreEqual(1, toasts.Count, "một thao tác kéo = đúng một toast");
             LiveOpsToastModel toast = toasts[0];
             Assert.IsTrue(toast.HasUndo, "kéo xong luôn có nút Hoàn tác");
-            Assert.AreEqual(toast.Message, toast.UndoGroupName,
-                "tên bước Undo trùng câu toast — Undo History và toast phải nói cùng một câu (8.5)");
+            // Q-W5-5: Undo History đọc CÂU NGẮN của thiết kế, toast giữ câu dài đủ trước/sau.
+            Assert.AreEqual(string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.CalendarMoveUndoStepFormat, "hunt-0916-bonus"),
+                toast.UndoGroupName, "kéo cả thanh = \"Dời …\"");
+            Assert.AreNotEqual(toast.Message, toast.UndoGroupName, "toast giữ câu dài, Undo History không");
             StringAssert.Contains("hunt-0916-bonus", toast.Message);
 
             Assert.IsTrue(services.Session.Document.TryGetFixedEvent(LiveOpsDesignSample.HuntBonusEntryKey,
