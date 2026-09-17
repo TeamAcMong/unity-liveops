@@ -336,6 +336,9 @@ namespace DreamTech.LiveOps.Editor
             VisualElement title = _root.Q(LiveOpsHubPaths.CalendarElementNames.InspectorTitle);
             VisualElement body = _root.Q(LiveOpsHubPaths.CalendarElementNames.InspectorBody);
             if (title == null || body == null) return;
+            // CreateView() chạy lại mỗi lần người dùng quay về màn này, còn presenter sống suốt đời màn: inspector cũ phải nhả
+            // đăng ký SelectionSetChanged, không thì mỗi lần vào màn lại thêm một người nghe vẽ lên cây element đã chết.
+            _inspector?.Detach();
             _inspector = new CalendarEventInspector(_services, _presenter, title, body);
             _inspector.AddEventRequested += OpenAddEventPopover;
             _inspector.NavigationRequested += RaiseNavigation;
@@ -358,15 +361,21 @@ namespace DreamTech.LiveOps.Editor
                 LiveOpsTimelineGeometry.RangeLengthOf(_zoom).Ticks);
             _presenter.ContentWidth = _root.layout.width;
             LiveOpsTimelineModel model = _presenter.BuildModel(rangeStartUtc, rangeEndUtc, TrackWidth());
+            bool isMultiSelection = _presenter.SelectedBarKeys.Count > 1;
             if (_timeline != null)
             {
                 _timeline.SetRange(rangeStartUtc, _zoom);
                 _timeline.SetModel(model);
-                _timeline.Select(_presenter.SelectedBarKey, false);
+                // (G-OPT-TIMELINE) Vẽ lại phải dựng lại ĐÚNG tập đang chọn. Gọi thẳng Select(SelectedBarKey) là thu tập về một
+                // thanh — mà Refresh() chạy ngay sau MỌI lệnh sửa (DocumentEdited), kể cả hai lệnh của chính bảng chọn nhiều,
+                // nên bảng (c) và các thanh sáng biến mất đúng ở lệnh vừa bấm.
+                if (isMultiSelection) _timeline.SelectMany(_presenter.SelectedBarKeys, _presenter.SelectedBarKey, false);
+                else _timeline.Select(_presenter.SelectedBarKey, false);
             }
             _toolbar?.SetRange(rangeStartUtc, rangeEndUtc, _services.Clock.UtcNow);
             _toolbar?.SetHiddenLaneCount(_presenter.HiddenLanes.Count);
-            _inspector?.Refresh(_presenter.SelectedBarKey);
+            if (isMultiSelection) _inspector?.RefreshMultiple(_presenter.SelectedBarKeys);
+            else _inspector?.Refresh(_presenter.SelectedBarKey);
             _listPane?.SetDocument(_services.Session.Document, _services.Clock.UtcNow, _presenter.SelectedBarKey);
             RefreshComparePane();
             AttachHoverCards();
@@ -768,6 +777,7 @@ namespace DreamTech.LiveOps.Editor
                 LaneTypeId = hit.LaneTypeId,
                 CursorTimeText = hit.TimeUtc.HasValue ? _services.Format.ShortDateTime(hit.TimeUtc.Value) : string.Empty,
                 HasCopiedEvent = _commandHandler.HasCopiedEvent,
+                IsLaneCollapsed = _presenter.IsLaneCollapsed(hit.LaneTypeId),
                 CanMoveLaneUp = _commandHandler.CanMoveLane(hit.LaneTypeId, MoveLaneIntent.Up),
                 CanMoveLaneDown = _commandHandler.CanMoveLane(hit.LaneTypeId, MoveLaneIntent.Down),
                 CanRevertToCompare = _commandHandler.CanRevertToCompare(hit.BarKey),
@@ -844,6 +854,11 @@ namespace DreamTech.LiveOps.Editor
                 case CalendarMenuItemId.OpenRule:
                     RaiseNavigation(LiveOpsHubNavigation.To(LiveOpsHubSections.Ids.RecurringRules)
                         .WithEventType(context.LaneTypeId, true));
+                    break;
+                case CalendarMenuItemId.ToggleLaneCollapsed:
+                    // Đi qua ý định của timeline chứ không gọi thẳng presenter: cùng một đường với mọi cử chỉ khác của trục,
+                    // nên test đọc được một chỗ duy nhất và ảnh chụp dựng lại được bằng chính intent đó (G-OPT-TIMELINE).
+                    _timeline?.RequestToggleLaneCollapsed(context.LaneTypeId, !context.IsLaneCollapsed);
                     break;
                 case CalendarMenuItemId.HideLane:
                     _commandHandler.HideLane(context.LaneTypeId);

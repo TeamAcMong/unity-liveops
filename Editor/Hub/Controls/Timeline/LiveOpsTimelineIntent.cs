@@ -15,6 +15,7 @@ namespace DreamTech.LiveOps.Editor
         private static readonly string[] IntentTypeNames =
         {
             nameof(SelectBarIntent),
+            nameof(SelectManyIntent),
             nameof(MoveBarIntent),
             nameof(AddAtTimeIntent),
             nameof(DeleteBarIntent),
@@ -27,6 +28,7 @@ namespace DreamTech.LiveOps.Editor
             nameof(HideLaneIntent),
             nameof(ShowAllLanesIntent),
             nameof(MoveLaneIntent),
+            nameof(ToggleLaneCollapsedIntent),
         };
 
         private protected LiveOpsTimelineIntent()
@@ -50,37 +52,101 @@ namespace DreamTech.LiveOps.Editor
 
     internal sealed class SelectBarIntent : LiveOpsTimelineIntent
     {
-        public SelectBarIntent(string barKey, bool additive, bool range)
+        /// <summary>
+        /// (G-OPT-TIMELINE) Chỉ còn khoá thanh. Hai cờ <c>additive</c>/<c>range</c> của W3 đã bỏ: từ khung 9, ⌘/Ctrl-click và
+        /// Shift-click phát <see cref="SelectManyIntent"/> kèm CẢ tập, nên hai cờ đó không còn nơi nào đặt và không còn nơi nào
+        /// đọc — giữ lại là để một ý định nói dối rằng nó mang thông tin.
+        /// </summary>
+        public SelectBarIntent(string barKey)
         {
             BarKey = barKey ?? string.Empty;
-            Additive = additive;
-            Range = range;
         }
 
         /// <summary>"" = bỏ chọn (bấm chỗ trống).</summary>
         public string BarKey { get; }
+    }
 
-        /// <summary>⌘/Ctrl + click: bật tắt từng thanh.</summary>
-        public bool Additive { get; }
+    /// <summary>
+    /// (G-OPT-TIMELINE) Lựa chọn NHIỀU thanh sau ⌘/Ctrl-click, Shift-click chọn dải hoặc khung chọn kéo trên chỗ trống
+    /// (Hình 12 khung 9). Mang cả TẬP kết quả chứ không mang thao tác ("thêm khoá này"), để presenter không phải dựng lại luật
+    /// bật tắt lần thứ hai và test đọc thẳng được tập cuối cùng.
+    /// </summary>
+    internal sealed class SelectManyIntent : LiveOpsTimelineIntent
+    {
+        private static readonly string[] EmptyKeys = new string[0];
 
-        /// <summary>Shift + click: chọn dải trong làn.</summary>
-        public bool Range { get; }
+        public SelectManyIntent(IReadOnlyList<string> barKeys, string primaryBarKey)
+        {
+            BarKeys = barKeys ?? EmptyKeys;
+            PrimaryBarKey = primaryBarKey ?? string.Empty;
+        }
+
+        /// <summary>Tập thanh đang chọn sau thao tác, theo thứ tự trên trục; rỗng = bỏ chọn hết.</summary>
+        public IReadOnlyList<string> BarKeys { get; }
+
+        /// <summary>Thanh vừa chạm tới — neo của lần Shift-click sau và là thanh inspector lấy làm mốc; "" khi tập rỗng.</summary>
+        public string PrimaryBarKey { get; }
+    }
+
+    /// <summary>(G-OPT-TIMELINE, Hình 12 khung 12) Thu gọn / mở một làn; presenter giữ danh sách trong view state như làn ẩn.</summary>
+    internal sealed class ToggleLaneCollapsedIntent : LiveOpsTimelineIntent
+    {
+        public ToggleLaneCollapsedIntent(string typeId, bool collapsed)
+        {
+            TypeId = typeId ?? string.Empty;
+            Collapsed = collapsed;
+        }
+
+        public string TypeId { get; }
+
+        /// <summary>true = thu gọn làn, false = mở lại.</summary>
+        public bool Collapsed { get; }
+    }
+
+    /// <summary>(G-OPT-TIMELINE) Một đợt bị kéo theo: giờ mới của đợt PHÍA SAU khi giữ Shift lúc đang kéo.</summary>
+    internal sealed class LiveOpsTimelineBarMove
+    {
+        public LiveOpsTimelineBarMove(string barKey, DateTime newStartUtc, DateTime newEndUtc)
+        {
+            BarKey = barKey ?? string.Empty;
+            NewStartUtc = newStartUtc;
+            NewEndUtc = newEndUtc;
+        }
+
+        public string BarKey { get; }
+        public DateTime NewStartUtc { get; }
+        public DateTime NewEndUtc { get; }
     }
 
     internal sealed class MoveBarIntent : LiveOpsTimelineIntent
     {
         public MoveBarIntent(string barKey, DateTime newStartUtc, DateTime newEndUtc, LiveOpsTimelineGesturePhase phase)
+            : this(barKey, newStartUtc, newEndUtc, phase, false)
+        {
+        }
+
+        public MoveBarIntent(string barKey, DateTime newStartUtc, DateTime newEndUtc, LiveOpsTimelineGesturePhase phase,
+            bool followsLaterEvents)
         {
             BarKey = barKey ?? string.Empty;
             NewStartUtc = newStartUtc;
             NewEndUtc = newEndUtc;
             Phase = phase;
+            FollowsLaterEvents = followsLaterEvents;
         }
 
         public string BarKey { get; }
         public DateTime NewStartUtc { get; }
         public DateTime NewEndUtc { get; }
         public LiveOpsTimelineGesturePhase Phase { get; }
+
+        /// <summary>
+        /// (G-OPT-TIMELINE) Người dùng đang giữ Shift giữa cử chỉ kéo: đợt phía sau phải đi theo. Intent chỉ mang CỜ, không mang
+        /// danh sách đợt — control chỉ dựng thanh cho đợt giao với khoảng đang xem, nên một danh sách lấy từ thanh sẽ thiếu đúng
+        /// những đợt nằm ngoài khung nhìn và cùng một cử chỉ dời được nhiều hay ít tuỳ mức zoom. Tập thật do presenter tính từ
+        /// tài liệu lúc bắt đầu kéo, và vẫn gộp vào MỘT bước Undo cùng đợt đang kéo.
+        /// </summary>
+        public bool FollowsLaterEvents { get; }
         public bool IsPreview => Phase == LiveOpsTimelineGesturePhase.Preview;
         public bool IsCommit => Phase == LiveOpsTimelineGesturePhase.Commit;
         public bool IsCancel => Phase == LiveOpsTimelineGesturePhase.Cancel;

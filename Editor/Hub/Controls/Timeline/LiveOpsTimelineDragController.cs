@@ -31,6 +31,9 @@ namespace DreamTech.LiveOps.Editor
 
         private readonly List<string> _willDropBarKeys = new List<string>();
         private readonly List<(DateTime startUtc, DateTime endUtc)> _previewOverlaps = new List<(DateTime startUtc, DateTime endUtc)>();
+        private readonly List<LiveOpsTimelineBarMove> _followerMoves = new List<LiveOpsTimelineBarMove>();
+        private readonly Dictionary<string, (DateTime startUtc, DateTime endUtc)> _followerRanges =
+            new Dictionary<string, (DateTime startUtc, DateTime endUtc)>(StringComparer.Ordinal);
 
         private LiveOpsTimelineLaneModel _lane;
         private LiveOpsTimelineGeometry _geometry;
@@ -56,6 +59,20 @@ namespace DreamTech.LiveOps.Editor
 
         /// <summary>Đã vượt ngưỡng 4px — từ đây mới có Preview; thả trước ngưỡng là một cú bấm.</summary>
         public bool IsDragging { get; private set; }
+
+        /// <summary>
+        /// (G-OPT-TIMELINE, [FD §2 bảng phím]) Shift nhấn SAU khi đã bắt đầu kéo: mọi đợt cố định bắt đầu từ mép cuối GỐC trở đi
+        /// trong cùng làn dời theo đúng khoảng vừa dời. Shift giữ LÚC NHẤN chuột là chọn dải — hai việc khác nhau, nên cờ này do
+        /// element bật/tắt ở từng bước di chuột chứ không đọc lúc bắt đầu cử chỉ.
+        /// </summary>
+        public bool FollowLaterEvents { get; set; }
+
+        /// <summary>
+        /// Đợt bị kéo theo ở bước xem trước hiện hành; rỗng khi không giữ Shift hoặc chưa dời được giờ nào. Đây là tập để VẼ:
+        /// nó chỉ gồm đợt có thanh trong khung nhìn, vì ngoài khung nhìn thì không có gì để vẽ. Tập thật sự được ghi vào tài liệu
+        /// do presenter tính từ tài liệu (xem <see cref="MoveBarIntent.FollowsLaterEvents"/>).
+        /// </summary>
+        public IReadOnlyList<LiveOpsTimelineBarMove> FollowerMoves => _followerMoves;
 
         public string BarKey { get; private set; } = string.Empty;
         public string LaneTypeId { get; private set; } = string.Empty;
@@ -138,7 +155,15 @@ namespace DreamTech.LiveOps.Editor
         /// <summary>Chuột di chuyển; Alt giữ = bỏ bắt lưới. Trả true khi vừa phát một Preview (vượt ngưỡng và giờ xem trước đổi).</summary>
         public bool Move(float trackPosition, bool disableSnap)
         {
+            return Move(trackPosition, disableSnap, FollowLaterEvents);
+        }
+
+        /// <summary>Như trên, kèm trạng thái Shift của bước di chuột này (G-OPT-TIMELINE: Shift giữa chừng = kéo theo đợt sau).</summary>
+        public bool Move(float trackPosition, bool disableSnap, bool followLaterEvents)
+        {
             if (!IsActive) return false;
+            bool followChanged = FollowLaterEvents != followLaterEvents;
+            FollowLaterEvents = followLaterEvents;
             if (!IsDragging)
             {
                 if (Math.Abs(trackPosition - _pointerStartTrackPosition) < DragThreshold) return false;
@@ -174,9 +199,10 @@ namespace DreamTech.LiveOps.Editor
                     break;
             }
 
-            bool changed = start != PreviewStartUtc || end != PreviewEndUtc || !_hasRaisedPreview;
+            bool changed = start != PreviewStartUtc || end != PreviewEndUtc || !_hasRaisedPreview || followChanged;
             PreviewStartUtc = start;
             PreviewEndUtc = end;
+            ComputeFollowerMoves();
             ComputeOverlapPreview();
             if (!changed) return false;
             _hasRaisedPreview = true;
@@ -299,9 +325,48 @@ namespace DreamTech.LiveOps.Editor
         }
 
         /// <summary>
+        /// (G-OPT-TIMELINE) Đợt bị kéo theo khi giữ Shift giữa chừng: mọi đợt cố định chưa khép của làn bắt đầu từ mép cuối GỐC trở
+        /// đi, dời đúng bằng khoảng mép cuối vừa dời. Lấy mốc là mép cuối gốc (không phải mép cuối xem trước) để tập đợt kéo theo
+        /// đứng yên trong suốt cử chỉ — nếu không, kéo dài ra một chút là nuốt thêm đợt, kéo ngắn lại là nhả ra, và người dùng
+        /// không đoán nổi mình sắp dời những gì.
+        /// Chỉ dùng để VẼ xem trước (thanh mờ + vùng chồng giờ): <c>_lane.Bars</c> chỉ có đợt giao với khoảng đang xem, nên tập
+        /// này thiếu đợt ngoài khung nhìn. Lệnh sửa thật lấy tập từ tài liệu ở presenter — xem vá F-4 của cổng soát W6.
+        /// </summary>
+        private void ComputeFollowerMoves()
+        {
+            _followerMoves.Clear();
+            _followerRanges.Clear();
+            if (!FollowLaterEvents || _lane == null) return;
+            if (Gesture != DragGesture.MoveBody && Gesture != DragGesture.ResizeEnd) return;
+            long shiftTicks = (PreviewEndUtc - OriginalEndUtc).Ticks;
+            if (shiftTicks == 0L) return;
+            IReadOnlyList<LiveOpsTimelineBarModel> bars = _lane.Bars;
+            for (int index = 0; index < bars.Count; index++)
+            {
+                LiveOpsTimelineBarModel other = bars[index];
+                if (other.Source != LiveOpsTimelineBarSource.Fixed || other.IsEnded) continue;
+                if (string.Equals(other.BarKey, BarKey, StringComparison.Ordinal)) continue;
+                if (other.StartUtc < OriginalEndUtc) continue;
+                DateTime startUtc = LiveOpsTimelineGeometry.AddTicksClamped(other.StartUtc, shiftTicks);
+                DateTime endUtc = LiveOpsTimelineGeometry.AddTicksClamped(other.EndUtc, shiftTicks);
+                _followerMoves.Add(new LiveOpsTimelineBarMove(other.BarKey, startUtc, endUtc));
+                _followerRanges[other.BarKey] = (startUtc, endUtc);
+            }
+        }
+
+        /// <summary>Khoảng của một thanh khác ở bước xem trước: đã dời nếu nó nằm trong tập kéo theo, không thì giữ nguyên.</summary>
+        private (DateTime startUtc, DateTime endUtc) PreviewRangeOf(LiveOpsTimelineBarModel bar)
+        {
+            return _followerRanges.TryGetValue(bar.BarKey, out (DateTime startUtc, DateTime endUtc) moved)
+                ? moved
+                : (bar.StartUtc, bar.EndUtc);
+        }
+
+        /// <summary>
         /// Chồng giờ nếu thả ngay: khoảng xem trước so với từng thanh cố định khác của làn (dải không tính — chỉ đọc). Game giữ đợt bắt
         /// đầu sớm hơn nên bên bắt đầu muộn hơn "sẽ bị bỏ"; trùng giờ bắt đầu thì đợt đang kéo chịu thiệt (thứ tự trong tài liệu không
         /// đổi khi kéo, còn đợt đang có chỗ thì giữ chỗ).
+        /// Thanh nằm trong tập kéo theo được so ở chỗ MỚI của nó — không thì giữ Shift để đẩy cả dãy đi lại báo chồng giả.
         /// </summary>
         private void ComputeOverlapPreview()
         {
@@ -318,17 +383,18 @@ namespace DreamTech.LiveOps.Editor
                 LiveOpsTimelineBarModel other = bars[index];
                 if (other.Source != LiveOpsTimelineBarSource.Fixed) continue;
                 if (string.Equals(other.BarKey, BarKey, StringComparison.Ordinal)) continue;
-                if (other.EndUtc > other.StartUtc) intervals.Add((other.StartUtc, other.EndUtc));
+                (DateTime startUtc, DateTime endUtc) range = PreviewRangeOf(other);
+                if (range.endUtc > range.startUtc) intervals.Add((range.startUtc, range.endUtc));
 
-                DateTime overlapStart = other.StartUtc > PreviewStartUtc ? other.StartUtc : PreviewStartUtc;
-                DateTime overlapEnd = other.EndUtc < PreviewEndUtc ? other.EndUtc : PreviewEndUtc;
+                DateTime overlapStart = range.startUtc > PreviewStartUtc ? range.startUtc : PreviewStartUtc;
+                DateTime overlapEnd = range.endUtc < PreviewEndUtc ? range.endUtc : PreviewEndUtc;
                 if (overlapStart >= overlapEnd) continue;
                 if (overlapEnd - overlapStart > OverlapDuration)
                 {
                     OverlapDuration = overlapEnd - overlapStart;
                     OverlapWithEventId = other.EventId;
                 }
-                if (PreviewStartUtc < other.StartUtc) _willDropBarKeys.Add(other.BarKey);
+                if (PreviewStartUtc < range.startUtc) _willDropBarKeys.Add(other.BarKey);
                 else candidateDrops = true;
             }
             if (candidateDrops && BarKey.Length > 0) _willDropBarKeys.Add(BarKey);
@@ -363,7 +429,7 @@ namespace DreamTech.LiveOps.Editor
         {
             LiveOpsTimelineIntent intent = Gesture == DragGesture.Create
                 ? (LiveOpsTimelineIntent)new CreateByDragIntent(LaneTypeId, PreviewStartUtc, PreviewEndUtc, phase)
-                : new MoveBarIntent(BarKey, PreviewStartUtc, PreviewEndUtc, phase);
+                : new MoveBarIntent(BarKey, PreviewStartUtc, PreviewEndUtc, phase, FollowLaterEvents);
             IntentRaised?.Invoke(intent);
         }
 
@@ -396,6 +462,9 @@ namespace DreamTech.LiveOps.Editor
             LaneTypeId = string.Empty;
             _willDropBarKeys.Clear();
             _previewOverlaps.Clear();
+            _followerMoves.Clear();
+            _followerRanges.Clear();
+            FollowLaterEvents = false;
             OverlapWithEventId = string.Empty;
             OverlapDuration = TimeSpan.Zero;
             _lane = null;

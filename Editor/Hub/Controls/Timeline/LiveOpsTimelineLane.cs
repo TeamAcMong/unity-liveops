@@ -33,6 +33,10 @@ namespace DreamTech.LiveOps.Editor
         internal const float OverlapTopStripHeight = 3f;
         internal const float OverlapExtraHeight = 2f;
         internal const float LaneBottomPadding = 4f;
+
+        /// <summary>(G-OPT-TIMELINE, Hình 12 khung 12) Làn thu gọn cao 22px, dải 6px không nhãn — số đo của [SD1 §3.2].</summary>
+        internal const float CollapsedLaneHeight = 22f;
+        internal const float CollapsedBarHeight = 6f;
         internal const float DroppedTagGap = 4f;
         internal const float DroppedTagTopOffset = 2f;
         internal const float NextChipTopOffset = 5f;
@@ -91,7 +95,14 @@ namespace DreamTech.LiveOps.Editor
             ? LiveOpsTimelineGeometry.LanePaddingTopWithOverlap
             : LiveOpsTimelineGeometry.LanePaddingTop;
 
-        internal float LaneHeight => _lane == null ? 0f : PaddingTop + _lane.RowCount * LiveOpsTimelineGeometry.RowPitch + LaneBottomPadding;
+        internal float LaneHeight => _lane == null
+            ? 0f
+            : _lane.IsCollapsed
+                ? CollapsedLaneHeight
+                : PaddingTop + _lane.RowCount * LiveOpsTimelineGeometry.RowPitch + LaneBottomPadding;
+
+        /// <summary>Đỉnh của dải 6px trong làn thu gọn: căn giữa 22px nên mọi làn thu gọn có cùng đường tâm.</summary>
+        internal static float CollapsedBarTop => (CollapsedLaneHeight - CollapsedBarHeight) / 2f;
 
         /// <summary>Số thanh đang dùng trong pool (thanh thừa ẩn, không xoá để lần vẽ sau không cấp phát lại).</summary>
         internal int BarCount => _activeBarCount;
@@ -122,11 +133,13 @@ namespace DreamTech.LiveOps.Editor
             _previewOverlaps = null;
             EstimatedVertexCount = LiveOpsTimelineVertexBudget.EstimateLane(lane, geometry);
             EnableInClassList(LiveOpsHubClassNames.TimelineLaneRecurring, lane.IsRecurring);
+            EnableInClassList(LiveOpsHubClassNames.TimelineLaneCollapsed, lane.IsCollapsed);
             tooltip = lane.IsRecurring ? LiveOpsHubStrings.TimelineRecurringLaneTooltip : string.Empty;
             style.height = LaneHeight; // style-inline-allowed: 3
 
             BindBars(lane, geometry, format, tooltipOf);
-            BindOverlapLabels(lane.OverlapRanges, geometry);
+            // Làn thu gọn không còn 20px nào cho nhãn "chồng 12 giờ" — vùng chồng vẫn vẽ bằng nền, chữ thì để làn mở nói.
+            BindOverlapLabels(lane.IsCollapsed ? Array.Empty<(DateTime startUtc, DateTime endUtc)>() : lane.OverlapRanges, geometry);
             BindNextChip(lane, format, nowUtc);
             MarkDirtyRepaint();
         }
@@ -215,8 +228,11 @@ namespace DreamTech.LiveOps.Editor
                 // Thanh phải nằm trước chip "Đợt tới" và tag trong cây để tag vẽ trên thanh; Insert giữ thứ tự khi pool lớn dần.
                 if (bar.parent != this) Insert(index, bar);
                 LiveOpsTimelineBarModel model = bars[index];
-                float top = paddingTop + model.RowIndex * LiveOpsTimelineGeometry.RowPitch + LaneBottomPadding;
+                float top = lane.IsCollapsed
+                    ? CollapsedBarTop
+                    : paddingTop + model.RowIndex * LiveOpsTimelineGeometry.RowPitch + LaneBottomPadding;
                 bar.Bind(model, geometry, top, lane.ColorSlot, tooltipOf != null ? tooltipOf(model) : string.Empty, format);
+                bar.SetCollapsed(lane.IsCollapsed);
                 bar.EnableInClassList(LiveOpsHubClassNames.TimelineHidden, false);
             }
             for (int index = bars.Count; index < _bars.Count; index++) _bars[index].EnableInClassList(LiveOpsHubClassNames.TimelineHidden, true);
@@ -228,7 +244,9 @@ namespace DreamTech.LiveOps.Editor
         {
             _droppedTagByBarKey.Clear();
             int used = 0;
-            for (int index = 0; index < _activeBarCount; index++)
+            // Làn thu gọn chỉ cao 22px: tag "bị bỏ" cao 16 đặt tại top 10 sẽ thò xuống làn dưới. Dấu bị bỏ vẫn còn ở chip header
+            // và ở minimap, nên giấu tag là mất chữ chứ không mất tín hiệu.
+            for (int index = 0; _lane != null && !_lane.IsCollapsed && index < _activeBarCount; index++)
             {
                 LiveOpsTimelineBar bar = _bars[index];
                 bool willDrop = willDropBarKeys != null && willDropBarKeys.Contains(bar.Model.BarKey);
@@ -493,6 +511,13 @@ namespace DreamTech.LiveOps.Editor
             VisualElement nameRow = new VisualElement { pickingMode = PickingMode.Ignore };
             nameRow.AddToClassList(LiveOpsHubClassNames.TimelineLaneNameRow);
             Add(nameRow);
+            // (Hình 12 khung 12) Chevron gập đứng TRƯỚC swatch: nó nói trạng thái của cả làn, swatch chỉ nói màu loại.
+            Chevron = new VisualElement { pickingMode = PickingMode.Ignore };
+            Chevron.AddToClassList(LiveOpsHubClassNames.TimelineLaneChevron);
+            VisualElement chevronShape = new VisualElement { pickingMode = PickingMode.Ignore };
+            chevronShape.AddToClassList(LiveOpsHubClassNames.TimelineLaneChevronShape);
+            Chevron.Add(chevronShape);
+            nameRow.Add(Chevron);
             Swatch = new VisualElement { pickingMode = PickingMode.Ignore };
             Swatch.AddToClassList(LiveOpsHubClassNames.Swatch);
             Swatch.AddToClassList(LiveOpsHubClassNames.TimelineLaneSwatch);
@@ -535,6 +560,7 @@ namespace DreamTech.LiveOps.Editor
         }
 
         public LiveOpsTimelineLaneModel Model { get; private set; }
+        internal VisualElement Chevron { get; }
         internal VisualElement Swatch { get; }
         internal Label NameLabel { get; }
         internal Image LoopIcon { get; }
@@ -558,6 +584,8 @@ namespace DreamTech.LiveOps.Editor
             NameLabel.tooltip = NameLabel.text;
             LiveOpsHubStyle.SetEventColor(Swatch, lane.ColorSlot);
             Swatch.EnableInClassList(LiveOpsHubClassNames.TimelineHidden, isUntyped);
+            Chevron.EnableInClassList(LiveOpsHubClassNames.TimelineLaneChevronCollapsed, lane.IsCollapsed);
+            EnableInClassList(LiveOpsHubClassNames.TimelineLaneCollapsed, lane.IsCollapsed);
             LoopIcon.EnableInClassList(LiveOpsHubClassNames.TimelineHidden, !lane.IsRecurring);
             LoopIcon.tooltip = lane.IsRecurring ? LiveOpsHubStrings.TimelineRecurringLaneTooltip : string.Empty;
 

@@ -12,6 +12,7 @@ namespace DreamTech.LiveOps.Editor
     internal sealed class LiveOpsTimelineInput
     {
         private readonly HashSet<string> _hiddenLanes = new HashSet<string>(StringComparer.Ordinal);
+        private readonly HashSet<string> _collapsedLanes = new HashSet<string>(StringComparer.Ordinal);
 
         public LiveEventCalendarDocument Document { get; private set; }
 
@@ -31,7 +32,12 @@ namespace DreamTech.LiveOps.Editor
         public float TrackWidth { get; private set; }
         public IReadOnlyCollection<string> HiddenLanes => _hiddenLanes;
 
+        /// <summary>(G-OPT-TIMELINE, Hình 12 khung 12) Làn thu gọn — vẫn vẽ, nhưng cao 22px và thanh rút còn dải 6px không nhãn.</summary>
+        public IReadOnlyCollection<string> CollapsedLanes => _collapsedLanes;
+
         public bool IsLaneHidden(string typeId) => typeId != null && _hiddenLanes.Contains(typeId);
+
+        public bool IsLaneCollapsed(string typeId) => typeId != null && _collapsedLanes.Contains(typeId);
 
         public LiveOpsTimelineInput WithDocument(LiveEventCalendarDocument document)
         {
@@ -93,6 +99,21 @@ namespace DreamTech.LiveOps.Editor
             foreach (string typeId in typeIds)
             {
                 if (typeId != null) _hiddenLanes.Add(typeId);
+            }
+            return this;
+        }
+
+        /// <summary>
+        /// (Hình 12 khung 12) Làn thu gọn do presenter giữ trong view state, y như làn ẩn; thay toàn bộ danh sách cũ. Thu gọn KHÁC
+        /// ẩn: làn thu gọn vẫn có mặt trên trục nên người dùng thấy loại đó còn sống, chỉ là không chiếm 28px mỗi hàng phụ.
+        /// </summary>
+        public LiveOpsTimelineInput WithCollapsedLanes(IEnumerable<string> typeIds)
+        {
+            _collapsedLanes.Clear();
+            if (typeIds == null) return this;
+            foreach (string typeId in typeIds)
+            {
+                if (typeId != null) _collapsedLanes.Add(typeId);
             }
             return this;
         }

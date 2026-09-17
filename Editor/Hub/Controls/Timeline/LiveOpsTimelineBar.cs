@@ -56,6 +56,15 @@ namespace DreamTech.LiveOps.Editor
         public bool IsClippedStart { get; private set; }
         public bool IsClippedEnd { get; private set; }
 
+        /// <summary>
+        /// (G-OPT-TIMELINE, Hình 12 khung 12) Chiều cao thanh ĐANG vẽ: 20px thường, 6px trong làn thu gọn. Bắt chuột đọc số này
+        /// chứ không đọc hằng <c>BarHeight</c> — làn thu gọn cao 22px mà vẫn bắt theo 20px thì vùng bấm tràn sang làn dưới.
+        /// </summary>
+        internal float DrawnHeight { get; private set; } = LiveOpsTimelineGeometry.BarHeight;
+
+        /// <summary>Thanh đang ở làn thu gọn: USS rút cao còn 6px, giấu nhãn, icon và tay nắm.</summary>
+        internal bool IsCollapsed { get; private set; }
+
         internal VisualElement Stripe { get; }
         internal Image LoopIcon { get; }
         internal Image LockIcon { get; }
@@ -121,6 +130,14 @@ namespace DreamTech.LiveOps.Editor
 
             SetInteractionState(false, false, false);
             SetDragPreview(false, false);
+        }
+
+        /// <summary>(Hình 12 khung 12) Bật/tắt dạng dải 6px của làn thu gọn; gọi SAU <see cref="Bind"/> vì Bind đặt lại nhãn và icon.</summary>
+        internal void SetCollapsed(bool collapsed)
+        {
+            IsCollapsed = collapsed;
+            DrawnHeight = collapsed ? LiveOpsTimelineLane.CollapsedBarHeight : LiveOpsTimelineGeometry.BarHeight;
+            EnableInClassList(LiveOpsHubClassNames.TimelineBarCollapsed, collapsed);
         }
 
         /// <summary>Nhãn theo thuật toán barLabel [SD1 §3.5]; dải gom ghi "sky-race · 42 đợt · 20 giờ/ngày" khi đủ chỗ, không thì để trống (tooltip nói).</summary>
@@ -209,7 +226,7 @@ namespace DreamTech.LiveOps.Editor
 
         private bool IsInsideRow(float lanePosition)
         {
-            return lanePosition >= Top && lanePosition <= Top + LiveOpsTimelineGeometry.BarHeight;
+            return lanePosition >= Top && lanePosition <= Top + DrawnHeight;
         }
 
         private VisualElement CreatePart(string className)
