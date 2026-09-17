@@ -100,7 +100,7 @@ var store = new PlayerPrefsLiveOpsTextStore();                                  
 var serverClock = new SyncedLiveOpsClock(new HttpDateHeaderServerTimeSource(cdnUrl), store);
 var clock = new OffsetLiveOpsClock(serverClock);                                 // tua giờ bằng cheat
 
-// Remote config trống → lịch trong asset; đọc được → lịch remote. Một nhánh cho cả hai nguồn.
+// Remote config trống HOẶC hỏng → lịch trong asset; đọc được → lịch remote. Một nhánh cho cả hai nguồn.
 LiveEventCalendarParseResult calendarResult =
     JsonLiveEventCalendarParser.ParseOrDefault(remoteConfigJson, mainCalendarAsset);
 
@@ -227,8 +227,13 @@ Key là dữ liệu trong asset (field `remoteConfigKey`, mặc định `liveops
 
 | Chính sách | Người chơi thấy gì | Đánh đổi |
 |---|---|---|
-| `KeepRemoteResult` (**mặc định**, đúng hành vi 0.1.0) | lịch rỗng + một `Problem` | không thấy đợt mới mở; đợt đang chạy vẫn khép theo giờ đã lưu và vẫn phát quà |
-| `UseDefaultCalendar` | lịch trong asset + một `Problem` | vẫn có event, đổi lại lịch trong build có thể **cũ hơn** bản đã đăng: đợt đã gỡ mở lại, id đổi thì mất tiến độ |
+| `UseDefaultCalendar` (**mặc định từ 0.2.0**) | lịch trong asset + một `Problem` | vẫn có event, đổi lại lịch trong build có thể **cũ hơn** bản đã đăng: đợt đã gỡ mở lại, id đổi thì mất tiến độ |
+| `KeepRemoteResult` (hành vi 0.1.0, nay phải **chọn tay**) | lịch rỗng + một `Problem` | không thấy đợt mới mở; đợt đang chạy vẫn khép theo giờ đã lưu và vẫn phát quà |
+
+> ⚠️ **ĐỔI HÀNH VI so với 0.1.0.** Ở 0.1.0 một bản remote hỏng làm lịch rỗng — cả game không đợt nào chạy. Từ 0.2.0,
+> `ParseOrDefault(json, asset)` dùng **lịch mặc định trong asset** và vẫn để lại `Problem` "JSON remote hỏng, dùng lịch
+> mặc định trong asset: …" để dev thấy. Game muốn giữ đúng cách cũ thì gọi overload ba tham số:
+> `ParseOrDefault(json, asset, LiveEventCalendarRemoteFailurePolicy.KeepRemoteResult)`.
 
 JSON **trống** thì luôn dùng lịch trong asset, không phụ thuộc chính sách. JSON đọc được nhưng có mục hỏng thì luôn dùng
 kết quả remote (mục hỏng bị bỏ + `Problems`) — package không bao giờ trộn hai nguồn, vì trộn sinh ra một lịch không ai

@@ -258,7 +258,8 @@ namespace DreamTech.LiveOps.Unity.Tests
             LiveEventCalendarParseResult explicitDefault =
                 JsonLiveEventCalendarParser.ParseOrDefault(brokenJson, asset, JsonLiveEventCalendarParser.DefaultRemoteFailurePolicy);
 
-            // Không khoá chính sách nào ở đây (Q-9 còn mở) — chỉ khoá rằng overload hai tham số đi đúng theo hằng.
+            // Không khoá chính sách nào ở đây — chính sách mặc định do LiveEventCalendarRemoteFailurePolicyTests khoá;
+            // test này chỉ khoá rằng overload hai tham số đi đúng theo hằng DefaultRemoteFailurePolicy.
             Assert.AreEqual(explicitDefault.CameFromDefaultCalendar, twoArgument.CameFromDefaultCalendar);
             Assert.AreEqual(explicitDefault.FormatVersion, twoArgument.FormatVersion);
             Assert.AreEqual(explicitDefault.Compilation.KeptCount, twoArgument.Compilation.KeptCount);

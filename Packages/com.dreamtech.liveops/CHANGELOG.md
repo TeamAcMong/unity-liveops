@@ -17,7 +17,8 @@ không đổi: `Parse`, `LiveOpsSystem` và mọi port của 0.1.0 giữ nguyên
 - `LiveOpsSystemBuilder.WithEventTypesFrom(asset, completionRuleForType, eligibilityForType)`: đăng ký mọi loại khai
   trong asset (`requiresJoin` → `ExplicitJoin`, còn lại `JoinOnFirstProgress`).
 - `JsonLiveEventCalendarParser.ParseOrDefault(json, asset[, policy])`: remote trống → lịch trong asset; remote hỏng →
-  theo `LiveEventCalendarRemoteFailurePolicy` (`KeepRemoteResult` mặc định = hành vi 0.1.0, hoặc `UseDefaultCalendar`).
+  theo `LiveEventCalendarRemoteFailurePolicy` (mặc định `UseDefaultCalendar` — xem mục **Changed**; hoặc chọn tay
+  `KeepRemoteResult` = đúng hành vi 0.1.0).
 
 **JSON định dạng 2**
 - Gốc `version` + `recurring` + `events`; luật lặp đổi được bằng remote config. Parser đọc cả định dạng 1 và 2, và đọc
@@ -60,9 +61,17 @@ không đổi: `Parse`, `LiveOpsSystem` và mọi port của 0.1.0 giữ nguyên
 - Hai bộ chữ đầy đủ **Tiếng Việt + English**, mặc định English; mọi chuỗi đọc qua catalog theo khoá.
 
 ### Changed
+- **ĐỔI HÀNH VI so với 0.1.0 (Q-9) — remote config có chữ nhưng hỏng.** `ParseOrDefault(json, asset)` ở 0.1.0 trả lịch
+  **rỗng**: một bản JSON hỏng làm cả game không đợt nào chạy. Từ 0.2.0 nó dùng **lịch mặc định trong asset** và vẫn
+  thêm `Problem` "JSON remote hỏng, dùng lịch mặc định trong asset: …" để dev thấy — không nuốt lỗi. Hằng
+  `JsonLiveEventCalendarParser.DefaultRemoteFailurePolicy` đổi từ `KeepRemoteResult` sang `UseDefaultCalendar`.
+  Giữ hành vi cũ: gọi overload ba tham số với `LiveEventCalendarRemoteFailurePolicy.KeepRemoteResult`. Hai trường hợp
+  còn lại **không đổi**: JSON trống vẫn dùng asset (không thêm `Problem`), JSON đọc được nhưng có mục hỏng vẫn luôn
+  dùng kết quả remote (không bao giờ trộn hai nguồn).
 - `package.json` thêm module `com.unity.modules.uielements` (hub dùng UI Toolkit).
-- `README.md`: thêm asset lịch, định dạng 2, `ParseOrDefault`, `CombinedCalendar`, `WithEventTypesFrom`, cách mở hub,
-  bảng 12 luật có anchor `#<rule-id>`, thứ tự nâng cấp "game 0.2.0 trước, JSON định dạng 2 sau".
+- `README.md`: thêm asset lịch, định dạng 2, `ParseOrDefault` + bảng hai chính sách (mục 4.4, có cảnh báo đổi hành vi),
+  `CombinedCalendar`, `WithEventTypesFrom`, cách mở hub, bảng 12 luật có anchor `#<rule-id>`, thứ tự nâng cấp
+  "game 0.2.0 trước, JSON định dạng 2 sau".
 - `Documentation/DESIGN_NOTES.md`: thêm 3.10–3.13 (vì sao của asset, định dạng 2, cách xử remote hỏng/về muộn, hub) và
   đổi §5 thành lộ trình D6.
 

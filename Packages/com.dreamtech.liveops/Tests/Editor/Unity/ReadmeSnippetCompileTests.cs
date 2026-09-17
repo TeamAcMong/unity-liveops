@@ -70,7 +70,7 @@ namespace DreamTech.LiveOps.Unity.Tests
             var serverClock = new SyncedLiveOpsClock(new HttpDateHeaderServerTimeSource(cdnUrl), store);
             var clock = new OffsetLiveOpsClock(serverClock);                                 // tua giờ bằng cheat
 
-            // Remote config trống → lịch trong asset; đọc được → lịch remote. Một nhánh cho cả hai nguồn.
+            // Remote config trống HOẶC hỏng → lịch trong asset; đọc được → lịch remote. Một nhánh cho cả hai nguồn.
             LiveEventCalendarParseResult calendarResult =
                 JsonLiveEventCalendarParser.ParseOrDefault(remoteConfigJson, mainCalendarAsset);
 

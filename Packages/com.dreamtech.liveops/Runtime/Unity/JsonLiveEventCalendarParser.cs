@@ -111,10 +111,13 @@ namespace DreamTech.LiveOps.Unity
     public static class JsonLiveEventCalendarParser
     {
         /// <summary>
-        /// Chính sách của overload hai tham số khi JSON remote có chữ nhưng hỏng. TẠM giữ hành vi 0.1.0 tới khi user chốt
-        /// Q-9 — đổi là đổi hằng này + test <c>TwoArgumentOverload_UsesDefaultPolicyConstant</c> + README + CHANGELOG.
+        /// Chính sách của overload hai tham số khi JSON remote có chữ nhưng hỏng. Từ 0.2.0 là
+        /// <see cref="LiveEventCalendarRemoteFailurePolicy.UseDefaultCalendar"/> (user chốt Q-9): một bản remote hỏng không
+        /// được làm cả game mất sạch event, vì "không đợt nào chạy" là hỏng nặng hơn "lịch trong build có thể cũ".
+        /// ĐỔI HÀNH VI so với 0.1.0 — game muốn giữ cách cũ thì gọi overload ba tham số với
+        /// <see cref="LiveEventCalendarRemoteFailurePolicy.KeepRemoteResult"/>.
         /// </summary>
-        public const LiveEventCalendarRemoteFailurePolicy DefaultRemoteFailurePolicy = LiveEventCalendarRemoteFailurePolicy.KeepRemoteResult;
+        public const LiveEventCalendarRemoteFailurePolicy DefaultRemoteFailurePolicy = LiveEventCalendarRemoteFailurePolicy.UseDefaultCalendar;
 
         /// <summary>Định dạng lớn nhất parser này hiểu trọn.</summary>
         private const int NewestKnownFormatVersion = 2;
@@ -226,7 +229,8 @@ namespace DreamTech.LiveOps.Unity
         }
 
         /// <summary>
-        /// (D1) JSON remote trống → lịch trong asset; JSON có chữ nhưng hỏng → theo <see cref="DefaultRemoteFailurePolicy"/>.
+        /// (D1) JSON remote trống → lịch trong asset; JSON có chữ nhưng hỏng → theo <see cref="DefaultRemoteFailurePolicy"/>
+        /// (0.2.0: cũng là lịch trong asset, kèm Problem nói remote hỏng — ĐỔI HÀNH VI so với 0.1.0, Q-9).
         /// </summary>
         public static LiveEventCalendarParseResult ParseOrDefault(string json, LiveEventCalendarAsset defaultCalendar)
         {

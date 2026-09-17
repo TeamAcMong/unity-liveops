@@ -123,20 +123,66 @@ namespace DreamTech.LiveOps.Unity.Tests
         [Test]
         public void TwoArgumentOverload_UsesDefaultPolicyConstant()
         {
-            // Q-9 chưa chốt: hằng TẠM là KeepRemoteResult (hành vi 0.1.0). Đổi mặc định = đổi hằng + test này + README + CHANGELOG.
-            Assert.AreEqual(LiveEventCalendarRemoteFailurePolicy.KeepRemoteResult, JsonLiveEventCalendarParser.DefaultRemoteFailurePolicy);
+            // Q-9 đã chốt (0.2.0): mặc định là UseDefaultCalendar — ĐỔI HÀNH VI so với 0.1.0. Đổi mặc định lần nữa = đổi
+            // hằng + test này + README + CHANGELOG (hai bản).
+            Assert.AreEqual(LiveEventCalendarRemoteFailurePolicy.UseDefaultCalendar, JsonLiveEventCalendarParser.DefaultRemoteFailurePolicy);
 
             LiveEventCalendarAsset asset = CreateDesignSampleAsset();
             LiveEventCalendarParseResult twoArgument = JsonLiveEventCalendarParser.ParseOrDefault(BrokenJson, asset);
-            LiveEventCalendarParseResult keepRemote =
-                JsonLiveEventCalendarParser.ParseOrDefault(BrokenJson, asset, LiveEventCalendarRemoteFailurePolicy.KeepRemoteResult);
+            LiveEventCalendarParseResult useDefaultCalendar =
+                JsonLiveEventCalendarParser.ParseOrDefault(BrokenJson, asset, LiveEventCalendarRemoteFailurePolicy.UseDefaultCalendar);
 
-            Assert.AreEqual(keepRemote.CameFromDefaultCalendar, twoArgument.CameFromDefaultCalendar);
-            Assert.AreSame(keepRemote.Calendar, twoArgument.Calendar);
-            CollectionAssert.AreEqual(keepRemote.Problems, twoArgument.Problems);
+            Assert.AreEqual(useDefaultCalendar.CameFromDefaultCalendar, twoArgument.CameFromDefaultCalendar);
+            Assert.AreEqual(useDefaultCalendar.FormatVersion, twoArgument.FormatVersion);
+            Assert.AreEqual(useDefaultCalendar.Compilation.KeptCount, twoArgument.Compilation.KeptCount);
+            CollectionAssert.AreEqual(useDefaultCalendar.Problems, twoArgument.Problems);
 
             Assert.Throws<ArgumentOutOfRangeException>(
                 () => JsonLiveEventCalendarParser.ParseOrDefault(BrokenJson, asset, (LiveEventCalendarRemoteFailurePolicy)99));
+        }
+
+        [Test]
+        public void TwoArgumentOverload_BrokenJson_UsesAssetCalendarAndStillReportsProblem()
+        {
+            // Khoá đúng hành vi user chốt ở Q-9, không chỉ khoá "đi theo hằng": người chơi vẫn thấy event của asset, và
+            // dev vẫn đọc được vì sao (không nuốt lỗi).
+            LiveEventCalendarAsset asset = CreateDesignSampleAsset();
+            LiveEventCalendarParseResult assetResult = asset.ToParseResult();
+            string readErrorText = JsonLiveEventCalendarParser.ParseDocument(BrokenJson).ReadErrorText;
+
+            LiveEventCalendarParseResult result = JsonLiveEventCalendarParser.ParseOrDefault(BrokenJson, asset);
+
+            Assert.IsTrue(result.CameFromDefaultCalendar);
+            CollectionAssert.AreEquivalent(EventIdsInSampleWindow(assetResult.CombinedCalendar), EventIdsInSampleWindow(result.CombinedCalendar),
+                "Mặc định 0.2.0: remote hỏng thì người chơi vẫn thấy đúng lịch trong build.");
+            Assert.IsNotEmpty(EventIdsInSampleWindow(result.CombinedCalendar), "Mẫu thiết kế phải có đợt trong cửa sổ — nếu rỗng thì test không chứng minh gì.");
+            Assert.AreEqual("JSON remote hỏng, dùng lịch mặc định trong asset: " + readErrorText, result.Problems[0]);
+
+            // Nhánh cũ vẫn chọn tay được và vẫn khác mặc định — giữ được cho game không muốn đổi hành vi khi bump package.
+            LiveEventCalendarParseResult keepRemote =
+                JsonLiveEventCalendarParser.ParseOrDefault(BrokenJson, asset, LiveEventCalendarRemoteFailurePolicy.KeepRemoteResult);
+            Assert.IsFalse(keepRemote.CameFromDefaultCalendar);
+            Assert.AreSame(FixedLiveEventCalendar.Empty, keepRemote.Calendar);
+            Assert.AreNotEqual(keepRemote.Problems[0], result.Problems[0], "Hai nhánh phải nói hai câu khác nhau.");
+        }
+
+        [Test]
+        public void TwoArgumentOverload_BlankJson_UsesAssetWithoutExtraProblem()
+        {
+            // Chuỗi trắng KHÔNG phải lỗi (remote chưa đăng / chưa fetch kịp): dùng asset như 0.1.0 và KHÔNG thêm Problem —
+            // để câu "JSON remote hỏng…" vẫn là dấu hiệu chắc chắn của một bản remote hỏng thật.
+            LiveEventCalendarAsset asset = CreateDesignSampleAsset();
+            LiveEventCalendarParseResult assetResult = asset.ToParseResult();
+
+            foreach (string blankJson in new[] { null, string.Empty, "   \n\t" })
+            {
+                LiveEventCalendarParseResult result = JsonLiveEventCalendarParser.ParseOrDefault(blankJson, asset);
+
+                Assert.IsTrue(result.CameFromDefaultCalendar, "blank=" + (blankJson ?? "null"));
+                CollectionAssert.AreEqual(assetResult.Problems, result.Problems, "blank=" + (blankJson ?? "null"));
+                CollectionAssert.AreEquivalent(EventIdsInSampleWindow(assetResult.CombinedCalendar), EventIdsInSampleWindow(result.CombinedCalendar),
+                    "blank=" + (blankJson ?? "null"));
+            }
         }
     }
 }
