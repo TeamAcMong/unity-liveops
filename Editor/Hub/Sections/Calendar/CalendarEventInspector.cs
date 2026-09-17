@@ -119,7 +119,7 @@ namespace DreamTech.LiveOps.Editor
 
             Button delete = new Button(() => _presenter.DeleteSelectedEvents())
             {
-                text = string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.TimelineMultiSelectDeleteButtonFormat, barKeys.Count),
+                text = LiveOpsHubStringCatalog.Format(nameof(LiveOpsHubStrings.TimelineMultiSelectDeleteButtonFormat), barKeys.Count),
             };
             delete.AddToClassList(LiveOpsHubClassNames.Button);
             delete.AddToClassList(LiveOpsHubClassNames.ButtonDanger);
@@ -138,8 +138,8 @@ namespace DreamTech.LiveOps.Editor
             }
             string laneText = eventTypes.Count == 1
                 ? eventTypes[0]
-                : string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.TimelineMultiSelectMixedTypesFormat, eventTypes.Count);
-            return string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.TimelineMultiSelectTitleFormat, barKeys.Count, laneText);
+                : LiveOpsHubStringCatalog.Format(nameof(LiveOpsHubStrings.TimelineMultiSelectMixedTypesFormat), eventTypes.Count);
+            return LiveOpsHubStringCatalog.Format(nameof(LiveOpsHubStrings.TimelineMultiSelectTitleFormat), barKeys.Count, laneText);
         }
 
         public void Refresh(string selectedBarKey)

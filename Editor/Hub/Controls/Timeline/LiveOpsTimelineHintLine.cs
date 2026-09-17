@@ -57,7 +57,7 @@ namespace DreamTech.LiveOps.Editor
             string actionKey = Application.platform == RuntimePlatform.OSXEditor
                 ? LiveOpsHubStrings.TimelineActionKeyMac
                 : LiveOpsHubStrings.TimelineActionKeyOther;
-            SetText(string.Empty, string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.TimelineHintMultiSelectedFormat,
+            SetText(string.Empty, LiveOpsHubStringCatalog.Format(nameof(LiveOpsHubStrings.TimelineHintMultiSelectedFormat),
                 selectionCount, laneText ?? string.Empty, actionKey));
         }
 

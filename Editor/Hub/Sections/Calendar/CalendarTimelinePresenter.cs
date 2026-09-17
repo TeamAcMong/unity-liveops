@@ -499,7 +499,7 @@ namespace DreamTech.LiveOps.Editor
             int count = CountMovableFollowers(beforeDocument, beforeEntry, intent);
             return count == 0
                 ? string.Empty
-                : string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.TimelineDragFollowersToastSuffixFormat, count);
+                : LiveOpsHubStringCatalog.Format(nameof(LiveOpsHubStrings.TimelineDragFollowersToastSuffixFormat), count);
         }
 
         private int CountMovableFollowers(LiveEventCalendarDocument beforeDocument, FixedLiveEventEntry beforeEntry,
@@ -534,9 +534,9 @@ namespace DreamTech.LiveOps.Editor
             if (edits.Count == 0) return false;
             // Truyền SỐ, không truyền chuỗi đã nướng dấu: dấu +/- do chính câu trong catalog định dạng, và luật số ít/số nhiều
             // tiếng Anh (Q-W5-2) cần đọc được tham số này như một số để chọn "hour" hay "hours".
-            string message = string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.TimelineMultiSelectShiftToastFormat,
+            string message = LiveOpsHubStringCatalog.Format(nameof(LiveOpsHubStrings.TimelineMultiSelectShiftToastFormat),
                 edits.Count, hours);
-            string undoneStepName = string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.TimelineMultiSelectShiftUndoStepFormat,
+            string undoneStepName = LiveOpsHubStringCatalog.Format(nameof(LiveOpsHubStrings.TimelineMultiSelectShiftUndoStepFormat),
                 edits.Count);
             return ApplyEdit(new CompositeCalendarEdit(edits), LiveOpsEditOperation.ChangeFixedEventTimes, _selectedBarKey, message,
                 string.Empty, undoneStepName);
@@ -554,8 +554,8 @@ namespace DreamTech.LiveOps.Editor
                 edits.Add(new RemoveFixedEventEdit(_selectedBarKeys[index]));
             }
             if (edits.Count == 0) return false;
-            string message = string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.TimelineMultiSelectDeleteToastFormat, edits.Count);
-            string undoneStepName = string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.TimelineMultiSelectDeleteUndoStepFormat,
+            string message = LiveOpsHubStringCatalog.Format(nameof(LiveOpsHubStrings.TimelineMultiSelectDeleteToastFormat), edits.Count);
+            string undoneStepName = LiveOpsHubStringCatalog.Format(nameof(LiveOpsHubStrings.TimelineMultiSelectDeleteUndoStepFormat),
                 edits.Count);
             if (!ApplyEdit(new CompositeCalendarEdit(edits), LiveOpsEditOperation.DeleteFixedEvent, _selectedBarKey, message,
                 string.Empty, undoneStepName))
