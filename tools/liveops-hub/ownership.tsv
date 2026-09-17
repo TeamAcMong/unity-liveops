@@ -217,7 +217,7 @@ file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubStrings.Shor
 file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubStrings.Timeline.cs	G-TIMELINE-VIEW,G-I18N,G-OPT-TIMELINE,G-CALENDAR-DEPTH	G-TIMELINE-VIEW vùng Timeline; G-OPT-TIMELINE vùng Timeline; G-I18N sửa (ngôn ngữ, W3.5); G-CALENDAR-DEPTH thêm chữ nợ D-3 (tag kiểm nhanh trong readout, gợi ý làn trống) — vùng Timeline trường strings đã mở ở V-34
 file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubStrings.TimelineModel.cs	G-TIMELINE-MODEL,G-I18N	G-TIMELINE-MODEL vùng TimelineModel; G-I18N sửa (ngôn ngữ, W3.5)
 file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubStrings.Validation.cs	G-VALIDATION,G-VALIDATION-DEPTH	G-VALIDATION vùng Validation; G-VALIDATION-DEPTH thêm hằng động từ nút Áp (V-34 nợ Findings)
-file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubStrings.ValidationDepth.cs	G-VALIDATION-DEPTH	G-VALIDATION-DEPTH vùng ValidationDepth
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubStrings.ValidationDepth.cs	G-VALIDATION-DEPTH,G-FIX-W6-1	G-VALIDATION-DEPTH vùng ValidationDepth; G-FIX-W6-1 thêm ValidationDepthIgnoredMetaWithTagFormat cho nhánh có-tag (Q-W5-4 — lệch kỹ thuật tự duyệt theo uỷ quyền user 15/9: 10.3 chỉ liệt ValidationViewModel.cs vì chưa lường khuôn meta thứ hai)
 file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubStrings.cs	G-SKELETON,G-I18N	G-SKELETON tạo; G-I18N sửa (ngôn ngữ, W3.5)
 file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubStyle.cs	G-HUBBASE	G-HUBBASE tạo
 file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/PipelineStage.cs	G-HUBBASE	G-HUBBASE tạo
@@ -508,7 +508,7 @@ file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Sections/CalendarContextMen
 file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Sections/CalendarDeleteFlowTests.cs	G-CALENDAR	G-CALENDAR tạo
 file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Sections/CalendarDepthTests.cs	G-CALENDAR-DEPTH,G-FIX-W6-1	G-CALENDAR-DEPTH tạo; G-FIX-W6-1 test hai bề mặt sau khi kéo đợt (Q-W5-5)
 file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Sections/CalendarInspectorModelTests.cs	G-CALENDAR	G-CALENDAR tạo
-file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Sections/CalendarPresenterTests.cs	G-CALENDAR	G-CALENDAR tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Sections/CalendarPresenterTests.cs	G-CALENDAR,G-FIX-W6-1	G-CALENDAR tạo; G-FIX-W6-1 sửa assert ghim LUẬT CŨ "tên bước Undo trùng câu toast" — Q-W5-5 đổi chính luật đó (lệch kỹ thuật tự duyệt theo uỷ quyền user 15/9: đổi hành vi mà không sửa test ghim hành vi cũ là để lại test đỏ)
 file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Sections/CalendarSectionTests.cs	G-CALENDAR	G-CALENDAR tạo
 file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Sections/EventTypesModelTests.cs	G-EVENTTYPES	G-EVENTTYPES tạo
 file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Sections/EventTypesSectionTests.cs	G-EVENTTYPES	G-EVENTTYPES tạo
@@ -546,7 +546,7 @@ file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Services/PublishStateTests.
 file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Services/RemoteSnapshotTests.cs	G-SESSION	G-SESSION tạo
 file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Services/SectionBusTests.cs	G-HUBKIT	G-HUBKIT tạo
 file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Services/TestAdaptersTests.cs	G-HUBKIT,G-FIX-W1-2,G-PASTE	G-HUBKIT tạo; G-FIX-W1-2 thêm test ReadBackDocument (C-1); G-PASTE được bỏ hai test Interim_* cùng tham chiếu action tạm (C-3, V-20)
-file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Services/ToastModelTests.cs	G-HUBKIT,G-FIX-W4-2	G-HUBKIT tạo; G-FIX-W4-2 thêm test tên bước sau Hoàn tác (phiếu D-5)
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Services/ToastModelTests.cs	G-HUBKIT,G-FIX-W4-2,G-FIX-W6-1	G-HUBKIT tạo; G-FIX-W4-2 thêm test tên bước sau Hoàn tác (phiếu D-5); G-FIX-W6-1 sửa assert ghim luật cũ UndoGroupName = Message (Q-W5-5 — lệch kỹ thuật tự duyệt theo uỷ quyền user 15/9)
 file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Shell/HubDiskConflictTests.cs	G-SHELLPOLISH	G-SHELLPOLISH tạo
 file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Shell/HubHostIntegrationTests.cs	G-HOSTUI,G-FIX-W4-2	G-HOSTUI tạo; G-FIX-W4-2 thêm test lớp nội dung của bus (phiếu D-6)
 file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Shell/HubLayoutTests.cs	G-SHELL	G-SHELL tạo; NarrowRail_Is36px KHÔNG ở đây — sang HubNarrowTests (V-21 CC-SHELL-2)

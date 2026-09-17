@@ -217,6 +217,24 @@ namespace DreamTech.LiveOps.Editor.Tests
             Assert.AreEqual("value-E", _target.Key, "bấm nút cũ không gỡ E, không làm lại F");
         }
 
+        /// <summary>
+        /// Q-W5-5 (user chốt 17/9/2026): toast giữ CÂU DÀI trên nhãn của nó, còn tên bước Undo là CÂU NGẮN của thiết kế
+        /// [SD1 §3.4]. Một model, hai câu — view không tự rút và cũng không tự nối.
+        /// </summary>
+        [Test]
+        [Category(LiveOpsHubTestCategories.Logic)]
+        public void Toast_KeepsLongSentence_WhileUndoGroupNameIsShortStep()
+        {
+            const string shortStep = "Đổi lava-quest-2026-09b";
+            LiveOpsToastModel model = LiveOpsToastModel.ForEdit(MoveMessage, 21, undoneStepName: shortStep);
+
+            _toast.Show(model);
+
+            Assert.AreEqual(MoveMessage, _toast.MessageLabel.text, "toast in câu dài đủ trước/sau");
+            Assert.AreEqual(shortStep, model.UndoGroupName, "Undo History đọc câu ngắn của thiết kế");
+            Assert.AreNotEqual(model.UndoGroupName, _toast.MessageLabel.text, "hai chỗ, hai câu");
+        }
+
         [Test]
         [Category(LiveOpsHubTestCategories.Logic)]
         public void Toast_NewReplacesOld()

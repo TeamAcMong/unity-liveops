@@ -10,7 +10,7 @@ namespace DreamTech.LiveOps.Editor.Tests
     public sealed class ToastModelTests
     {
         [Test]
-        public void ForEdit_UndoGroupNameEqualsMessage_TooltipFallsBackToMessage()
+        public void ForEdit_UndoGroupNameFallsBackToMessage_TooltipFallsBackToMessage()
         {
             LiveOpsToastModel toast = LiveOpsToastModel.ForEdit("Đã xoá đợt hunt-0916-bonus", 42);
 
@@ -69,7 +69,9 @@ namespace DreamTech.LiveOps.Editor.Tests
             Assert.AreEqual("Đã dời hunt-0916-bonus 17/9 00:00 → 18/9 12:00 UTC", toast.DisplayMessage, "chưa hoàn tác thì vẫn là câu toast");
             Assert.AreEqual("Đã hoàn tác: Dời hunt-0916-bonus", toast.AsUndone().DisplayMessage,
                 "[SD1 §3.8 khung 14] — không đọc hai lần \"Đã\" (phiếu D-5 của cổng W4)");
-            Assert.AreEqual(toast.Message, toast.UndoGroupName, "tên bước Undo vẫn là câu toast (8.5)");
+            // Q-W5-5 (user chốt 17/9/2026): Undo History đọc CÂU NGẮN, toast giữ câu dài — trái luật 8.5 cũ, user đã đồng ý.
+            Assert.AreEqual("Dời hunt-0916-bonus", toast.UndoGroupName, "tên bước Undo là câu ngắn của thiết kế (Q-W5-5)");
+            Assert.AreEqual("Dời hunt-0916-bonus", toast.StepName);
             Assert.AreEqual("Đã dời hunt-0916-bonus 17/9 00:00 → 18/9 12:00 UTC", toast.AsUndone().AsRedone().DisplayMessage);
         }
 
