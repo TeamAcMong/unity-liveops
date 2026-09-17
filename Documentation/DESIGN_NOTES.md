@@ -115,7 +115,8 @@ cảnh báo đã bỏ qua. Hệ quả chọn có chủ đích:
 - **Giờ lưu nguyên văn chuỗi ISO** (PD-2), chu kỳ/thời gian chạy lưu số nguyên giờ. Một đợt gõ nhầm `"2026-10-3"` phải
   còn nguyên trong asset, trong JSON và trong danh sách lỗi — chuẩn hoá sớm là giấu mất lỗi của designer. Cũng tránh
   `DateTime` `Kind = Local` lọt vào dữ liệu.
-- **Asset là lịch mặc định khi remote trống** (`ParseOrDefault`), nên game mới cài chưa kịp fetch vẫn có event.
+- **Asset là lịch mặc định khi remote trống hoặc không dùng được** (`ParseOrDefault`), nên game mới cài chưa kịp fetch,
+  hoặc gặp một bản remote hỏng, vẫn có event. Chi tiết hai ca "không dùng được" ở §3.12.
 
 ### 3.11 JSON định dạng 2 và bộ ghi viết tay (D2, PD-6)
 
@@ -140,12 +141,17 @@ cảnh báo đã bỏ qua. Hệ quả chọn có chủ đích:
 
 Hai tình huống khác nhau, hai cách xử khác nhau — cả hai đều **không** đoán thay game:
 
-- **JSON có chữ nhưng hỏng.** `LiveEventCalendarRemoteFailurePolicy` là enum chứ không phải `bool`, để người đọc code
-  thấy ngay hệ quả và để thêm cách thứ ba sau này mà không đổi chữ ký. Mặc định ở 0.2.0 là `UseDefaultCalendar`
-  (user chốt Q-9): đổi mặc định **là đổi hành vi** khi game chỉ bump package, nhưng "một bản remote hỏng làm cả game
-  không đợt nào chạy" là hỏng nặng hơn "lịch trong build có thể cũ hơn bản đã đăng" — và cái sau còn tự lành ở lần
-  đăng tiếp theo. Bản hỏng vẫn để lại `Problem` nên dev không mất dấu; game nào cần đúng cách cũ thì gọi overload ba
-  tham số với `KeepRemoteResult`.
+- **JSON có chữ nhưng không dùng được.** `LiveEventCalendarRemoteFailurePolicy` là enum chứ không phải `bool`, để
+  người đọc code thấy ngay hệ quả và để thêm cách thứ ba sau này mà không đổi chữ ký. Mặc định là `UseDefaultCalendar`
+  (user chốt Q-9): "một bản remote hỏng làm cả game không đợt nào chạy" là hỏng nặng hơn "lịch trong build có thể cũ
+  hơn bản đã đăng" — và cái sau còn tự lành ở lần đăng tiếp theo. Bản hỏng vẫn để lại `Problem` nên dev không mất dấu;
+  game nào cần đúng cách của `Parse` thì gọi overload ba tham số với `KeepRemoteResult`.
+  Đây là **mặc định của một API mới, không phải đổi hành vi của 0.1.0**: bản 0.1.0 chưa có `ParseOrDefault`, nên game
+  bump `0.1.0` → `0.2.0` không đổi gì; chỉ các bản dựng trước của nhánh `0.2.0` mới thấy khác.
+- **"Không dùng được" phải gồm cả JSON đúng cú pháp mà thiếu mảng lịch** (`{}`, gõ sai tên mảng). Nếu chỉ bắt ca
+  `JsonUtility` ném thì lời hứa trên thủng đúng ở ca dễ gặp nhất — một key remote config bị đặt sai giá trị vẫn làm cả
+  game trắng lịch. Ranh giới là **mảng có mặt hay không**: `"events": []` là designer cố ý gỡ hết đợt, luôn dùng kết quả
+  remote, kẻo không còn cách nào tắt sạch event từ xa.
 - **JSON đọc được nhưng có mục hỏng** thì LUÔN dùng kết quả remote, không bao giờ trộn với asset. Trộn hai nguồn sinh
   ra một lịch **không ai từng đăng** — không ai kiểm được nó.
 - **Remote về muộn (async).** 0.2.0 cố tình *không* thêm API đổi lịch giữa phiên (giữ luật "chỉ thêm API khi có thiết
