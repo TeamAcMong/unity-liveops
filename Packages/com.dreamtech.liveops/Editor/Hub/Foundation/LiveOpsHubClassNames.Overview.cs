@@ -14,6 +14,12 @@ namespace DreamTech.LiveOps.Editor
         /// <summary>Khối thân mặc định (4 card) — ẩn nguyên khối khi chưa có asset, để empty (a) thay CẢ thân [SD1 §1.2].</summary>
         internal const string OverviewDefaultBody = "liveops-hub-overview-default";
 
+        /// <summary>
+        /// ScrollView DỌC bọc thân mặc định (Q-W5-1, user chốt 17/9/2026). Có ở MỌI bề rộng, không gắn theo breakpoint: đổi
+        /// hành vi theo bề rộng là đẻ hai bố cục phải chụp và phải đo riêng.
+        /// </summary>
+        internal const string OverviewScroll = "liveops-hub-overview-scroll";
+
         /// <summary>Khoảng giãn trong card header, đẩy tab "Nháp | Bản đã đăng" sang phải.</summary>
         internal const string OverviewCardSpacer = "liveops-hub-overview-card-spacer";
 
