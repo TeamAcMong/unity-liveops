@@ -115,18 +115,35 @@ namespace DreamTech.LiveOps.Editor.Tests
             StringAssert.Contains(LaneTypeId, ItemOf(items, CalendarMenuItemId.AddForLane).Text);
         }
 
-        /// <summary>"Thu gọn / Mở làn" là việc của G-OPT-TIMELINE (W6): mục chưa có thật thì KHÔNG hiện, kể cả dạng disabled.</summary>
+        /// <summary>
+        /// (G-OPT-TIMELINE, W6) "Thu gọn / Mở làn" nay có thật và đứng ĐẦU menu header làn. Trước W6 test này khoá chiều ngược
+        /// lại ("chưa có thì không hiện") — mục đã làm xong nên câu khoá đổi theo, không phải nới ra.
+        /// </summary>
         [Test]
-        public void LaneHeaderMenu_HasNoCollapseItemBeforeOptTimeline()
+        public void LaneHeaderMenu_HasCollapseItemFirst()
         {
             IReadOnlyList<CalendarMenuItem> items = CalendarContextMenus.ForLaneHeader(FullContext());
 
             CollectionAssert.AreEqual(new[]
             {
-                CalendarMenuItemId.HideLane, CalendarMenuItemId.MoveLaneUp, CalendarMenuItemId.MoveLaneDown,
-                CalendarMenuItemId.ShowAllLanes, CalendarMenuItemId.None, CalendarMenuItemId.AddForLane,
-                CalendarMenuItemId.OpenEventTypes,
+                CalendarMenuItemId.ToggleLaneCollapsed, CalendarMenuItemId.HideLane, CalendarMenuItemId.MoveLaneUp,
+                CalendarMenuItemId.MoveLaneDown, CalendarMenuItemId.ShowAllLanes, CalendarMenuItemId.None,
+                CalendarMenuItemId.AddForLane, CalendarMenuItemId.OpenEventTypes,
             }, IdsOf(items));
+        }
+
+        /// <summary>Một mục, hai nhãn: làn đang mở đọc "Thu gọn làn", làn đã thu gọn đọc "Mở làn".</summary>
+        [Test]
+        public void LaneHeaderMenu_CollapseItemLabelFollowsLaneState()
+        {
+            CalendarMenuContext expanded = FullContext();
+            CalendarMenuContext collapsed = FullContext();
+            collapsed.IsLaneCollapsed = true;
+
+            Assert.AreEqual(LiveOpsHubStrings.TimelineMenuCollapseLane,
+                ItemOf(CalendarContextMenus.ForLaneHeader(expanded), CalendarMenuItemId.ToggleLaneCollapsed).Text);
+            Assert.AreEqual(LiveOpsHubStrings.TimelineMenuExpandLane,
+                ItemOf(CalendarContextMenus.ForLaneHeader(collapsed), CalendarMenuItemId.ToggleLaneCollapsed).Text);
         }
 
         [Test]

@@ -50,6 +50,9 @@ namespace DreamTech.LiveOps.Editor
         private readonly LiveOpsStateMark _readoutQuickCheckMark;
         private readonly Label _readoutQuickCheckText;
 
+        private readonly List<string> _selectedBarKeys = new List<string>();
+        private readonly VisualElement _marquee;
+
         private LiveOpsTimelineModel _model;
         private LiveOpsTimelineZoom _zoom = LiveOpsTimelineZoom.ThreeWeeks;
         private DateTime _rangeStartUtc;
@@ -65,6 +68,9 @@ namespace DreamTech.LiveOps.Editor
         private bool _cursorOnEmptyLane;
         private string _quickCheckTagText = string.Empty;
         private HealthState _quickCheckTagHealth = HealthState.Ok;
+        private bool _marqueeActive;
+        private bool _marqueePassedThreshold;
+        private Vector2 _marqueeOriginInOverlay;
         private bool _consumeNextHorizontalNavigation;
 
         public LiveOpsTimelineElement()
@@ -121,6 +127,17 @@ namespace DreamTech.LiveOps.Editor
             Readout.Add(_readoutQuickCheck);
             _overlay.Add(Readout);
 
+            // (Hình 12 khung 9) Khung chọn nằm trong lớp phủ, không trong làn: nó cắt ngang nhiều làn nên không thuộc làn nào cả.
+            _marquee = new VisualElement { pickingMode = PickingMode.Ignore };
+            _marquee.AddToClassList(LiveOpsHubClassNames.TimelineMarquee);
+            _marquee.AddToClassList(LiveOpsHubClassNames.TimelineHidden);
+            // Nền mờ 0,2 là một con riêng: `opacity` trong USS nhuộm cả element, nên nền và viền phải nằm ở hai element khác
+            // nhau thì viền 1px mới còn đục đúng như [SD1 §3.8 khung 9].
+            VisualElement marqueeFill = new VisualElement { pickingMode = PickingMode.Ignore };
+            marqueeFill.AddToClassList(LiveOpsHubClassNames.TimelineMarqueeFill);
+            _marquee.Add(marqueeFill);
+            _overlay.Add(_marquee);
+
             _ghost = new VisualElement { pickingMode = PickingMode.Ignore };
             _ghost.AddToClassList(LiveOpsHubClassNames.TimelineBarGhost);
 
@@ -174,6 +191,15 @@ namespace DreamTech.LiveOps.Editor
         public bool IsContinuousScale { get; private set; }
 
         public string SelectedBarKey => _selectedBarKey;
+
+        /// <summary>
+        /// (G-OPT-TIMELINE, Hình 12 khung 9) Cả TẬP thanh đang chọn, theo thứ tự đã chọn; <see cref="SelectedBarKey"/> là thanh
+        /// chạm sau cùng (neo của Shift-click và mốc của inspector). Một thanh = tập một phần tử, nên nơi gọi cũ không đổi gì.
+        /// </summary>
+        public IReadOnlyList<string> SelectedBarKeys => _selectedBarKeys;
+
+        /// <summary>Số thanh đang chọn — dùng cho dòng gợi ý và inspector; 0 khi không chọn gì.</summary>
+        public int SelectionCount => _selectedBarKeys.Count;
 
         /// <summary>Khoảng hoặc bề rộng track đổi — presenter dựng lại model với <c>WithRange(start, end)</c> + <c>WithTrackWidth(TrackWidth)</c>.</summary>
         public event Action<DateTime, DateTime> RangeChanged;
@@ -254,10 +280,44 @@ namespace DreamTech.LiveOps.Editor
         public void Select(string barKey, bool focus)
         {
             _selectedBarKey = barKey ?? string.Empty;
+            _selectedBarKeys.Clear();
+            if (_selectedBarKey.Length > 0) _selectedBarKeys.Add(_selectedBarKey);
             _keyboardFocusBarKey = focus ? _selectedBarKey : string.Empty;
             if (focus) Focus();
             ApplyBarStates();
             UpdateHintLine();
+        }
+
+        /// <summary>
+        /// (Hình 12 khung 9) Đặt cả tập chọn. <paramref name="primaryBarKey"/> là thanh chạm sau cùng; không nằm trong tập thì
+        /// lấy phần tử cuối, tập rỗng thì bỏ chọn. Không phát intent — nơi gọi (chuột, presenter) tự phát.
+        /// </summary>
+        internal void SelectMany(IReadOnlyList<string> barKeys, string primaryBarKey, bool focus)
+        {
+            _selectedBarKeys.Clear();
+            if (barKeys != null)
+            {
+                for (int index = 0; index < barKeys.Count; index++)
+                {
+                    string barKey = barKeys[index];
+                    if (!string.IsNullOrEmpty(barKey) && !_selectedBarKeys.Contains(barKey)) _selectedBarKeys.Add(barKey);
+                }
+            }
+            string primary = primaryBarKey ?? string.Empty;
+            if (primary.Length == 0 || !_selectedBarKeys.Contains(primary))
+            {
+                primary = _selectedBarKeys.Count > 0 ? _selectedBarKeys[_selectedBarKeys.Count - 1] : string.Empty;
+            }
+            _selectedBarKey = primary;
+            _keyboardFocusBarKey = focus ? primary : string.Empty;
+            if (focus) Focus();
+            ApplyBarStates();
+            UpdateHintLine();
+        }
+
+        internal bool IsSelected(string barKey)
+        {
+            return !string.IsNullOrEmpty(barKey) && _selectedBarKeys.Contains(barKey);
         }
 
         internal LiveOpsTimelineHit HitTest(Vector2 localPosition)
@@ -307,6 +367,13 @@ namespace DreamTech.LiveOps.Editor
             IntentRaised?.Invoke(new HideLaneIntent(typeId));
         }
 
+        /// <summary>(Hình 12 khung 12) Mục menu "Thu gọn / Mở làn" của header làn — presenter giữ danh sách làn thu gọn.</summary>
+        internal void RequestToggleLaneCollapsed(string typeId, bool collapsed)
+        {
+            if (string.IsNullOrEmpty(typeId)) return;
+            IntentRaised?.Invoke(new ToggleLaneCollapsedIntent(typeId, collapsed));
+        }
+
         internal void RequestShowAllLanes()
         {
             IntentRaised?.Invoke(new ShowAllLanesIntent());
@@ -340,6 +407,9 @@ namespace DreamTech.LiveOps.Editor
         internal VisualElement NowLine { get; }
         internal VisualElement CursorLine { get; }
         internal VisualElement Readout { get; }
+
+        /// <summary>(Hình 12 khung 9) Khung chọn đang kéo — test và kịch bản chụp đọc lại đúng hình đã vẽ.</summary>
+        internal VisualElement Marquee => _marquee;
         internal Label ReadoutText => _readoutText;
         internal Label ReadoutOverlap => _readoutOverlap;
 
@@ -482,7 +552,7 @@ namespace DreamTech.LiveOps.Editor
                     LiveOpsTimelineBar bar = row.Lane.BarAt(index);
                     string key = bar.Model.BarKey;
                     bool hover = key.Length > 0 && string.Equals(key, _hoverBarKey, StringComparison.Ordinal);
-                    bar.SetInteractionState(hover, key.Length > 0 && string.Equals(key, _selectedBarKey, StringComparison.Ordinal),
+                    bar.SetInteractionState(hover, IsSelected(key),
                         key.Length > 0 && string.Equals(key, _keyboardFocusBarKey, StringComparison.Ordinal));
                     row.Lane.SetDroppedTagHidden(key, hover);
                 }
@@ -507,6 +577,13 @@ namespace DreamTech.LiveOps.Editor
                     return;
                 }
             }
+            // (Hình 12 khung 9) Chọn nhiều: không có "đợt đang chọn" nào để nêu tên, nên gợi ý nói SỐ đợt, làn và hai phím làm
+            // ra tập đó — đúng câu trả lời cho "tôi đang giữ cái gì trong tay".
+            if (_selectedBarKeys.Count > 1)
+            {
+                HintLine.ShowMultiSelected(_selectedBarKeys.Count, MultiSelectionLaneText());
+                return;
+            }
             LiveOpsTimelineBar selected = FindBar(_selectedBarKey);
             if (selected == null)
             {
@@ -516,6 +593,22 @@ namespace DreamTech.LiveOps.Editor
             LiveOpsTimelineMinimapMark mark = MarkOf(selected.Model);
             string shortLabel = mark?.Finding != null ? LiveOpsFindingText.PlainText(LiveOpsFindingText.ShortLabel(mark.Finding)) : string.Empty;
             HintLine.ShowSelected(selected.Model, shortLabel);
+        }
+
+        /// <summary>Tên làn cho dòng gợi ý chọn nhiều: một loại thì nêu tên loại, nhiều loại thì nêu số loại.</summary>
+        private string MultiSelectionLaneText()
+        {
+            var laneTypeIds = new List<string>();
+            for (int index = 0; index < _selectedBarKeys.Count; index++)
+            {
+                LiveOpsTimelineBar bar = FindBar(_selectedBarKeys[index]);
+                if (bar == null) continue;
+                string typeId = bar.Model.EventType;
+                if (typeId.Length > 0 && !laneTypeIds.Contains(typeId)) laneTypeIds.Add(typeId);
+            }
+            if (laneTypeIds.Count == 1) return laneTypeIds[0];
+            return string.Format(System.Globalization.CultureInfo.InvariantCulture, LiveOpsHubStrings.TimelineMultiSelectMixedTypesFormat,
+                laneTypeIds.Count);
         }
 
         private LiveOpsTimelineLaneModel FindLaneModel(string typeId)
@@ -663,8 +756,19 @@ namespace DreamTech.LiveOps.Editor
                 IntentRaised?.Invoke(new OpenRuleIntent(model.EventType));
                 return;
             }
+            // (Hình 12 khung 9) ⌘/Ctrl bật tắt từng thanh, Shift chọn dải trong làn. Hai cử chỉ này KHÔNG mở cử chỉ kéo: người
+            // dùng đang gom tập chọn, một cú run tay 4px không được dời đợt vừa thêm vào tập.
+            if (pointerEvent.actionKey || pointerEvent.shiftKey)
+            {
+                List<string> nextSelection = pointerEvent.actionKey
+                    ? ToggledSelection(model.BarKey)
+                    : RangeSelection(row.Lane.Model, model.BarKey);
+                SelectMany(nextSelection, model.BarKey, false);
+                IntentRaised?.Invoke(new SelectManyIntent(nextSelection, model.BarKey));
+                return;
+            }
             Select(model.BarKey, false);
-            IntentRaised?.Invoke(new SelectBarIntent(model.BarKey, pointerEvent.actionKey, pointerEvent.shiftKey));
+            IntentRaised?.Invoke(new SelectBarIntent(model.BarKey));
             float trackPosition = row.Lane.WorldToLocal(pointerEvent.position).x;
             if (DragController.BeginBar(row.Lane.Model, row.Lane.Geometry, model, hit.BarRegion, trackPosition))
             {
@@ -689,11 +793,10 @@ namespace DreamTech.LiveOps.Editor
                 this.CapturePointer(pointerEvent.pointerId);
                 return;
             }
-            if (_selectedBarKey.Length > 0)
-            {
-                Select(string.Empty, false);
-                IntentRaised?.Invoke(new SelectBarIntent(string.Empty, false, false));
-            }
+            // (Hình 12 khung 9) Kéo trên chỗ trống = khung chọn. Mở cử chỉ ngay từ lúc nhấn nhưng chỉ VẼ sau ngưỡng 4px, để một
+            // cú bấm thường vẫn là bỏ chọn như trước (xử lý ở nhánh nhả chuột).
+            BeginMarquee(pointerEvent.position);
+            this.CapturePointer(pointerEvent.pointerId);
         }
 
         private void OnPointerMove(PointerMoveEvent pointerEvent)
@@ -704,12 +807,20 @@ namespace DreamTech.LiveOps.Editor
                 if (row == null) return;
                 float trackPosition = row.Lane.WorldToLocal(pointerEvent.position).x;
                 bool wasDragging = DragController.IsDragging;
-                DragController.Move(trackPosition, pointerEvent.altKey);
+                // Shift ở ĐÂY (bước di chuột) chứ không ở lúc nhấn: Shift lúc nhấn là chọn dải, Shift giữa chừng là kéo theo đợt sau.
+                DragController.Move(trackPosition, pointerEvent.altKey, pointerEvent.shiftKey);
                 if (DragController.IsDragging)
                 {
                     if (!wasDragging) UpdateHintLine();
                     RefreshDragVisuals();
                 }
+                pointerEvent.StopPropagation();
+                return;
+            }
+
+            if (_marqueeActive)
+            {
+                UpdateMarquee(pointerEvent.position);
                 pointerEvent.StopPropagation();
                 return;
             }
@@ -726,6 +837,13 @@ namespace DreamTech.LiveOps.Editor
 
         private void OnPointerUp(PointerUpEvent pointerEvent)
         {
+            if (_marqueeActive)
+            {
+                EndMarquee(true, pointerEvent.position);
+                if (this.HasPointerCapture(pointerEvent.pointerId)) this.ReleasePointer(pointerEvent.pointerId);
+                pointerEvent.StopPropagation();
+                return;
+            }
             if (!DragController.IsActive) return;
             // Kết thúc cử chỉ TRƯỚC khi trả capture: PointerCaptureOutEvent sau đó thấy không còn cử chỉ nên không phát Cancel.
             EndDrag(true);
@@ -735,7 +853,177 @@ namespace DreamTech.LiveOps.Editor
 
         private void OnPointerCaptureOut(PointerCaptureOutEvent captureEvent)
         {
+            if (_marqueeActive) EndMarquee(false, Vector2.zero);
             if (DragController.IsActive) EndDrag(false);
+        }
+
+        // ------------------------------------------------------------------------------------ khung chọn (Hình 12 khung 9)
+
+        private void BeginMarquee(Vector2 worldPosition)
+        {
+            _marqueeActive = true;
+            _marqueePassedThreshold = false;
+            _marqueeOriginInOverlay = _overlay.WorldToLocal(worldPosition);
+        }
+
+        private void UpdateMarquee(Vector2 worldPosition)
+        {
+            Vector2 current = _overlay.WorldToLocal(worldPosition);
+            float width = Math.Abs(current.x - _marqueeOriginInOverlay.x);
+            float height = Math.Abs(current.y - _marqueeOriginInOverlay.y);
+            if (!_marqueePassedThreshold && width < LiveOpsTimelineDragController.DragThreshold
+                && height < LiveOpsTimelineDragController.DragThreshold)
+            {
+                return;
+            }
+            _marqueePassedThreshold = true;
+            _marquee.style.left = Math.Min(_marqueeOriginInOverlay.x, current.x); // style-inline-allowed: 4
+            _marquee.style.top = Math.Min(_marqueeOriginInOverlay.y, current.y); // style-inline-allowed: 4
+            _marquee.style.width = width; // style-inline-allowed: 4
+            _marquee.style.height = height; // style-inline-allowed: 4
+            _marquee.EnableInClassList(LiveOpsHubClassNames.TimelineHidden, false);
+        }
+
+        /// <summary>
+        /// Thả khung chọn: chưa qua ngưỡng 4px thì đây là một cú bấm chỗ trống = bỏ chọn (hành vi W4 giữ nguyên); qua ngưỡng thì
+        /// chọn mọi thanh CHẠM khung. Dải gom không vào tập — nó không ánh xạ ra một đợt nào (V-22 CC-TLMODEL-1).
+        /// </summary>
+        /// <param name="commit">false = mất capture giữa chừng, khung tắt mà không đổi tập chọn.</param>
+        /// <param name="worldPosition">Vị trí con trỏ của CHÍNH sự kiện nhả chuột; bỏ qua khi <paramref name="commit"/> false.</param>
+        private void EndMarquee(bool commit, Vector2 worldPosition)
+        {
+            bool passedThreshold = _marqueePassedThreshold;
+            _marqueeActive = false;
+            _marqueePassedThreshold = false;
+            _marquee.EnableInClassList(LiveOpsHubClassNames.TimelineHidden, true);
+            if (!commit) return;
+            if (!passedThreshold)
+            {
+                if (_selectedBarKeys.Count == 0) return;
+                Select(string.Empty, false);
+                IntentRaised?.Invoke(new SelectBarIntent(string.Empty));
+                return;
+            }
+            List<string> inside = BarKeysInMarquee(MarqueeWorldRect(worldPosition));
+            SelectMany(inside, inside.Count > 0 ? inside[inside.Count - 1] : string.Empty, false);
+            IntentRaised?.Invoke(new SelectManyIntent(inside, SelectedBarKey));
+        }
+
+        /// <summary>
+        /// Hình world của khung chọn, dựng từ điểm neo và VỊ TRÍ CON TRỎ của sự kiện nhả chuột — không đọc
+        /// <c>_marquee.worldBound</c>. <c>worldBound</c> là kết quả của lần layout gần nhất: nếu PointerUp được bơm cùng lượt
+        /// với PointerMove cuối (chuyện thường gặp khi chuột đi nhanh, và là cách test bơm sự kiện), layout chưa chạy lại nên
+        /// tập chọn sẽ là tập của bước kéo TRƯỚC đó.
+        /// </summary>
+        private Rect MarqueeWorldRect(Vector2 worldPosition)
+        {
+            Vector2 current = _overlay.WorldToLocal(worldPosition);
+            Vector2 minimum = new Vector2(Math.Min(_marqueeOriginInOverlay.x, current.x),
+                Math.Min(_marqueeOriginInOverlay.y, current.y));
+            Vector2 maximum = new Vector2(Math.Max(_marqueeOriginInOverlay.x, current.x),
+                Math.Max(_marqueeOriginInOverlay.y, current.y));
+            Vector2 worldMinimum = _overlay.LocalToWorld(minimum);
+            Vector2 worldMaximum = _overlay.LocalToWorld(maximum);
+            return new Rect(worldMinimum, worldMaximum - worldMinimum);
+        }
+
+        /// <summary>
+        /// (Hình 12 khung 9) Vẽ khung chọn BAO quanh một tập thanh. <c>internal</c> chứ không <c>private</c> vì lượt chụp
+        /// batchmode không bắt được con trỏ thật (cùng lý do với <see cref="RefreshDragVisuals"/> và <see cref="SetCursor"/>):
+        /// đường của người dùng vẫn là kéo chuột trên chỗ trống, đường này chỉ dựng lại đúng hình mà cú kéo đó để lại.
+        /// </summary>
+        /// <param name="barKeys">Thanh phải nằm trong khung; rỗng hoặc không tìm thấy thanh nào thì khung tắt.</param>
+        /// <param name="margin">Lề quanh tập thanh, tính bằng pixel.</param>
+        internal void ShowMarqueeAroundBars(IReadOnlyList<string> barKeys, float margin)
+        {
+            bool hasBar = false;
+            float left = 0f;
+            float top = 0f;
+            float right = 0f;
+            float bottom = 0f;
+            for (int index = 0; barKeys != null && index < barKeys.Count; index++)
+            {
+                LiveOpsTimelineBar bar = FindBar(barKeys[index]);
+                if (bar == null) continue;
+                Rect world = bar.worldBound;
+                Vector2 minimum = _overlay.WorldToLocal(new Vector2(world.xMin, world.yMin));
+                Vector2 maximum = _overlay.WorldToLocal(new Vector2(world.xMax, world.yMax));
+                if (!hasBar)
+                {
+                    left = minimum.x;
+                    top = minimum.y;
+                    right = maximum.x;
+                    bottom = maximum.y;
+                    hasBar = true;
+                    continue;
+                }
+                left = Math.Min(left, minimum.x);
+                top = Math.Min(top, minimum.y);
+                right = Math.Max(right, maximum.x);
+                bottom = Math.Max(bottom, maximum.y);
+            }
+            _marquee.EnableInClassList(LiveOpsHubClassNames.TimelineHidden, !hasBar);
+            if (!hasBar) return;
+            _marquee.style.left = left - margin; // style-inline-allowed: 4
+            _marquee.style.top = top - margin; // style-inline-allowed: 4
+            _marquee.style.width = right - left + margin * 2f; // style-inline-allowed: 4
+            _marquee.style.height = bottom - top + margin * 2f; // style-inline-allowed: 4
+        }
+
+        private List<string> BarKeysInMarquee(Rect marqueeWorld)
+        {
+            var keys = new List<string>();
+            foreach (LaneRow row in _rows)
+            {
+                if (!row.IsActive) continue;
+                for (int index = 0; index < row.Lane.BarCount; index++)
+                {
+                    LiveOpsTimelineBar bar = row.Lane.BarAt(index);
+                    if (bar.Model == null || bar.Model.IsStrip) continue;
+                    if (bar.ClassListContains(LiveOpsHubClassNames.TimelineHidden)) continue;
+                    if (!marqueeWorld.Overlaps(bar.worldBound)) continue;
+                    if (!keys.Contains(bar.Model.BarKey)) keys.Add(bar.Model.BarKey);
+                }
+            }
+            return keys;
+        }
+
+        /// <summary>⌘/Ctrl-click: thanh đã có trong tập thì bỏ ra, chưa có thì thêm vào cuối.</summary>
+        private List<string> ToggledSelection(string barKey)
+        {
+            var next = new List<string>(_selectedBarKeys);
+            if (!next.Remove(barKey)) next.Add(barKey);
+            return next;
+        }
+
+        /// <summary>
+        /// Shift-click: chọn DẢI trong cùng một làn, từ thanh neo (thanh chạm gần nhất) tới thanh vừa bấm, theo thứ tự thời gian.
+        /// Neo không nằm trong làn này (hoặc chưa chọn gì) thì dải rút về đúng một thanh — không nối ngang qua hai làn, vì hai
+        /// làn là hai loại event và "dải" giữa chúng không có nghĩa nào cả.
+        /// </summary>
+        private List<string> RangeSelection(LiveOpsTimelineLaneModel lane, string barKey)
+        {
+            var ordered = new List<LiveOpsTimelineBarModel>();
+            IReadOnlyList<LiveOpsTimelineBarModel> bars = lane.Bars;
+            for (int index = 0; index < bars.Count; index++)
+            {
+                if (!bars[index].IsStrip) ordered.Add(bars[index]);
+            }
+            ordered.Sort((left, right) => left.StartUtc.CompareTo(right.StartUtc));
+            int anchorIndex = -1;
+            int clickedIndex = -1;
+            for (int index = 0; index < ordered.Count; index++)
+            {
+                if (string.Equals(ordered[index].BarKey, _selectedBarKey, StringComparison.Ordinal)) anchorIndex = index;
+                if (string.Equals(ordered[index].BarKey, barKey, StringComparison.Ordinal)) clickedIndex = index;
+            }
+            if (clickedIndex < 0) return new List<string> { barKey };
+            if (anchorIndex < 0) anchorIndex = clickedIndex;
+            int first = Math.Min(anchorIndex, clickedIndex);
+            int last = Math.Max(anchorIndex, clickedIndex);
+            var keys = new List<string>();
+            for (int index = first; index <= last; index++) keys.Add(ordered[index].BarKey);
+            return keys;
         }
 
         private void OnPointerLeave(PointerLeaveEvent leaveEvent)
@@ -850,6 +1138,20 @@ namespace DreamTech.LiveOps.Editor
                 _ghost.style.width = preview.width; // style-inline-allowed: 4
                 _ghost.style.top = barTop; // style-inline-allowed: 4
                 _ghost.EnableInClassList(LiveOpsHubClassNames.TimelineHidden, false);
+            }
+            // (G-OPT-TIMELINE) Shift giữa chừng: đợt phía sau đi theo. Vẽ chúng bằng CÙNG đường translate với thanh đang kéo và
+            // gắn class --dragging, nên ClearDragVisuals trả tất cả về chỗ cũ mà không cần biết có bao nhiêu đợt đã đi theo.
+            IReadOnlyList<LiveOpsTimelineBarMove> followers = DragController.FollowerMoves;
+            for (int index = 0; index < followers.Count; index++)
+            {
+                LiveOpsTimelineBarMove follower = followers[index];
+                LiveOpsTimelineBar followerBar = row.Lane.FindBar(follower.BarKey);
+                if (followerBar == null) continue;
+                (float left, float width, bool clippedStart, bool clippedEnd) followerRect =
+                    geometry.BarRect(follower.NewStartUtc, follower.NewEndUtc);
+                previewGeometry[follower.BarKey] = (followerRect.left, followerRect.width);
+                followerBar.SetPreviewGeometry(followerRect.left, followerRect.width);
+                followerBar.EnableInClassList(LiveOpsHubClassNames.TimelineBarDragging, true);
             }
             var willDrop = new HashSet<string>(DragController.WillDropBarKeys, StringComparer.Ordinal);
             row.Lane.SetDragPreview(new List<(DateTime startUtc, DateTime endUtc)>(DragController.PreviewOverlaps), willDrop, previewGeometry);
@@ -981,7 +1283,7 @@ namespace DreamTech.LiveOps.Editor
                     // Hết đợt thì không làm gì để focus rời timeline như bình thường — không bẫy focus [FD §5.2].
                     if (nextKey.Length == 0) return;
                     Select(nextKey, true);
-                    IntentRaised?.Invoke(new SelectBarIntent(nextKey, false, false));
+                    IntentRaised?.Invoke(new SelectBarIntent(nextKey));
                     navigationEvent.StopPropagation();
 #if UNITY_2023_2_OR_NEWER
                     focusController?.IgnoreEvent(navigationEvent);
@@ -1097,7 +1399,7 @@ namespace DreamTech.LiveOps.Editor
                 }
                 if (nearest == null) continue;
                 Select(nearest.BarKey, true);
-                IntentRaised?.Invoke(new SelectBarIntent(nearest.BarKey, false, false));
+                IntentRaised?.Invoke(new SelectBarIntent(nearest.BarKey));
                 return true;
             }
             return true;
