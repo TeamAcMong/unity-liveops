@@ -402,6 +402,9 @@ namespace DreamTech.LiveOps.Editor
         internal VisualElement NowLine { get; }
         internal VisualElement CursorLine { get; }
         internal VisualElement Readout { get; }
+
+        /// <summary>(Hình 12 khung 9) Khung chọn đang kéo — test và kịch bản chụp đọc lại đúng hình đã vẽ.</summary>
+        internal VisualElement Marquee => _marquee;
         internal Label ReadoutText => _readoutText;
         internal Label ReadoutOverlap => _readoutOverlap;
 
@@ -897,6 +900,49 @@ namespace DreamTech.LiveOps.Editor
             List<string> inside = BarKeysInMarquee();
             SelectMany(inside, inside.Count > 0 ? inside[inside.Count - 1] : string.Empty, false);
             IntentRaised?.Invoke(new SelectManyIntent(inside, SelectedBarKey));
+        }
+
+        /// <summary>
+        /// (Hình 12 khung 9) Vẽ khung chọn BAO quanh một tập thanh. <c>internal</c> chứ không <c>private</c> vì lượt chụp
+        /// batchmode không bắt được con trỏ thật (cùng lý do với <see cref="RefreshDragVisuals"/> và <see cref="SetCursor"/>):
+        /// đường của người dùng vẫn là kéo chuột trên chỗ trống, đường này chỉ dựng lại đúng hình mà cú kéo đó để lại.
+        /// </summary>
+        /// <param name="barKeys">Thanh phải nằm trong khung; rỗng hoặc không tìm thấy thanh nào thì khung tắt.</param>
+        /// <param name="margin">Lề quanh tập thanh, tính bằng pixel.</param>
+        internal void ShowMarqueeAroundBars(IReadOnlyList<string> barKeys, float margin)
+        {
+            bool hasBar = false;
+            float left = 0f;
+            float top = 0f;
+            float right = 0f;
+            float bottom = 0f;
+            for (int index = 0; barKeys != null && index < barKeys.Count; index++)
+            {
+                LiveOpsTimelineBar bar = FindBar(barKeys[index]);
+                if (bar == null) continue;
+                Rect world = bar.worldBound;
+                Vector2 minimum = _overlay.WorldToLocal(new Vector2(world.xMin, world.yMin));
+                Vector2 maximum = _overlay.WorldToLocal(new Vector2(world.xMax, world.yMax));
+                if (!hasBar)
+                {
+                    left = minimum.x;
+                    top = minimum.y;
+                    right = maximum.x;
+                    bottom = maximum.y;
+                    hasBar = true;
+                    continue;
+                }
+                left = Math.Min(left, minimum.x);
+                top = Math.Min(top, minimum.y);
+                right = Math.Max(right, maximum.x);
+                bottom = Math.Max(bottom, maximum.y);
+            }
+            _marquee.EnableInClassList(LiveOpsHubClassNames.TimelineHidden, !hasBar);
+            if (!hasBar) return;
+            _marquee.style.left = left - margin; // style-inline-allowed: 4
+            _marquee.style.top = top - margin; // style-inline-allowed: 4
+            _marquee.style.width = right - left + margin * 2f; // style-inline-allowed: 4
+            _marquee.style.height = bottom - top + margin * 2f; // style-inline-allowed: 4
         }
 
         private List<string> BarKeysInMarquee()
