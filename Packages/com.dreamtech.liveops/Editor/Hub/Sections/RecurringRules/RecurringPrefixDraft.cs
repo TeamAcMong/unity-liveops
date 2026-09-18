@@ -151,24 +151,28 @@ namespace DreamTech.LiveOps.Editor
             get
             {
                 if (!NeedsConfirmation) return string.Empty;
+                // (UX-25) Id trong CÂU in bằng gạch nối không ngắt: HelpBox bẻ dòng giữa "weekly-" và "pass-35" thì người
+                // đọc thấy hai mảnh và tưởng đó là hai id. Thân hộp xác nhận KHÔNG dùng cách này — ở đó phải gõ lại id thật.
+                string runningId = RecurringRuleModel.NonBreakingId(RunningEventId);
+                string newRunningId = RecurringRuleModel.NonBreakingId(NewRunningEventId);
                 if (!HasReplacement)
                 {
                     // Không đợt nào thay chỗ: "sẽ thành ___" với chỗ trống là câu nói dối bằng khoảng lặng — nói thẳng đợt biến mất.
                     return WithPlayerCountCaveat(string.Format(CultureInfo.InvariantCulture,
-                        LiveOpsHubStrings.RecurringNoReplacementConsequenceFormat, RunningEventId, OldEndText()));
+                        LiveOpsHubStrings.RecurringNoReplacementConsequenceFormat, runningId, OldEndText()));
                 }
                 if (string.Equals(FieldName, RecurringRuleFields.ActiveHours, StringComparison.Ordinal))
                 {
                     return WithPlayerCountCaveat(string.Format(CultureInfo.InvariantCulture,
-                        LiveOpsHubStrings.RecurringActiveHoursConsequenceFormat, RunningEventId, NewEndText(), OldEndText()));
+                        LiveOpsHubStrings.RecurringActiveHoursConsequenceFormat, runningId, NewEndText(), OldEndText()));
                 }
                 if (string.Equals(FieldName, RecurringRuleFields.IdPrefix, StringComparison.Ordinal))
                 {
                     return WithPlayerCountCaveat(string.Format(CultureInfo.InvariantCulture,
-                        LiveOpsHubStrings.RecurringPrefixConsequenceFormat, RunningEventId, OldEndText(), NewRunningEventId));
+                        LiveOpsHubStrings.RecurringPrefixConsequenceFormat, runningId, OldEndText(), newRunningId));
                 }
                 return WithPlayerCountCaveat(string.Format(CultureInfo.InvariantCulture,
-                    LiveOpsHubStrings.RecurringIdentityConsequenceFormat, RunningEventId, OldEndText(), NewRunningEventId));
+                    LiveOpsHubStrings.RecurringIdentityConsequenceFormat, runningId, OldEndText(), newRunningId));
             }
         }
 
@@ -177,19 +181,44 @@ namespace DreamTech.LiveOps.Editor
             ? LiveOpsHubStrings.RecurringDraftWritePrefixButton
             : LiveOpsHubStrings.RecurringDraftWriteValueButton;
 
-        /// <summary>Câu toast = tên Undo group của lệnh ghi (8.5).</summary>
+        /// <summary>
+        /// Câu toast = tên Undo group của lệnh ghi (8.5). (UX-26) Nó phải nêu TRƯỜNG vừa đổi và giá trị trước → sau:
+        /// status bar giữ câu này lại sau khi toast tắt, và "Đổi luật lặp sky-race" không nói được ⌘Z sẽ trả lại cái gì.
+        /// </summary>
         public string ToastText
         {
             get
             {
                 if (!HasDraft) return string.Empty;
-                if (string.Equals(FieldName, RecurringRuleFields.IdPrefix, StringComparison.Ordinal))
+                string fieldLabel = FieldLabelText();
+                if (fieldLabel.Length == 0)
                 {
-                    return string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.RecurringPrefixToastFormat,
-                        _writtenIdPrefix, DraftRule.EffectiveIdPrefix);
+                    return string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.RecurringWriteToastFormat, EventType);
                 }
-                return string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.RecurringWriteToastFormat, EventType);
+                return string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.RecurringFieldWriteToastFormat,
+                    fieldLabel, EventType, ValueTextOf(WrittenRule), ValueTextOf(DraftRule));
             }
+        }
+
+        /// <summary>Nhãn của ô vừa đổi, đúng chữ người dùng vừa đọc trên form; "" khi thao tác không thuộc một ô nào (áp Mẫu).</summary>
+        private string FieldLabelText()
+        {
+            if (string.Equals(FieldName, RecurringRuleFields.IdPrefix, StringComparison.Ordinal)) return LiveOpsHubStrings.RecurringIdPrefixLabel;
+            if (string.Equals(FieldName, RecurringRuleFields.Anchor, StringComparison.Ordinal)) return LiveOpsHubStrings.RecurringAnchorLabel;
+            if (string.Equals(FieldName, RecurringRuleFields.PeriodHours, StringComparison.Ordinal)) return LiveOpsHubStrings.RecurringPeriodHoursLabel;
+            if (string.Equals(FieldName, RecurringRuleFields.ActiveHours, StringComparison.Ordinal)) return LiveOpsHubStrings.RecurringActiveHoursLabel;
+            return string.Empty;
+        }
+
+        private string ValueTextOf(RecurringLiveEventRule rule)
+        {
+            if (string.Equals(FieldName, RecurringRuleFields.IdPrefix, StringComparison.Ordinal)) return rule.EffectiveIdPrefix;
+            if (string.Equals(FieldName, RecurringRuleFields.Anchor, StringComparison.Ordinal)) return rule.AnchorUtcText;
+            if (string.Equals(FieldName, RecurringRuleFields.PeriodHours, StringComparison.Ordinal))
+            {
+                return RecurringRuleModel.PeriodText(rule.PeriodHours, _format);
+            }
+            return RecurringRuleModel.HoursText(rule.ActiveHours, _format);
         }
 
         /// <summary>
@@ -270,13 +299,7 @@ namespace DreamTech.LiveOps.Editor
         /// <summary>Giá trị mà các màn khác vẫn thấy (trong asset) — in vào câu "vẫn thấy …".</summary>
         private string WrittenValueText()
         {
-            if (string.Equals(FieldName, RecurringRuleFields.IdPrefix, StringComparison.Ordinal)) return WrittenRule.EffectiveIdPrefix;
-            if (string.Equals(FieldName, RecurringRuleFields.Anchor, StringComparison.Ordinal)) return WrittenRule.AnchorUtcText;
-            if (string.Equals(FieldName, RecurringRuleFields.PeriodHours, StringComparison.Ordinal))
-            {
-                return RecurringRuleModel.HoursText(WrittenRule.PeriodHours, _format);
-            }
-            return RecurringRuleModel.HoursText(WrittenRule.ActiveHours, _format);
+            return ValueTextOf(WrittenRule);
         }
 
         private string OldEndText()
