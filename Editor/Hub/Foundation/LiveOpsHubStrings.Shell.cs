@@ -129,6 +129,15 @@ namespace DreamTech.LiveOps.Editor
         internal static string ShellStatusRecentActionWithKeyFormat => LiveOpsHubStringCatalog.Text(nameof(ShellStatusRecentActionWithKeyFormat));
 
         internal static string ShellStatusRecentActionFormat => LiveOpsHubStringCatalog.Text(nameof(ShellStatusRecentActionFormat));
+
+        /// <summary>
+        /// (UX-26) Thể "vừa hoàn tác": sau ⌘Z bước đó đã bị bỏ, nên câu không được nói "Vừa làm" và không được mời ⌘Z nữa —
+        /// phím đúng lúc này là Làm lại. Xem <see cref="LiveOpsHubStatusBarModel"/>.
+        /// </summary>
+        internal static string ShellStatusUndoneActionWithKeyFormat => LiveOpsHubStringCatalog.Text(nameof(ShellStatusUndoneActionWithKeyFormat));
+
+        /// <summary>Bản không có nhãn phím Làm lại (máy không gán phím) — bỏ ngoặc thay vì in cặp ngoặc rỗng.</summary>
+        internal static string ShellStatusUndoneActionFormat => LiveOpsHubStringCatalog.Text(nameof(ShellStatusUndoneActionFormat));
         internal static string ShellStatusPublishedFormat => LiveOpsHubStringCatalog.Text(nameof(ShellStatusPublishedFormat));
         internal static string ShellStatusShaFormat => LiveOpsHubStringCatalog.Text(nameof(ShellStatusShaFormat));
         internal static string ShellStatusDeviceTimeFormat => LiveOpsHubStringCatalog.Text(nameof(ShellStatusDeviceTimeFormat));
