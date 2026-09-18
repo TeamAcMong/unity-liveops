@@ -88,12 +88,18 @@
 
 .liveops-hub-confirm-buttons {
     flex-direction: row;
-    align-items: center;
+    /* Gợi ý phím có thể cao hai dòng: căn đáy để hai nút luôn nằm đúng dòng cuối, không trôi lên giữa câu. */
+    align-items: flex-end;
     flex-shrink: 0;
     margin-top: auto;
     padding-top: 12px;
 }
 
+/*
+ * (UX-27 / UJ-12) Gợi ý phím XUỐNG DÒNG, không cắt: câu nêu đúng hai phím thoát hiểm của một hộp phá huỷ
+ * ("Esc: Giữ tiền tố cũ · Enter không đổi gì") và ở hàng nút 400 px nó bị cắt thành "Enter không đổi gi" — mất đúng
+ * nửa câu người dùng cần. Hàng nút cao thêm một dòng; chiều cao hộp đã theo nội dung đo được nên không sinh khoảng trống.
+ */
 .liveops-hub-confirm-key-hint {
     flex-grow: 1;
     flex-shrink: 1;
@@ -102,9 +108,7 @@
     opacity: 0.82;
     padding: 0;
     margin: 0;
-    overflow: hidden;
-    white-space: nowrap;
-    text-overflow: ellipsis;
+    white-space: normal;
 }
 
 .liveops-hub-confirm-missing-layout {
