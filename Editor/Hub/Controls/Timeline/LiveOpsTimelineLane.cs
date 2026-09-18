@@ -135,7 +135,12 @@ namespace DreamTech.LiveOps.Editor
             EnableInClassList(LiveOpsHubClassNames.TimelineLaneRecurring, lane.IsRecurring);
             EnableInClassList(LiveOpsHubClassNames.TimelineLaneCollapsed, lane.IsCollapsed);
             tooltip = lane.IsRecurring ? LiveOpsHubStrings.TimelineRecurringLaneTooltip : string.Empty;
-            style.height = LaneHeight; // style-inline-allowed: 3
+            // (R-01) Chiều cao CỐ ĐỊNH làm nền làn không theo kịp hàng: header của làn có thể cao hơn LaneHeight (chip meta xuống
+            // dòng ở UX-16 đẩy header lên 3 dòng ~49px so với làn ~30px), lúc đó đáy hàng không được vẽ — mất cột cuối tuần, vạch
+            // ngày và vạch "bây giờ" ở dải đó, đúng loại "dải lạ" mà đợt này đang diệt. Đặt SÀN rồi để flex kéo giãn (align-items
+            // mặc định của hàng là stretch) nên nền luôn phủ hết hàng dù header cao bao nhiêu.
+            style.height = StyleKeyword.Auto; // style-inline-allowed: 3
+            style.minHeight = LaneHeight; // style-inline-allowed: 3
 
             BindBars(lane, geometry, format, tooltipOf);
             // Làn thu gọn không còn 20px nào cho nhãn "chồng 12 giờ" — vùng chồng vẫn vẽ bằng nền, chữ thì để làn mở nói.
@@ -195,10 +200,13 @@ namespace DreamTech.LiveOps.Editor
                 LiveOpsTimelineBar bar = _bars[index];
                 bool willDrop = willDropBarKeys != null && willDropBarKeys.Contains(bar.Model.BarKey);
                 bar.EnableInClassList(LiveOpsHubClassNames.TimelineBarWillDrop, willDrop);
-                // (UX-14, UJ-13) Thanh ĐANG được xem trước phải mang dấu "bị bỏ" của XEM TRƯỚC, không của model: kéo hết chồng
-                // giờ mà thanh vẫn gạch ngang là màn hình nói ngược với thứ người dùng vừa làm. Thanh không nằm trong xem trước
-                // (null) giữ nguyên trạng thái model.
-                bar.SetDroppedPreview(IsUnderPreview(bar, willDropBarKeys, previewGeometry) ? (bool?)willDrop : null);
+                // (UX-14, UJ-13) Thanh ĐANG được xem trước và xem trước nói KHÔNG còn bị bỏ thì phải bỏ dấu "bị bỏ" ngay: kéo hết
+                // chồng giờ mà thanh vẫn gạch ngang là màn hình nói ngược với thứ người dùng vừa làm.
+                // (R-12) Chiều ngược lại thì KHÔNG: kéo VÀO chỗ chồng là "sẽ bị bỏ" — viền cảnh báo của cử chỉ đang làm — chứ chưa
+                // phải kết luận "bị bỏ" của bản kiểm. Hai thứ đó khác nhau (xem SetDroppedPreview), nên bật gạch ngang lúc này là
+                // nói trước kết quả chưa có. Tag bên phải thanh đã nói "sẽ bị bỏ" qua RebuildDroppedTags.
+                bool underPreview = IsUnderPreview(bar, willDropBarKeys, previewGeometry);
+                bar.SetDroppedPreview(underPreview && !willDrop ? (bool?)false : null);
             }
             // Nhãn "chồng 12 giờ" phải đi theo vùng chồng đang vẽ; bind ở SetLane là chữ của model cũ, treo lại suốt cử chỉ kéo.
             if (_lane != null && _geometry != null)
@@ -626,6 +634,9 @@ namespace DreamTech.LiveOps.Editor
             Swatch.EnableInClassList(LiveOpsHubClassNames.TimelineHidden, isUntyped);
             Chevron.EnableInClassList(LiveOpsHubClassNames.TimelineLaneChevronCollapsed, lane.IsCollapsed);
             Chevron.tooltip = lane.IsCollapsed ? LiveOpsHubStrings.TimelineMenuExpandLane : LiveOpsHubStrings.TimelineMenuCollapseLane;
+            // (R-06, UJ-08) Làn chưa ghi loại không thu gọn được (không có TypeId để nhớ trạng thái), nên chevron của nó phải BIẾN
+            // MẤT như Swatch — để lại một mũi tên có cursor:link và tooltip "Thu gọn làn" rồi nuốt cú bấm chính là lỗi UJ-08 chỉ đổi chỗ.
+            Chevron.EnableInClassList(LiveOpsHubClassNames.TimelineHidden, isUntyped);
             EnableInClassList(LiveOpsHubClassNames.TimelineLaneCollapsed, lane.IsCollapsed);
             LoopIcon.EnableInClassList(LiveOpsHubClassNames.TimelineHidden, !lane.IsRecurring);
             LoopIcon.tooltip = lane.IsRecurring ? LiveOpsHubStrings.TimelineRecurringLaneTooltip : string.Empty;
