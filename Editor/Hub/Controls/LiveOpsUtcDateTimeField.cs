@@ -10,7 +10,7 @@ namespace DreamTech.LiveOps.Editor
     /// mời lỗi "2026-10-3" và không cho thấy đang gõ giờ UTC hay giờ máy ([FD] bảng lỗi hệ cũ #7).
     ///
     /// Chuỗi không đọc được KHÔNG bị nuốt hay tự sửa: ô giữ nguyên chữ người dùng gõ ("2026-10-3"), viền blocked-fill, dòng lỗi 10px
-    /// nêu dạng đúng, và <see cref="RawTextCommitted"/> đưa chuỗi thô cho phiên lịch ghi nguyên văn vào asset — để luật
+    /// nêu dạng đúng, và <see cref="TextCommitted"/> đưa chuỗi thô cho phiên lịch ghi nguyên văn vào asset — để luật
     /// <c>utc-time-format</c> báo đúng chuỗi và "Sửa an toàn" đề xuất đúng giá trị. Đọc chặt (<c>yyyy-MM-dd</c>, <c>HH:mm</c> hoặc
     /// <c>HH:mm:ss</c>): thiếu số 0 là lỗi ở ô, dù <see cref="LiveEventUtcText.TryNormalize"/> hiểu được — sửa được thì là việc của
     /// đề xuất, không phải của ô.
@@ -118,8 +118,17 @@ namespace DreamTech.LiveOps.Editor
         /// <summary>Chữ trong ô không thành một giờ UTC — <see cref="BaseField{T}.value"/> vẫn là giá trị đọc được gần nhất.</summary>
         public bool HasParseError => _hasParseError;
 
-        /// <summary>(ngày, giờ) nguyên văn khi người dùng ghi chuỗi không đọc được — phiên lịch vẫn ghi chuỗi thô vào asset.</summary>
-        public event Action<string, string> RawTextCommitted;
+        /// <summary>
+        /// MỘT sự kiện chốt duy nhất: bắn ĐÚNG MỘT LẦN mỗi lần người dùng chốt chữ (Enter, Tab, bấm ra ngoài), dù chữ đọc được
+        /// hay không, kèm (ngày, giờ) CUỐI CÙNG của hai ô — dạng chuẩn khi đọc được, nguyên văn người dùng gõ khi không.
+        /// <para>
+        /// Một sự kiện chứ không phải hai (trước đây: chuỗi đọc được đi bằng <c>ChangeEvent&lt;DateTime&gt;</c>, chuỗi hỏng đi
+        /// bằng sự kiện này) vì nơi nghe chỉ đăng ký một đường là mất nửa số lần ghi mà không có lỗi biên dịch nào: popover
+        /// Thêm đợt chỉ nghe đường chuỗi hỏng nên gõ ngày/giờ HỢP LỆ rồi Enter là bước 3 vẫn hiện giờ cũ và đợt được thêm với
+        /// giờ cũ (UJ-03/UX-04). Muốn giá trị đã đọc thì dùng <see cref="ToAssetText"/> hoặc <see cref="TryParseParts"/>.
+        /// </para>
+        /// </summary>
+        public event Action<string, string> TextCommitted;
 
         /// <summary>
         /// Gán giá trị. <see cref="BaseField{T}"/> bỏ qua lần gán bằng giá trị hiện tại, mà khi ô đang giữ chuỗi hỏng thì giá trị hiện tại
@@ -230,10 +239,41 @@ namespace DreamTech.LiveOps.Editor
         }
 
         /// <summary>
+        /// Ghép nửa ngày và nửa giờ THÔ thành chuỗi ghi vào asset. Dấu cách là dấu ngăn cố ý (chữ người dùng gõ chưa phải ISO nên
+        /// ghép bằng "T" là bịa thêm dạng chuẩn cho một chuỗi hỏng); <see cref="SplitRawText"/> tách lại được đúng hai nửa đó.
+        /// Ghép và tách ở CÙNG một chỗ để hai nửa của một vòng không trôi khỏi nhau.
+        /// </summary>
+        internal static string JoinRawText(string dateText, string timeText)
+        {
+            string date = (dateText ?? string.Empty).Trim();
+            string time = (timeText ?? string.Empty).Trim();
+            if (time.Length == 0) return date;
+            if (date.Length == 0) return time;
+            return date + " " + time;
+        }
+
+        /// <summary>
+        /// Chuỗi CUỐI CÙNG sẽ nằm trong asset cho một cặp (ngày, giờ) vừa chốt: dạng chuẩn khi đọc được, nguyên văn người dùng gõ
+        /// khi không (tài liệu phải chứa được đợt hỏng để bộ kiểm báo đúng chuỗi).
+        /// </summary>
+        internal static string ToAssetText(string dateText, string timeText)
+        {
+            return TryParseParts(dateText, timeText, out DateTime utc)
+                ? LiveEventUtcText.Format(utc)
+                : JoinRawText(dateText, timeText);
+        }
+
+        /// <summary>
         /// Tách chuỗi giờ THÔ của asset thành (ngày, giờ) cho hai ô. Nhận CẢ dấu ngăn "T" của ISO LẪN dấu cách: khi chuỗi không
         /// đọc được, inspector ghi nguyên văn thứ người dùng gõ và ghép hai nửa bằng DẤU CÁCH ("2026-09-1 12:00"), nên bộ tách chỉ
         /// biết "T" sẽ dồn cả chuỗi vào ô ngày và để ô giờ trống — người dùng thấy giờ mình KHÔNG đụng tới tự biến mất, Dài về 0 và
         /// câu lỗi vừa trích "12:00" vừa bảo "Ô giờ còn trống" (UJ-04).
+        /// <para>
+        /// "T" là dấu ngăn KHÔNG nhập nhằng nên cắt ở "T" đầu tiên. Dấu cách thì NHẬP NHẰNG: nửa ngày của người dùng có thể chứa
+        /// dấu cách ("16 09 2026"), nên cắt ở dấu cách ĐẦU TIÊN là xé đôi chữ người dùng gõ — ô ngày còn "16", ô giờ thành
+        /// "09 2026 12:00". Cắt ở dấu cách CUỐI và chỉ khi đuôi là một lần gõ giờ (đọc được, hoặc có dấu ":"), còn lại để nguyên
+        /// cả chuỗi ở ô ngày: hợp đồng "ô giữ nguyên chữ người dùng gõ" không được vỡ vì một dấu cách.
+        /// </para>
         /// Phần giây giữ nguyên (<c>HH:mm:ss</c> vẫn đọc được): cắt còn <c>HH:mm</c> là lặng lẽ đổi giờ của đợt khi asset có giây.
         /// </summary>
         internal static void SplitRawText(string rawText, out string dateText, out string timeText)
@@ -243,15 +283,32 @@ namespace DreamTech.LiveOps.Editor
             if (string.IsNullOrEmpty(rawText)) return;
             string text = rawText.Trim();
             if (text.Length == 0) return;
-            int separatorIndex = text.IndexOf('T');
-            if (separatorIndex < 0) separatorIndex = text.IndexOf(' ');
-            if (separatorIndex < 0)
+            int isoSeparatorIndex = text.IndexOf('T');
+            if (isoSeparatorIndex >= 0)
             {
-                dateText = text;
+                dateText = text.Substring(0, isoSeparatorIndex).Trim();
+                timeText = TrimZoneSuffix(text.Substring(isoSeparatorIndex + 1));
                 return;
             }
-            dateText = text.Substring(0, separatorIndex).Trim();
-            timeText = text.Substring(separatorIndex + 1).Trim().TrimEnd('Z').Trim();
+            int lastSpaceIndex = text.LastIndexOf(' ');
+            if (lastSpaceIndex >= 0)
+            {
+                string tail = TrimZoneSuffix(text.Substring(lastSpaceIndex + 1));
+                // Dấu ":" cũng tính là một lần gõ giờ dù đọc không ra ("99:99"): có thế ô giờ mới giữ được chữ hỏng của chính nó
+                // thay vì đẩy sang ô ngày, và câu lỗi mới trỏ đúng ô.
+                if (tail.Length > 0 && (tail.IndexOf(':') >= 0 || IsTimeReadable(tail)))
+                {
+                    dateText = text.Substring(0, lastSpaceIndex).Trim();
+                    timeText = tail;
+                    return;
+                }
+            }
+            dateText = text;
+        }
+
+        private static string TrimZoneSuffix(string timeText)
+        {
+            return timeText.Trim().TrimEnd('Z').Trim();
         }
 
         /// <summary>
@@ -333,15 +390,13 @@ namespace DreamTech.LiveOps.Editor
                 bool wasBroken = _hasParseError;
                 DateTime previous = value;
                 ApplyValue(parsed);
-                if (previous != parsed)
+                if (previous != parsed || wasBroken)
                 {
+                    // Chữ hỏng được sửa về đúng giá trị cũ cũng phải báo: asset vẫn đang giữ chuỗi thô, phiên phải ghi lại chuỗi chuẩn.
                     SendDateTimeChange(previous, parsed);
                 }
-                else if (wasBroken)
-                {
-                    // Chữ hỏng được sửa về đúng giá trị cũ: asset vẫn đang giữ chuỗi thô → phải báo để phiên ghi lại chuỗi chuẩn.
-                    SendDateTimeChange(previous, parsed);
-                }
+                // Chốt được một giờ đọc được cũng là một lần chốt: báo cùng đường với chuỗi hỏng để nơi nghe chỉ phải đăng ký một chỗ.
+                TextCommitted?.Invoke(RawDateText, RawTimeText);
                 return;
             }
 
@@ -362,7 +417,7 @@ namespace DreamTech.LiveOps.Editor
             _focusMovingWithinField = nextFocused != null && (nextFocused == this || Contains(nextFocused));
             if (_focusMovingWithinField || !_pendingIncompleteInput) return;
             // Rời hẳn field khi cặp vẫn thiếu một nửa. Ô đang rời còn chữ chưa ghi thì lần ghi của nó chạy ngay sau (cờ đã false) và tự báo;
-            // báo ở đây nữa là hai lần RawTextCommitted cho cùng một lần rời ô.
+            // báo ở đây nữa là hai lần TextCommitted cho cùng một lần rời ô.
             if (HasUncommittedText(DateInput) || HasUncommittedText(TimeInput)) return;
             ReportUnreadableInput();
         }
@@ -381,7 +436,7 @@ namespace DreamTech.LiveOps.Editor
         {
             _pendingIncompleteInput = false;
             ShowParseError();
-            RawTextCommitted?.Invoke(RawDateText, RawTimeText);
+            TextCommitted?.Invoke(RawDateText, RawTimeText);
         }
 
         private void RefreshPlaceholders()

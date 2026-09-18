@@ -54,6 +54,9 @@ namespace DreamTech.LiveOps.Editor.Tests
         /// <summary>Sai số hình học khi so mép con với mép cha (bo/viền nửa pixel).</summary>
         private const float BoundsTolerance = 0.75f;
 
+        /// <summary>Tiền tố class của hub — phần tử mang class này là thứ bản dựng cố ý tạo ra để người dùng nhìn thấy.</summary>
+        private const string HubClassPrefix = "liveops-hub-";
+
         private LiveOpsHubWindow _window;
         private ControlsTestPanel _panel;
 
@@ -85,6 +88,9 @@ namespace DreamTech.LiveOps.Editor.Tests
             Assert.IsNotNull(startField, "inspector của đợt cố định phải có ô giờ Bắt đầu");
             TextField outside = AddFocusTarget();
             yield return WaitForLayout(startField, outside);
+
+            // Hồi quy ed44a31: vùng nhập của ô giờ UTC rộng 0 — ô vẫn "có" nhưng người dùng không thấy chỗ nào để gõ.
+            AssertNoZeroSize(startField, "ô giờ Bắt đầu của inspector");
 
             yield return MoveFocus(startField.TimeInput);
             TypeText(startField.TimeInput, "18:00");
@@ -123,6 +129,49 @@ namespace DreamTech.LiveOps.Editor.Tests
             Assert.AreEqual(expected, toasts[0].UndoGroupName,
                 "bước Undo của sửa trong inspector phải là câu ngắn như đường kéo — \"\" làm toast Hoàn tác lặp chữ (UJ-10)");
             Assert.AreNotEqual(toasts[0].Message, toasts[0].UndoGroupName, "toast giữ câu dài, Undo History không");
+        }
+
+        /// <summary>
+        /// UX-04 ở popover Thêm đợt bước 2: gõ ngày/giờ HỢP LỆ vào ô giờ Bắt đầu rồi rời ô. Popover chỉ nghe đường chuỗi
+        /// HỎNG nên luồng không đổi — bước 3 hiện giờ cũ và đợt được thêm với giờ cũ, đúng triệu chứng UJ-03 nhưng ở màn
+        /// khác. Test đi qua ô thật (gõ + chuyển focus), không gọi <c>WithTimes</c>.
+        /// </summary>
+        [UnityTest]
+        public IEnumerator Ux04_PopoverStartTimeTyped_ReachesFlow()
+        {
+            LiveOpsHubServices services = LiveOpsHubTestServices.FromDesignSample();
+            AddEventFlowModel flow = AddEventFlowModel.Create(services.Session, services.Clock.UtcNow)
+                .WithType("treasure-hunt")
+                .Next();
+            AddEventPopover popover = new AddEventPopover(services, flow, _ => { });
+            VisualElement root = OpenPopoverInPanel(popover);
+            TextField outside = new TextField();
+            root.parent.Add(outside);
+            yield return WaitForLayout(root, outside);
+
+            LiveOpsUtcDateTimeField startField = root.Q<LiveOpsUtcDateTimeField>();
+            Assert.IsNotNull(startField, "bước 2 của popover phải có ô giờ Bắt đầu");
+            AssertNoZeroSize(startField, "ô giờ Bắt đầu của popover");
+            Assert.AreNotEqual("2026-09-21", popover.Flow.StartDateText, "mốc đầu của test phải khác ngày sắp gõ");
+
+            yield return MoveFocus(startField.DateInput);
+            TypeText(startField.DateInput, "2026-09-21");
+            yield return MoveFocus(outside);
+            yield return null;
+
+            Assert.AreEqual("2026-09-21", popover.Flow.StartDateText,
+                "gõ ngày hợp lệ rồi rời ô PHẢI tới được luồng — nếu không, bước 3 hiện giờ cũ và đợt được thêm với giờ cũ (UX-04)");
+
+            LiveOpsUtcDateTimeField rebuiltField = root.Q<LiveOpsUtcDateTimeField>();
+            Assert.IsNotNull(rebuiltField, "dựng lại bước 2 vẫn phải còn ô giờ");
+            yield return MoveFocus(rebuiltField.TimeInput);
+            TypeText(rebuiltField.TimeInput, "08:30");
+            yield return MoveFocus(outside);
+            yield return null;
+
+            Assert.AreEqual("08:30", popover.Flow.StartTimeText, "nửa giờ cũng phải tới được luồng");
+            Assert.IsTrue(popover.Flow.StartUtc.HasValue, "gõ đủ cặp ngày/giờ hợp lệ thì luồng phải đọc ra một giờ UTC");
+            Assert.AreEqual(new DateTime(2026, 9, 21, 8, 30, 0, DateTimeKind.Utc), popover.Flow.StartUtc.Value);
         }
 
         /// <summary>
@@ -318,7 +367,9 @@ namespace DreamTech.LiveOps.Editor.Tests
 
             Assert.AreEqual("treasure-hunt", popover.Flow.EventType,
                 "lọc còn đúng một loại thì loại đó phải thành loại đang trỏ (UJ-17)");
-            popover.OnKeyDown(KeyDownEvent.GetPooled('\n', KeyCode.Return, EventModifiers.None));
+            // Gửi phím vào ô lọc (nơi con trỏ người dùng đang ở) chứ không vào gốc themed root: callback Enter của popover đăng
+            // ký TrickleDown trên CÂY NỘI DUNG, là con của gốc — phím nhắm thẳng vào gốc không bao giờ đi qua nó.
+            SendKeyDown(filter, '\n', KeyCode.Return);
             Assert.AreEqual(AddEventFlowModel.StepChooseTimes, popover.Flow.Step,
                 "Enter sau khi lọc còn một loại phải sang bước 2");
         }
@@ -378,10 +429,16 @@ namespace DreamTech.LiveOps.Editor.Tests
 
             StringAssert.DoesNotContain("`", LiveOpsHubStrings.CalendarAddConfigKeyNoteFormat,
                 "dòng phụ không in dấu backtick của tài liệu ra màn hình (V17)");
-            LiveOpsPlaceholder hint = root.Q<LiveOpsPlaceholder>();
+            // Hỏi ĐÚNG chữ dẫn của ô Config key: Q<LiveOpsPlaceholder>() không tên trả về chữ dẫn ĐẦU TIÊN trong cây — là chữ
+            // dẫn của ô lọc loại ở bước 1 (vẫn còn trong cây, chỉ display:none) — nên mọi khẳng định trước đây đo nhầm phần tử.
+            LiveOpsPlaceholder hint = root.Q<LiveOpsPlaceholder>(className: LiveOpsHubClassNames.CalendarFlowHint);
             Assert.IsNotNull(hint, "ô Config key rỗng phải có chữ dẫn");
-            Assert.IsFalse(hint.ClassListContains(LiveOpsHubClassNames.Mono),
-                "chữ dẫn là chữ nghiêng cỡ nhỏ, không phải mono cỡ thường (V17)");
+            // Đo KIỂU CHỮ THẬT, không đo tên class: chữ dẫn chưa bao giờ mang class Mono nên khẳng định "không có class Mono"
+            // xanh cả trên code cũ lẫn code mới — một khẳng định rỗng. (Chữ dẫn VẪN kế thừa font mono của ô cha: xem mục 14,
+            // phần CHƯA sửa.)
+            Assert.AreEqual(10f, hint.resolvedStyle.fontSize, 0.01f, "chữ dẫn phải là cỡ nhỏ 10px [SD1 §3.11] (V17)");
+            Assert.AreEqual(FontStyle.Italic, hint.resolvedStyle.unityFontStyleAndWeight,
+                "chữ dẫn phải NGHIÊNG để không đọc nhầm thành giá trị đã gõ (V17)");
             AssertNoCutText(root.Q(LiveOpsHubPaths.AddEventPopoverElementNames.StepReview), "bước 3 popover");
         }
 
@@ -475,7 +532,14 @@ namespace DreamTech.LiveOps.Editor.Tests
                 .Next();
         }
 
-        /// <summary>Không TextElement nào trong cây cần rộng hơn phần chữ thật sự được vẽ.</summary>
+        /// <summary>
+        /// Không TextElement nào trong cây cần nhiều chỗ hơn phần chữ thật sự được vẽ.
+        /// <para>
+        /// Chữ MỘT DÒNG đo theo bề rộng; chữ ĐÃ CHO xuống dòng (<c>white-space: normal</c>) đo theo CHIỀU CAO ở đúng bề rộng
+        /// đang có. Bản trước bỏ qua hẳn nhánh xuống dòng, mà chính cách sửa UX-09 là gắn <c>white-space: normal</c> — test
+        /// được thoả nhờ CƠ CHẾ của bản sửa chứ không phải nhờ chữ hiện đủ, nên nút cao cứng 18px nuốt dòng thứ hai vẫn xanh.
+        /// </para>
+        /// </summary>
         private static void AssertNoCutText(VisualElement root, string place)
         {
             Assert.IsNotNull(root, "không tìm thấy cây để đo: " + place);
@@ -484,8 +548,20 @@ namespace DreamTech.LiveOps.Editor.Tests
             for (int index = 0; index < texts.Count; index++)
             {
                 TextElement text = texts[index];
-                if (!IsVisible(text) || string.IsNullOrEmpty(text.text)) continue;
-                if (text.resolvedStyle.whiteSpace == WhiteSpace.Normal) continue;
+                if (!IsDisplayed(text) || string.IsNullOrEmpty(text.text)) continue;
+                if (text.resolvedStyle.whiteSpace == WhiteSpace.Normal)
+                {
+                    float width = text.contentRect.width;
+                    if (width <= 0f) continue;
+                    float neededHeight = text.MeasureTextSize(text.text, width, VisualElement.MeasureMode.Exactly,
+                        0f, VisualElement.MeasureMode.Undefined).y;
+                    Assert.GreaterOrEqual(text.contentRect.height + TextMeasureTolerance, neededHeight,
+                        place + ": chữ \"" + text.text + "\" xuống dòng cần cao "
+                        + neededHeight.ToString("0.#", CultureInfo.InvariantCulture) + "px, chỗ có "
+                        + text.contentRect.height.ToString("0.#", CultureInfo.InvariantCulture)
+                        + "px — dòng sau bị cắt ngang");
+                    continue;
+                }
                 float needed = text.MeasureTextSize(text.text, 0f, VisualElement.MeasureMode.Undefined, 0f, VisualElement.MeasureMode.Undefined).x;
                 float available = text.contentRect.width;
                 Assert.GreaterOrEqual(available + TextMeasureTolerance, needed,
@@ -494,19 +570,77 @@ namespace DreamTech.LiveOps.Editor.Tests
             }
         }
 
-        /// <summary>Không con nào của <paramref name="root"/> thò ra ngoài mép phải của chính nó.</summary>
+        /// <summary>
+        /// Phần tử ĐANG được bày ra (không <c>display: none</c>, không <c>visible: false</c>) mà rộng hoặc cao 0 là phần tử
+        /// người dùng KHÔNG nhìn thấy — đúng dạng hồi quy "vùng nhập ô giờ UTC rộng 0" đã lọt qua cả bộ test vì mọi phép đo
+        /// đều bỏ qua phần tử rộng 0. Chỉ soi phần tử MANG CLASS CỦA HUB hoặc có tên: khung rỗng do bố cục không phải lỗi.
+        /// </summary>
+        private static void AssertNoZeroSize(VisualElement root, string place)
+        {
+            Assert.IsNotNull(root, "không tìm thấy cây để đo: " + place);
+            List<VisualElement> elements = new List<VisualElement>();
+            root.Query<VisualElement>().ToList(elements);
+            for (int index = 0; index < elements.Count; index++)
+            {
+                VisualElement element = elements[index];
+                if (!IsDisplayed(element) || !IsNamedOrClassed(element)) continue;
+                if (element.childCount == 0)
+                {
+                    TextElement text = element as TextElement;
+                    if (text == null || string.IsNullOrEmpty(text.text)) continue;
+                }
+                Assert.Greater(element.layout.width, 0f,
+                    place + ": '" + DescribeElement(element) + "' rộng 0 — đang bày ra mà không vẽ gì");
+                Assert.Greater(element.layout.height, 0f,
+                    place + ": '" + DescribeElement(element) + "' cao 0 — đang bày ra mà không vẽ gì");
+            }
+        }
+
+        /// <summary>Phần tử của hub (class "liveops-hub-…") hoặc phần tử có tên — thứ mà bản dựng cố ý tạo ra để người dùng thấy.</summary>
+        private static bool IsNamedOrClassed(VisualElement element)
+        {
+            if (!string.IsNullOrEmpty(element.name)) return true;
+            foreach (string className in element.GetClasses())
+            {
+                if (className.StartsWith(HubClassPrefix, StringComparison.Ordinal)) return true;
+            }
+            return false;
+        }
+
+        /// <summary>
+        /// Không con nào của <paramref name="root"/> thò ra ngoài khung của chính nó. Đo CẢ BỐN mép: bản trước chỉ so mép
+        /// phải, nên con tràn sang trái (lề âm) hay tụt xuống dưới đáy khung không cuộn được đều lọt.
+        /// </summary>
         private static void AssertInsideParent(VisualElement root, string place)
         {
-            float limit = root.worldBound.xMax + BoundsTolerance;
+            Rect frame = root.worldBound;
             List<VisualElement> children = new List<VisualElement>();
             root.Query<VisualElement>().ToList(children);
             for (int index = 0; index < children.Count; index++)
             {
                 VisualElement child = children[index];
                 if (!IsVisible(child)) continue;
-                Assert.LessOrEqual(child.worldBound.xMax, limit,
-                    place + ": '" + DescribeElement(child) + "' tràn qua mép phải — nội dung rộng hơn khung mà không cuộn được");
+                string who = place + ": '" + DescribeElement(child) + "' tràn qua mép ";
+                Assert.LessOrEqual(child.worldBound.xMax, frame.xMax + BoundsTolerance,
+                    who + "phải — nội dung rộng hơn khung mà không cuộn được");
+                Assert.GreaterOrEqual(child.worldBound.xMin, frame.xMin - BoundsTolerance,
+                    who + "trái — nội dung rộng hơn khung mà không cuộn được");
+                if (IsScrollable(root)) continue;
+                Assert.LessOrEqual(child.worldBound.yMax, frame.yMax + BoundsTolerance,
+                    who + "dưới — nội dung cao hơn khung mà không cuộn được");
             }
+        }
+
+        /// <summary>Khung CÓ cuộn được thì nội dung cao hơn khung là bình thường — chỉ mép ngang mới là lỗi.</summary>
+        private static bool IsScrollable(VisualElement element)
+        {
+            VisualElement walk = element;
+            while (walk != null)
+            {
+                if (walk is ScrollView) return true;
+                walk = walk.parent;
+            }
+            return false;
         }
 
         private static void AssertVisibleInside(VisualElement element, VisualElement container, string place)
@@ -519,10 +653,20 @@ namespace DreamTech.LiveOps.Editor.Tests
                 place + " nằm ngoài pane — trên máy người dùng nó biến mất" + where);
         }
 
-        private static bool IsVisible(VisualElement element)
+        /// <summary>
+        /// Đang CHIẾM CHỖ thật: có panel, không display:none, không visible:false, layout đã đo. KHÔNG đòi rộng &gt; 0 —
+        /// phần tử rộng 0 chính là lỗi mà <see cref="AssertNoZeroSize"/> phải bắt, lọc nó ở đây là tự bịt mắt.
+        /// </summary>
+        private static bool IsDisplayed(VisualElement element)
         {
             return element.panel != null && element.resolvedStyle.display == DisplayStyle.Flex && element.visible
-                   && !float.IsNaN(element.layout.width) && element.layout.width > 0f;
+                   && !float.IsNaN(element.layout.width) && !float.IsNaN(element.layout.height);
+        }
+
+        /// <summary>Đang chiếm chỗ VÀ có bề rộng — dùng cho phép so mép, nơi phần tử rộng 0 không nói lên điều gì.</summary>
+        private static bool IsVisible(VisualElement element)
+        {
+            return IsDisplayed(element) && element.layout.width > 0f;
         }
 
         private static string DescribeElement(VisualElement element)
@@ -552,6 +696,20 @@ namespace DreamTech.LiveOps.Editor.Tests
                 if (string.Equals(buttons[index].text, text, StringComparison.Ordinal)) return buttons[index];
             }
             return null;
+        }
+
+        /// <summary>
+        /// Gửi một phím qua ĐÚNG đường dispatch của panel (trickle-down → bubble-up trên cây thật), không gọi thẳng hàm xử lý
+        /// phím của popover: lỗi "phím không tới được gốc popover" chỉ lộ ra trên đường này. Sự kiện pool bọc trong using để
+        /// trả lại đúng chỗ.
+        /// </summary>
+        private static void SendKeyDown(VisualElement target, char character, KeyCode keyCode)
+        {
+            using (KeyDownEvent keyDownEvent = KeyDownEvent.GetPooled(character, keyCode, EventModifiers.None))
+            {
+                keyDownEvent.target = target;
+                target.SendEvent(keyDownEvent);
+            }
         }
 
         /// <summary>Gõ chữ như bàn phím: <c>ITextEdition.UpdateText</c> đổi chữ và bắn InputEvent, chưa đổi value.</summary>
