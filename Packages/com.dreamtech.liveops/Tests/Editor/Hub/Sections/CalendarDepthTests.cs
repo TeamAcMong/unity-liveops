@@ -384,11 +384,13 @@ namespace DreamTech.LiveOps.Editor.Tests
             yield return null;
 
             Assert.IsNotNull(toast, "kéo xong phải có toast");
-            string shortStep = string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.CalendarResizeUndoStepFormat,
-                "hunt-0916-bonus");
+            // (W8-UX UX-26) Tên bước nêu ĐÚNG mép đã kéo: "Đổi hunt-0916-bonus" chung chung làm status bar và toast đọc như
+            // hai thao tác khác nhau về cùng một lần kéo.
+            string shortStep = string.Format(CultureInfo.InvariantCulture,
+                LiveOpsHubStrings.CalendarDepthMoveEndEdgeUndoStepFormat, "hunt-0916-bonus");
             StringAssert.Contains("→", toast.Message, "toast giữ câu dài: có cả giờ trước lẫn giờ sau");
             Assert.AreNotEqual(shortStep, toast.Message, "toast KHÔNG rút thành câu ngắn");
-            Assert.AreEqual(shortStep, toast.UndoGroupName, "tên bước trong Undo History là câu ngắn \"Đổi …\"");
+            Assert.AreEqual(shortStep, toast.UndoGroupName, "tên bước trong Undo History là câu ngắn \"Đổi mép cuối …\"");
             Assert.AreEqual(shortStep, _window.WindowState.RecentActionText,
                 "status bar \"Vừa làm: …\" đọc cùng câu ngắn đó, không đọc câu toast");
             LogAssert.NoUnexpectedReceived();

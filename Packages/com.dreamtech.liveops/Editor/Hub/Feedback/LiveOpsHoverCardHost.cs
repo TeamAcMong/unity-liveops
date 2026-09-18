@@ -112,7 +112,9 @@ namespace DreamTech.LiveOps.Editor
             List<VisualElement> dead = null;
             foreach (KeyValuePair<VisualElement, Func<VisualElement>> pair in _contentBuilders)
             {
-                if (pair.Key.panel != null) continue;
+                // Đích CHẾT = đã rời cây: không còn cha VÀ không còn panel. Chỉ xét `panel == null` là sai ở test không panel —
+                // ở đó chưa element nào có panel nên cả bảng bị dọn sạch ngay lần Attach thứ hai.
+                if (pair.Key.parent != null || pair.Key.panel != null) continue;
                 if (dead == null) dead = new List<VisualElement>();
                 dead.Add(pair.Key);
             }

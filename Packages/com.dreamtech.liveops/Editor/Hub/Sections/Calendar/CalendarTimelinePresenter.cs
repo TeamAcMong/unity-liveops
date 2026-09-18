@@ -392,22 +392,25 @@ namespace DreamTech.LiveOps.Editor
         }
 
         /// <summary>
-        /// (UX-14, UJ-13) Phát hiện Bị bỏ dính ĐÚNG đợt đang kéo và CHƯA có trước lúc bắt đầu kéo; không có thì null (tag Ok).
-        /// Chữ ký gồm luật + mã chi tiết + đợt đích: cùng một đợt có thể có nhiều lỗi khác nhau, và lỗi cũ không được tính là
-        /// hậu quả của cử chỉ này.
+        /// (UX-14, UJ-13) Phát hiện Bị bỏ mà bước kéo này phải chịu trách nhiệm. Hai đường vào, theo đúng thứ tự:
+        /// (1) phát hiện dính ĐÚNG đợt đang kéo — nó tả trạng thái người dùng đang kéo tới, dù lỗi đó có sẵn từ trước;
+        /// (2) phát hiện MỚI so với lúc bắt đầu kéo dù ghi cho đợt khác — kéo đè lên đợt nào thì lỗi ghi cho đợt bị đè.
+        /// Thứ bị loại là phát hiện của đợt KHÁC và đã có từ trước (vd lava-quest-2026-10 gõ sai định dạng giờ kết thúc): nó
+        /// không phải hậu quả của cử chỉ này, mà readout cũ lại đọc đúng câu đó khi người dùng kéo một đợt hoàn toàn khác.
+        /// Chữ ký gồm luật + mã chi tiết + đợt đích: cùng một đợt có thể có nhiều lỗi khác nhau.
         /// </summary>
         private LiveEventCalendarFinding NewDroppedFindingForDraggedBar(LiveEventCalendarCheckReport report)
         {
+            LiveEventCalendarFinding firstNew = null;
             IReadOnlyList<LiveEventCalendarFinding> findings = report.Findings;
             for (int index = 0; index < findings.Count; index++)
             {
                 LiveEventCalendarFinding finding = findings[index];
                 if (finding.Consequence != LiveEventCalendarConsequence.Dropped) continue;
-                if (!string.Equals(finding.TargetEntryKey ?? string.Empty, _dragBarKey, StringComparison.Ordinal)) continue;
-                if (_dragStartFindingSignatures.Contains(SignatureOf(finding))) continue;
-                return finding;
+                if (string.Equals(finding.TargetEntryKey ?? string.Empty, _dragBarKey, StringComparison.Ordinal)) return finding;
+                if (firstNew == null && !_dragStartFindingSignatures.Contains(SignatureOf(finding))) firstNew = finding;
             }
-            return null;
+            return firstNew;
         }
 
         private static string SignatureOf(LiveEventCalendarFinding finding)
