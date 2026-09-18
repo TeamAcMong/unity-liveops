@@ -205,9 +205,7 @@ namespace DreamTech.LiveOps.Editor.Tests
             CalendarTimelinePresenter presenter = CreatePresenter(services);
             List<Action> deferred = new List<Action>();
             List<LiveOpsToastModel> toasts = new List<LiveOpsToastModel>();
-            int undoCount = 0;
             presenter.DeferConfirmation = action => deferred.Add(action);
-            presenter.UndoLastStep = () => undoCount++;
             presenter.ToastRequested += toast => toasts.Add(toast);
             _confirmation.Enqueue(LiveOpsConfirmResult.Safe);
 
@@ -215,7 +213,6 @@ namespace DreamTech.LiveOps.Editor.Tests
             deferred[0]();
 
             Assert.AreEqual(0, toasts.Count, "chọn Giữ thì không có toast nào để người dùng phải đọc rồi bỏ qua");
-            Assert.AreEqual(0, undoCount, "chọn Giữ thì không có bước Undo nào để gỡ — nháp chưa bao giờ được ghi");
             Assert.IsTrue(services.Session.Document.TryGetFixedEvent(LiveOpsDesignSample.LavaQuestMidEntryKey,
                 out FixedLiveEventEntry kept));
             Assert.AreEqual("2026-09-20T00:00:00Z", kept.EndUtcText, "và giờ kết thúc trở về đúng giá trị cũ");

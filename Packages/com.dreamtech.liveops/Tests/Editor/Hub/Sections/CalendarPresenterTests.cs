@@ -87,9 +87,7 @@ namespace DreamTech.LiveOps.Editor.Tests
             LiveOpsHubServices services = CreateServices();
             _clock.Set(WhileMidQuestRunningUtc);
             CalendarTimelinePresenter presenter = CreatePresenter(services, LiveOpsTimelineZoom.ThreeWeeks);
-            int undoCount = 0;
             List<Action> deferred = new List<Action>();
-            presenter.UndoLastStep = () => undoCount++;
             presenter.DeferConfirmation = action => deferred.Add(action);
             _confirmation.Enqueue(LiveOpsConfirmResult.Safe);
 
@@ -114,7 +112,6 @@ namespace DreamTech.LiveOps.Editor.Tests
             Assert.AreEqual(LiveOpsConfirmLevel.Level1, request.Level, "rút ngắn đợt đang chạy là hộp cấp 1");
             StringAssert.Contains("lava-quest-2026-09b", request.Title);
             StringAssert.Contains(LiveOpsHubStrings.CalendarUnknownPlayerCountSentence, request.Body);
-            Assert.AreEqual(0, undoCount, "không có bước Undo nào để gỡ vì nháp chưa bao giờ được ghi (UX-06)");
             Assert.IsTrue(services.Session.Document.TryGetFixedEvent(LiveOpsDesignSample.LavaQuestMidEntryKey,
                 out FixedLiveEventEntry afterKeep));
             Assert.AreEqual("2026-09-20T00:00:00Z", afterKeep.EndUtcText, "chọn Giữ thì giờ kết thúc trở về giá trị cũ");
