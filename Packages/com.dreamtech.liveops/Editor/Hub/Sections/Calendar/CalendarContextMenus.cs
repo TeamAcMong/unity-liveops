@@ -86,10 +86,9 @@ namespace DreamTech.LiveOps.Editor
                     context.CanMoveLaneUp, LiveOpsHubStrings.CalendarDepthMenuLaneAtTopReason),
                 MoveLaneItem(CalendarMenuItemId.MoveLaneDown, LiveOpsHubStrings.CalendarDepthMenuMoveLaneDown,
                     context.CanMoveLaneDown, LiveOpsHubStrings.CalendarDepthMenuLaneAtBottomReason),
-                Enabled(CalendarMenuItemId.ShowAllLanes, LiveOpsHubStrings.CalendarDepthMenuShowAllLanes),
+                ShowAllLanesItem(context),
                 Separator(),
-                Enabled(CalendarMenuItemId.AddForLane, string.Format(CultureInfo.InvariantCulture,
-                    LiveOpsHubStrings.CalendarDepthMenuAddForLaneFormat, context.LaneTypeId)),
+                AddForLaneItem(context),
                 Enabled(CalendarMenuItemId.OpenEventTypes, LiveOpsHubStrings.CalendarDepthMenuOpenEventTypes),
             };
         }
@@ -185,14 +184,40 @@ namespace DreamTech.LiveOps.Editor
             return WithShortcut(CalendarMenuItemId.Duplicate, text, DuplicateShortcutId);
         }
 
+        /// <summary>
+        /// (UX-15, UJ-18) Lý do khoá phải nói ĐÚNG thứ đang thiếu. Chưa đăng lần nào = "Chưa có dấu đã đăng"; đã đăng rồi mà đợt
+        /// này chưa có trong bản đó = câu riêng. Dùng chung một câu làm người vừa đăng xong đọc "Chưa có dấu đã đăng" và tưởng
+        /// lần đăng của mình không ăn.
+        /// </summary>
         private static CalendarMenuItem RevertItem(CalendarMenuContext context)
         {
             string label = context.CompareSource == LiveOpsHubCompareSource.Disk
                 ? LiveOpsHubStrings.CalendarDepthTakeFromDisk
                 : LiveOpsHubStrings.CalendarDepthRevertToPublished;
-            return context.CanRevertToCompare
-                ? Enabled(CalendarMenuItemId.RevertToCompare, label)
-                : Disabled(CalendarMenuItemId.RevertToCompare, label, LiveOpsHubStrings.CalendarDepthCompareUnavailableReason);
+            if (context.CanRevertToCompare) return Enabled(CalendarMenuItemId.RevertToCompare, label);
+            string reason = context.HasCompareDocument && !context.IsInCompareDocument
+                ? LiveOpsHubStrings.CalendarDepthMenuNotInPublishedReason
+                : LiveOpsHubStrings.CalendarDepthCompareUnavailableReason;
+            return Disabled(CalendarMenuItemId.RevertToCompare, label, reason);
+        }
+
+        /// <summary>(UX-15, UJ-18) Làn lặp sinh đợt từ luật — không nhận đợt cố định, nên mục ở lại nhưng khoá kèm lý do.</summary>
+        private static CalendarMenuItem AddForLaneItem(CalendarMenuContext context)
+        {
+            string label = string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.CalendarDepthMenuAddForLaneFormat,
+                context.LaneTypeId);
+            return context.IsRecurringLane
+                ? Disabled(CalendarMenuItemId.AddForLane, label, LiveOpsHubStrings.CalendarDepthMenuRecurringLaneReason)
+                : Enabled(CalendarMenuItemId.AddForLane, label);
+        }
+
+        /// <summary>(UX-15, UJ-18) Không làn nào ẩn thì mục này không làm được gì — khoá kèm lý do thay vì bật một lệnh rỗng.</summary>
+        private static CalendarMenuItem ShowAllLanesItem(CalendarMenuContext context)
+        {
+            return context.HiddenLaneCount > 0
+                ? Enabled(CalendarMenuItemId.ShowAllLanes, LiveOpsHubStrings.CalendarDepthMenuShowAllLanes)
+                : Disabled(CalendarMenuItemId.ShowAllLanes, LiveOpsHubStrings.CalendarDepthMenuShowAllLanes,
+                    LiveOpsHubStrings.CalendarDepthMenuNoHiddenLaneReason);
         }
 
         private static CalendarMenuItem PasteItem(CalendarMenuContext context)
@@ -308,5 +333,17 @@ namespace DreamTech.LiveOps.Editor
         /// <summary>(Hình 12 khung 12) Làn đang thu gọn hay không — quyết nhãn "Thu gọn làn" / "Mở làn".</summary>
         public bool IsLaneCollapsed { get; set; }
         public LiveOpsHubCompareSource CompareSource { get; set; } = LiveOpsHubCompareSource.Published;
+
+        /// <summary>(UX-15) Làn này sinh đợt từ luật lặp — không thêm đợt cố định vào đó được.</summary>
+        public bool IsRecurringLane { get; set; }
+
+        /// <summary>(UX-15) Số làn đang ẩn — 0 thì "Hiện tất cả làn" không có việc gì để làm.</summary>
+        public int HiddenLaneCount { get; set; }
+
+        /// <summary>(UX-15) Có bản so (đã đăng hoặc bản trên đĩa) hay chưa — quyết lý do khoá của mục Hoàn về.</summary>
+        public bool HasCompareDocument { get; set; }
+
+        /// <summary>(UX-15) Đợt này có trong bản so hay không.</summary>
+        public bool IsInCompareDocument { get; set; }
     }
 }
