@@ -57,5 +57,33 @@ namespace DreamTech.LiveOps.Editor
 
         /// <summary>Nút đóng của drawer inspector — USS chỉ hiện nó ở <c>--medium</c> [SD1 §3.9].</summary>
         internal const string CalendarDepthDrawerClose = "liveops-hub-calendar-drawer-close";
+
+        // ----- Đợt W8-UX (gói A) -----
+
+        /// <summary>
+        /// (UX-01, C1/C2/UJ-26) Mắt xích giãn của chuỗi gốc màn. <c>calendar-root</c> trong UXML và gốc do section dựng đều
+        /// không có class nào, nên <c>.liveops-hub-calendar-main {flex-grow:1}</c> không có cha nào để giãn theo và cả thân màn
+        /// sụp về chiều cao nội tại (79px, hoặc 0 khi inspector thành drawer absolute).
+        /// </summary>
+        internal const string CalendarDepthFillHeight = "liveops-hub-calendar-fill-height";
+
+        /// <summary>
+        /// (UX-07, lệch thiết kế V-39) Drawer inspector đang mở ở <c>--medium</c>: cột timeline nhận lề phải bằng bề rộng
+        /// drawer thay vì bị phủ — chip "Đợt tới", nhãn "chồng n giờ" và đuôi gợi ý neo phải phải còn thấy và bấm được.
+        /// </summary>
+        internal const string CalendarDepthDrawerOpen = "liveops-hub-calendar-drawer-open";
+
+        /// <summary>
+        /// (UX-11, C8/V8) Chân màn Lịch cao hơn một dòng chú giải (minimap + chú giải + gợi ý): toast phải nâng cao hơn bậc
+        /// mặc định. Đo chân thật rồi chọn bậc, thay cho hằng 64px từng đè lên hai dòng chú giải.
+        /// </summary>
+        internal const string CalendarDepthContentRaisedToastTall = "liveops-hub-content--raised-toast-tall";
+
+        /// <summary>(UX-29) Menu Bắt lưới — class riêng để luật <c>--narrow</c> đưa nó vào menu ⋮.</summary>
+        internal const string CalendarDepthSnapMenu = "liveops-hub-calendar-snap-menu";
+
+        /// <summary>(UX-12) Chip làn ẩn tách thành nhãn + nút, mỗi phần một class.</summary>
+        internal const string CalendarDepthHiddenLanesLabel = "liveops-hub-calendar-hidden-lanes-label";
+        internal const string CalendarDepthHiddenLanesShowButton = "liveops-hub-calendar-hidden-lanes-show";
     }
 }
