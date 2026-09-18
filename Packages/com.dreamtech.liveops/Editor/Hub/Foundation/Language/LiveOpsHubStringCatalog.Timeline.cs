@@ -38,6 +38,7 @@ namespace DreamTech.LiveOps.Editor
             table.Add(nameof(LiveOpsHubStrings.TimelineStripLabelFormat),
                 vietnamese: "{0} · {1} đợt · {2} giờ/ngày",
                 english: "{0} · {1} {1|event|events} · {2} h/day");
+            table.AddShared(nameof(LiveOpsHubStrings.TimelineStripLabelShortFormat), "{0} · {1}");
             table.Add(nameof(LiveOpsHubStrings.TimelineStripTooltipFormat),
                 vietnamese: "{0} · {1} đợt · bấm để zoom vào {2} → {3} UTC",
                 english: "{0} · {1} {1|event|events} · click to zoom into {2} → {3} UTC");
@@ -47,6 +48,7 @@ namespace DreamTech.LiveOps.Editor
             table.Add(nameof(LiveOpsHubStrings.TimelineDroppedTag),
                 vietnamese: "bị bỏ",
                 english: "dropped");
+            table.AddShared(nameof(LiveOpsHubStrings.TimelineDroppedTagWithIdFormat), "{0} · {1}");
             table.Add(nameof(LiveOpsHubStrings.TimelineWillDropTag),
                 vietnamese: "sẽ bị bỏ",
                 english: "will be dropped");
@@ -80,6 +82,7 @@ namespace DreamTech.LiveOps.Editor
                 english: "device time {0}");
 
             table.AddShared(nameof(LiveOpsHubStrings.TimelineReadoutSeparator), " · ");
+            table.AddShared(nameof(LiveOpsHubStrings.TimelineReadoutOverlapPrefixFormat), "· {0}");
             table.Add(nameof(LiveOpsHubStrings.TimelineReadoutRangeFormat),
                 vietnamese: "{0} → {1} UTC",
                 english: "{0} → {1} UTC");
@@ -232,9 +235,11 @@ namespace DreamTech.LiveOps.Editor
                 vietnamese: "Mở làn",
                 english: "Expand lane");
 
+            // (UX-31, T7) Mở đầu bằng "· " như mọi câu mô tả khác của dòng gợi ý: Label id đứng trước, thiếu dấu thì đọc
+            // liền thành "star-tournament14/9 → 19/9".
             table.Add(nameof(LiveOpsHubStrings.TimelineHintEmptyLaneFormat),
-                vietnamese: "{0} · nhấp đúp chỗ trống để thêm đợt",
-                english: "{0} · double-click an empty spot to add an event");
+                vietnamese: "· {0} · nhấp đúp chỗ trống để thêm đợt",
+                english: "· {0} · double-click an empty spot to add an event");
             table.AddShared(nameof(LiveOpsHubStrings.TimelineHintRangeFormat), "{0} → {1}");
             table.AddShared(nameof(LiveOpsHubStrings.TimelineActionKeyMac), "⌘");
             table.Add(nameof(LiveOpsHubStrings.TimelineActionKeyOther),
