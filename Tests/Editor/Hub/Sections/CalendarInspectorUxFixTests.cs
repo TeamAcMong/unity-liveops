@@ -368,7 +368,10 @@ namespace DreamTech.LiveOps.Editor.Tests
             Assert.AreEqual("treasure-hunt", popover.Flow.EventType,
                 "lọc còn đúng một loại thì loại đó phải thành loại đang trỏ (UJ-17)");
             // Gửi phím vào ô lọc (nơi con trỏ người dùng đang ở) chứ không vào gốc themed root: callback Enter của popover đăng
-            // ký TrickleDown trên CÂY NỘI DUNG, là con của gốc — phím nhắm thẳng vào gốc không bao giờ đi qua nó.
+            // ký TrickleDown trên CÂY NỘI DUNG, là con của gốc — phím nhắm thẳng vào gốc không bao giờ đi qua nó. Và phải FOCUS
+            // ô lọc trước: 2022.3 định tuyến phím theo phần tử ĐANG focus chứ không theo target của sự kiện, nên không focus thì
+            // phím rơi về gốc panel và lại không đi qua cây nội dung (xanh ở 6000.6, đỏ ở 2022.3).
+            yield return MoveFocus(filter);
             SendKeyDown(filter, '\n', KeyCode.Return);
             Assert.AreEqual(AddEventFlowModel.StepChooseTimes, popover.Flow.Step,
                 "Enter sau khi lọc còn một loại phải sang bước 2");
