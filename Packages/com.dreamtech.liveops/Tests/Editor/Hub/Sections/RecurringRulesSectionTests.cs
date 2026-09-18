@@ -143,8 +143,12 @@ namespace DreamTech.LiveOps.Editor.Tests
 
         /// <summary>
         /// (Q-W4-4, user duyệt 16/9) Nháp sống ở ĐÚNG MỘT ô: gõ tiếp vào ô thứ hai sẽ thay nháp cũ bằng nháp mới và cái vừa
-        /// gõ ở ô thứ nhất biến mất không dấu vết. Nên khi một ô giữ nháp thì ba ô còn lại KHOÁ, kèm lý do in THÀNH CHỮ cạnh
-        /// ô (SPIKE-B SP-3 — test không assert tooltip, tooltip chỉ là đường dự phòng).
+        /// gõ ở ô thứ nhất biến mất không dấu vết. Nên khi một ô giữ nháp thì ba ô còn lại KHOÁ.
+        /// <para>
+        /// (UX-23, đợt W8-UX) Lý do vẫn in THÀNH CHỮ nhưng MỘT LẦN cho cả nhóm, ở ô đầu tiên bị khoá: in cùng một câu dưới
+        /// từng ô thì màn đọc như ba lỗi khác nhau đang xảy ra cùng lúc. Ô nào cũng còn tooltip — tooltip là đường phụ của
+        /// SP-3, không phải đường duy nhất.
+        /// </para>
         /// </summary>
         [UnityTest]
         public IEnumerator DraftInOneField_LocksOtherThree_WithReasonAsText()
@@ -157,7 +161,7 @@ namespace DreamTech.LiveOps.Editor.Tests
             Assert.IsTrue(Section.Draft.NeedsConfirmation, "gõ tiền tố mới khi đợt đang chạy chỉ tạo nháp tại ô");
             Assert.IsTrue(Section.Form.PrefixField.enabledSelf, "chính ô đang giữ nháp phải mở để còn sửa tiếp hoặc Esc");
             string expectedReason = string.Format(CultureInfo.InvariantCulture,
-                LiveOpsHubStrings.RecurringFieldLockedByDraftFormat, LiveOpsHubStrings.RecurringIdPrefixLabel);
+                LiveOpsHubStrings.RecurringFieldsLockedByDraftFormat, LiveOpsHubStrings.RecurringIdPrefixLabel);
             AssertFieldLocked(Section.Form.AnchorField, expectedReason);
             AssertFieldLocked(Section.Form.PeriodField, expectedReason);
             AssertFieldLocked(Section.Form.ActiveField, expectedReason);
@@ -223,12 +227,18 @@ namespace DreamTech.LiveOps.Editor.Tests
             LogAssert.NoUnexpectedReceived();
         }
 
-        /// <summary>Ô bị khoá: không gõ được VÀ có một nhãn lý do đọc được ngay cạnh, không phải chỉ một ô xám câm.</summary>
+        /// <summary>
+        /// Ô bị khoá: không gõ được, và lý do đọc được — hoặc thành CHỮ ngay cạnh (ô đầu tiên của nhóm, nơi câu chung đứng),
+        /// hoặc qua tooltip của chính ô. Không bao giờ chỉ là một ô xám câm.
+        /// </summary>
         private void AssertFieldLocked(VisualElement input, string expectedReason)
         {
             Assert.IsFalse(input.enabledSelf, "ô '" + input.name + "' phải khoá trong lúc ô khác giữ nháp");
+            Assert.AreEqual(expectedReason, input.tooltip, "ô '" + input.name + "' bị khoá mà không nói được vì sao");
             Label reason = LockReasonOf(input);
-            Assert.IsNotNull(reason, "ô '" + input.name + "' bị khoá mà không có nhãn lý do nào cạnh ô");
+            Assert.IsNotNull(reason, "ô '" + input.name + "' thiếu chỗ treo câu lý do");
+            bool showsSentence = reason.text.Length > 0;
+            if (!showsSentence) return;
             Assert.AreEqual(expectedReason, reason.text);
             Assert.IsFalse(reason.ClassListContains(LiveOpsHubClassNames.RecurringHidden), "nhãn lý do phải HIỆN, không chỉ có chữ");
         }
@@ -236,6 +246,7 @@ namespace DreamTech.LiveOps.Editor.Tests
         private void AssertFieldUnlocked(VisualElement input)
         {
             Assert.IsTrue(input.enabledSelf, "ô '" + input.name + "' phải mở lại khi hết nháp");
+            Assert.AreEqual(string.Empty, input.tooltip, "hết nháp thì ô không còn nói mình bị khoá");
             Label reason = LockReasonOf(input);
             Assert.IsNotNull(reason);
             Assert.AreEqual(string.Empty, reason.text);
@@ -406,7 +417,7 @@ namespace DreamTech.LiveOps.Editor.Tests
             yield return OpenDesignSample(new ScriptedLiveOpsHubConfirmationPresenter());
 
             yield return ClickButton(RecurringRuleSentence.TokenElementName(RecurringRuleFields.ActiveHours));
-            yield return null;
+            yield return WaitForFocusInside(Section.Form.ActiveField);
 
             Assert.IsTrue(IsFocusInside(Section.Form.ActiveField), "bấm token đưa focus tới đúng ô của token đó");
             LogAssert.NoUnexpectedReceived();
@@ -444,6 +455,23 @@ namespace DreamTech.LiveOps.Editor.Tests
             RecurringLiveEventRule rule;
             Assert.IsTrue(Section.Services.Session.Document.TryGetRecurringRule(WeeklyPassType, out rule));
             return rule;
+        }
+
+        /// <summary>
+        /// Focus của UI Toolkit không phải lúc nào cũng xong trong khung gửi sự kiện (ô chữ giao lại cho ô nhập con, và
+        /// cửa sổ vừa mở có thể nhận focus muộn một khung) — chờ theo V-23 thay vì đo đúng một khung rồi kết luận.
+        /// </summary>
+        private IEnumerator WaitForFocusInside(VisualElement field)
+        {
+            int frames = 0;
+            double startedAt = EditorApplication.timeSinceStartup;
+            while (!IsFocusInside(field))
+            {
+                bool framesExhausted = ++frames > MaximumWaitFrames;
+                bool secondsExhausted = EditorApplication.timeSinceStartup - startedAt > MaximumWaitSeconds;
+                if (framesExhausted && secondsExhausted) yield break;
+                yield return null;
+            }
         }
 
         private bool IsFocusInside(VisualElement field)
