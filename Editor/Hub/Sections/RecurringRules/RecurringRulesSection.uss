@@ -148,6 +148,13 @@
     border-color: var(--liveops-hub-color-on-selection);
 }
 
+/* (UX-25) Dấu Blocked là hình tròn đặc CÓ vạch cắt, mà vạch cắt vẽ bằng đúng màu on-selection vừa gán cho nền: trên hàng
+   đang chọn nó tàng hình và dấu Blocked tụt xuống thành một chấm tròn đặc, chỉ còn khác dấu Ok ở cỡ. Vạch cắt phải đổi
+   sang màu NỀN của hàng đang chọn để hình "biển cấm" còn nguyên. Ba class nên thắng luật hai class ở components. */
+.liveops-hub-recurring-list-row--selected .liveops-hub-state-mark--blocked > .liveops-hub-state-mark__bar {
+    background-color: var(--unity-colors-highlight-background);
+}
+
 /* Căn trái ghi rõ: hàng là một Button, mà Button của Unity căn giữa và NHẢ xuống con — không ghi thì chữ bị cắt cả hai đầu. */
 .liveops-hub-recurring-list-name {
     flex-grow: 1;
@@ -228,6 +235,13 @@
 .liveops-hub-recurring-field-input--drafting {
     border-width: 1px;
     border-color: var(--liveops-hub-color-warning-fill);
+}
+
+/* (UX-22) Gõ một giá trị game sẽ BỎ HẲN thì ô mang CẢ HAI class: --invalid (giá trị hỏng) và --drafting (chưa ghi). Hai
+   luật một class có cùng độ đặc hiệu nên luật đứng sau thắng, tức viền cam "đang nhập" che mất viền đỏ "giá trị hỏng" —
+   đúng thứ UX-22 vừa thêm vào. Luật ghép hai class đặc hiệu hơn cả hai, nên chỗ hỏng luôn thắng chỗ đang nhập. */
+.liveops-hub-recurring-field-input--drafting.liveops-hub-recurring-field-input--invalid {
+    border-color: var(--liveops-hub-color-blocked-fill);
 }
 
 /* (UX-22) Dòng lỗi thụt đúng cột Ô (nhãn 96 + lề 6), không nằm dưới cột nhãn: mắt đọc lỗi ngay dưới chỗ vừa gõ. */
