@@ -78,6 +78,12 @@ namespace DreamTech.LiveOps.Editor
 
         // Nút header "[Refresh] Kiểm lại tất cả" (7.1): Button có con thì KHÔNG tự đo theo `text` nữa, nên chữ phải là một
         // Label con và nút phải xếp hàng ngang — nếu không nút co về min-width 54px và icon đè lên chữ.
+        /// <summary>
+        /// Nút chỉ có icon (⋮) ở section header (UX-30): nút chữ có <c>min-width: 54px</c> nên một icon 12 px nằm lệch trái
+        /// trong một ô rộng rỗng, đọc thành nút hỏng. Class này gỡ min-width và căn icon vào giữa ô vuông.
+        /// </summary>
+        internal const string OverviewIconButton = "liveops-hub-overview-icon-button";
+
         internal const string OverviewRecheckAllButton = "liveops-hub-overview-recheck-all";
         internal const string OverviewRecheckAllLabel = "liveops-hub-overview-recheck-all-label";
     }
