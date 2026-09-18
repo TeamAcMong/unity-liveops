@@ -145,6 +145,12 @@ namespace DreamTech.LiveOps.Editor
         internal static string CalendarRenameToastFormat => LiveOpsHubStringCatalog.Text(nameof(CalendarRenameToastFormat));
         internal static string CalendarRetypeToastFormat => LiveOpsHubStringCatalog.Text(nameof(CalendarRetypeToastFormat));
         internal static string CalendarConfigKeyToastFormat => LiveOpsHubStringCatalog.Text(nameof(CalendarConfigKeyToastFormat));
+
+        // Tên bước Undo NGẮN của ba lệnh sửa trong inspector (W8-UX, UJ-10). Không có chúng thì bước Undo mang chính câu toast
+        // "Đã đổi …", và toast sau ⌘Z in "Đã hoàn tác: Đã đổi …" — lặp chữ, đọc như hai việc.
+        internal static string CalendarRenameUndoStepFormat => LiveOpsHubStringCatalog.Text(nameof(CalendarRenameUndoStepFormat));
+        internal static string CalendarRetypeUndoStepFormat => LiveOpsHubStringCatalog.Text(nameof(CalendarRetypeUndoStepFormat));
+        internal static string CalendarConfigKeyUndoStepFormat => LiveOpsHubStringCatalog.Text(nameof(CalendarConfigKeyUndoStepFormat));
         internal static string CalendarAddToastFormat => LiveOpsHubStringCatalog.Text(nameof(CalendarAddToastFormat));
         internal static string CalendarRepairToastFormat => LiveOpsHubStringCatalog.Text(nameof(CalendarRepairToastFormat));
 
@@ -162,6 +168,10 @@ namespace DreamTech.LiveOps.Editor
         internal static string CalendarAddEndAutoNote => LiveOpsHubStringCatalog.Text(nameof(CalendarAddEndAutoNote));
         internal static string CalendarAddTimesLabel => LiveOpsHubStringCatalog.Text(nameof(CalendarAddTimesLabel));
         internal static string CalendarTimeRangeFormat => LiveOpsHubStringCatalog.Text(nameof(CalendarTimeRangeFormat));
+        /// <summary>
+        /// Dòng phụ dưới ô Config key. Dấu backtick trong [SD1 §3.11] là cách TÀI LIỆU ghi "chỗ này là mono", không phải ký tự
+        /// hiện lên màn hình — in ra thì người dùng đọc thấy "`hunt_default`" (V17).
+        /// </summary>
         internal static string CalendarAddConfigKeyNoteFormat => LiveOpsHubStringCatalog.Text(nameof(CalendarAddConfigKeyNoteFormat));
         internal static string CalendarAddSubmitFormat => LiveOpsHubStringCatalog.Text(nameof(CalendarAddSubmitFormat));
         internal static string CalendarAddBackToTimesButton => LiveOpsHubStringCatalog.Text(nameof(CalendarAddBackToTimesButton));

@@ -265,6 +265,15 @@ namespace DreamTech.LiveOps.Editor
             table.Add(nameof(LiveOpsHubStrings.CalendarConfigKeyToastFormat),
                 vietnamese: "Đã đổi config key của {0}",
                 english: "Changed the config key of {0}");
+            table.Add(nameof(LiveOpsHubStrings.CalendarRenameUndoStepFormat),
+                vietnamese: "Đổi id {0}",
+                english: "Rename {0}");
+            table.Add(nameof(LiveOpsHubStrings.CalendarRetypeUndoStepFormat),
+                vietnamese: "Đổi loại {0}",
+                english: "Change the type of {0}");
+            table.Add(nameof(LiveOpsHubStrings.CalendarConfigKeyUndoStepFormat),
+                vietnamese: "Đổi config key {0}",
+                english: "Change the config key of {0}");
             table.Add(nameof(LiveOpsHubStrings.CalendarAddToastFormat),
                 vietnamese: "Đã thêm {0} vào lịch",
                 english: "Added {0} to the calendar");
@@ -310,8 +319,8 @@ namespace DreamTech.LiveOps.Editor
                 english: "Times");
             table.AddShared(nameof(LiveOpsHubStrings.CalendarTimeRangeFormat), "{0} → {1} UTC");
             table.Add(nameof(LiveOpsHubStrings.CalendarAddConfigKeyNoteFormat),
-                vietnamese: "để trống = mặc định của loại, Xuất ghi `{0}`",
-                english: "leave empty = the type default, Export writes `{0}`");
+                vietnamese: "để trống = mặc định của loại, Xuất ghi {0}",
+                english: "leave empty = the type default, Export writes {0}");
             table.Add(nameof(LiveOpsHubStrings.CalendarAddSubmitFormat),
                 vietnamese: "Thêm {0} vào lịch",
                 english: "Add {0} to the calendar");
