@@ -14,6 +14,9 @@ namespace DreamTech.LiveOps.Editor
     /// </summary>
     internal sealed class CalendarSection : IHubSection, IHubHostAware, IHubSectionActions, IHubSectionViewState, IHubSectionNavigation
     {
+        /// <summary>(UX-11) Bậc nâng toast mặc định của màn Lịch, đúng con số trong <c>liveops-hub-feedback.uss</c>.</summary>
+        private const float DefaultToastRaisePixels = 64f;
+
         private readonly LiveOpsHubServices _services;
         private readonly CalendarTimelinePresenter _presenter;
         private readonly CalendarCommandHandler _commandHandler;
@@ -38,6 +41,22 @@ namespace DreamTech.LiveOps.Editor
         private DateTime _rangeStartUtc;
         private bool _hasRangeStart;
         private string _searchText = string.Empty;
+
+        /// <summary>
+        /// (UX-02, UJ-01/UJ-23) Khung đang ở thang đo LIÊN TỤC (⌘+lăn, Shift+lăn, căn khung, minimap) chứ không ở một preset.
+        /// Trong trạng thái đó <see cref="Refresh"/> KHÔNG được gọi <c>SetRange</c>: <c>SetRange</c> xoá <c>IsContinuousScale</c>
+        /// và tự phát <c>RangeChanged</c>, nên mọi lần vẽ lại sẽ kéo trục về preset ngay sau khi người dùng vừa zoom.
+        /// </summary>
+        private bool _isContinuousRange;
+
+        /// <summary>
+        /// (UX-02) Chặn tái nhập: <see cref="Refresh"/> ghi model xuống element, element đổi hình học rồi phát lại
+        /// <c>RangeChanged</c> — không có cờ này thì hai bên gọi vòng nhau trong cùng một khung.
+        /// </summary>
+        private bool _isApplyingRange;
+
+        /// <summary>(UX-11) Gốc màn đang GẮN panel — chỉ gốc này được quyền tắt class nâng toast khi rời panel.</summary>
+        private VisualElement _activeRoot;
 
         public CalendarSection(LiveOpsHubServices services)
         {
@@ -101,6 +120,9 @@ namespace DreamTech.LiveOps.Editor
         public VisualElement CreateView()
         {
             _root = new VisualElement();
+            // (UX-01) Gốc do section dựng cũng phải giãn: CloneTree đặt `calendar-root` làm CON của nó, nên nếu nó co về chiều
+            // cao nội tại thì mọi flex-grow bên dưới đều giãn trong một cái hộp cao 0.
+            _root.AddToClassList(LiveOpsHubClassNames.CalendarDepthFillHeight);
             VisualTreeAsset layout = _services.LayoutLoader.LoadVisualTree(LiveOpsHubPaths.CalendarSectionUxml);
             // Nạp hỏng thì NÉM: shell bắt và hiện LiveOpsHubFailureView nêu đường dẫn (7.0). Trả về cây rỗng sẽ thành một màn
             // trắng im lặng — đúng thứ RequiredElementNames sinh ra để chặn (UXML sai cú pháp XML từng lọt qua kiểu đó).
@@ -130,6 +152,9 @@ namespace DreamTech.LiveOps.Editor
             ApplyPaneVisibility();
 
             // PD-21: toast của màn Lịch phải nằm TRÊN minimap/chú giải/gợi ý, nên cột nội dung bật class nâng toast.
+            // (UX-11) Ghi lại ĐÂY là gốc đang sống: view cũ của lần dựng trước detach SAU khi view này đã bật class, nên nếu
+            // detach nào cũng tắt class thì yêu cầu của view đang sống bị xoá và toast rơi xuống dưới minimap.
+            _activeRoot = _root;
             _services.Bus.SetContentClass(LiveOpsHubClassNames.ContentRaisedToast, true);
 
             _services.Session.DocumentChanged += OnSessionChanged;
@@ -258,11 +283,7 @@ namespace DreamTech.LiveOps.Editor
             _toolbar.RangeStepRequested += StepRange;
             _toolbar.TodayRequested += GoToToday;
             _toolbar.PickRangeStartRequested += OpenRangeStartPopover;
-            _toolbar.ZoomChanged += zoom =>
-            {
-                _zoom = zoom;
-                Refresh();
-            };
+            _toolbar.ZoomChanged += ApplyZoomPreset;
             // (nợ D-3(c)) Lựa chọn bắt lưới đi THẲNG xuống cử chỉ kéo, không còn chỉ nằm trong trạng thái view.
             _toolbar.SnapModeChanged += _ =>
             {
@@ -280,6 +301,8 @@ namespace DreamTech.LiveOps.Editor
                 ApplyPaneVisibility();
                 Refresh();
             };
+            // (UX-12, UJ-07) Nút "Hiện" của chip làn ẩn đi đúng đường lệnh của mục menu "Hiện tất cả làn".
+            _toolbar.ShowHiddenLanesRequested += () => _commandHandler.ShowAllLanes();
             _toolbar.SearchChanged += OnSearchChanged;
             _toolbar.SearchSubmitted += OnSearchSubmitted;
             // Dải chú giải bị USS ẩn ở cửa sổ hẹp; mục "Chú giải" của menu ⋮ gắn class thắng luật ẩn đó lên chính dải.
@@ -301,6 +324,9 @@ namespace DreamTech.LiveOps.Editor
             _timeline.SetDeviceOffset(_services.TimeZone.DeviceOffsetAt(_services.Clock.UtcNow));
             // (nợ D-3(a)) Tag kiểm nhanh của presenter đi thẳng vào vế thứ ba của readout.
             _presenter.QuickCheckTagChanged += (tagText, health) => _timeline.SetDragQuickCheckTag(tagText, health);
+            // (UX-05, UJ-05) Kéo thanh thì tắt hover card: lúc kéo element giữ pointer capture và mỗi bước xem trước thay thanh
+            // bằng element mới, nên PointerLeave của thanh cũ không bao giờ tới và thẻ treo lại che đúng thanh vừa thả.
+            _presenter.DragActiveChanged += isDragging => _hoverCardHost?.Suppress(isDragging);
             _timelineColumn.Add(_timeline);
             ApplySnapStep();
         }
@@ -356,15 +382,23 @@ namespace DreamTech.LiveOps.Editor
             _main?.EnableInClassList(LiveOpsHubClassNames.CalendarHidden, !hasAsset);
             if (!hasAsset) return;
 
-            DateTime rangeStartUtc = RangeStartUtc();
-            DateTime rangeEndUtc = LiveOpsTimelineGeometry.AddTicksClamped(rangeStartUtc,
-                LiveOpsTimelineGeometry.RangeLengthOf(_zoom).Ticks);
+            // (UX-02, UX-03) Nguồn của khoảng: khi trục đang ở thang đo liên tục thì CHÍNH TRỤC là nguồn — nó vừa đổi vì ⌘+lăn,
+            // Shift+lăn, căn khung hoặc vì cửa sổ rộng ra. Ở preset thì màn là nguồn và trục nhận lại qua SetRange.
+            bool isContinuous = _isContinuousRange && _timeline != null && _timeline.IsContinuousScale;
+            DateTime rangeStartUtc = isContinuous ? _timeline.RangeStartUtc : RangeStartUtc();
+            DateTime rangeEndUtc = isContinuous
+                ? _timeline.RangeEndUtc
+                : LiveOpsTimelineGeometry.AddTicksClamped(rangeStartUtc, LiveOpsTimelineGeometry.RangeLengthOf(_zoom).Ticks);
             _presenter.ContentWidth = _root.layout.width;
             LiveOpsTimelineModel model = _presenter.BuildModel(rangeStartUtc, rangeEndUtc, TrackWidth());
             bool isMultiSelection = _presenter.SelectedBarKeys.Count > 1;
+            bool wasApplyingRange = _isApplyingRange;
+            _isApplyingRange = true;
+            try
+            {
             if (_timeline != null)
             {
-                _timeline.SetRange(rangeStartUtc, _zoom);
+                if (!isContinuous) _timeline.SetRange(rangeStartUtc, _zoom);
                 _timeline.SetModel(model);
                 // (G-OPT-TIMELINE) Vẽ lại phải dựng lại ĐÚNG tập đang chọn. Gọi thẳng Select(SelectedBarKey) là thu tập về một
                 // thanh — mà Refresh() chạy ngay sau MỌI lệnh sửa (DocumentEdited), kể cả hai lệnh của chính bảng chọn nhiều,
@@ -372,13 +406,44 @@ namespace DreamTech.LiveOps.Editor
                 if (isMultiSelection) _timeline.SelectMany(_presenter.SelectedBarKeys, _presenter.SelectedBarKey, false);
                 else _timeline.Select(_presenter.SelectedBarKey, false);
             }
+            }
+            finally
+            {
+                _isApplyingRange = wasApplyingRange;
+            }
             _toolbar?.SetRange(rangeStartUtc, rangeEndUtc, _services.Clock.UtcNow);
             _toolbar?.SetHiddenLaneCount(_presenter.HiddenLanes.Count);
             if (isMultiSelection) _inspector?.RefreshMultiple(_presenter.SelectedBarKeys);
             else _inspector?.Refresh(_presenter.SelectedBarKey);
             _listPane?.SetDocument(_services.Session.Document, _services.Clock.UtcNow, _presenter.SelectedBarKey);
             RefreshComparePane();
+            ApplyInspectorDrawerLayout();
             AttachHoverCards();
+        }
+
+        /// <summary>
+        /// (UX-07, UJ-06 · lệch thiết kế V-39) Drawer inspector ở <c>--medium</c>: chỉ hiện khi có đợt đang chọn, và khi hiện thì
+        /// cột timeline lùi vào đúng bề rộng drawer thay vì bị phủ. Trạng thái chưa chọn từng để một pane rỗng 280px đứng cạnh
+        /// trục; drawer mở từng phủ lên mọi thứ neo mép phải (chip "Đợt tới", nhãn "chồng n giờ", đuôi gợi ý).
+        /// </summary>
+        private void ApplyInspectorDrawerLayout()
+        {
+            if (_inspectorRoot == null) return;
+            bool isDrawerMode = IsMediumWidth();
+            bool hasSelection = _presenter.SelectedBarKey.Length > 0;
+            bool isDrawerOpen = isDrawerMode && hasSelection && !_isComparePaneOpen;
+            bool isHidden = _isComparePaneOpen || (isDrawerMode && !hasSelection);
+            _inspectorRoot.EnableInClassList(LiveOpsHubClassNames.CalendarHidden, isHidden);
+            _split?.EnableInClassList(LiveOpsHubClassNames.CalendarDepthDrawerOpen, isDrawerOpen);
+        }
+
+        /// <summary>Cửa sổ ở bậc <c>--medium</c> theo class của root hub; chưa gắn panel thì đo bề rộng thân màn.</summary>
+        private bool IsMediumWidth()
+        {
+            VisualElement hubRoot = FindHubRoot();
+            if (hubRoot != null) return hubRoot.ClassListContains(LiveOpsHubClassNames.Medium);
+            return _root != null && _root.resolvedStyle.width > 0f
+                && _root.resolvedStyle.width < LiveOpsHubBreakpoints.MediumBelowWidth;
         }
 
         /// <summary>
@@ -409,8 +474,8 @@ namespace DreamTech.LiveOps.Editor
                 if (_isListPaneOpen) _split.UnCollapse();
                 else _split.CollapseChild(0);
             }
-            _inspectorRoot?.EnableInClassList(LiveOpsHubClassNames.CalendarHidden, _isComparePaneOpen);
             _comparePane?.Root.EnableInClassList(LiveOpsHubClassNames.CalendarHidden, !_isComparePaneOpen);
+            ApplyInspectorDrawerLayout();
         }
 
         /// <summary>(nợ D-3(c)) Bước bắt lưới của khung nhìn: Tự động = null (theo zoom), Tắt = 0, còn lại là bước cố định.</summary>
@@ -454,20 +519,57 @@ namespace DreamTech.LiveOps.Editor
             TimeSpan length = LiveOpsTimelineGeometry.RangeLengthOf(_zoom);
             _rangeStartUtc = RangeStartUtc().AddTicks(length.Ticks * Math.Sign(direction));
             _hasRangeStart = true;
+            // Bước khoảng là lệnh của PRESET: rời thang đo liên tục để trục nhận lại đúng độ dài khoảng của zoom đang chọn.
+            _isContinuousRange = false;
             Refresh();
         }
 
         private void GoToToday()
         {
             _hasRangeStart = false;
+            _isContinuousRange = false;
             Refresh();
         }
 
+        /// <summary>
+        /// (UX-02, UX-03 · UJ-01, UJ-02, UJ-23) Trục vừa đổi khoảng — vì ⌘+lăn, Shift+lăn, căn khung, minimap, hoặc vì bề rộng
+        /// track đổi khi cửa sổ co giãn. Trước đây chỗ này chỉ lưu giờ bắt đầu và đổi nhãn toolbar, nên model (thước, thanh, làn)
+        /// vẫn là model của lần dựng trước: người dùng thấy nhãn khoảng nhảy còn trục đứng yên.
+        /// </summary>
         private void OnTimelineRangeChanged(DateTime rangeStartUtc, DateTime rangeEndUtc)
         {
+            if (_isApplyingRange) return;
             _rangeStartUtc = rangeStartUtc;
             _hasRangeStart = true;
-            _toolbar?.SetRange(rangeStartUtc, rangeEndUtc, _services.Clock.UtcNow);
+            _isContinuousRange = _timeline != null && _timeline.IsContinuousScale;
+            Refresh();
+        }
+
+        /// <summary>
+        /// (UX-02, UJ-23) Bấm một tab zoom sau khi đã ⌘+lăn: quay về preset và NEO theo tâm khung đang xem — hoặc theo bây giờ
+        /// nếu bây giờ nằm trong khung. Giữ nguyên mốc trái cũ làm khung nhảy đi chỗ khác và vạch "bây giờ" biến mất.
+        /// </summary>
+        private void ApplyZoomPreset(LiveOpsTimelineZoom zoom)
+        {
+            DateTime anchorUtc = CurrentAnchorUtc();
+            _zoom = zoom;
+            _isContinuousRange = false;
+            TimeSpan length = LiveOpsTimelineGeometry.RangeLengthOf(zoom);
+            _rangeStartUtc = LiveOpsTimelineGeometry.AddTicksClamped(anchorUtc, -(length.Ticks / 2L));
+            _hasRangeStart = true;
+            Refresh();
+        }
+
+        /// <summary>Tâm khung đang xem, hoặc bây giờ khi bây giờ còn nằm trong khung (thứ người dùng đang nhìn).</summary>
+        private DateTime CurrentAnchorUtc()
+        {
+            DateTime nowUtc = _services.Clock.UtcNow;
+            if (_timeline == null) return _hasRangeStart ? _rangeStartUtc : nowUtc;
+            DateTime startUtc = _timeline.RangeStartUtc;
+            DateTime endUtc = _timeline.RangeEndUtc;
+            if (endUtc <= startUtc) return nowUtc;
+            if (nowUtc >= startUtc && nowUtc < endUtc) return nowUtc;
+            return LiveOpsTimelineGeometry.AddTicksClamped(startUtc, (endUtc - startUtc).Ticks / 2L);
         }
 
         /// <summary>Gõ id đợt: chọn và căn khung đợt khớp đầu tiên (7.3) — không lọc bớt thanh, không đợt nào biến mất.</summary>
@@ -541,6 +643,8 @@ namespace DreamTech.LiveOps.Editor
         {
             _inspector?.Refresh(barKey);
             _timeline?.Select(barKey, false);
+            // (UX-07) Drawer "mở khi chọn": bỏ chọn ở --medium phải giấu hẳn pane, không để một pane rỗng 280px cạnh trục.
+            ApplyInspectorDrawerLayout();
         }
 
         private void OnDocumentEdited()
@@ -558,6 +662,7 @@ namespace DreamTech.LiveOps.Editor
         {
             _rangeStartUtc = startUtc;
             _hasRangeStart = true;
+            _isContinuousRange = false;
             _zoom = LiveOpsTimelineZoom.Day;
             _toolbar?.SetZoomWithoutNotify(_zoom);
             Refresh();
@@ -588,6 +693,7 @@ namespace DreamTech.LiveOps.Editor
             {
                 _rangeStartUtc = startUtc;
                 _hasRangeStart = true;
+                _isContinuousRange = false;
                 Refresh();
             }));
         }
@@ -614,6 +720,9 @@ namespace DreamTech.LiveOps.Editor
         private void AttachHoverCards()
         {
             if (_hoverCardHost == null || _timeline == null || _presenter.Model == null) return;
+            // (UX-05) Lần vẽ trước đã thay mọi thanh bằng element mới: builder của element chết phải đi, và nếu thẻ đang hiện
+            // thuộc về một thanh đã rời cây thì nó phải tắt — không thì thẻ treo lại che đúng thanh vừa dựng.
+            _hoverCardHost.PruneDetachedTargets();
             for (int laneIndex = 0; laneIndex < _timeline.LaneCount; laneIndex++)
             {
                 LiveOpsTimelineLane lane = _timeline.LaneAt(laneIndex);
@@ -769,8 +878,17 @@ namespace DreamTech.LiveOps.Editor
             }
         }
 
+        /// <summary>(UX-15) Test đọc thẳng ngữ cảnh menu mà màn tính ra — nhãn menu gốc của Unity không chụp ảnh được (S-24).</summary>
+        internal CalendarMenuContext BuildMenuContextForTest(LiveOpsTimelineHit hit)
+        {
+            return BuildMenuContext(hit);
+        }
+
         private CalendarMenuContext BuildMenuContext(LiveOpsTimelineHit hit)
         {
+            LiveEventCalendarDocument compareDocument = _services.Session.Publish == null
+                ? null
+                : _services.Session.Publish.CompareDocument;
             CalendarMenuContext context = new CalendarMenuContext
             {
                 BarKey = hit.BarKey,
@@ -784,13 +902,22 @@ namespace DreamTech.LiveOps.Editor
                 CompareSource = _services.Session.Publish == null
                     ? LiveOpsHubCompareSource.Published
                     : _services.Session.Publish.ActiveCompareSource,
+                // (UX-15) Ba cờ để menu nói đúng: làn lặp không nhận đợt cố định, không làn ẩn thì "Hiện tất cả làn" vô nghĩa,
+                // và lý do khoá mục Hoàn về phân biệt "chưa đăng lần nào" với "đợt này chưa có trong bản đã đăng".
+                IsRecurringLane = IsRecurringLane(hit.LaneTypeId),
+                HiddenLaneCount = _presenter.HiddenLanes.Count,
+                HasCompareDocument = compareDocument != null,
+                IsInCompareDocument = compareDocument != null && hit.BarKey.Length > 0
+                    && compareDocument.TryGetFixedEvent(hit.BarKey, out FixedLiveEventEntry _),
             };
             if (_commandHandler.TryGetDuplicateTarget(hit.BarKey, out FixedLiveEventEntry _, out DateTime targetStartUtc,
                 out TimeSpan offset))
             {
                 context.CanDuplicate = true;
                 context.DuplicateTargetText = _services.Format.ShortDateTime(targetStartUtc);
-                context.DuplicateOffsetText = _services.Format.Duration(offset, true);
+                // (UX-15, UJ-18) Dạng ĐỦ CHỮ ("2 ngày 12 giờ"): "(+2n 12g)" là dạng của readout khi kéo — ở đó chỗ hẹp và người
+                // đọc đang nhìn con trỏ; trong menu thì không thiếu chỗ, chỉ thiếu nghĩa.
+                context.DuplicateOffsetText = _services.Format.Duration(offset, false);
             }
             return context;
         }
@@ -907,6 +1034,9 @@ namespace DreamTech.LiveOps.Editor
         private void OnCompareRowContextRequested(string entryKey, ContextualMenuPopulateEvent menuEvent)
         {
             if (entryKey.Length == 0) return;
+            LiveEventCalendarDocument compareDocument = _services.Session.Publish == null
+                ? null
+                : _services.Session.Publish.CompareDocument;
             CalendarMenuContext context = new CalendarMenuContext
             {
                 BarKey = entryKey,
@@ -914,6 +1044,9 @@ namespace DreamTech.LiveOps.Editor
                 CompareSource = _services.Session.Publish == null
                     ? LiveOpsHubCompareSource.Published
                     : _services.Session.Publish.ActiveCompareSource,
+                HasCompareDocument = compareDocument != null,
+                IsInCompareDocument = compareDocument != null
+                    && compareDocument.TryGetFixedEvent(entryKey, out FixedLiveEventEntry _),
             };
             CalendarContextMenus.Populate(menuEvent.menu, CalendarContextMenus.ForCompareRow(context),
                 id => ActivateMenuItem(id, context));
@@ -1009,6 +1142,39 @@ namespace DreamTech.LiveOps.Editor
         {
             _presenter.ContentWidth = geometryEvent.newRect.width;
             _toolbar?.SetNarrow(IsNarrowWidth());
+            ApplyInspectorDrawerLayout();
+            ApplyToastRaiseStep();
+        }
+
+        /// <summary>
+        /// (UX-11, C8/V8) Bậc nâng toast theo chân màn ĐO ĐƯỢC (minimap + chú giải + gợi ý), không theo hằng 64px: ở cửa sổ thật
+        /// chú giải xuống hai dòng và chân cao 75px, nên toast đè lên đúng hai dòng đó.
+        /// </summary>
+        private void ApplyToastRaiseStep()
+        {
+            if (_timeline == null || _timelineColumn == null) return;
+            float footerHeight = FooterHeight();
+            bool isTall = footerHeight > DefaultToastRaisePixels;
+            _services.Bus.SetContentClass(LiveOpsHubClassNames.CalendarDepthContentRaisedToastTall, isTall);
+        }
+
+        /// <summary>Chiều cao chân màn = từ mép trên của phần nổi cao nhất (minimap/chú giải/gợi ý) tới đáy cột timeline.</summary>
+        private float FooterHeight()
+        {
+            Rect column = _timelineColumn.worldBound;
+            if (float.IsNaN(column.yMax)) return 0f;
+            float top = column.yMax;
+            top = Math.Min(top, TopOf(_timeline.Minimap, column.yMax));
+            top = Math.Min(top, TopOf(_timeline.Legend, column.yMax));
+            top = Math.Min(top, TopOf(_timeline.HintLine, column.yMax));
+            return column.yMax - top;
+        }
+
+        private static float TopOf(VisualElement element, float fallbackTop)
+        {
+            if (element == null || element.resolvedStyle.display == DisplayStyle.None) return fallbackTop;
+            Rect bound = element.worldBound;
+            return float.IsNaN(bound.y) || bound.height <= 0f ? fallbackTop : bound.y;
         }
 
         /// <summary>
@@ -1034,11 +1200,29 @@ namespace DreamTech.LiveOps.Editor
         /// <summary>Panel biến mất (đổi màn, đóng cửa sổ, domain reload): gỡ nghe phiên và huỷ thao tác kéo đang mở (SP-2 (d)).</summary>
         private void OnDetachFromPanel(DetachFromPanelEvent detachEvent)
         {
+            HandleDetach(detachEvent.currentTarget as VisualElement);
+        }
+
+        /// <summary>(UX-11) Test gọi thẳng nhánh rời panel của MỘT gốc cụ thể — panel giả không phát Detach theo thứ tự thật.</summary>
+        internal void HandleDetachForTest(VisualElement root)
+        {
+            HandleDetach(root);
+        }
+
+        private void HandleDetach(VisualElement detachingRoot)
+        {
             _services.Session.DocumentChanged -= OnSessionChanged;
             _services.Session.CheckChanged -= OnSessionChanged;
             // PD-21 chỉ đúng KHI đang ở màn Lịch: rời màn mà để class nâng toast thì minimap/chú giải của màn khác cũng bị đẩy
             // xuống dưới toast. Bật ở CreateView thì phải tắt ở đây.
-            _services.Bus.SetContentClass(LiveOpsHubClassNames.ContentRaisedToast, false);
+            // (UX-11) Nhưng CHỈ khi gốc rời panel đúng là gốc đang sống: cửa sổ dựng lại màn thì view CŨ detach SAU khi view mới
+            // đã bật class, nên tắt theo mọi detach là xoá yêu cầu của view đang hiện.
+            if (detachingRoot == null || ReferenceEquals(detachingRoot, _activeRoot))
+            {
+                _activeRoot = null;
+                _services.Bus.SetContentClass(LiveOpsHubClassNames.ContentRaisedToast, false);
+                _services.Bus.SetContentClass(LiveOpsHubClassNames.CalendarDepthContentRaisedToastTall, false);
+            }
             _presenter.AbortDrag();
             _host?.SetSectionViewState(Id, CaptureViewState());
         }
