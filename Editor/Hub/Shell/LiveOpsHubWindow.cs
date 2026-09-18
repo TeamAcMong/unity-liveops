@@ -261,11 +261,15 @@ namespace DreamTech.LiveOps.Editor
             // TearDownChrome — gỡ đăng ký trong đó sẽ cắt luôn sự kiện đang chạy.
             LiveOpsHubLanguage.Changed -= OnLanguageChanged;
             LiveOpsHubLanguage.Changed += OnLanguageChanged;
+            // Hộp xác nhận đặt chỗ theo CỬA SỔ HUB, không theo cửa sổ đang focus (UX-27 / soát W8-UX R4): hộp luôn mở từ một
+            // thao tác trong hub, mà focus thì popover/Console/Project vừa click đều cướp được.
+            LiveOpsConfirmWindow.RegisterOwnerWindow(this);
         }
 
         private void OnDisable()
         {
             LiveOpsHubLanguage.Changed -= OnLanguageChanged;
+            LiveOpsConfirmWindow.UnregisterOwnerWindow(this);
             CaptureCurrentViewState();
             TearDownChrome();
             ReleaseServices();
@@ -276,6 +280,7 @@ namespace DreamTech.LiveOps.Editor
             // OnDisable chạy trước OnDestroy ở mọi đường đóng cửa sổ đã biết; gỡ lần nữa để một đường lạ không để lại handler
             // trỏ vào cửa sổ đã chết (event tĩnh sống lâu hơn cửa sổ).
             LiveOpsHubLanguage.Changed -= OnLanguageChanged;
+            LiveOpsConfirmWindow.UnregisterOwnerWindow(this);
         }
 
         private void ApplyWindowTitle()
@@ -314,6 +319,8 @@ namespace DreamTech.LiveOps.Editor
 
         private void OnFocus()
         {
+            // Hai hub mở cùng lúc: cái người dùng vừa click là chủ của hộp xác nhận mở sau đó.
+            LiveOpsConfirmWindow.RegisterOwnerWindow(this);
             // Dự phòng khi probe skin chưa bắn (8.8): OnFocus chạy khi người dùng quay lại cửa sổ sau khi đổi Theme.
             _skin?.ApplyFromEditorSkin();
             // SP-8b: người dùng quay lại Unity sau khi sửa file ngoài — so hash ngay, không chờ auto refresh.

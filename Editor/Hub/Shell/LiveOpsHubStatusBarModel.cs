@@ -72,10 +72,15 @@ namespace DreamTech.LiveOps.Editor
         }
 
         /// <summary>
-        /// Bản gọn cho nơi chỉ biết "bước đó còn là bước Hoàn tác kế tiếp hay không" và không có nhãn phím Làm lại
-        /// (test tích hợp khung). true → <see cref="LiveOpsHubRecentActionStep.NextUndo"/>, false →
-        /// <see cref="LiveOpsHubRecentActionStep.NotOnTop"/>: cả hai đều KHÔNG phải ca "vừa hoàn tác", nên câu ra đúng như
-        /// trước khi có UX-26. Cửa sổ hub gọi bản đầy đủ ở trên.
+        /// Bản gọn cho nơi chỉ biết "bước đó còn là bước Hoàn tác kế tiếp hay không" và không có nhãn phím Làm lại. true →
+        /// <see cref="LiveOpsHubRecentActionStep.NextUndo"/>, false → <see cref="LiveOpsHubRecentActionStep.NotOnTop"/>:
+        /// cả hai đều KHÔNG phải ca "vừa hoàn tác", nên câu ra đúng như trước khi có UX-26.
+        /// <para>
+        /// CẢNH BÁO (soát W8-UX R11): đường production DUY NHẤT (<c>LiveOpsHubWindow</c>) gọi bản đầy đủ ở trên. Bản này chỉ
+        /// còn đúng MỘT nơi gọi là <c>HubHostIntegrationTests</c> — mà test đó dựng câu mong đợi bằng chính nó, nên nó không
+        /// bao giờ thấy được nhánh "vừa hoàn tác". Phải bỏ hẳn bản này khi sửa được chỗ gọi đó; file test nằm ngoài quyền ghi
+        /// của gói G-UX-SHELL nên việc để lại cho cổng đợt (contract-changes-G-UX-SHELL.md mục 3).
+        /// </para>
         /// </summary>
         public static LiveOpsHubStatusBarModel Build(LiveOpsHubCheckState check, bool hasCalendarAsset, string lastActionText,
             bool isLastActionOnTop, DateTime nowUtc, PublishedCalendarStamp activeStamp, LiveOpsHubFormat format, string undoKeyLabel)

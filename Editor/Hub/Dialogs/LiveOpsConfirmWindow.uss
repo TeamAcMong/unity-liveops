@@ -46,6 +46,23 @@
     display: none;
 }
 
+/*
+ * (soát W8-UX R5) Ô cuộn của thân (câu + HelpBox + vùng gõ id), do LiveOpsConfirmContent dựng từ C#.
+ * flex-grow 1: ăn đúng chỗ khung còn lại giữa tiêu đề và hàng nút — chiều cao cửa sổ đã tính theo nội dung nên "chỗ còn lại"
+ * bằng đúng chiều cao nội dung và không sinh lại khoảng trống mà UX-27 vừa gỡ.
+ * min-height 0: flexbox mặc định KHÔNG cho con co xuống dưới chiều cao nội dung, mà đúng lúc hộp chạm trần 420px thì phải
+ * co được — không co thì hàng nút bị đẩy ra ngoài khung, tức là mất đường thoát của một hộp phá huỷ.
+ */
+.liveops-hub-confirm > .unity-scroll-view {
+    flex-grow: 1;
+    flex-shrink: 1;
+    min-height: 0;
+}
+
+.liveops-hub-confirm > .unity-scroll-view > .unity-scroll-view__content-viewport {
+    min-height: 0;
+}
+
 /* ---------------------------------------------------------------- Cấp 2: gõ id đang chạy */
 
 .liveops-hub-confirm-type {
