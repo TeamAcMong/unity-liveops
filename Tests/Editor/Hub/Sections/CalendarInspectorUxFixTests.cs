@@ -35,8 +35,12 @@ namespace DreamTech.LiveOps.Editor.Tests
     {
         private const int MaximumLayoutFrames = 60;
         private const int MaximumLayoutMilliseconds = 5000;
-        /// <summary>Chuỗi thô UJ-04 ghi vào asset: ngày thiếu số 0 ghép với giờ bằng DẤU CÁCH.</summary>
-        private const string BrokenEndRawText = "2026-09-1 12:00";
+        /// <summary>
+        /// Chuỗi thô UJ-04 ghi vào asset: ngày thiếu số 0 (ở phần tháng) ghép với giờ bằng DẤU CÁCH. Ngày đoán lại được là
+        /// 19/9, SAU giờ bắt đầu 16/9 của hunt-0916-bonus — nút "Sửa thành …" mới còn giữ được phần giờ thay vì bị kẹp về
+        /// "bắt đầu + 1 giờ".
+        /// </summary>
+        private const string BrokenEndRawText = "2026-9-19 12:00";
 
         /// <summary>Tên bước Undo của lần sửa do chính test gây ra — không phải chữ người dùng đọc.</summary>
         private const string TestUndoName = "ux-fix-test";
@@ -139,7 +143,7 @@ namespace DreamTech.LiveOps.Editor.Tests
 
             Assert.AreEqual(CalendarInspectorModel.StateUnreadableTimes, model.State);
             Assert.IsTrue(model.IsUnreadableEnd, "ô hỏng là Kết thúc");
-            StringAssert.Contains("2026-09-1", model.UnreadableFieldErrorText, "câu lỗi phải nêu đúng chữ người dùng gõ");
+            StringAssert.Contains("2026-9-19", model.UnreadableFieldErrorText, "câu lỗi phải nêu đúng chữ người dùng gõ");
             StringAssert.DoesNotContain(LiveOpsHubStrings.UtcFieldTimeEmpty, model.UnreadableFieldErrorText,
                 "câu lỗi không được vừa trích giờ vừa bảo ô giờ trống — phần giờ vẫn còn trong chuỗi thô (UJ-04)");
             Assert.IsNotEmpty(model.UnreadableFixButtonText, "ngày đoán được thì phải có nút \"Sửa thành …\"");
@@ -163,7 +167,7 @@ namespace DreamTech.LiveOps.Editor.Tests
 
             LiveOpsUtcDateTimeField endField = TimeFieldOf(LiveOpsHubStrings.CalendarFieldEndLabel);
             Assert.IsNotNull(endField);
-            Assert.AreEqual("2026-09-1", endField.RawDateText, "ô ngày giữ nguyên chữ người dùng gõ");
+            Assert.AreEqual("2026-9-19", endField.RawDateText, "ô ngày giữ nguyên chữ người dùng gõ");
             Assert.AreEqual("12:00", endField.RawTimeText,
                 "ô giờ người dùng KHÔNG đụng tới không được bị xoá khi dựng lại inspector (UJ-04)");
         }

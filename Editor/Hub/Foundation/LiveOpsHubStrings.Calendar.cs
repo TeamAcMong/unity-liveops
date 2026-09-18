@@ -145,6 +145,12 @@ namespace DreamTech.LiveOps.Editor
         internal static string CalendarRenameToastFormat => LiveOpsHubStringCatalog.Text(nameof(CalendarRenameToastFormat));
         internal static string CalendarRetypeToastFormat => LiveOpsHubStringCatalog.Text(nameof(CalendarRetypeToastFormat));
         internal static string CalendarConfigKeyToastFormat => LiveOpsHubStringCatalog.Text(nameof(CalendarConfigKeyToastFormat));
+
+        // Tên bước Undo NGẮN của ba lệnh sửa trong inspector (W8-UX, UJ-10). Không có chúng thì bước Undo mang chính câu toast
+        // "Đã đổi …", và toast sau ⌘Z in "Đã hoàn tác: Đã đổi …" — lặp chữ, đọc như hai việc.
+        internal static string CalendarRenameUndoStepFormat => LiveOpsHubStringCatalog.Text(nameof(CalendarRenameUndoStepFormat));
+        internal static string CalendarRetypeUndoStepFormat => LiveOpsHubStringCatalog.Text(nameof(CalendarRetypeUndoStepFormat));
+        internal static string CalendarConfigKeyUndoStepFormat => LiveOpsHubStringCatalog.Text(nameof(CalendarConfigKeyUndoStepFormat));
         internal static string CalendarAddToastFormat => LiveOpsHubStringCatalog.Text(nameof(CalendarAddToastFormat));
         internal static string CalendarRepairToastFormat => LiveOpsHubStringCatalog.Text(nameof(CalendarRepairToastFormat));
 
