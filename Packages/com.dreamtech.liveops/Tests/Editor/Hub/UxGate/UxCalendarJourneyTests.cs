@@ -397,8 +397,10 @@ namespace DreamTech.LiveOps.Editor.Tests
                 // Card "Vấn đề" chỉ có nút khi phát hiện của đợt ĐANG CHỌN có cách sửa. lava-quest-2026-09a sạch, nên bản đầu
                 // của test trách "không có nút sửa nào" trong khi màn đúng. Đợt có cách sửa trong mẫu thiết kế là
                 // lava-quest-2026-10 (endUtc "2026-10-3" hỏng) — chọn đúng đợt đó (G-FIX-UX-6).
-                yield return OpenCalendarWithSelection(UxHubWindowFixture.AllSizes[4], language,
-                    LiveOpsDesignSample.LavaQuestLateEntryKey);
+                yield return OpenCalendar(UxHubWindowFixture.AllSizes[4], language);
+                yield return ZoomOutToShowOctober();
+                LiveOpsTimelineBar repairable = _fixture.BarOf(LiveOpsDesignSample.LavaQuestLateEntryKey);
+                yield return UxEventSender.Click(_fixture.Window, repairable);
                 VisualElement issues = _fixture.Root.Q(className: LiveOpsHubClassNames.CalendarInspectorIssues);
                 Assert.IsNotNull(issues, "inspector không có card Vấn đề để bấm (UX-09)");
                 Button fix = issues.Q<Button>();
@@ -569,6 +571,7 @@ namespace DreamTech.LiveOps.Editor.Tests
         public IEnumerator NarrowDroppedBar_HasReadableIdLabel()
         {
             yield return OpenCalendar(new UxWindowSize(700, 560), LiveOpsHubLanguageId.Vietnamese);
+            yield return ZoomOutToShowOctober();
             LiveOpsTimelineBar droppedBar = null;
             foreach (LiveOpsTimelineBar bar in _fixture.Root.Query<LiveOpsTimelineBar>().ToList())
             {
@@ -623,6 +626,17 @@ namespace DreamTech.LiveOps.Editor.Tests
                 : new ScriptedLiveOpsHubConfirmationPresenter();
             LiveOpsHubServices services = UxHubWindowFixture.DesignServices(_confirmation, nowUtc ?? DesignNowUtc);
             _fixture = UxHubWindowFixture.Open(LiveOpsHubSections.Ids.Calendar, size, language, services);
+            yield return _fixture.WaitForLayout();
+        }
+
+        /// <summary>
+        /// Kéo khoảng đang xem ra mức "Tháng" để các đợt tháng 10 của mẫu thiết kế (lava-quest-2026-10, star-tournament-2026-10)
+        /// được VẼ. Khoảng mặc định quanh 13/9 ở mức Ba tuần không chạm tới 1/10, nên ca nào cần đúng những đợt đó mà không đổi
+        /// mức thu phóng thì đang trách màn vì một thanh màn không có lý do gì phải vẽ (G-FIX-UX-7).
+        /// </summary>
+        private IEnumerator ZoomOutToShowOctober()
+        {
+            _fixture.Calendar.Toolbar.ZoomTabs.SelectedIndex = (int)LiveOpsTimelineZoom.Month;
             yield return _fixture.WaitForLayout();
         }
 
