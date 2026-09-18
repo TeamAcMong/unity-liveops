@@ -314,8 +314,9 @@ namespace DreamTech.LiveOps.Editor
 
         private static bool TryRepairDate(string dateText, out DateTime repairedDate)
         {
-            return DateTime.TryParseExact(dateText == null ? string.Empty : dateText.Trim(), RepairableDateFormats,
-                CultureInfo.InvariantCulture, DateTimeStyles.AdjustToUniversal | DateTimeStyles.AssumeUniversal, out repairedDate);
+            // CultureInfo.InvariantCulture cùng dòng với TryParseExact để code-lint (quét theo dòng) nhận ra — tách dòng làm nó báo nhầm thiếu.
+            string trimmedText = dateText == null ? string.Empty : dateText.Trim();
+            return DateTime.TryParseExact(trimmedText, RepairableDateFormats, CultureInfo.InvariantCulture, DateTimeStyles.AdjustToUniversal | DateTimeStyles.AssumeUniversal, out repairedDate);
         }
 
         private static string RequiresOptInTextOf(LiveEventTypeDefinition typeDefinition, string typeId)
