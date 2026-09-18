@@ -247,7 +247,20 @@ namespace DreamTech.LiveOps.Editor
                 // phải cờ; hết chỗ trước mốc tháng kế thì bỏ nhãn như luật chồng nhãn sẵn có.
                 if (hasFlag && left < nowFlag.right && left + width > nowFlag.left)
                 {
-                    left = nowFlag.right + MonthTierLabelGap;
+                    // (R-09) Né sang phải mà KHÔNG kẹp theo bề rộng track thì khi "bây giờ" rơi sát mốc tháng gần mép phải, nhãn
+                    // bị đẩy hẳn ra ngoài khung và mất sạch — tệ hơn cả lúc chưa né (trước đó còn ló một phần). Hết chỗ bên phải
+                    // thì thử né sang TRÁI cờ; bên trái cũng hết chỗ thì bỏ nhãn theo đúng luật chồng nhãn sẵn có.
+                    float dodgeRight = nowFlag.right + MonthTierLabelGap;
+                    if (dodgeRight + width <= _geometry.TrackWidth)
+                    {
+                        left = dodgeRight;
+                    }
+                    else
+                    {
+                        float dodgeLeft = nowFlag.left - MonthTierLabelGap - width;
+                        if (dodgeLeft < 0f || dodgeLeft < nextFreeX) continue;
+                        left = dodgeLeft;
+                    }
                 }
                 BindLabel(LabelAt(_monthLabels, MonthTier, visibleCount++), tick, float.NaN, string.Empty, left);
                 nextFreeX = left + width + MonthTierLabelGap;
@@ -289,10 +302,21 @@ namespace DreamTech.LiveOps.Editor
             float room = float.IsNaN(nextPosition)
                 ? float.PositiveInfinity
                 : Math.Max(0f, nextPosition - tick.X) - DayLabelPaddingLeft;
-            BindLabelText(label, tick, nextPosition, tooltipText, FitDayText(tick, room), float.NaN);
+            string text = FitDayText(tick, room);
+            if (text == null)
+            {
+                // (R-08) Ô hẹp hơn cả bậc ngắn nhất: ẩn hẳn nhãn theo đúng luật chồng nhãn của tầng 1. Vẽ rồi để
+                // overflow:hidden cắt "14" thành "1" là đọc ra một NGÀY KHÁC — chính lỗi UX-17 muốn diệt. Ngày đầy đủ
+                // vẫn còn trong tooltip của vạch.
+                label.text = string.Empty;
+                label.tooltip = tooltipText;
+                label.EnableInClassList(LiveOpsHubClassNames.TimelineHidden, true);
+                return;
+            }
+            BindLabelText(label, tick, nextPosition, tooltipText, text, float.NaN);
         }
 
-        /// <summary>Bậc rút gọn đầu tiên lọt ô; không bậc nào lọt thì lấy bậc ngắn nhất (thà hiện số ngày còn hơn chữ cụt sai).</summary>
+        /// <summary>Bậc rút gọn đầu tiên lọt ô; <c>null</c> khi không bậc nào lọt (nơi gọi ẩn nhãn — R-08).</summary>
         private static string FitDayText(LiveOpsTimelineRulerTick tick, float room)
         {
             string full = tick.Text;
@@ -301,7 +325,7 @@ namespace DreamTech.LiveOps.Editor
             if (Fits(withoutPrefix, room)) return withoutPrefix;
             int separator = withoutPrefix.IndexOf('/');
             string dayOnly = separator > 0 ? withoutPrefix.Substring(0, separator) : withoutPrefix;
-            return dayOnly;
+            return Fits(dayOnly, room) ? dayOnly : null;
         }
 
         private static bool Fits(string text, float room)

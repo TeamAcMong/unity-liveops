@@ -33,6 +33,24 @@ namespace DreamTech.LiveOps.Editor.Tests
         /// <summary>Sai số một pixel khi so hình học đã qua layout (làm tròn của Yoga).</summary>
         private const float LayoutTolerance = 1f;
 
+        /// <summary>Bề rộng tối thiểu để một nhãn còn đọc được trong track (R-09): dưới mức này coi như mất hẳn.</summary>
+        private const float MinimumReadableLabelWidth = 16f;
+
+        /// <summary>
+        /// (R-07) Ma trận cỡ cửa sổ của cổng W8-UX. Gói này đụng layout (sàn thân, meta xuống dòng, chevron rộng thêm, khe
+        /// minimap, chỗ đặt readout) nên phải có bằng chứng co giãn ở CẢ SÁU cỡ, không chỉ cỡ mặc định — R-01 lọt qua đúng vì
+        /// thiếu ma trận này.
+        /// </summary>
+        private static readonly Vector2[] WindowSizeMatrix =
+        {
+            new Vector2(700f, 560f),
+            new Vector2(820f, 560f),
+            new Vector2(1024f, 700f),
+            new Vector2(1280f, 760f),
+            new Vector2(1440f, 900f),
+            new Vector2(1920f, 1040f),
+        };
+
         private TimelineTestPanel _panel;
 
         [TearDown]
@@ -47,7 +65,7 @@ namespace DreamTech.LiveOps.Editor.Tests
 
         private IEnumerator Open(LiveEventCalendarDocument document = null, LiveOpsTimelineZoom zoom = LiveOpsTimelineZoom.ThreeWeeks,
             float width = TimelineTestPanel.DefaultWidth, float height = TimelineTestPanel.DefaultHeight, DateTime? rangeStartUtc = null,
-            string[] collapsedLanes = null)
+            string[] collapsedLanes = null, DateTime? nowUtc = null)
         {
             _panel = TimelineTestPanel.Open(width, height);
             VisualElement root = _panel.CreateRoot(false);
@@ -57,10 +75,23 @@ namespace DreamTech.LiveOps.Editor.Tests
                 Func<LiveOpsTimelineInput> baseFactory = inputFactory;
                 inputFactory = () => baseFactory().WithCollapsedLanes(collapsedLanes);
             }
+            if (nowUtc.HasValue)
+            {
+                Func<LiveOpsTimelineInput> baseFactory = inputFactory;
+                DateTime overriddenNowUtc = nowUtc.Value;
+                inputFactory = () => baseFactory().WithNowUtc(overriddenNowUtc);
+            }
             TimelineHarness harness = TimelineHarness.Create(root, inputFactory);
             harness.Start(rangeStartUtc ?? LiveOpsTimelineGeometry.RangeStartFor(LiveOpsDesignSample.NowUtc, zoom), zoom);
             _panel.Harness = harness;
             yield return harness.WaitReady();
+        }
+
+        /// <summary>Đóng cửa sổ thử giữa chừng — test quét nhiều cỡ cửa sổ mở lại panel cho từng cỡ.</summary>
+        private void Close()
+        {
+            _panel?.Dispose();
+            _panel = null;
         }
 
         // ================================================================================================ UX-01 · UX-19 khung
@@ -176,6 +207,160 @@ namespace DreamTech.LiveOps.Editor.Tests
             LogAssert.NoUnexpectedReceived();
         }
 
+        /// <summary>
+        /// (R-01) Hồi quy của chính UX-16: chip xuống dòng đẩy header lên ba dòng (~49px) trong khi làn bị ép
+        /// <c>style.height = LaneHeight</c> (~30px). Nền làn vẽ theo <c>contentRect</c> nên đáy hàng ~18px không được vẽ — mất cột
+        /// cuối tuần, vạch ngày và vạch "bây giờ" ở dải đó, đúng loại "dải lạ" mà đợt này đang diệt. Nền làn phải phủ HẾT hàng.
+        /// </summary>
+        [UnityTest]
+        public IEnumerator LaneTrack_FillsWholeRow_WhenHeaderIsTaller()
+        {
+            yield return Open();
+            for (int index = 0; index < Element.LaneCount; index++)
+            {
+                LiveOpsTimelineLane lane = Element.LaneAt(index);
+                VisualElement row = Element.RowAt(index);
+                LiveOpsTimelineLaneHeader header = Element.HeaderAt(index);
+                yield return TimelineTestPanel.WaitUntil(() => TimelineTestPanel.HasLayout(lane) && TimelineTestPanel.HasLayout(row),
+                    "làn và hàng phải có layout thật");
+                Assert.GreaterOrEqual(lane.layout.height, row.layout.height - LayoutTolerance,
+                    "nền làn \"" + lane.Model.TypeId + "\" cao " + lane.layout.height + "px trong hàng " + row.layout.height +
+                    "px — đáy hàng không được vẽ (R-01)");
+                Assert.GreaterOrEqual(lane.layout.height, header.layout.height - LayoutTolerance,
+                    "nền làn phải cao ít nhất bằng header của chính nó (R-01)");
+            }
+            LogAssert.NoUnexpectedReceived();
+        }
+
+        /// <summary>
+        /// (R-04, UJ-19) Vế nhịp của làn lặp KHÔNG có chip: <c>flex-wrap</c> và <c>min-width</c> của UX-16 không chạm tới nó, mà
+        /// câu tiếng Anh "repeats every 24 hours · runs 20 hours" (~200px) dài gấp rưỡi chỗ trống của header 168px. Chữ phải
+        /// xuống dòng chứ không bị cắt — soát ở CẢ HAI ngôn ngữ vì bản tiếng Việt cũng dài hơn chỗ trống.
+        /// </summary>
+        [UnityTest]
+        public IEnumerator LaneMeta_IsNotCut_OnLaneWithoutChip_BothLanguages()
+        {
+            foreach (LiveOpsHubLanguageId language in LiveOpsHubLanguage.Available)
+            {
+                using (LiveOpsHubLanguage.Override(language))
+                {
+                    yield return Open();
+                    LiveOpsTimelineLaneHeader header = Element.FindHeader("sky-race");
+                    Assert.IsNotNull(header, language + ": tiền đề có làn sky-race");
+                    Assert.IsTrue(header.UnplaceableChip.ClassListContains(LiveOpsHubClassNames.TimelineHidden),
+                        language + ": tiền đề làn sky-race không có chip \"Không đặt được\"");
+                    Assert.Greater(header.MetaLabel.text.Length, 0, language + ": tiền đề meta có chữ");
+
+                    Label meta = header.MetaLabel;
+                    yield return TimelineTestPanel.WaitUntil(() => TimelineTestPanel.HasLayout(meta), "nhãn meta phải có layout thật");
+                    // (R-11) Bề rộng chữ đo bằng chính bộ chữ của panel — một Label song sinh không giới hạn bề rộng — chứ KHÔNG
+                    // bằng ước lượng 5,6px/ký tự mà code cũng đang dùng: đo lại bằng cùng công thức thì code và test cùng sai một
+                    // hướng và vẫn xanh. Tiếng Việt ký tự hẹp hơn nên ước lượng đó báo tràn ở chỗ thật ra vẫn vừa.
+                    Label probe = CreateSingleLineProbe(meta);
+                    yield return TimelineTestPanel.WaitUntil(() => TimelineTestPanel.HasLayout(probe), "nhãn đo phải có layout thật");
+                    float needed = probe.layout.width;
+                    probe.RemoveFromHierarchy();
+                    // Chiều cao MỘT dòng đo lại từ chính panel (nhãn meta thấp nhất trong khung), không gõ cứng: cỡ chữ 10px ra
+                    // chiều cao dòng khác nhau giữa hai bản Unity và hai phông.
+                    float lines = Mathf.Max(1f, Mathf.Round(meta.layout.height / ShortestMetaHeight()));
+                    float room = meta.layout.width * lines;
+                    Assert.LessOrEqual(needed, room + LayoutTolerance,
+                        language + ": meta làn \"" + meta.text + "\" cần " + needed + "px mà chỉ có " + room + "px (" + lines +
+                        " dòng × " + meta.layout.width + "px) — phải xuống dòng, không được cắt (R-04)");
+                    Close();
+                }
+            }
+            LogAssert.NoUnexpectedReceived();
+        }
+
+        /// <summary>
+        /// (R-06, UJ-08) Làn "chưa ghi loại" không thu gọn được (không có TypeId để nhớ trạng thái). Để lại chevron nhận chuột,
+        /// có <c>cursor: link</c> và tooltip "Thu gọn làn" rồi nuốt cú bấm chính là UJ-08 chỉ đổi chỗ — nút hứa hành động rồi
+        /// không làm gì. Chevron của làn đó phải biến mất như swatch.
+        /// </summary>
+        [UnityTest]
+        public IEnumerator UntypedLane_HasNoChevronToClick()
+        {
+            LiveEventCalendarDocumentBuilder builder = TimelineDesignSampleInput.CopyOf(LiveOpsDesignSample.Document);
+            builder.WithFixedEvent(new FixedLiveEventEntry("entry-untyped", "quest-0915", string.Empty,
+                "2026-09-15T00:00:00Z", "2026-09-16T00:00:00Z", string.Empty));
+            yield return Open(builder.Build());
+
+            LiveOpsTimelineLaneHeader untyped = Element.FindHeader(string.Empty);
+            Assert.IsNotNull(untyped, "tiền đề: có làn chưa ghi loại");
+            Assert.IsTrue(untyped.Chevron.ClassListContains(LiveOpsHubClassNames.TimelineHidden),
+                "chevron của làn chưa ghi loại phải ẩn — nó không thu gọn được (R-06)");
+
+            LiveOpsTimelineLaneHeader typed = Element.FindHeader("treasure-hunt");
+            Assert.IsNotNull(typed, "tiền đề: vẫn có làn có loại để so");
+            Assert.IsFalse(typed.Chevron.ClassListContains(LiveOpsHubClassNames.TimelineHidden),
+                "làn có loại vẫn phải giữ chevron bấm được (UX-13)");
+            LogAssert.NoUnexpectedReceived();
+        }
+
+        /// <summary>
+        /// (R-09) Nhãn tháng né cờ "bây giờ" bằng cách dời sang PHẢI; khi cờ rơi sát mốc tháng gần mép phải track, nhãn duy nhất
+        /// nói NĂM bị đẩy hẳn ra ngoài khung và mất sạch — tệ hơn lúc chưa né (trước đó còn ló một phần). Nhãn còn hiện thì phải
+        /// còn đọc được trong track; hết chỗ thì bỏ hẳn theo luật chồng nhãn, chứ không vẽ ngoài khung.
+        /// </summary>
+        [UnityTest]
+        public IEnumerator RulerMonthLabel_StaysInsideTrack_WhenNowFlagSitsOnIt()
+        {
+            // Khung bắt đầu 22/8 nên mốc tháng 10 rơi ở ~92% bề rộng track, và "bây giờ" đứng ngay trên mốc đó: né sang phải là
+            // nhãn ra hẳn ngoài khung.
+            yield return Open(zoom: LiveOpsTimelineZoom.Month,
+                rangeStartUtc: new DateTime(2026, 8, 22, 0, 0, 0, DateTimeKind.Utc),
+                nowUtc: new DateTime(2026, 10, 1, 2, 0, 0, DateTimeKind.Utc));
+            Assert.IsFalse(Element.Ruler.NowFlag.ClassListContains(LiveOpsHubClassNames.TimelineHidden), "tiền đề: cờ bây giờ hiện");
+
+            Rect track = Element.Ruler.Track.worldBound;
+            IReadOnlyList<Label> months = Element.Ruler.VisibleMonthLabels;
+            foreach (Label label in months)
+            {
+                Rect box = label.worldBound;
+                float insideWidth = Mathf.Min(box.xMax, track.xMax) - Mathf.Max(box.xMin, track.xMin);
+                Assert.GreaterOrEqual(insideWidth, 0.5f * box.width,
+                    "nhãn tầng tháng \"" + label.text + "\" chỉ còn " + insideWidth + "/" + box.width +
+                    "px trong track — né cờ mà tràn khỏi khung là mất hẳn (R-09)");
+            }
+            LogAssert.NoUnexpectedReceived();
+        }
+
+        /// <summary>
+        /// (R-12) Kéo VÀO chỗ chồng giờ: thanh phải mang viền "sẽ bị bỏ" của cử chỉ đang làm, KHÔNG mang gạch ngang "bị bỏ" —
+        /// đó là kết luận của bản kiểm, chưa có lúc này (xem <c>LiveOpsTimelineBar.SetDroppedPreview</c>). Tag bên phải thanh là
+        /// chỗ nói "sẽ bị bỏ", không phải gạch ngang.
+        /// </summary>
+        [UnityTest]
+        public IEnumerator DragIntoOverlap_ShowsWillDropWithoutStrike()
+        {
+            yield return Open();
+            LiveOpsTimelineBar early = Element.FindBar(LiveOpsDesignSample.HuntEarlyEntryKey);
+            Assert.IsNotNull(early, "tiền đề: có thanh hunt-0914");
+            Assert.IsFalse(early.Model.IsDropped, "tiền đề: hunt-0914 KHÔNG bị bỏ trong model");
+
+            Vector2 start = early.worldBound.center;
+            float threeDays = (float)(Element.PixelsPerHour * 72d);
+            _panel.SendMouse(EventType.MouseDown, start);
+            _panel.SendMouse(EventType.MouseDrag, start + new Vector2(threeDays / 2f, 0f));
+            _panel.SendMouse(EventType.MouseDrag, start + new Vector2(threeDays, 0f));
+            yield return null;
+
+            Assert.IsTrue(Element.DragController.IsDragging, "tiền đề: đang kéo");
+            CollectionAssert.Contains(Element.DragController.WillDropBarKeys, LiveOpsDesignSample.HuntEarlyEntryKey,
+                "tiền đề: kéo hunt-0914 qua sau bonus thì chính nó là đợt muộn hơn nên sẽ bị bỏ");
+
+            Assert.IsTrue(early.ClassListContains(LiveOpsHubClassNames.TimelineBarWillDrop), "thanh phải mang viền \"sẽ bị bỏ\"");
+            Assert.IsFalse(early.ClassListContains(LiveOpsHubClassNames.TimelineBarDropped),
+                "\"sẽ bị bỏ\" và \"bị bỏ\" là hai thứ khác nhau — xem trước không được nói trước kết luận của bản kiểm (R-12)");
+            Assert.IsTrue(early.Strike.ClassListContains(LiveOpsHubClassNames.TimelineHidden),
+                "gạch ngang \"bị bỏ\" không được bật lúc mới kéo vào chỗ chồng (R-12)");
+
+            _panel.SendKey("escape");
+            yield return null;
+            LogAssert.NoUnexpectedReceived();
+        }
+
         // ================================================================================================ UX-17 thước
 
         /// <summary>
@@ -213,16 +398,64 @@ namespace DreamTech.LiveOps.Editor.Tests
                 yield return Open(width: NarrowWindowWidth, height: NarrowWindowHeight);
                 IReadOnlyList<Label> days = Element.Ruler.VisibleDayLabels;
                 Assert.Greater(days.Count, 0, "tiền đề: thước có nhãn ngày");
-                foreach (Label label in days)
+                AssertDayLabelsFitTheirCell("tiếng Anh, 700px");
+            }
+            LogAssert.NoUnexpectedReceived();
+        }
+
+        /// <summary>
+        /// (R-08) Bậc rút gọn CUỐI của nhãn ngày ("14") cũng phải được soát: bản trước trả thẳng bậc cuối không kiểm, nên ô hẹp
+        /// hơn ~11px vẫn vẽ rồi để <c>overflow: hidden</c> cắt "14" thành "1" — đọc ra một NGÀY KHÁC, đúng lỗi UX-17 muốn diệt.
+        /// Quét cả ma trận cỡ cửa sổ × hai mức zoom × hai ngôn ngữ để ô hẹp nhất chắc chắn có mặt.
+        /// </summary>
+        [UnityTest]
+        public IEnumerator RulerDayLabels_FitOrHide_AcrossWindowSizesAndZooms()
+        {
+            LiveOpsTimelineZoom[] zooms = { LiveOpsTimelineZoom.ThreeWeeks, LiveOpsTimelineZoom.Month };
+            foreach (LiveOpsHubLanguageId language in LiveOpsHubLanguage.Available)
+            {
+                using (LiveOpsHubLanguage.Override(language))
                 {
-                    float room = label.contentRect.width;
-                    if (float.IsNaN(room) || room <= 0f) continue;
-                    // Đo bằng CÙNG công thức thước đang dùng cho tầng tháng (LabelCharacterWidth): một con số cho cả hai bản Unity
-                    // và cả hai skin, thay vì MeasureTextSize — API đó không cùng tên kiểu ở 2022.3 và 6000.6.
-                    float needed = label.text.Length * LiveOpsTimelineGeometry.LabelCharacterWidth;
-                    Assert.LessOrEqual(needed, room + LayoutTolerance,
-                        "nhãn ngày \"" + label.text + "\" cần " + needed + "px trong ô " + room + "px — bị cắt thành số ngày sai (UJ-19)");
+                    foreach (Vector2 size in WindowSizeMatrix)
+                    {
+                        foreach (LiveOpsTimelineZoom zoom in zooms)
+                        {
+                            yield return Open(zoom: zoom, width: size.x, height: size.y);
+                            AssertDayLabelsFitTheirCell(language + ", " + size.x + "×" + size.y + ", " + zoom);
+                            Close();
+                        }
+                    }
                 }
+            }
+            LogAssert.NoUnexpectedReceived();
+        }
+
+        /// <summary>
+        /// (R-07) Kiểm bố cục ở cả sáu cỡ cửa sổ cho phần timeline: nền làn phủ hết hàng, nhãn tên làn còn bề rộng đọc được
+        /// (chevron rộng thêm 7px ăn vào đó), thân timeline và minimap không tụt về 0, track không âm.
+        /// </summary>
+        [UnityTest]
+        public IEnumerator TimelineLayout_HoldsAcrossSixWindowSizes()
+        {
+            foreach (Vector2 size in WindowSizeMatrix)
+            {
+                yield return Open(width: size.x, height: size.y);
+                string where = size.x + "×" + size.y;
+                Assert.Greater(Element.Body.layout.height, 0f, where + ": thân timeline cao 0 — không còn thanh nào bấm được");
+                Assert.Greater(Element.Minimap.layout.height, 0f, where + ": minimap cao 0");
+                Assert.Greater(Element.LaneCount, 0, where + ": không vẽ làn nào");
+                for (int index = 0; index < Element.LaneCount; index++)
+                {
+                    LiveOpsTimelineLane lane = Element.LaneAt(index);
+                    VisualElement row = Element.RowAt(index);
+                    LiveOpsTimelineLaneHeader header = Element.HeaderAt(index);
+                    Assert.GreaterOrEqual(lane.layout.height, row.layout.height - LayoutTolerance,
+                        where + ": nền làn \"" + lane.Model.TypeId + "\" không phủ hết hàng (R-01)");
+                    Assert.Greater(lane.layout.width, 0f, where + ": track của làn rộng 0");
+                    Assert.GreaterOrEqual(header.NameLabel.layout.width, MinimumReadableLabelWidth,
+                        where + ": nhãn tên làn chỉ còn " + header.NameLabel.layout.width + "px — chevron 16px ăn hết chỗ (R-07)");
+                }
+                Close();
             }
             LogAssert.NoUnexpectedReceived();
         }
@@ -262,28 +495,46 @@ namespace DreamTech.LiveOps.Editor.Tests
         }
 
         /// <summary>
-        /// (UX-18, T3) Readout bám mép đang kéo và đặt PHÍA TRÊN thanh; với làn đầu tiên, chỗ "phía trên" là hàng dấu của
-        /// thước, nên readout đè lên thước. Nó phải lật xuống dưới thanh khi trên không còn chỗ.
+        /// (UX-18, T3 · R-02, R-03) Readout bám mép đang kéo và đặt PHÍA TRÊN thanh. Ở làn TRÊN CÙNG chỗ "phía trên" là hàng dấu
+        /// của thước (khung 6); ở làn giữa khung nó là làn BÊN TRÊN, và readout che thanh của làn đó cùng nhãn "chồng 12 giờ"
+        /// (khung 5, 7). Test kéo thanh chồng giờ của <c>treasure-hunt</c> — cảnh có thanh ở nhiều làn quanh nó — rồi soát ba
+        /// điều mà CHỈ nhánh chọn chỗ mới cho: không đè thước, không đè thanh đang kéo, không đè thanh nào khác đang vẽ.
+        ///
+        /// (R-02) Bản trước dùng <c>FirstDraggableBarOfTopLane</c> nên cử chỉ kéo không mở được trên code cũ (chết ở dòng tiền
+        /// đề, chưa chạy tới assert lỗi), và câu assert duy nhất của nó — <c>readout.yMin >= ruler.yMax</c> — lại đúng bằng
+        /// dòng kẹp <c>Math.Max(rulerBottom, top)</c> nên không thể đỏ dù xoá hẳn nhánh lật. Ba câu dưới đây đỏ ngay khi bỏ
+        /// nhánh chọn chỗ: readout rơi về ngay trên thanh đang kéo.
         /// </summary>
         [UnityTest]
-        public IEnumerator Readout_DoesNotCoverRuler()
+        public IEnumerator Readout_CoversNeitherRulerNorAnyBar()
         {
             yield return Open();
-            LiveOpsTimelineBar firstLaneBar = FirstDraggableBarOfTopLane();
-            Assert.IsNotNull(firstLaneBar, "tiền đề: làn trên cùng có một thanh kéo được");
-            Vector2 start = firstLaneBar.worldBound.center;
-            float sixHours = (float)(Element.PixelsPerHour * 6d);
+            // Kéo bonus LÙI 3 ngày: nó nằm ở hàng phụ thứ hai của làn treasure-hunt, nên chỗ "trên thanh" của thiết kế rơi đúng
+            // vào hàng phụ thứ nhất — chỗ thanh hunt-0914 đang đứng. Đây là cảnh Hình 12 khung 5 và 7: readout che thanh bên cạnh.
+            LiveOpsTimelineBar dragged = Element.FindBar(LiveOpsDesignSample.HuntBonusEntryKey);
+            Assert.IsNotNull(dragged, "tiền đề: có thanh hunt-0916-bonus");
+            Vector2 start = dragged.worldBound.center;
+            float threeDays = (float)(Element.PixelsPerHour * 72d);
             _panel.SendMouse(EventType.MouseDown, start);
-            _panel.SendMouse(EventType.MouseDrag, start + new Vector2(sixHours / 2f, 0f));
-            _panel.SendMouse(EventType.MouseDrag, start + new Vector2(sixHours, 0f));
+            _panel.SendMouse(EventType.MouseDrag, start - new Vector2(threeDays / 2f, 0f));
+            _panel.SendMouse(EventType.MouseDrag, start - new Vector2(threeDays, 0f));
             yield return null;
 
             Assert.IsTrue(Element.DragController.IsDragging, "tiền đề: đang kéo");
             Assert.IsFalse(Element.Readout.ClassListContains(LiveOpsHubClassNames.TimelineHidden), "tiền đề: readout hiện");
+            yield return TimelineTestPanel.WaitUntil(() => TimelineTestPanel.HasLayout(Element.Readout),
+                "readout phải có layout thật mới đo được chỗ đặt");
+
             Rect readout = Element.Readout.worldBound;
-            Rect ruler = Element.Ruler.worldBound;
-            Assert.GreaterOrEqual(readout.yMin, ruler.yMax - LayoutTolerance,
-                "readout đè hàng thước — phải lật xuống dưới thanh khi phía trên là thước (T3)");
+            Assert.GreaterOrEqual(readout.yMin, Element.Ruler.worldBound.yMax - LayoutTolerance,
+                "readout đè hàng thước — phải lật xuống dưới thanh khi phía trên là thước (T3, khung 6)");
+            Assert.IsFalse(Overlaps(readout, dragged.worldBound),
+                "readout đè chính thanh đang kéo — thanh là thứ người dùng đang nhìn (T3)");
+            foreach (LiveOpsTimelineBar bar in VisibleBars())
+            {
+                Assert.IsFalse(Overlaps(readout, bar.worldBound),
+                    "readout đè thanh \"" + bar.Model.BarKey + "\" của làn khác — phải né hoặc ở lại trong hàng đang kéo (T3, khung 5/7)");
+            }
 
             _panel.SendKey("escape");
             yield return null;
@@ -303,13 +554,23 @@ namespace DreamTech.LiveOps.Editor.Tests
             yield return Open();
             List<VisualElement> samples = Element.Legend.Query<VisualElement>(className: LiveOpsHubClassNames.TimelineLegendSample).ToList();
             Assert.AreEqual(LiveOpsTimelineLegend.ItemCount - 1, samples.Count, "tiền đề: chú giải có đủ mẫu (mục cuối dùng dấu, không dùng mẫu)");
+            int overlapSamples = 0;
             foreach (VisualElement sample in samples)
             {
                 VisualElement stripe = sample.Q<VisualElement>(className: LiveOpsHubClassNames.TimelineBarStripe);
-                Assert.IsNotNull(stripe, "mẫu chú giải phải có dải màu đáy như thanh thật (V13)");
+                if (sample.ClassListContains(LiveOpsHubClassNames.TimelineLegendSampleOverlap))
+                {
+                    // (R-10) Mẫu vùng chồng giờ giải thích MẢNG NỀN gạch chéo, không phải thanh: mang dải màu loại là nói sai
+                    // thứ nó giải thích. Nó đọc được nhờ viền + nền blocked của chính nó.
+                    overlapSamples++;
+                    Assert.IsNull(stripe, "mẫu vùng chồng giờ không được mang dải màu loại của thanh (R-10)");
+                    continue;
+                }
+                Assert.IsNotNull(stripe, "mẫu chú giải hình thanh phải có dải màu đáy như thanh thật (V13)");
                 Assert.Greater(stripe.resolvedStyle.backgroundColor.a, 0.5f, "dải màu đáy của mẫu phải đặc, không trong suốt");
                 Assert.GreaterOrEqual(stripe.resolvedStyle.height, 2f, "dải màu đáy phải cao ≥ 2px mới đọc được");
             }
+            Assert.AreEqual(1, overlapSamples, "tiền đề: chú giải có đúng một mẫu vùng chồng giờ");
             LogAssert.NoUnexpectedReceived();
         }
 
@@ -397,17 +658,73 @@ namespace DreamTech.LiveOps.Editor.Tests
 
         // ================================================================================================ phụ trợ
 
-        /// <summary>Thanh kéo được đầu tiên của làn TRÊN CÙNG — chỗ duy nhất mà "phía trên thanh" rơi đúng vào hàng thước.</summary>
-        private LiveOpsTimelineBar FirstDraggableBarOfTopLane()
+        /// <summary>
+        /// Label song sinh của <paramref name="source"/>: cùng class, đặt tuyệt đối ngoài luồng layout và ép một dòng, nên
+        /// <c>layout.width</c> của nó là bề rộng THẬT mà chữ cần — đo bằng chính bộ chữ đang vẽ, không bằng ước lượng.
+        /// </summary>
+        private Label CreateSingleLineProbe(Label source)
         {
-            if (Element.LaneCount == 0) return null;
-            LiveOpsTimelineLane lane = Element.LaneAt(0);
-            for (int barIndex = 0; barIndex < lane.BarCount; barIndex++)
+            Label probe = new Label(source.text) { pickingMode = PickingMode.Ignore };
+            foreach (string className in source.GetClasses()) probe.AddToClassList(className);
+            probe.style.position = Position.Absolute;
+            probe.style.whiteSpace = WhiteSpace.NoWrap;
+            probe.style.left = 0f;
+            probe.style.top = 0f;
+            probe.style.minWidth = 0f;
+            probe.style.maxWidth = StyleKeyword.None;
+            Element.Add(probe);
+            return probe;
+        }
+
+        /// <summary>Chiều cao nhãn meta thấp nhất trong khung = chiều cao MỘT dòng; dùng để suy meta nào đã xuống dòng (R-04).</summary>
+        private float ShortestMetaHeight()
+        {
+            float shortest = float.PositiveInfinity;
+            for (int index = 0; index < Element.LaneCount; index++)
             {
-                LiveOpsTimelineBar bar = lane.BarAt(barIndex);
-                if (bar.IsDraggable) return bar;
+                float height = Element.HeaderAt(index).MetaLabel.layout.height;
+                if (height > 0f && height < shortest) shortest = height;
             }
-            return null;
+            Assert.IsFalse(float.IsInfinity(shortest), "tiền đề: có ít nhất một nhãn meta đã layout");
+            return shortest;
+        }
+
+        /// <summary>Mọi nhãn ngày đang hiện phải lọt ô của nó — bậc nào cũng không lọt thì thước phải ẩn nhãn, không vẽ nửa con số.</summary>
+        private void AssertDayLabelsFitTheirCell(string where)
+        {
+            foreach (Label label in Element.Ruler.VisibleDayLabels)
+            {
+                float room = label.contentRect.width;
+                if (float.IsNaN(room) || room <= 0f) continue;
+                Assert.Greater(label.text.Length, 0, where + ": nhãn ngày đang hiện mà rỗng — phải ẩn hẳn (R-08)");
+                // Đo bằng CÙNG công thức thước đang dùng cho tầng tháng (LabelCharacterWidth): một con số cho cả hai bản Unity
+                // và cả hai skin, thay vì MeasureTextSize — API đó không cùng tên kiểu ở 2022.3 và 6000.6. Cổng L của gói G đo
+                // lại phần cắt chữ TRÊN ẢNH (measure-capture.py) để không cùng sai một hướng với code (R-11).
+                float needed = label.text.Length * LiveOpsTimelineGeometry.LabelCharacterWidth;
+                Assert.LessOrEqual(needed, room + LayoutTolerance,
+                    where + ": nhãn ngày \"" + label.text + "\" cần " + needed + "px trong ô " + room +
+                    "px — bị cắt thành số ngày sai (UJ-19, R-08)");
+            }
+        }
+
+        /// <summary>Mọi thanh đang vẽ trên mọi làn — readout là lớp phủ nên nó che được cả thanh của làn khác (R-03).</summary>
+        private List<LiveOpsTimelineBar> VisibleBars()
+        {
+            List<LiveOpsTimelineBar> bars = new List<LiveOpsTimelineBar>();
+            for (int laneIndex = 0; laneIndex < Element.LaneCount; laneIndex++)
+            {
+                LiveOpsTimelineLane lane = Element.LaneAt(laneIndex);
+                for (int barIndex = 0; barIndex < lane.BarCount; barIndex++) bars.Add(lane.BarAt(barIndex));
+            }
+            return bars;
+        }
+
+        /// <summary>Đè nhau THẬT: chạm mép nhau (chênh dưới một pixel làm tròn của Yoga) không tính là đè.</summary>
+        private static bool Overlaps(Rect first, Rect second)
+        {
+            Rect shrunk = new Rect(second.x + LayoutTolerance, second.y + LayoutTolerance,
+                Mathf.Max(0f, second.width - 2f * LayoutTolerance), Mathf.Max(0f, second.height - 2f * LayoutTolerance));
+            return shrunk.width > 0f && shrunk.height > 0f && first.Overlaps(shrunk);
         }
 
         private static int VisibleOverlapLabelCount(LiveOpsTimelineLane lane)

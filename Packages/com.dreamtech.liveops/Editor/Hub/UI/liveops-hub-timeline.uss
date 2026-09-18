@@ -270,6 +270,9 @@
     padding-left: 14px;
 }
 
+/* (R-04, UJ-19) Vế nhịp xuống dòng thay vì bị cắt: header rộng cố định 168px, mà "repeats every 24 hours · runs 20 hours"
+   (~200px) lẫn "lặp mỗi 24 giờ · chạy 20 giờ" (~157px) đều dài hơn 142px chỗ trống — nowrap + ellipsis nghĩa là CẢ HAI ngôn
+   ngữ đều đọc cụt. Làn nền giãn theo hàng (R-01) nên header cao thêm một dòng không còn để lại dải không vẽ. */
 .liveops-hub-timeline-lane-meta {
     flex-shrink: 1;
     min-width: 96px;
@@ -279,7 +282,7 @@
     opacity: 0.82;
     overflow: hidden;
     text-overflow: ellipsis;
-    white-space: nowrap;
+    white-space: normal;
 }
 
 .liveops-hub-timeline-lane-meta--secondary {

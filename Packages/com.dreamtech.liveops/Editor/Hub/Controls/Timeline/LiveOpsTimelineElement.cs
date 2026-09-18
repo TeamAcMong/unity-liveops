@@ -50,6 +50,9 @@ namespace DreamTech.LiveOps.Editor
         private readonly LiveOpsStateMark _readoutQuickCheckMark;
         private readonly Label _readoutQuickCheckText;
 
+        /// <summary>(R-03) Quãng ngang bị thanh chiếm trong dải dọc của readout — dùng lại giữa các lần đặt, không cấp phát mỗi khung kéo.</summary>
+        private readonly List<(float left, float right)> _readoutBlockedSpans = new List<(float left, float right)>();
+
         private readonly List<string> _selectedBarKeys = new List<string>();
         private readonly VisualElement _marquee;
 
@@ -436,6 +439,11 @@ namespace DreamTech.LiveOps.Editor
 
         internal LiveOpsTimelineLane LaneAt(int index) => _rows[index].Lane;
         internal LiveOpsTimelineLaneHeader HeaderAt(int index) => _rows[index].Header;
+
+        /// <summary>(R-01) Hàng của làn (header + track) — test đo được nền làn có phủ hết hàng không khi header cao hơn làn.</summary>
+        internal VisualElement RowAt(int index) => _rows[index].Row;
+
+        internal VisualElement FindRowElement(string typeId) => FindRow(typeId)?.Row;
 
         internal LiveOpsTimelineLane FindLaneElement(string typeId) => FindRow(typeId)?.Lane;
         internal LiveOpsTimelineLaneHeader FindHeader(string typeId) => FindRow(typeId)?.Header;
@@ -1157,10 +1165,18 @@ namespace DreamTech.LiveOps.Editor
             }
             var willDrop = new HashSet<string>(DragController.WillDropBarKeys, StringComparer.Ordinal);
             row.Lane.SetDragPreview(new List<(DateTime startUtc, DateTime endUtc)>(DragController.PreviewOverlaps), willDrop, previewGeometry);
-            PlaceReadout(row, geometry, barTop);
+            PlaceReadout(row, geometry, barTop, previewGeometry);
         }
 
-        private void PlaceReadout(LaneRow row, LiveOpsTimelineGeometry geometry, float barTop)
+        /// <summary>
+        /// Chỗ đặt readout khi kéo [SD1 §3.7]: bám mép đang kéo, ưu tiên PHÍA TRÊN thanh.
+        /// (UX-18, T3) Với làn trên cùng, "phía trên" chính là hàng dấu của thước nên phải lật xuống dưới.
+        /// (R-03) Nửa còn lại của T3: ở làn giữa khung, "phía trên" là làn BÊN TRÊN — readout che thanh của làn đó và nuốt luôn
+        /// nhãn "chồng 12 giờ" (khung 5, 7). Nên mỗi vị trí ứng viên phải được soát xem có đụng thanh nào đang vẽ không; trên lẫn
+        /// dưới đều đụng thì readout ở lại TRONG hàng của làn đang kéo và ĐẨY NGANG tới chỗ trống gần nhất.
+        /// </summary>
+        private void PlaceReadout(LaneRow row, LiveOpsTimelineGeometry geometry, float barTop,
+            IDictionary<string, (float left, float width)> previewGeometry)
         {
             _readoutText.text = DragController.ReadoutMainText(_format);
             string overlap = DragController.ReadoutOverlapText(_format);
@@ -1183,19 +1199,111 @@ namespace DreamTech.LiveOps.Editor
             float left = anchorX;
             if (left + readoutWidth > _trackWidth - ReadoutMargin) left = anchorX - readoutWidth;
             left = Math.Max(ReadoutMargin, Math.Min(left, _trackWidth - ReadoutMargin - readoutWidth));
-            float laneTopInOverlay = row.Lane.worldBound.y - _overlay.worldBound.y;
+            float overlayTop = _overlay.worldBound.y;
+            float laneTopInOverlay = row.Lane.worldBound.y - overlayTop;
             if (float.IsNaN(laneTopInOverlay)) laneTopInOverlay = 0f;
-            // (UX-18, T3) Chỗ "phía trên thanh" của làn ĐẦU TIÊN chính là hàng dấu của thước: đặt readout ở đó là nó đè lên
-            // thước. Không đủ chỗ phía trên thì lật xuống DƯỚI thanh — thanh vẫn nhìn thấy, thước vẫn đọc được.
-            float rulerBottomInOverlay = Math.Max(0f, Ruler.worldBound.yMax - _overlay.worldBound.y);
+            float rulerBottomInOverlay = Math.Max(0f, Ruler.worldBound.yMax - overlayTop);
             if (float.IsNaN(rulerBottomInOverlay)) rulerBottomInOverlay = 0f;
-            float top = laneTopInOverlay + barTop - ReadoutHeight - ReadoutGapAboveBar;
-            if (top < rulerBottomInOverlay)
+
+            float above = laneTopInOverlay + barTop - ReadoutHeight - ReadoutGapAboveBar;
+            float below = laneTopInOverlay + barTop + LiveOpsTimelineGeometry.BarHeight + ReadoutGapAboveBar;
+            float top;
+            if (above >= rulerBottomInOverlay && IsReadoutSpotFree(above, left, readoutWidth, overlayTop, previewGeometry))
             {
-                top = laneTopInOverlay + barTop + LiveOpsTimelineGeometry.BarHeight + ReadoutGapAboveBar;
+                top = above;
+            }
+            else if (IsReadoutSpotFree(below, left, readoutWidth, overlayTop, previewGeometry))
+            {
+                top = below;
+            }
+            else
+            {
+                float rowTopInOverlay = row.Row.worldBound.y - overlayTop;
+                if (float.IsNaN(rowTopInOverlay)) rowTopInOverlay = laneTopInOverlay;
+                top = Math.Max(rulerBottomInOverlay, rowTopInOverlay);
+                CollectReadoutBlockedSpans(top, overlayTop, previewGeometry);
+                left = NearestFreeReadoutLeft(left, readoutWidth);
             }
             Readout.style.left = left; // style-inline-allowed: 6
             Readout.style.top = Math.Max(rulerBottomInOverlay, top); // style-inline-allowed: 6
+        }
+
+        /// <summary>Chỗ đặt ứng viên có đụng thanh nào đang vẽ không (dải dọc <see cref="ReadoutHeight"/> px tính từ <paramref name="topInOverlay"/>).</summary>
+        private bool IsReadoutSpotFree(float topInOverlay, float left, float readoutWidth, float overlayTop,
+            IDictionary<string, (float left, float width)> previewGeometry)
+        {
+            CollectReadoutBlockedSpans(topInOverlay, overlayTop, previewGeometry);
+            return IsReadoutSpanFree(left, readoutWidth);
+        }
+
+        /// <summary>
+        /// Quãng ngang bị thanh chiếm trong dải dọc của readout, tính trên MỌI làn đang hiện: readout là lớp phủ nên nó che được
+        /// cả làn khác, không riêng làn đang kéo. Thanh đang xem trước lấy hình học xem trước, không lấy chỗ cũ.
+        /// </summary>
+        private void CollectReadoutBlockedSpans(float topInOverlay, float overlayTop,
+            IDictionary<string, (float left, float width)> previewGeometry)
+        {
+            _readoutBlockedSpans.Clear();
+            float bottomInOverlay = topInOverlay + ReadoutHeight;
+            foreach (LaneRow row in _rows)
+            {
+                if (!row.IsActive) continue;
+                float laneTopInOverlay = row.Lane.worldBound.y - overlayTop;
+                if (float.IsNaN(laneTopInOverlay)) continue;
+                for (int index = 0; index < row.Lane.BarCount; index++)
+                {
+                    LiveOpsTimelineBar bar = row.Lane.BarAt(index);
+                    float barHeight = bar.IsCollapsed ? LiveOpsTimelineLane.CollapsedBarHeight : LiveOpsTimelineGeometry.BarHeight;
+                    float barTopInOverlay = laneTopInOverlay + bar.Top;
+                    if (bottomInOverlay <= barTopInOverlay || topInOverlay >= barTopInOverlay + barHeight) continue;
+                    float barLeft = bar.Left;
+                    float barWidth = bar.Width;
+                    if (previewGeometry != null && previewGeometry.TryGetValue(bar.Model.BarKey, out (float left, float width) preview))
+                    {
+                        barLeft = preview.left;
+                        barWidth = preview.width;
+                    }
+                    _readoutBlockedSpans.Add((barLeft - ReadoutGapAboveBar, barLeft + barWidth + ReadoutGapAboveBar));
+                }
+            }
+        }
+
+        private bool IsReadoutSpanFree(float left, float readoutWidth)
+        {
+            float right = left + readoutWidth;
+            for (int index = 0; index < _readoutBlockedSpans.Count; index++)
+            {
+                (float left, float right) span = _readoutBlockedSpans[index];
+                if (left < span.right && right > span.left) return false;
+            }
+            return true;
+        }
+
+        /// <summary>Chỗ trống gần chỗ muốn đặt nhất: mép phải/mép trái của từng quãng bị chiếm; không chỗ nào trống thì giữ nguyên.</summary>
+        private float NearestFreeReadoutLeft(float preferredLeft, float readoutWidth)
+        {
+            if (IsReadoutSpanFree(preferredLeft, readoutWidth)) return preferredLeft;
+            float best = preferredLeft;
+            float bestDistance = float.PositiveInfinity;
+            for (int index = 0; index < _readoutBlockedSpans.Count; index++)
+            {
+                (float left, float right) span = _readoutBlockedSpans[index];
+                TryReadoutCandidate(span.right, preferredLeft, readoutWidth, ref best, ref bestDistance);
+                TryReadoutCandidate(span.left - readoutWidth, preferredLeft, readoutWidth, ref best, ref bestDistance);
+            }
+            return best;
+        }
+
+        private void TryReadoutCandidate(float candidate, float preferredLeft, float readoutWidth, ref float best,
+            ref float bestDistance)
+        {
+            float clamped = Math.Max(ReadoutMargin, Math.Min(candidate, _trackWidth - ReadoutMargin - readoutWidth));
+            if (Math.Abs(clamped - candidate) > 0.5f) return;
+            if (!IsReadoutSpanFree(clamped, readoutWidth)) return;
+            float distance = Math.Abs(clamped - preferredLeft);
+            if (distance >= bestDistance) return;
+            bestDistance = distance;
+            best = clamped;
         }
 
         private void ClearDragVisuals()
