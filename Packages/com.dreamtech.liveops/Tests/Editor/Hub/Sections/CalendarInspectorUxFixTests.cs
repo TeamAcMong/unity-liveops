@@ -215,6 +215,31 @@ namespace DreamTech.LiveOps.Editor.Tests
             AssertVisibleInside(editType, body, "link \"Sửa ở Loại event\"");
         }
 
+        /// <summary>
+        /// C3: hai ô của <see cref="LiveOpsUtcDateTimeField"/> và nhãn "UTC" phải NHÌN THẤY được trọn vẹn trong pane 280px —
+        /// cột nhãn 120px mặc định của BaseField đẩy "UTC" qua mép, và mọi cách bóp cột nhãn mà làm hỏng vùng nhập thì ô giờ
+        /// biến mất hẳn (người dùng không còn chỗ gõ).
+        /// </summary>
+        [UnityTest]
+        public IEnumerator Ux08_UtcFieldParts_StayVisibleInsidePane()
+        {
+            yield return OpenCalendarWithSelection(LiveOpsDesignSample.HuntBonusEntryKey);
+            ScrollView body = InspectorBody();
+            yield return WaitForLayout(body);
+
+            string[] labels = { LiveOpsHubStrings.CalendarFieldStartLabel, LiveOpsHubStrings.CalendarFieldEndLabel };
+            for (int index = 0; index < labels.Length; index++)
+            {
+                LiveOpsUtcDateTimeField field = TimeFieldOf(labels[index]);
+                Assert.IsNotNull(field, "inspector thiếu ô giờ \"" + labels[index] + "\"");
+                AssertVisibleInside(field.DateInput, body, "ô ngày của \"" + labels[index] + "\"");
+                AssertVisibleInside(field.TimeInput, body, "ô giờ của \"" + labels[index] + "\"");
+                AssertVisibleInside(field.ZoneLabel, body, "nhãn UTC của \"" + labels[index] + "\"");
+                Assert.AreEqual(76f, field.DateInput.layout.width, 1f, "ô ngày 76px [SD1 §3.1]");
+                Assert.AreEqual(44f, field.TimeInput.layout.width, 1f, "ô giờ 44px [SD1 §3.1]");
+            }
+        }
+
         // ============================================================================================ UX-09 · card & ghi chú
 
         /// <summary>
@@ -486,10 +511,12 @@ namespace DreamTech.LiveOps.Editor.Tests
 
         private static void AssertVisibleInside(VisualElement element, VisualElement container, string place)
         {
-            Assert.IsTrue(IsVisible(element), place + " phải nhìn thấy được");
-            Assert.Greater(element.layout.width, 0f, place + " rộng 0 — biến mất khỏi màn hình");
+            string where = " [" + place + " " + element.worldBound.ToString() + " trong " + container.worldBound.ToString() + "]";
+            Assert.IsTrue(IsVisible(element), place + " phải nhìn thấy được" + where);
+            Assert.Greater(element.layout.width, 0f, place + " rộng 0 — biến mất khỏi màn hình" + where);
+            Assert.Greater(element.layout.height, 0f, place + " cao 0 — biến mất khỏi màn hình" + where);
             Assert.LessOrEqual(element.worldBound.xMax, container.worldBound.xMax + BoundsTolerance,
-                place + " nằm ngoài pane — trên máy người dùng nó biến mất");
+                place + " nằm ngoài pane — trên máy người dùng nó biến mất" + where);
         }
 
         private static bool IsVisible(VisualElement element)

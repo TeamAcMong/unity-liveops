@@ -450,10 +450,13 @@
     flex-shrink: 0;
 }
 
-/* 2022.3 đặt flex-grow: 1 cho .unity-base-field__input nên ô nhập giãn hết bề rộng và nuốt mọi thứ đứng sau (C5). */
+/* 2022.3 đặt flex-grow: 1 cho .unity-base-field__input nên ô nhập giãn hết bề rộng và nuốt mọi thứ đứng sau (C5).
+   flex-basis: auto là BẮT BUỘC: stylesheet của Unity đặt `flex: 1 0 0` cho ô nhập, nên bỏ flex-grow mà quên basis thì bề rộng
+   cơ sở vẫn là 0 và cả vùng nhập biến mất (đo được ở ô giờ UTC: input rộng 0, hai ô con tràn ra ngoài và không vẽ). */
 .liveops-hub-calendar-inspector-field > .unity-base-field__input {
     flex-grow: 0;
     flex-shrink: 1;
+    flex-basis: auto;
     min-width: 0;
 }
 
@@ -477,6 +480,7 @@
 
 .liveops-hub-calendar-inspector-field--text > .unity-base-field__input {
     flex-grow: 1;
+    flex-basis: 0;
 }
 
 /* Cột nhãn của hàng CHỈ ĐỌC ("Phải bấm tham gia", "Nguồn") trùng cột nhãn của field (T10); nhãn dài xuống dòng, không cắt. */
