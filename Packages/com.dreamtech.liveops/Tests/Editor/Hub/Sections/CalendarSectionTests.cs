@@ -25,15 +25,22 @@ namespace DreamTech.LiveOps.Editor.Tests
 
         private LiveOpsHubWindow _window;
 
-        [TearDown]
-        public void TearDown()
+        /// <summary>
+        /// (V-23) Đóng cửa sổ rồi NHƯỜNG một khung: ở batchmode cửa sổ vừa đóng còn giữ quyền nhận phím thêm một khung, nên test
+        /// kế tiếp gọi <c>Focus()</c> một lần là rơi vào hư không — đúng cách <c>Frame03a_SelectedBarKeepsTimelineFocus</c> đỏ
+        /// lúc chạy cả nhóm mà xanh khi chạy riêng. Cùng khuôn với <c>CalendarDepthTests</c>.
+        /// </summary>
+        [UnityTearDown]
+        public IEnumerator TearDown()
         {
             if (_window != null)
             {
                 _window.Close();
                 _window = null;
+                yield return null;
             }
             LiveOpsHubTestServices.ReleaseAll();
+            yield return null;
         }
 
         [UnityTest]

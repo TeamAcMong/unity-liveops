@@ -139,5 +139,53 @@ namespace DreamTech.LiveOps.Editor.Tests
             Assert.IsFalse(_host.IsPinned);
             Assert.IsFalse(_host.Card.ClassListContains(LiveOpsHubClassNames.HoverCardPinned));
         }
+
+        // ---------------------------------------------------------------------------------------------- đợt W8-UX (UX-05)
+
+        /// <summary>
+        /// (UX-05 · UJ-05) Đang kéo thanh thì thẻ phải tắt hẳn: ẩn thẻ đang hiện, huỷ thẻ đang chờ, và KHÔNG nhận đích mới cho
+        /// tới khi nhả chuột. Không có cổng này thì thẻ bật lên đúng lúc người dùng đang nhắm thanh.
+        /// </summary>
+        [Test]
+        public void HoverCard_Suppress_HidesVisibleAndBlocksPending()
+        {
+            _host.HandlePointerEnter(_target);
+            Advance(LiveOpsHoverCardHost.ShowDelayMilliseconds);
+            Assert.IsTrue(_host.IsVisible);
+
+            _host.Suppress(true);
+            Assert.IsTrue(_host.IsSuppressed);
+            Assert.IsFalse(_host.IsVisible, "bắt đầu kéo thì thẻ đang hiện phải tắt ngay");
+
+            _host.HandlePointerEnter(_target);
+            Advance(LiveOpsHoverCardHost.ShowDelayMilliseconds * 2);
+            Assert.IsFalse(_host.IsVisible, "đang kéo thì không đích nào mở được thẻ");
+
+            _host.Suppress(false);
+            Assert.IsFalse(_host.IsSuppressed);
+            Assert.IsFalse(_host.IsVisible, "nhả chuột không được tự bật lại thẻ của đích cũ");
+
+            _host.HandlePointerEnter(_target);
+            Advance(LiveOpsHoverCardHost.ShowDelayMilliseconds);
+            Assert.IsTrue(_host.IsVisible, "nhả chuột xong hover card làm việc lại như thường");
+        }
+
+        /// <summary>
+        /// (UX-05 · UJ-05) Vẽ lại làn thay thanh cũ bằng element MỚI: đích cũ rời cây nên PointerLeave của nó không bao giờ tới.
+        /// Dọn đích chết phải ẩn thẻ và bỏ luôn builder, không thì thẻ treo lại che đúng thanh vừa kéo.
+        /// </summary>
+        [Test]
+        public void HoverCard_TargetDetached_HidesOnPrune()
+        {
+            _host.HandlePointerEnter(_target);
+            Advance(LiveOpsHoverCardHost.ShowDelayMilliseconds);
+            Assert.IsTrue(_host.IsVisible);
+
+            _root.Remove(_target);
+            _host.PruneDetachedTargets();
+
+            Assert.IsFalse(_host.IsVisible, "thanh đã rời cây thì thẻ của nó phải tắt");
+            Assert.AreEqual(0, _host.AttachedTargetCount, "và builder của element chết phải được dọn");
+        }
     }
 }

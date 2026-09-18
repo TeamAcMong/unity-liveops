@@ -37,9 +37,17 @@
     display: none;
 }
 
-/* Lịch có chân cố định (minimap + chú giải + gợi ý): toast nằm trên chân đó (PD-21, Hình 11). */
+/* Lịch có chân cố định (minimap + chú giải + gợi ý): toast nằm trên chân đó (PD-21, Hình 11).
+   (UX-11) Hai BẬC thay cho một hằng: chân đo được ở cửa sổ thật là 75px khi chú giải xuống hai dòng, nên 64px cứng để toast đè
+   lên chú giải. Màn Lịch đo chân rồi bật bậc cao; bậc thường vẫn là 64px cho chân một dòng. */
 .liveops-hub-content--raised-toast > .liveops-hub-toast {
     bottom: 64px;
+}
+
+/* (R-09) Luật HAI class: bậc cao phải có cả lớp nền nên nó thắng bằng ĐỘ ĐẶC HIỆU, không thắng nhờ nằm sau trong file — sắp xếp
+   lại file không được làm toast tụt về 64px. Màn Lịch luôn bật lớp nền rồi mới bật thêm bậc cao. */
+.liveops-hub-content--raised-toast.liveops-hub-content--raised-toast-tall > .liveops-hub-toast {
+    bottom: 96px;
 }
 
 .liveops-hub-toast-icon {
@@ -288,6 +296,8 @@
 
 /* ---------------------------------------------------------------- Hover card — lớp nổi, left/top do C# (chỗ 6 [FD §2.14]) */
 
+/* (UX-05, V12) Thẻ ẩn phải BIẾN MẤT khỏi layout, không chỉ `opacity: 0`: một hộp rỗng 16×14 có padding + viền vẫn nằm ở góc
+   trên trái của root và đè lên chữ "UTC" ở góc thước. `display` đổi theo class nên vẫn không có style inline nào. */
 .liveops-hub-hover-card {
     position: absolute;
     left: 0;
@@ -298,10 +308,12 @@
     border-radius: 3px;
     border-color: var(--unity-colors-tooltip-border);
     background-color: var(--unity-colors-tooltip-background);
+    display: none;
     opacity: 0;
 }
 
 .liveops-hub-hover-card.liveops-hub-hover-card--visible {
+    display: flex;
     opacity: 1;
 }
 
