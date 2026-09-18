@@ -31,6 +31,7 @@
 .liveops-hub-timeline-body {
     flex-grow: 1;
     flex-shrink: 1;
+    min-height: 36px;
 }
 
 /* Lớp phủ nằm thẳng track (bỏ 168px header), phủ cả thước lẫn thân — vạch bây giờ chạy từ tầng 2 xuống hết các làn, trên thanh. */
@@ -263,6 +264,7 @@
 
 .liveops-hub-timeline-lane-meta-row {
     flex-direction: row;
+    flex-wrap: wrap;
     align-items: center;
     margin-top: 2px;
     padding-left: 14px;
@@ -270,6 +272,7 @@
 
 .liveops-hub-timeline-lane-meta {
     flex-shrink: 1;
+    min-width: 96px;
     padding: 0;
     margin: 0;
     font-size: 10px;
@@ -290,6 +293,7 @@
     height: 14px;
     padding: 0 4px;
     margin-left: 6px;
+    margin-top: 1px;
     border-radius: 3px;
     background-color: var(--unity-colors-default-background);
     flex-shrink: 0;
@@ -615,6 +619,11 @@
     opacity: 0.82;
 }
 
+/* (UX-18, T2) Khe trước dấu ngăn "·" của vế chồng giờ: chữ không giữ được khoảng trắng ĐẦU Label nên khe phải là margin. */
+.liveops-hub-timeline-readout-overlap {
+    margin-left: 4px;
+}
+
 /* ---------------------------------------------------------------- Minimap 20px · chú giải · dòng gợi ý 18px */
 
 .liveops-hub-timeline-minimap {
@@ -632,6 +641,7 @@
     --liveops-hub-minimap-text: var(--unity-colors-default-text);
     height: 20px;
     flex-shrink: 0;
+    margin-top: 6px;
     margin-left: 168px;
     overflow: hidden;
     border-top-width: 1px;
@@ -671,13 +681,20 @@
 }
 
 .liveops-hub-timeline-legend-sample--ended {
-    opacity: 0.5;
     background-color: var(--unity-colors-window-background);
+}
+
+.liveops-hub-timeline-legend-sample--ended > .liveops-hub-timeline-bar__stripe {
+    opacity: 0.5;
 }
 
 .liveops-hub-timeline-legend-sample--overlap {
     border-color: var(--liveops-hub-color-blocked-fill);
     background-color: var(--liveops-hub-color-blocked-tint);
+}
+
+.liveops-hub-timeline-legend-sample > .liveops-hub-timeline-bar__stripe {
+    height: 3px;
 }
 
 .liveops-hub-timeline-legend-sample > .liveops-hub-timeline-bar__strike {
@@ -774,8 +791,15 @@
 .liveops-hub-timeline-bar--collapsed {
     height: 6px;
     padding: 0;
+    border-width: 0;
     border-radius: 1px;
     opacity: 0.85;
+}
+
+/* Dải màu lấp hết 6px: ở làn thu gọn màu loại LÀ nội dung, không còn nhãn hay icon nào khác để đọc. */
+.liveops-hub-timeline-bar--collapsed > .liveops-hub-timeline-bar__stripe {
+    top: 0;
+    height: auto;
 }
 
 .liveops-hub-timeline-bar--collapsed > .liveops-hub-timeline-bar__label {
@@ -797,13 +821,14 @@
 /* Chevron gập ở dòng tên làn (khung 12): 9×8, opacity 0,8. Hình là một ô vuông 5×5 chỉ có hai cạnh, xoay 45° — cùng cách
    dựng với dấu cắt mép của thanh, vì font của Editor không chắc có glyph chevron. */
 .liveops-hub-timeline-lane-chevron {
-    width: 9px;
-    height: 8px;
+    width: 16px;
+    height: 14px;
     flex-shrink: 0;
-    margin-right: 5px;
+    margin-right: 0;
     align-items: center;
     justify-content: center;
     opacity: 0.8;
+    cursor: link;
 }
 
 .liveops-hub-timeline-lane-chevron-shape {
