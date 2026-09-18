@@ -209,6 +209,8 @@ namespace DreamTech.LiveOps.Editor
                 tooltip = LiveOpsHubStrings.OverviewSectionMenuTooltip,
             };
             menuButton.AddToClassList(LiveOpsHubClassNames.Button);
+            // (UX-30) Nút chỉ có icon: bỏ min-width của nút chữ, nếu không ⋮ nằm lệch trái trong một ô rộng 54 px rỗng.
+            menuButton.AddToClassList(LiveOpsHubClassNames.OverviewIconButton);
             if (sheet != null) menuButton.styleSheets.Add(sheet);
             menuButton.Add(LiveOpsHubIcons.CreateImage(SectionMenuIconName, SectionMenuIconSize));
             container.Add(menuButton);

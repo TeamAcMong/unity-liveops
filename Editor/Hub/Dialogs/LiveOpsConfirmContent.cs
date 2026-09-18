@@ -22,6 +22,7 @@ namespace DreamTech.LiveOps.Editor
     {
         internal const string RootElementName = "confirm-root";
         internal const string ContentElementName = "confirm-content";
+        internal const string ScrollElementName = "confirm-scroll";
         internal const string TitleElementName = "confirm-title";
         internal const string BodyElementName = "confirm-body";
         internal const string WarningElementName = "confirm-warning";
@@ -70,6 +71,7 @@ namespace DreamTech.LiveOps.Editor
             layout.CloneTree(this);
             VisualElement content = this.Q(ContentElementName);
             content?.EnableInClassList(LiveOpsHubClassNames.ConfirmLevel2, request.Level == LiveOpsConfirmLevel.TypeToConfirm);
+            MoveBodyIntoScrollView(content);
 
             this.Q<Label>(TitleElementName).text = request.Title;
             BindBody(request);
@@ -102,6 +104,75 @@ namespace DreamTech.LiveOps.Editor
                 _typeField.RegisterValueChangedCallback(changeEvent => UpdateDestructiveLock(changeEvent.newValue));
                 UpdateDestructiveLock(string.Empty);
             }
+        }
+
+        /// <summary>
+        /// (soát W8-UX R5) Bọc thân hộp (câu, HelpBox, vùng gõ id) vào một ô cuộn dọc. Vì sao phải có: câu hậu quả do NƠI GỌI
+        /// dựng và không có trần — <c>LiveOpsHubPasteRunningJsonAction</c> nối cả danh sách id bị thay và id bị bỏ vào một câu —
+        /// còn cửa sổ hộp có trần <see cref="LiveOpsConfirmWindow.MaximumHeight"/>. Không có chỗ cuộn thì phần vượt trần đẩy
+        /// hàng nút (flex-shrink: 0, margin-top: auto) xuống DƯỚI mép cửa sổ: người dùng mất cả hai nút lẫn gợi ý phím, tức là
+        /// không thoát được hộp phá huỷ bằng chuột.
+        /// <para>
+        /// Bọc từ C# chứ không sửa UXML vì file UXML nằm ngoài quyền ghi của gói (ghi ở mục 5 báo cáo gói). Tên element vẫn là
+        /// hợp đồng như mọi element khác; luật bố cục của ô cuộn nằm ở <c>LiveOpsConfirmWindow.uss</c>, không gán style inline.
+        /// </para>
+        /// </summary>
+        private static void MoveBodyIntoScrollView(VisualElement content)
+        {
+            if (content == null) return;
+            string[] scrollableElementNames = { BodyElementName, WarningElementName, TypeAreaElementName };
+            ScrollView scroll = new ScrollView(ScrollViewMode.Vertical) { name = ScrollElementName };
+            int insertIndex = -1;
+            foreach (string elementName in scrollableElementNames)
+            {
+                VisualElement child = content.Q(elementName);
+                if (child == null) continue;
+                // Chỗ chèn lấy ở con ĐẦU TIÊN trước khi gỡ bất cứ con nào: gỡ xong thì chỉ số của các con sau đã trôi.
+                if (insertIndex < 0) insertIndex = content.IndexOf(child);
+                child.RemoveFromHierarchy();
+                scroll.Add(child);
+            }
+            if (insertIndex < 0) return;
+            content.Insert(insertIndex, scroll);
+        }
+
+        /// <summary>
+        /// Chiều cao TỰ NHIÊN của một con của khung. Với ô cuộn của thân phải cộng chiều cao NỘI DUNG chứ không phải chiều cao
+        /// ô cuộn: ô cuộn khai <c>flex-grow: 1</c> nên nó luôn bằng chỗ khung còn lại — đo nó là đo lại chính chiều cao cửa sổ
+        /// và phép đo thành vòng tròn (đúng thứ <see cref="MeasureContentHeight"/> sinh ra để tránh).
+        /// </summary>
+        private static float NaturalHeightOf(VisualElement child)
+        {
+            ScrollView scroll = child as ScrollView;
+            if (scroll == null) return child.layout.height;
+            float total = 0f;
+            foreach (VisualElement scrolled in scroll.contentContainer.Children())
+            {
+                if (scrolled.resolvedStyle.display == DisplayStyle.None) continue;
+                total += scrolled.layout.height + scrolled.resolvedStyle.marginTop + scrolled.resolvedStyle.marginBottom;
+            }
+            return total;
+        }
+
+        /// <summary>
+        /// Chiều cao NỘI DUNG thật sau khi layout xong (UX-27): padding của khung cộng chiều cao + margin của từng con đang hiện.
+        /// Vì sao không đọc thẳng <c>layout.height</c> của khung: khung có <c>flex-grow: 1</c> nên nó luôn bằng chiều cao cửa sổ,
+        /// kể cả khi cửa sổ cao hơn nội dung — đúng chỗ đẻ ra khoảng trống lớn giữa thân và hàng nút. Con dùng
+        /// <c>margin-top: auto</c> (hàng nút) nuốt phần dư, nên tổng ở đây là chiều cao "vừa khít".
+        /// Trả 0 khi chưa có layout (NaN) — nơi gọi giữ nguyên chiều cao đang có.
+        /// </summary>
+        internal float MeasureContentHeight()
+        {
+            VisualElement frame = this.Q(ContentElementName) ?? this.Q(MissingLayoutElementName);
+            if (frame == null) return 0f;
+            float total = frame.resolvedStyle.paddingTop + frame.resolvedStyle.paddingBottom
+                + frame.resolvedStyle.borderTopWidth + frame.resolvedStyle.borderBottomWidth;
+            foreach (VisualElement child in frame.Children())
+            {
+                if (child.resolvedStyle.display == DisplayStyle.None) continue;
+                total += NaturalHeightOf(child) + child.resolvedStyle.marginTop + child.resolvedStyle.marginBottom;
+            }
+            return float.IsNaN(total) || total <= 0f ? 0f : total;
         }
 
         /// <summary>Kết quả chốt đúng một lần: Enter/Esc/nút an toàn → Safe; nút phá huỷ (click hoặc Tab + Space) → Destructive.</summary>

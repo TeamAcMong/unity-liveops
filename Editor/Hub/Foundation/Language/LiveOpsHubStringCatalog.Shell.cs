@@ -241,6 +241,12 @@ namespace DreamTech.LiveOps.Editor
             table.Add(nameof(LiveOpsHubStrings.ShellStatusRecentActionFormat),
                 vietnamese: "Vừa làm: {0}",
                 english: "Just did: {0}");
+            table.Add(nameof(LiveOpsHubStrings.ShellStatusUndoneActionWithKeyFormat),
+                vietnamese: "Vừa hoàn tác: {0} ({1} để làm lại)",
+                english: "Undone: {0} ({1} to redo)");
+            table.Add(nameof(LiveOpsHubStrings.ShellStatusUndoneActionFormat),
+                vietnamese: "Vừa hoàn tác: {0}",
+                english: "Undone: {0}");
             table.Add(nameof(LiveOpsHubStrings.ShellStatusPublishedFormat),
                 vietnamese: "đã đăng {0}",
                 english: "published {0}");
