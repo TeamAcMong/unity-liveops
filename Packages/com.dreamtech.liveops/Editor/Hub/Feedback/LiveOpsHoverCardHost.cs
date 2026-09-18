@@ -84,7 +84,9 @@ namespace DreamTech.LiveOps.Editor
         {
             if (target == null) throw new ArgumentNullException(nameof(target));
             if (buildContent == null) throw new ArgumentNullException(nameof(buildContent));
-            PruneDetachedTargets();
+            // (R-07) KHÔNG dọn ở đây: người gọi gắn lại hover card cho từng thanh một, nên dọn trong Attach là quét cả từ điển
+            // n+1 lần mỗi lần vẽ lại — mà vẽ lại chạy sau MỖI bước xem trước khi người dùng đang kéo chuột. Chỗ dọn đúng là một
+            // lần trước vòng gắn (CalendarSection.AttachHoverCards).
             bool isNew = !_contentBuilders.ContainsKey(target);
             _contentBuilders[target] = buildContent;
             if (!isNew) return;
@@ -110,11 +112,18 @@ namespace DreamTech.LiveOps.Editor
         public void PruneDetachedTargets()
         {
             List<VisualElement> dead = null;
+            // (R-06) Đích CHẾT = KHÔNG còn nằm trong cây của host này, đo bằng panel của chính host chứ không bằng `null`. Luật cũ
+            // ("không cha VÀ không panel") bỏ lọt đúng ca mà UX-05 tả: vẽ lại làn THAY cả làn, nên thanh cũ vẫn còn cha (làn cũ)
+            // trong khi cả cụm đã rời panel — nó không bao giờ bị dọn và thẻ của nó treo lại.
+            // Host chưa gắn panel (dựng cây ngoài cửa sổ, test logic) thì panel của mọi đích cũng null, nên lúc đó chỉ cha mới
+            // nói được điều gì — giữ nguyên luật cũ cho nhánh đó để cây rời panel không bị dọn sạch ngay lần gắn thứ hai.
+            IPanel hostPanel = _root.panel;
             foreach (KeyValuePair<VisualElement, Func<VisualElement>> pair in _contentBuilders)
             {
-                // Đích CHẾT = đã rời cây: không còn cha VÀ không còn panel. Chỉ xét `panel == null` là sai ở test không panel —
-                // ở đó chưa element nào có panel nên cả bảng bị dọn sạch ngay lần Attach thứ hai.
-                if (pair.Key.parent != null || pair.Key.panel != null) continue;
+                bool isDead = hostPanel == null
+                    ? pair.Key.parent == null && pair.Key.panel == null
+                    : !ReferenceEquals(pair.Key.panel, hostPanel);
+                if (!isDead) continue;
                 if (dead == null) dead = new List<VisualElement>();
                 dead.Add(pair.Key);
             }

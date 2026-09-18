@@ -15,7 +15,11 @@ namespace DreamTech.LiveOps.Editor
     internal sealed class CalendarSection : IHubSection, IHubHostAware, IHubSectionActions, IHubSectionViewState, IHubSectionNavigation
     {
         /// <summary>(UX-11) Bậc nâng toast mặc định của màn Lịch, đúng con số trong <c>liveops-hub-feedback.uss</c>.</summary>
-        private const float DefaultToastRaisePixels = 64f;
+        /// <summary>
+        /// Bậc nâng toast thường (USS <c>liveops-hub-content--raised-toast</c>). Là <c>internal</c> để test đọc được đúng con số
+        /// mà USS dùng — chép lại 64 trong test là hai nguồn sự thật cho một khoảng cách.
+        /// </summary>
+        internal const float DefaultToastRaisePixels = 64f;
 
         private readonly LiveOpsHubServices _services;
         private readonly CalendarTimelinePresenter _presenter;
@@ -57,6 +61,12 @@ namespace DreamTech.LiveOps.Editor
 
         /// <summary>(UX-11) Gốc màn đang GẮN panel — chỉ gốc này được quyền tắt class nâng toast khi rời panel.</summary>
         private VisualElement _activeRoot;
+
+        /// <summary>
+        /// (R-11) Handler <c>DragActiveChanged</c> của LẦN DỰNG view gần nhất. Presenter sống lâu hơn view, nên chỉ <c>+=</c> ở
+        /// mỗi <see cref="CreateView"/> là mỗi lần quay lại màn Lịch thêm một handler trỏ vào một hover card đã chết.
+        /// </summary>
+        private Action<bool> _dragActiveChangedHandler;
 
         public CalendarSection(LiveOpsHubServices services)
         {
@@ -155,10 +165,15 @@ namespace DreamTech.LiveOps.Editor
             // (UX-11) Ghi lại ĐÂY là gốc đang sống: view cũ của lần dựng trước detach SAU khi view này đã bật class, nên nếu
             // detach nào cũng tắt class thì yêu cầu của view đang sống bị xoá và toast rơi xuống dưới minimap.
             _activeRoot = _root;
-            _services.Bus.SetContentClass(LiveOpsHubClassNames.ContentRaisedToast, true);
+            ApplyToastRaise();
 
             _services.Session.DocumentChanged += OnSessionChanged;
             _services.Session.CheckChanged += OnSessionChanged;
+            // (UX-11, R-01) Gắn lại panel phải KHẲNG ĐỊNH LẠI lớp nâng toast. Class chỉ được bật MỘT lần trong CreateView, mà
+            // cửa sổ dựng lại cây (đổi cha khi docking, domain reload, đổi cỡ làm shell thay khung) khiến chính gốc màn rời panel
+            // rồi vào lại: lần rời tắt class, không ai bật lại, toast rơi xuống dưới minimap. Ảnh chụp lượt trước là bằng chứng —
+            // `hub-content` ở h01/h11/h28f chỉ còn bậc cao (bật muộn theo hình học) và ở h13 không còn class nâng nào.
+            _root.RegisterCallback<AttachToPanelEvent>(OnAttachToPanel);
             _root.RegisterCallback<DetachFromPanelEvent>(OnDetachFromPanel, TrickleDown.TrickleDown);
             _root.RegisterCallback<GeometryChangedEvent>(OnGeometryChanged);
             // Esc đóng drawer [SD1 §3.9] — nghe ở pha NỔI BỌT (không TrickleDown) để timeline huỷ cử chỉ kéo trước: đang kéo mà
@@ -326,7 +341,11 @@ namespace DreamTech.LiveOps.Editor
             _presenter.QuickCheckTagChanged += (tagText, health) => _timeline.SetDragQuickCheckTag(tagText, health);
             // (UX-05, UJ-05) Kéo thanh thì tắt hover card: lúc kéo element giữ pointer capture và mỗi bước xem trước thay thanh
             // bằng element mới, nên PointerLeave của thanh cũ không bao giờ tới và thẻ treo lại che đúng thanh vừa thả.
-            _presenter.DragActiveChanged += isDragging => _hoverCardHost?.Suppress(isDragging);
+            // (R-11) Gỡ handler của lần dựng trước rồi mới gắn handler mới — không thì mỗi lần quay lại màn Lịch để lại một
+            // handler trỏ vào hover card của view đã chết.
+            if (_dragActiveChangedHandler != null) _presenter.DragActiveChanged -= _dragActiveChangedHandler;
+            _dragActiveChangedHandler = isDragging => _hoverCardHost?.Suppress(isDragging);
+            _presenter.DragActiveChanged += _dragActiveChangedHandler;
             _timelineColumn.Add(_timeline);
             ApplySnapStep();
         }
@@ -1143,7 +1162,11 @@ namespace DreamTech.LiveOps.Editor
             _presenter.ContentWidth = geometryEvent.newRect.width;
             _toolbar?.SetNarrow(IsNarrowWidth());
             ApplyInspectorDrawerLayout();
-            ApplyToastRaiseStep();
+            // (UX-11, R-01) Khẳng định lại CẢ HAI lớp nâng toast, không chỉ bậc cao. Gốc của lỗi: cửa sổ hub gọi ShowSection
+            // (bước 6 của CreateGUI) TRƯỚC SubscribeServices (bước 8), nên lần bật lớp nền trong CreateView rơi vào một bus chưa
+            // ai nghe — còn bậc cao thì bật muộn theo hình học nên vẫn ăn. Đó đúng là ảnh chụp lượt trước: `hub-content` chỉ có
+            // `--raised-toast-tall`, và ở 820px (chú giải ẩn ⇒ chân thấp ⇒ tắt bậc cao) thì không còn lớp nào.
+            ApplyToastRaise();
         }
 
         /// <summary>
@@ -1156,6 +1179,16 @@ namespace DreamTech.LiveOps.Editor
             float footerHeight = FooterHeight();
             bool isTall = footerHeight > DefaultToastRaisePixels;
             _services.Bus.SetContentClass(LiveOpsHubClassNames.CalendarDepthContentRaisedToastTall, isTall);
+        }
+
+        /// <summary>
+        /// (UX-11, R-01) Khẳng định cả HAI lớp nâng toast cho màn đang sống: lớp nền luôn bật (toast không bao giờ được rơi về
+        /// 8px khi đang ở màn Lịch), bậc cao bật thêm khi chân màn đo được cao hơn 64px. Gọi ở CreateView VÀ ở mỗi lần gắn panel.
+        /// </summary>
+        private void ApplyToastRaise()
+        {
+            _services.Bus.SetContentClass(LiveOpsHubClassNames.ContentRaisedToast, true);
+            ApplyToastRaiseStep();
         }
 
         /// <summary>Chiều cao chân màn = từ mép trên của phần nổi cao nhất (minimap/chú giải/gợi ý) tới đáy cột timeline.</summary>
@@ -1197,9 +1230,21 @@ namespace DreamTech.LiveOps.Editor
             return null;
         }
 
+        /// <summary>(UX-11, R-01) Gốc màn vào lại panel: bật lại lớp nâng toast mà lần rời panel đã tắt.</summary>
+        private void OnAttachToPanel(AttachToPanelEvent attachEvent)
+        {
+            if (!ReferenceEquals(attachEvent.target, _root)) return;
+            _activeRoot = _root;
+            ApplyToastRaise();
+        }
+
         /// <summary>Panel biến mất (đổi màn, đóng cửa sổ, domain reload): gỡ nghe phiên và huỷ thao tác kéo đang mở (SP-2 (d)).</summary>
         private void OnDetachFromPanel(DetachFromPanelEvent detachEvent)
         {
+            // (R-01) CHỈ nhận lần rời panel của CHÍNH gốc màn. Callback đăng ký TrickleDown nên khi gốc rời panel thì mỗi element
+            // con cũng chạy qua đây một lần (vô hại vì HandleDetach chốt theo gốc), nhưng nếu một bản Unity cho detach của element
+            // CON trickle lên thì gỡ nghe phiên + AbortDrag theo một thanh bị thay lúc vẽ lại làn sẽ giết cử chỉ kéo đang chạy.
+            if (!ReferenceEquals(detachEvent.target, _root)) return;
             HandleDetach(detachEvent.currentTarget as VisualElement);
         }
 
