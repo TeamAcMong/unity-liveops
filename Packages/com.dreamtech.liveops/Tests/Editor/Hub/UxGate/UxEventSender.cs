@@ -235,13 +235,21 @@ namespace DreamTech.LiveOps.Editor.Tests
         /// <summary>Phím "hành động" của timeline (⌘ trên macOS, Ctrl ở nơi khác) — cùng nghĩa với <c>WheelEvent.actionKey</c>.</summary>
         internal static EventModifiers ActionModifier => SelectAllModifier;
 
+        /// <summary>Mục menu mà ⌘Z chạy — thử trước vì nó đi đúng đường người dùng bấm.</summary>
+        private const string UndoMenuPath = "Edit/Undo";
+
         /// <summary>
-        /// Chạy một mục menu của Editor bằng đúng đường menu (⌘Z = <c>Edit/Undo</c>). Phím tắt toàn cục của Unity không đi qua
-        /// <c>EditorWindow.SendEvent</c>, nên đây là đường gần người dùng nhất mà phiên tự động có.
+        /// ⌘Z. Phím tắt TOÀN CỤC của Unity không đi qua <c>EditorWindow.SendEvent</c> (nó bị chặn trước khi tới cửa sổ), và
+        /// trong batchmode mục menu <c>Edit/Undo</c> cũng không chạy (<c>ExecuteMenuItem</c> trả false). Nên đường gần người
+        /// dùng nhất mà phiên tự động có là: thử mục menu trước, không được thì gọi chính hàm mà mục menu đó gọi.
+        /// <para>
+        /// Đây là ĐƯỜNG VÒNG có ghi tên, không phải cửa sau vào hub: nó vẫn đi qua hàng Undo của Editor — thứ mà hub chỉ NGHE
+        /// chứ không điều khiển — nên cái đang được kiểm (status bar có mời làm lại không) vẫn là hành vi thật.
+        /// </para>
         /// </summary>
-        internal static IEnumerator ExecuteMenuItem(string menuPath)
+        internal static IEnumerator PerformUndo(EditorWindow window)
         {
-            Assert.IsTrue(EditorApplication.ExecuteMenuItem(menuPath), "không chạy được mục menu '" + menuPath + "'");
+            if (!EditorApplication.ExecuteMenuItem(UndoMenuPath)) UnityEditor.Undo.PerformUndo();
             yield return Settle(SettleFrames * 2, SettleMilliseconds * 2);
         }
 

@@ -23,7 +23,6 @@ import sys
 # Thứ tự hiển thị = thứ tự nặng dần khi soát: thiếu lối vào trước, rồi chữ không đọc được, rồi bố cục.
 FINDING_KINDS = [
     ("missingElement", "thiếu/không dùng được"),
-    ("zeroSizeNamed", "cao hoặc rộng 0"),
     ("textCut", "chữ bị cắt"),
     ("childOverflow", "con tràn khỏi cha"),
     ("notStretched", "không giãn theo cửa sổ"),
@@ -31,6 +30,9 @@ FINDING_KINDS = [
     ("absoluteOverText", "lớp nổi đè chữ"),
 ]
 
+# Hai khoá CHẨN ĐOÁN, không tính vào tổng: zeroSizeNamed (khung hub có spacer/vùng rỗng cao 0 đúng thiết kế — ô quan trọng
+# đã được missingElement lo) và scrollViews (liệt kê mọi ScrollView; chỉ dòng mang một trong các dấu hiệu dưới mới là lỗi).
+DIAGNOSTIC_KINDS = [("zeroSizeNamed", "cao hoặc rộng 0 (chẩn đoán)")]
 # scrollViews liệt kê MỌI ScrollView (chẩn đoán); chỉ dòng mang một trong các dấu hiệu này mới là lỗi.
 SCROLL_VIEW_PROBLEM_MARKS = ("TRÀN DỌC KHÔNG CÓ THANH CUỘN", "TRÀN NGANG KHÔNG CÓ THANH CUỘN", "CÓ THANH CUỘN NGANG")
 
@@ -56,7 +58,7 @@ def read_run(directory):
 def normalise(document, path):
     counts = {}
     entries = {}
-    for kind, _ in FINDING_KINDS:
+    for kind, _ in FINDING_KINDS + DIAGNOSTIC_KINDS:
         values = document.get(kind) or []
         counts[kind] = len(values)
         entries[kind] = values
@@ -72,12 +74,12 @@ def normalise(document, path):
         "unityVersion": document.get("unityVersion", "?"),
         "counts": counts,
         "entries": entries,
-        "total": sum(counts.values()),
+        "total": sum(count for kind, count in counts.items() if kind not in [item[0] for item in DIAGNOSTIC_KINDS]),
     }
 
 
 def kind_labels():
-    return FINDING_KINDS + [("scrollViews", "cuộn hỏng")]
+    return FINDING_KINDS + [("scrollViews", "cuộn hỏng")] + DIAGNOSTIC_KINDS
 
 
 def group_totals(records, key):
