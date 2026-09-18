@@ -205,6 +205,41 @@ namespace DreamTech.LiveOps.Editor
             table.Add(nameof(LiveOpsHubStrings.CalendarDepthTakeFromDiskUndoStepFormat),
                 vietnamese: "Lấy {0} từ bản trên đĩa",
                 english: "Take {0} from the version on disk");
+
+            // ----- Đợt W8-UX (gói A) -----
+            table.Add(nameof(LiveOpsHubStrings.CalendarDepthUnreadableTimeText),
+                vietnamese: "giờ chưa đọc được",
+                english: "time not readable");
+            table.Add(nameof(LiveOpsHubStrings.CalendarDepthMoveStartEdgeUndoStepFormat),
+                vietnamese: "Đổi mép đầu {0}",
+                english: "Change the start edge of {0}");
+            table.Add(nameof(LiveOpsHubStrings.CalendarDepthMoveEndEdgeUndoStepFormat),
+                vietnamese: "Đổi mép cuối {0}",
+                english: "Change the end edge of {0}");
+            table.Add(nameof(LiveOpsHubStrings.CalendarDepthMenuNotInPublishedReason),
+                vietnamese: "Đợt này chưa có trong bản đã đăng",
+                english: "This event is not in the published version");
+            table.Add(nameof(LiveOpsHubStrings.CalendarDepthMenuRecurringLaneReason),
+                vietnamese: "Làn lặp — sửa ở Luật lặp",
+                english: "Recurring lane — edit it in Recurring rules");
+            table.Add(nameof(LiveOpsHubStrings.CalendarDepthMenuNoHiddenLaneReason),
+                vietnamese: "Không có làn nào đang ẩn",
+                english: "No lane is hidden");
+            table.Add(nameof(LiveOpsHubStrings.CalendarDepthShowHiddenLanesButton),
+                vietnamese: "Hiện",
+                english: "Show");
+            table.Add(nameof(LiveOpsHubStrings.CalendarDepthHiddenLanesLabelFormat),
+                vietnamese: "Đang ẩn {0} làn",
+                english: "{0} {0|lane|lanes} hidden");
+            table.Add(nameof(LiveOpsHubStrings.CalendarDepthShowHiddenLanesTooltip),
+                vietnamese: "Hiện lại mọi làn đang ẩn",
+                english: "Show every hidden lane again");
+            table.Add(nameof(LiveOpsHubStrings.CalendarDepthCompareMenuItem),
+                vietnamese: "So với đã đăng",
+                english: "Vs published");
+            table.Add(nameof(LiveOpsHubStrings.CalendarDepthSnapMenuItemFormat),
+                vietnamese: "Bắt lưới: {0}",
+                english: "Snap: {0}");
         }
     }
 }

@@ -62,6 +62,20 @@
     width: 120px;
 }
 
+/* (UX-29, V5) Ở 820px toolbar còn thừa "Bắt lưới: Tự động ▾" và "So với đã đăng (5)" nên ô tìm bị ép và vế phải tràn. Hai mục
+   này đã có đường lệnh trong menu ⋮ nên chỗ của chúng khi hẹp là menu đó, không phải thanh. */
+.liveops-hub--narrow .liveops-hub-calendar-snap-menu {
+    display: none;
+}
+
+.liveops-hub--narrow .liveops-hub-calendar-compare-toggle {
+    display: none;
+}
+
+.liveops-hub--narrow .liveops-hub-calendar-disabled-reason {
+    display: none;
+}
+
 /* Dải chú giải: ẩn khi hẹp (chỗ của nó là menu ⋮), hiện lại khi người dùng bật mục đó. Luật hai class nên nó thắng luật ẩn
    một class ở trên mà không cần !important. */
 .liveops-hub--narrow .liveops-hub-timeline-legend {
@@ -72,28 +86,44 @@
     display: flex;
 }
 
+/* (UX-12) Chip làn ẩn = hàng ngang nhãn + nút thật. Nút giữ chiều cao toolbar để vùng bấm đủ lớn. */
 .liveops-hub-calendar-hidden-lanes-chip {
     flex-shrink: 0;
+    flex-direction: row;
+    align-items: center;
+    margin-left: var(--liveops-hub-space-4);
+}
+
+.liveops-hub-calendar-hidden-lanes-label {
     font-size: 10px;
     color: var(--liveops-hub-color-quiet);
-    margin-left: var(--liveops-hub-space-4);
+}
+
+.liveops-hub-calendar-hidden-lanes-show {
+    font-size: 10px;
+    margin-left: 4px;
+    padding-left: 5px;
+    padding-right: 5px;
+}
+
+/* (UX-01) Mắt xích giãn của chuỗi gốc màn → main → split → cột timeline. `min-height: 0` là phần bắt buộc: trong flexbox con
+   không co xuống dưới chiều cao nội tại nếu không cho phép, nên ScrollView thân timeline (ở 2022.3 không góp chiều cao nội tại)
+   kéo cả cột về 0. Gắn bằng CLASS chứ không inline để USS còn đọc được ở kiểm bố cục và ảnh chụp. */
+.liveops-hub-calendar-fill-height {
+    flex-grow: 1;
+    min-height: 0;
 }
 
 .liveops-hub-calendar-main {
     flex-direction: row;
-    flex-grow: 1;
-}
-
-.liveops-hub-calendar-split {
-    flex-grow: 1;
 }
 
 .liveops-hub-calendar-list-pane {
     flex-grow: 1;
+    min-height: 0;
 }
 
 .liveops-hub-calendar-timeline-column {
-    flex-grow: 1;
     overflow: hidden;
 }
 
@@ -110,6 +140,14 @@
     border-left-width: 1px;
     border-left-color: var(--unity-colors-window-border);
     background-color: var(--unity-colors-window-background);
+}
+
+/* (UX-07, lệch thiết kế V-39) Drawer mở thì cột timeline lùi vào đúng bề rộng drawer. Thiết kế gốc cho drawer PHỦ lên trục,
+   nhưng ở 820px mọi thứ neo mép phải (chip "Đợt tới", nhãn "chồng n giờ", đuôi gợi ý) nằm hẳn dưới drawer và không bấm được —
+   ưu tiên dùng được thắng. Lề đặt trên split, không đặt padding trên `calendar-main`: `right: 0` của drawer đo theo mép padding
+   của cha nên padding sẽ kéo cả drawer vào trong. */
+.liveops-hub--medium .liveops-hub-calendar-drawer-open {
+    margin-right: 280px;
 }
 
 /* Nút đóng chỉ có nghĩa khi inspector là drawer; ở cửa sổ rộng nó không đóng được cái gì. */
