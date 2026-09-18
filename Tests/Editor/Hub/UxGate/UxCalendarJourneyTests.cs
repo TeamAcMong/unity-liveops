@@ -1,6 +1,8 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Globalization;
+using System.Text;
 using DreamTech.LiveOps.Tests;
 using NUnit.Framework;
 using UnityEditor;
@@ -34,6 +36,12 @@ namespace DreamTech.LiveOps.Editor.Tests
     {
         /// <summary>Mẫu thiết kế đứng ở 13/9/2026 08:47 UTC+7 — cùng mốc với mọi ảnh của ma trận 9.5.</summary>
         private static readonly DateTime DesignNowUtc = new DateTime(2026, 9, 13, 1, 47, 0, DateTimeKind.Utc);
+
+        /// <summary>
+        /// Mốc "bây giờ" của ca UX-06: nằm GIỮA hunt-0914 (14/9 00:00 → 17/9 00:00) nên đợt đó đang chạy thật. Mốc thiết kế
+        /// 13/9 01:47 không có đợt nào đang chạy, không dựng được cảnh "rút ngắn đợt đang chạy" (G-FIX-UX-5).
+        /// </summary>
+        private static readonly DateTime RunningNowUtc = new DateTime(2026, 9, 15, 12, 0, 0, DateTimeKind.Utc);
 
         private const int DragSteps = 6;
 
@@ -87,7 +95,7 @@ namespace DreamTech.LiveOps.Editor.Tests
                 yield return OpenCalendar(UxHubWindowFixture.AllSizes[3], language);
                 LiveOpsTimelineElement timeline = _fixture.Calendar.Timeline;
                 double pixelsPerHourBefore = timeline.PixelsPerHour;
-                int rulerTickCountBefore = RulerTickCount();
+                string rulerBefore = RulerSignature();
 
                 yield return WheelOneNotch(timeline, -1, UxEventSender.ActionModifier);
 
@@ -96,8 +104,8 @@ namespace DreamTech.LiveOps.Editor.Tests
                 Assert.AreEqual(expected, timeline.PixelsPerHour, ZoomComparisonTolerance,
                     "một nấc ⌘+lăn phải đổi mức thu phóng đúng một bậc (" + expected + "), đang là " + timeline.PixelsPerHour
                     + " — bánh xe quy đổi sai số nấc (UX-02)");
-                Assert.AreNotEqual(rulerTickCountBefore, RulerTickCount(),
-                    "mức thu phóng đổi nhưng thước giữ nguyên số nét: trục không được vẽ lại sau zoom (UX-02)");
+                Assert.AreNotEqual(rulerBefore, RulerSignature(),
+                    "mức thu phóng đổi nhưng thước giữ nguyên chữ và chỗ đặt mọi nhãn: trục không được vẽ lại sau zoom (UX-02)");
                 DisposeFixture();
             }
         }
@@ -111,13 +119,13 @@ namespace DreamTech.LiveOps.Editor.Tests
                 yield return OpenCalendar(UxHubWindowFixture.AllSizes[3], language);
                 LiveOpsTimelineElement timeline = _fixture.Calendar.Timeline;
                 DateTime rangeStartBefore = timeline.RangeStartUtc;
-                string firstTickBefore = FirstRulerTickText();
+                string rulerBefore = RulerSignature();
 
                 yield return WheelOneNotch(timeline, 1, EventModifiers.Shift);
 
                 Assert.AreNotEqual(rangeStartBefore, timeline.RangeStartUtc, "Shift+lăn không cuộn khoảng thời gian");
-                Assert.AreNotEqual(firstTickBefore, FirstRulerTickText(),
-                    "khoảng thời gian cuộn nhưng nhãn thước đầu tiên không đổi — thước không vẽ lại (UX-02)");
+                Assert.AreNotEqual(rulerBefore, RulerSignature(),
+                    "khoảng thời gian cuộn nhưng thước giữ nguyên chữ và chỗ đặt mọi nhãn — thước không vẽ lại (UX-02)");
                 DisposeFixture();
             }
         }
@@ -139,9 +147,13 @@ namespace DreamTech.LiveOps.Editor.Tests
                     VisualElement column = _fixture.Root.Q(LiveOpsHubPaths.CalendarElementNames.TimelineColumn);
                     Assert.IsNotNull(track, "không có track thước ở cỡ " + size);
                     Assert.IsNotNull(column, "không có cột timeline ở cỡ " + size);
-                    Assert.Greater(track.worldBound.width, column.worldBound.width * RulerTrackMinimumRatio,
+                    // Cột timeline = header làn 168px + track [SD1 §3.2]; track chỉ với tới phần CÒN LẠI, nên ngưỡng tính
+                    // trên phần đó (G-FIX-UX-4). So thẳng với cả cột là luật không bao giờ đạt: track đúng cũng "thiếu" 168px.
+                    float usableWidth = column.worldBound.width - TimelineLaneHeaderWidth;
+                    Assert.Greater(track.worldBound.width, usableWidth * RulerTrackMinimumRatio,
                         "ở cỡ " + size + " track thước rộng " + UxLayoutAuditor.Number(track.worldBound.width)
-                        + " trong cột rộng " + UxLayoutAuditor.Number(column.worldBound.width) + " — trục không giãn theo cửa sổ (UX-03)");
+                        + " trong phần dùng được " + UxLayoutAuditor.Number(usableWidth) + " của cột rộng "
+                        + UxLayoutAuditor.Number(column.worldBound.width) + " — trục không giãn theo cửa sổ (UX-03)");
                 }
                 DisposeFixture();
             }
@@ -149,6 +161,9 @@ namespace DreamTech.LiveOps.Editor.Tests
 
         /// <summary>Track thước phải lấp ≥ 95% bề rộng cột — con số của kế hoạch cho <c>Calendar_RulerAndBarsSpanTrack</c>.</summary>
         private const float RulerTrackMinimumRatio = 0.95f;
+
+        /// <summary>Header làn 168px của timeline [SD1 §3.2] — phần cột mà track không bao giờ với tới (G-FIX-UX-4).</summary>
+        private const float TimelineLaneHeaderWidth = 168f;
 
         // ================================================================================================ UX-04 ô giờ
 
@@ -314,8 +329,19 @@ namespace DreamTech.LiveOps.Editor.Tests
         {
             foreach (LiveOpsHubLanguageId language in UxHubWindowFixture.AllLanguages)
             {
-                yield return OpenCalendar(UxHubWindowFixture.AllSizes[4], language, LiveOpsConfirmResult.Safe);
-                LiveOpsTimelineBar bar = _fixture.BarOf(LiveOpsDesignSample.LavaQuestEarlyEntryKey);
+                // "Đang chạy" phải ĐÚNG NGHĨA: ở "bây giờ" của thiết kế (13/9 01:47) KHÔNG đợt nào đang chạy — lava-quest-2026-09a
+                // kết thúc lúc 13/9 00:00 — nên bản đầu tiên của test kéo một đợt ĐÃ XONG rồi trách màn "không hỏi gì", trong khi
+                // màn im lặng là ĐÚNG. Lượt này lấy "bây giờ" nằm giữa hunt-0914 (14/9 → 17/9) và khẳng định điều kiện đó trước
+                // khi kéo, để test không lặng lẽ trôi thành ca khác khi dữ liệu mẫu đổi (G-FIX-UX-5).
+                yield return OpenCalendar(UxHubWindowFixture.AllSizes[4], language, LiveOpsConfirmResult.Safe, RunningNowUtc);
+                Assert.IsTrue(_fixture.Services.Session.Document.TryGetFixedEvent(LiveOpsDesignSample.HuntEarlyEntryKey,
+                    out FixedLiveEventEntry running), "mẫu thiết kế phải còn đợt hunt-0914 để kéo");
+                Assert.IsTrue(DateTime.Parse(running.StartUtcText, CultureInfo.InvariantCulture, DateTimeStyles.AdjustToUniversal
+                    | DateTimeStyles.AssumeUniversal) <= RunningNowUtc
+                    && DateTime.Parse(running.EndUtcText, CultureInfo.InvariantCulture, DateTimeStyles.AdjustToUniversal
+                    | DateTimeStyles.AssumeUniversal) > RunningNowUtc,
+                    "điều kiện của ca này: đợt được kéo phải ĐANG CHẠY ở mốc bây giờ của test (UX-06)");
+                LiveOpsTimelineBar bar = _fixture.BarOf(LiveOpsDesignSample.HuntEarlyEntryKey);
                 VisualElement handle = bar.Q(className: LiveOpsHubClassNames.TimelineBarEdgeEnd)
                     ?? bar.Q(className: LiveOpsHubClassNames.TimelineBarHandle);
                 Assert.IsNotNull(handle, "thanh không có tay cầm mép để kéo rút ngắn");
@@ -579,12 +605,12 @@ namespace DreamTech.LiveOps.Editor.Tests
         }
 
         private IEnumerator OpenCalendar(UxWindowSize size, LiveOpsHubLanguageId language,
-            LiveOpsConfirmResult? confirmationResult = null)
+            LiveOpsConfirmResult? confirmationResult = null, DateTime? nowUtc = null)
         {
             _confirmation = confirmationResult.HasValue
                 ? new ScriptedLiveOpsHubConfirmationPresenter(confirmationResult.Value)
                 : new ScriptedLiveOpsHubConfirmationPresenter();
-            LiveOpsHubServices services = UxHubWindowFixture.DesignServices(_confirmation, DesignNowUtc);
+            LiveOpsHubServices services = UxHubWindowFixture.DesignServices(_confirmation, nowUtc ?? DesignNowUtc);
             _fixture = UxHubWindowFixture.Open(LiveOpsHubSections.Ids.Calendar, size, language, services);
             yield return _fixture.WaitForLayout();
         }
@@ -636,17 +662,23 @@ namespace DreamTech.LiveOps.Editor.Tests
             yield return UxEventSender.Wheel(_fixture.Window, timeline.worldBound.center, direction, modifiers);
         }
 
-        private int RulerTickCount()
+        /// <summary>
+        /// Chữ ký của thước: chữ + vị trí x của TỪNG nhãn. Đếm nhãn hay đọc nhãn đầu tiên đều là thước đo quá thô — nhãn được
+        /// dùng lại (pool) nên số lượng giữ nguyên khi vẽ lại, và nhãn đầu vẫn có thể trùng chữ sau một nấc cuộn; chữ ký đổi khi
+        /// BẤT KỲ nhãn nào đổi chữ hoặc dời chỗ, nên nó nhạy hơn cả hai cách cũ chứ không dễ dãi hơn (G-FIX-UX-5).
+        /// </summary>
+        private string RulerSignature()
         {
             VisualElement track = _fixture.Root.Q(className: LiveOpsHubClassNames.TimelineRulerTrack);
-            return track == null ? 0 : track.Query<Label>().ToList().Count;
-        }
-
-        private string FirstRulerTickText()
-        {
-            VisualElement track = _fixture.Root.Q(className: LiveOpsHubClassNames.TimelineRulerTrack);
-            Label first = track == null ? null : track.Q<Label>();
-            return first == null ? string.Empty : first.text;
+            if (track == null) return string.Empty;
+            List<Label> labels = track.Query<Label>().ToList();
+            StringBuilder signature = new StringBuilder();
+            for (int index = 0; index < labels.Count; index++)
+            {
+                signature.Append(labels[index].text).Append('@')
+                    .Append(Mathf.RoundToInt(labels[index].worldBound.x)).Append('|');
+            }
+            return signature.ToString();
         }
     }
 }
