@@ -104,6 +104,27 @@ namespace DreamTech.LiveOps.Editor
             }
         }
 
+        /// <summary>
+        /// Chiều cao NỘI DUNG thật sau khi layout xong (UX-27): padding của khung cộng chiều cao + margin của từng con đang hiện.
+        /// Vì sao không đọc thẳng <c>layout.height</c> của khung: khung có <c>flex-grow: 1</c> nên nó luôn bằng chiều cao cửa sổ,
+        /// kể cả khi cửa sổ cao hơn nội dung — đúng chỗ đẻ ra khoảng trống lớn giữa thân và hàng nút. Con dùng
+        /// <c>margin-top: auto</c> (hàng nút) nuốt phần dư, nên tổng ở đây là chiều cao "vừa khít".
+        /// Trả 0 khi chưa có layout (NaN) — nơi gọi giữ nguyên chiều cao đang có.
+        /// </summary>
+        internal float MeasureContentHeight()
+        {
+            VisualElement frame = this.Q(ContentElementName) ?? this.Q(MissingLayoutElementName);
+            if (frame == null) return 0f;
+            float total = frame.resolvedStyle.paddingTop + frame.resolvedStyle.paddingBottom
+                + frame.resolvedStyle.borderTopWidth + frame.resolvedStyle.borderBottomWidth;
+            foreach (VisualElement child in frame.Children())
+            {
+                if (child.resolvedStyle.display == DisplayStyle.None) continue;
+                total += child.layout.height + child.resolvedStyle.marginTop + child.resolvedStyle.marginBottom;
+            }
+            return float.IsNaN(total) || total <= 0f ? 0f : total;
+        }
+
         /// <summary>Kết quả chốt đúng một lần: Enter/Esc/nút an toàn → Safe; nút phá huỷ (click hoặc Tab + Space) → Destructive.</summary>
         public event Action<LiveOpsConfirmResult> Completed;
 
