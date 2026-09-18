@@ -255,7 +255,7 @@ namespace DreamTech.LiveOps.Editor
         {
             List<RecurringSentenceToken> tokens = new List<RecurringSentenceToken>();
             tokens.Add(Text(LiveOpsHubStrings.RecurringSentenceEveryPrefix));
-            tokens.Add(Token(HoursText(rule.PeriodHours, format), RecurringRuleFields.PeriodHours, RecurringTokenState.Normal, false));
+            tokens.Add(Token(PeriodText(rule.PeriodHours, format), RecurringRuleFields.PeriodHours, RecurringTokenState.Normal, false));
             tokens.Add(Text(LiveOpsHubStrings.RecurringSentenceAnchorPrefix));
             tokens.Add(Token(AnchorText(rule, format), RecurringRuleFields.Anchor, RecurringTokenState.Normal, false));
             tokens.Add(Text(LiveOpsHubStrings.RecurringSentenceActivePrefix));
@@ -276,6 +276,30 @@ namespace DreamTech.LiveOps.Editor
         {
             return new RecurringSentenceToken(text, fieldName, state, isMono);
         }
+
+        /// <summary>
+        /// (UX-32) NHỊP của luật đọc theo GIỜ — đúng đơn vị header làn của màn Lịch dùng ("lặp mỗi 168 giờ"). Quy sang
+        /// ngày vẫn còn, ở đúng chỗ của nó: chữ phụ "= 7 ngày" cạnh ô Chu kỳ.
+        /// </summary>
+        internal static string PeriodText(int hours, LiveOpsHubFormat format)
+        {
+            if (hours <= 0) return format.Integer(hours);
+            // Qua Catalog.Format chứ không qua string.Format: khoá này mang dấu số nhiều {0|hour|hours} của bản tiếng Anh,
+            // và dấu đó chỉ được giải khi đi đúng đường (EnglishPluralTests gác chỗ này).
+            return LiveOpsHubStringCatalog.Format(nameof(LiveOpsHubStrings.RecurringHoursFormat), format.Integer(hours));
+        }
+
+        /// <summary>
+        /// (UX-25) Id hiển thị trong một câu: gạch nối thường là chỗ UI Toolkit được phép ngắt dòng, nên "weekly-pass-35"
+        /// vỡ thành "weekly-" / "pass-35" giữa HelpBox và người đọc tưởng đó là hai id. U+2011 là gạch nối KHÔNG ngắt —
+        /// nhìn y hệt, chỉ khác ở chỗ được phép xuống dòng hay không.
+        /// </summary>
+        internal static string NonBreakingId(string id)
+        {
+            return string.IsNullOrEmpty(id) ? string.Empty : id.Replace('-', NonBreakingHyphen);
+        }
+
+        private const char NonBreakingHyphen = '\u2011';
 
         /// <summary>"7 ngày" / "20 giờ" — giờ âm hoặc 0 giữ nguyên số để câu đọc không nói dối khi luật đang hỏng.</summary>
         internal static string HoursText(int hours, LiveOpsHubFormat format)
@@ -377,6 +401,23 @@ namespace DreamTech.LiveOps.Editor
         /// khác cho đúng lúc đó. Câu biến mất khi lần lặp cũ khép — không cần ai bấm tắt (mục 7.4).
         /// Đang có nháp tại ô của chính luật này thì im: lúc đó khối cảnh báo của nháp mới là câu đang nói.
         /// </summary>
+        /// <summary>
+        /// (UX-32) Có câu "sau khi ghi" còn treo cho loại này hay không — hàng trong pane trái hỏi cái này để đừng nói
+        /// "không sao" trong lúc form ngay cạnh đang nói "vẫn còn weekly-pass-35 đang chạy". Không dựng bảng đợt nên gọi
+        /// mỗi lần vẽ danh sách vẫn rẻ.
+        /// </summary>
+        internal static bool HasAfterWriteNotice(LiveOpsHubCalendarSession session, string eventType, LiveOpsHubFormat format)
+        {
+            if (session == null || string.IsNullOrEmpty(eventType) || format == null) return false;
+            LiveEventCalendarDocument document = session.Document;
+            RecurringLiveEventRule writtenRule;
+            if (document == null || !document.TryGetRecurringRule(eventType, out writtenRule)) return false;
+            LiveEventCalendarDocument baseline = session.Publish != null ? session.Publish.ActiveBaseline : null;
+            string revertPrefix;
+            return BuildAfterWriteNotice(writtenRule, baseline, session.Clock.UtcNow, RecurringPrefixDraft.None, eventType,
+                format, out revertPrefix).Length > 0;
+        }
+
         private static string BuildAfterWriteNotice(RecurringLiveEventRule writtenRule, LiveEventCalendarDocument baseline,
             DateTime nowUtc, RecurringPrefixDraft draft, string eventType, LiveOpsHubFormat format, out string revertPrefix)
         {
@@ -392,9 +433,12 @@ namespace DreamTech.LiveOps.Editor
 
             revertPrefix = baselineRule.EffectiveIdPrefix;
             // Câu ở lại là HelpBox đụng đợt đang chạy nên phải mang cả hai mệnh đề của PD-17 như câu nháp và câu hộp (mục 7.0).
+            // (UX-25) Id in bằng gạch nối KHÔNG ngắt: HelpBox xuống dòng giữa "weekly-" và "pass-35" thì người đọc thấy
+            // thấy hai mảnh và tưởng đó là hai id khác nhau. Thân hộp xác nhận thì KHÔNG dùng — ở đó người dùng phải gõ lại
+            // đúng id, mà U+2011 copy ra không khớp với id thật.
             return RecurringPrefixDraft.WithPlayerCountCaveat(string.Format(CultureInfo.InvariantCulture,
-                LiveOpsHubStrings.RecurringAfterWriteNoticeFormat, published.EventId, format.ShortDateTimeUtc(published.EndUtc),
-                current.EventId));
+                LiveOpsHubStrings.RecurringAfterWriteNoticeFormat, NonBreakingId(published.EventId),
+                format.ShortDateTimeUtc(published.EndUtc), NonBreakingId(current.EventId)));
         }
     }
 

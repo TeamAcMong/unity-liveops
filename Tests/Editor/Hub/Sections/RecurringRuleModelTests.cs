@@ -110,7 +110,10 @@ namespace DreamTech.LiveOps.Editor.Tests
             CollectionAssert.AreEqual(
                 new[] { RecurringRuleFields.PeriodHours, RecurringRuleFields.Anchor, RecurringRuleFields.ActiveHours, RecurringRuleFields.IdPrefix },
                 tokenFields, "câu đọc theo đúng thứ tự chu kỳ · neo · thời gian chạy · tiền tố ([SD1 §4.1])");
-            Assert.AreEqual("7 ngày", tokenTexts[0], "168 giờ phải đọc thành 7 ngày, không in số giờ thô");
+            // (UX-32) NHỊP đọc theo GIỜ, đúng đơn vị header làn của màn Lịch dùng cho cùng luật này: một màn đọc "mỗi 7
+            // ngày" còn màn kia đọc "lặp mỗi 168 giờ" thì người dùng phải tự quy đổi mới tin hai chỗ nói cùng một thứ.
+            // Quy sang ngày vẫn còn, ở chữ phụ "= 7 ngày" cạnh ô Chu kỳ.
+            Assert.AreEqual("168 giờ", tokenTexts[0], "nhịp in theo giờ như header làn");
             StringAssert.Contains("5/1/2026", tokenTexts[1], "token neo có ngày đủ năm");
             StringAssert.Contains(LiveOpsHubStrings.Monday, tokenTexts[1], "token neo nói luôn thứ trong tuần");
             Assert.AreEqual("pass-", tokenTexts[3]);
@@ -192,8 +195,11 @@ namespace DreamTech.LiveOps.Editor.Tests
             LiveOpsHubCalendarSession session = OpenDesignSampleSession();
             RecurringRuleModel model = Build(session, WeeklyPassType);
 
-            StringAssert.Contains("weekly-pass-35", model.AfterWriteNotice, "câu ở lại nói id người chơi đang giữ");
-            StringAssert.Contains("pass-35", model.AfterWriteNotice, "và id mới sẽ thay nó");
+            // (UX-25) Id trong câu in bằng gạch nối KHÔNG ngắt (U+2011) để HelpBox không bẻ "weekly-" / "pass-35" thành
+            // hai mảnh trông như hai id — nên so cũng phải so bản không ngắt, chứ không phải chữ gõ tay có gạch thường.
+            StringAssert.Contains(RecurringRuleModel.NonBreakingId("weekly-pass-35"), model.AfterWriteNotice,
+                "câu ở lại nói id người chơi đang giữ");
+            StringAssert.Contains(RecurringRuleModel.NonBreakingId("pass-35"), model.AfterWriteNotice, "và id mới sẽ thay nó");
             Assert.AreEqual("weekly-pass-", model.AfterWriteRevertPrefix, "nút Hoàn về trỏ đúng tiền tố của bản đã đăng");
             // HelpBox ở lại cũng đụng đợt đang chạy nên mang đủ hai mệnh đề PD-17 như câu nháp và thân hộp (mục 7.0).
             StringAssert.Contains(LiveOpsHubStrings.KitUnknownPlayerCountSentence, model.AfterWriteNotice);
