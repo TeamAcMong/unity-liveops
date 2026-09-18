@@ -610,6 +610,23 @@ namespace DreamTech.LiveOps.Editor.Tests
             Add(result, result.ScrollViews, UxLayoutFindingKinds.ScrollViews, scrollView, entry.ToString());
         }
 
+        /// <summary>
+        /// Con không có gì để MẤT khi bị cắt: không chữ, không con nào có chữ, và không nhận con trỏ. Dùng để tách mặt nạ trang
+        /// trí khỏi chữ/nút bị cắt thật (G-FIX-UX-8).
+        /// </summary>
+        private static bool IsPurelyDecorative(VisualElement element)
+        {
+            if (element == null) return false;
+            if (element.pickingMode != PickingMode.Ignore) return false;
+            if (element is TextElement) return false;
+            List<TextElement> texts = element.Query<TextElement>().ToList();
+            for (int index = 0; index < texts.Count; index++)
+            {
+                if (!string.IsNullOrEmpty(texts[index].text)) return false;
+            }
+            return true;
+        }
+
         private static void CheckChildOverflow(VisualElement parent, Rect parentBound, VisualElement child, Rect childBound,
             UxLayoutAuditResult result)
         {
@@ -622,6 +639,10 @@ namespace DreamTech.LiveOps.Editor.Tests
             // left:-5px/right:-5px theo đúng [SD2] §3.2, chấm trạng thái đặt ngoài góc thẻ…). Chỉ khi cha CẮT (overflow:hidden)
             // thì phần thò ra mới thật sự biến mất khỏi mắt người dùng — đó mới là lỗi (R-02).
             if (child.resolvedStyle.position == Position.Absolute && !ClipsChildren(parent)) return;
+            // Hình TRANG TRÍ cố tình to hơn cha đang CẮT là cách dựng mặt nạ (bo góc, vạt mép) của UI Toolkit: phần thò ra bị
+            // cắt đúng như ý người vẽ, người dùng không mất chữ nào. Chỉ bỏ qua khi con không mang chữ, không có con nào mang
+            // chữ, và không nhận con trỏ — tức không có gì để đọc hay để bấm mà mất đi (G-FIX-UX-8).
+            if (ClipsChildren(parent) && IsPurelyDecorative(child)) return;
             float right = childBound.xMax - parentBound.xMax;
             float left = parentBound.xMin - childBound.xMin;
             float bottom = childBound.yMax - parentBound.yMax;
