@@ -55,11 +55,24 @@ namespace DreamTech.LiveOps.Editor.Tests
     internal readonly struct UxLayoutStretchRule
     {
         public UxLayoutStretchRule(string childSelector, string parentSelector, bool vertical, float minimumRatio)
+            : this(childSelector, parentSelector, vertical, minimumRatio, 0f)
+        {
+        }
+
+        /// <param name="reservedParentSize">
+        /// Số px mà THIẾT KẾ đã dành sẵn trong cha cho một thứ khác, nên con không bao giờ với tới được (vd header làn 168px
+        /// của timeline [SD1 §3.2]: cột = header làn + track). Tỉ lệ tính trên phần cha CÒN LẠI; để 0 khi cả cha là chỗ của con.
+        /// Không có tham số này thì luật "track lấp ≥ 95% cột" là luật không bao giờ đạt được, và một luật không bao giờ đạt
+        /// không phân biệt nổi giao diện đúng với giao diện hỏng.
+        /// </param>
+        public UxLayoutStretchRule(string childSelector, string parentSelector, bool vertical, float minimumRatio,
+            float reservedParentSize)
         {
             ChildSelector = childSelector;
             ParentSelector = parentSelector;
             Vertical = vertical;
             MinimumRatio = minimumRatio;
+            ReservedParentSize = reservedParentSize;
         }
 
         /// <summary>Tên element ("#tên") hoặc class USS — <see cref="UxLayoutAuditor.FindBySelector"/> hiểu cả hai.</summary>
@@ -71,6 +84,9 @@ namespace DreamTech.LiveOps.Editor.Tests
         public bool Vertical { get; }
 
         public float MinimumRatio { get; }
+
+        /// <summary>Phần bề rộng/chiều cao của cha mà thiết kế dành cho thứ khác — xem tham số của hàm dựng.</summary>
+        public float ReservedParentSize { get; }
     }
 
     /// <summary>
@@ -690,13 +706,18 @@ namespace DreamTech.LiveOps.Editor.Tests
                 Rect parentBound = parent.worldBound;
                 float childSize = rule.Vertical ? childBound.height : childBound.width;
                 float parentSize = rule.Vertical ? parentBound.height : parentBound.width;
-                if (parentSize < 1f) continue;
-                float ratio = childSize / parentSize;
+                // Trừ phần cha mà thiết kế đã dành cho thứ khác (header làn 168px) TRƯỚC khi tính tỉ lệ — xem ReservedParentSize.
+                float usableParentSize = parentSize - rule.ReservedParentSize;
+                if (usableParentSize < 1f) continue;
+                float ratio = childSize / usableParentSize;
                 if (ratio >= rule.MinimumRatio) continue;
+                string reservedNote = rule.ReservedParentSize > 0f
+                    ? " (đã trừ " + Number(rule.ReservedParentSize) + "px thiết kế dành sẵn trong cha)"
+                    : string.Empty;
                 Add(result, result.NotStretched, UxLayoutFindingKinds.NotStretched, child,
                     rule.ChildSelector + " chỉ lấp " + Number(ratio * 100f) + "% " + (rule.Vertical ? "chiều cao" : "bề rộng")
-                    + " của " + rule.ParentSelector + " (cần ≥ " + Number(rule.MinimumRatio * 100f) + "%): "
-                    + Number(childSize) + " / " + Number(parentSize));
+                    + " dùng được của " + rule.ParentSelector + reservedNote + " (cần ≥ " + Number(rule.MinimumRatio * 100f)
+                    + "%): " + Number(childSize) + " / " + Number(usableParentSize));
             }
         }
 
