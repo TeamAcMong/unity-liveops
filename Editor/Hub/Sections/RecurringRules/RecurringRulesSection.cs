@@ -117,6 +117,9 @@ namespace DreamTech.LiveOps.Editor
             }
             _root = layout.Instantiate();
             _root.name = BodyElementName;
+            // (UX-21) Instantiate() trả về một TemplateContainer trần: không class thì nó cao đúng bằng nội dung, và
+            // flex-grow của hai pane bên trong không có gì để giãn theo — viền pane trái dừng giữa cửa sổ.
+            _root.AddToClassList(LiveOpsHubClassNames.RecurringBody);
             StyleSheet sheet = Services.LayoutLoader.LoadStyleSheet(LiveOpsHubPaths.RecurringRulesSectionUss);
             if (sheet != null) _root.styleSheets.Add(sheet);
 
@@ -156,10 +159,22 @@ namespace DreamTech.LiveOps.Editor
         /// <summary>Nút chính của section header: "Thêm luật" (icon Toolbar Plus); khoá thì in lý do thành chữ cạnh nút (SP-3).</summary>
         public void PopulateHeaderActions(VisualElement container)
         {
-            Button button = new Button(ToggleAddPopover) { name = AddRuleButtonElementName, text = LiveOpsHubStrings.RecurringAddRuleButton };
+            // (UX-24) Button KHÔNG giữ text: chữ của Button do chính TextElement của nó vẽ, nằm DƯỚI mọi con, nên icon
+            // chèn vào đè lên giữa chữ ("Th+m luật"). Icon và chữ là hai con riêng — đúng cách màn Loại event đang làm.
+            Button button = new Button(ToggleAddPopover) { name = AddRuleButtonElementName };
             button.AddToClassList(LiveOpsHubClassNames.Button);
             button.AddToClassList(LiveOpsHubClassNames.ButtonPrimary);
-            button.Insert(0, LiveOpsHubIcons.CreateImage(AddRuleIconName, AddRuleIconSize));
+            button.AddToClassList(LiveOpsHubClassNames.RecurringAddRuleButton);
+            Image icon = LiveOpsHubIcons.CreateImage(AddRuleIconName, AddRuleIconSize);
+            icon.AddToClassList(LiveOpsHubClassNames.RecurringAddRuleButtonIcon);
+            button.Add(icon);
+            Label label = new Label(LiveOpsHubStrings.RecurringAddRuleButton);
+            label.AddToClassList(LiveOpsHubClassNames.RecurringAddRuleButtonLabel);
+            button.Add(label);
+            // Nút sống trong section header của shell — cây KHÁC với thân màn nơi CreateView nạp sheet — nên ba class trên
+            // không có style nếu không nạp thêm ở đây (cùng lý do EventTypesSection đã ghi).
+            StyleSheet headerSheet = Services.LayoutLoader.LoadStyleSheet(LiveOpsHubPaths.RecurringRulesSectionUss);
+            if (headerSheet != null) button.styleSheets.Add(headerSheet);
             _addRuleSlot = new LiveOpsButtonSlot(button);
             container.Add(_addRuleSlot);
             RefreshAddRuleButton();
@@ -273,8 +288,10 @@ namespace DreamTech.LiveOps.Editor
                 RecurringLiveEventRule rule = rules[index];
                 LiveEventTypeDefinition definition;
                 int colorSlot = document != null && document.TryGetEventType(rule.EventType, out definition) ? definition.ColorSlot : 0;
+                // (UX-32) "mỗi …" là NHỊP nên đọc theo giờ, đúng đơn vị header làn của màn Lịch; "chạy …" vẫn quy sang
+                // đơn vị người đọc được vì nó là độ dài một đợt, không phải nhịp để đối chiếu giữa hai màn.
                 string meta = string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.RecurringListMetaFormat,
-                    RecurringRuleModel.HoursText(rule.PeriodHours, Services.Format),
+                    RecurringRuleModel.PeriodText(rule.PeriodHours, Services.Format),
                     RecurringRuleModel.HoursText(rule.ActiveHours, Services.Format));
                 rows.Add(new RecurringRuleListRow(rule.EventType, colorSlot, meta, SeverityOf(rule.EventType)));
             }
@@ -284,8 +301,12 @@ namespace DreamTech.LiveOps.Editor
         private HealthState? SeverityOf(string eventType)
         {
             LiveEventCalendarCheckReport report = Services.Session.Check.LastReport;
-            if (report == null) return null;
-            HealthState? worst = null;
+            // (UX-32) Câu "vẫn còn weekly-pass-35 đang chạy" treo dưới ô là một cảnh báo THẬT về chính luật này: bỏ nó ra
+            // ngoài thì pane trái nói "không sao" trong lúc form ngay cạnh nói "có chuyện", cùng một luật, cùng một màn.
+            HealthState? worst = RecurringRuleModel.HasAfterWriteNotice(Services.Session, eventType, Services.Format)
+                ? HealthState.Warning
+                : (HealthState?)null;
+            if (report == null) return worst;
             IReadOnlyList<LiveEventCalendarFinding> findings = report.Findings;
             for (int index = 0; index < findings.Count; index++)
             {

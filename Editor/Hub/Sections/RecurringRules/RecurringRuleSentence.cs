@@ -35,12 +35,20 @@ namespace DreamTech.LiveOps.Editor
             _tokenFields.Clear();
             if (tokens == null) return;
 
+            // (UX-21) Câu wrap theo CỤM: mỗi "chữ nối + token" là một khối không tách. Thả thẳng chữ và token làm con của
+            // câu thì wrap bẻ ngay giữa ", neo từ" và ngày tháng — người đọc mất đúng mối nối đang đọc dở.
+            VisualElement group = NewGroup();
             for (int index = 0; index < tokens.Count; index++)
             {
                 RecurringSentenceToken token = tokens[index];
                 if (!token.IsToken)
                 {
-                    Add(new Label(token.Text));
+                    // Chữ nối mở một cụm MỚI: cụm cũ đã đủ (chữ nối cũ + token của nó), chỗ ngắt dòng hợp lý là ở đây.
+                    if (group.childCount > 0) group = NewGroup();
+                    Label text = new Label(token.Text);
+                    // (UX-32) Label của UI Toolkit có padding mặc định: "168 giờ" + ", neo từ" đọc thành "168 giờ , neo từ".
+                    text.AddToClassList(LiveOpsHubClassNames.RecurringSentenceText);
+                    group.Add(text);
                     continue;
                 }
                 string fieldName = token.FieldName;
@@ -49,7 +57,7 @@ namespace DreamTech.LiveOps.Editor
                 button.EnableInClassList(LiveOpsHubClassNames.Mono, token.IsMono);
                 button.EnableInClassList(LiveOpsHubClassNames.RuleTokenWarning, token.State == RecurringTokenState.Warning);
                 button.EnableInClassList(LiveOpsHubClassNames.RuleTokenHighlighted, token.State == RecurringTokenState.Highlighted);
-                Add(button);
+                group.Add(button);
                 _tokenButtons.Add(button);
                 _tokenFields.Add(fieldName);
             }
@@ -71,6 +79,15 @@ namespace DreamTech.LiveOps.Editor
         }
 
         internal const string TokenElementPrefix = "recurring-token-";
+
+        /// <summary>Một cụm mới của câu, đã treo vào câu — cụm rỗng ở cuối không hại gì, nó cao 0 và không có chữ.</summary>
+        private VisualElement NewGroup()
+        {
+            VisualElement group = new VisualElement();
+            group.AddToClassList(LiveOpsHubClassNames.RecurringSentenceGroup);
+            Add(group);
+            return group;
+        }
 
         private void RaiseTokenClicked(string fieldName)
         {
