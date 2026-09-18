@@ -8,9 +8,12 @@ namespace DreamTech.LiveOps.Editor.Tests
     /// Kịch bản chụp của ma trận cỡ cửa sổ W8-UX (§3.4): ba trạng thái × sáu cỡ × hai ngôn ngữ (36 ảnh mỗi skin). Ảnh TRƯỚC chụp trên gốc đợt, ảnh SAU trên nhánh
     /// đã gộp — người duyệt đặt hai contact sheet cạnh nhau thay vì đọc 63 dòng bảng lỗi.
     /// <para>
-    /// Kịch bản KHÔNG khai <c>expectedFrames</c>: ở đây không có con số thiết kế nào để đo (hình thiết kế chỉ có một cỡ), nên
-    /// bảng mặc định của <c>measure-capture.py</c> là đủ và đúng vai — bộ này để NHÌN, phần đo bằng máy là
-    /// <see cref="UxLayoutAuditTests"/>.
+    /// Kịch bản KHAI <c>expectedFrames</c> riêng (G-FIX-UX-2, cổng đợt W8-UX). Bảng mặc định của <c>measure-capture.py</c> là
+    /// bảng của MỘT cỡ cửa sổ thiết kế (1280×760): rail rộng 196 và cột nội dung rộng 1084. Bộ ảnh này đổi đúng cái cỡ đó,
+    /// và ở 700/820 rail thu về bậc hẹp theo thiết kế, nên hai con số bề RỘNG kia sai vai ở đây — để nguyên thì mọi ảnh của ma
+    /// trận đều "lệch" dù giao diện đúng (lượt chụp TRƯỚC: 60/72 ảnh báo lệch vì đúng hai dòng đó).
+    /// Giữ lại ba con số thiết kế KHÔNG phụ thuộc cỡ cửa sổ (chiều cao header, section header, status bar) — đó vẫn là hứa
+    /// thiết kế ở mọi cỡ. Phần bề rộng/giãn theo cửa sổ do <see cref="UxLayoutAuditTests"/> đo bằng máy, không đo trên ảnh.
     /// </para>
     /// </summary>
     [NUnit.Framework.Category(LiveOpsHubTestCategories.UI)]
@@ -18,6 +21,15 @@ namespace DreamTech.LiveOps.Editor.Tests
     {
         /// <summary>Đợt đang chọn của ảnh "đã chọn" — cùng đợt mà hành trình Lịch bấm, để ảnh và test nói về một thứ.</summary>
         private const string UxSizesSelectedBarKey = LiveOpsDesignSample.LavaQuestEarlyEntryKey;
+
+        /// <summary>Chiều cao thiết kế của header hub [SD1 §2.1] — không đổi theo cỡ cửa sổ, nên đo được ở mọi ảnh ma trận.</summary>
+        private const float UxHeaderHeight = 26f;
+
+        /// <summary>Chiều cao thiết kế của header màn [SD1 §2.1].</summary>
+        private const float UxSectionHeaderHeight = 36f;
+
+        /// <summary>Chiều cao thiết kế của status bar [SD1 §2.1].</summary>
+        private const float UxStatusBarHeight = 20f;
 
         static partial void RegisterUxSizes(List<LiveOpsHubCaptureScenario> scenarios)
         {
@@ -69,13 +81,30 @@ namespace DreamTech.LiveOps.Editor.Tests
             bool withSelection, LiveOpsHubLanguageId language = LiveOpsHubLanguageId.Vietnamese)
         {
             scenarios.Add(new LiveOpsHubCaptureScenario(scenarioId, width, height, () => OpenUxCalendar(withSelection))
-                .WithLanguage(language));
+                .WithLanguage(language)
+                .WithExpectedFrames(UxSizeInvariantFrames()));
         }
 
         private static void AddUxRecurringSize(List<LiveOpsHubCaptureScenario> scenarios, string scenarioId, int width, int height,
             LiveOpsHubLanguageId language = LiveOpsHubLanguageId.Vietnamese)
         {
-            scenarios.Add(new LiveOpsHubCaptureScenario(scenarioId, width, height, OpenUxRecurring).WithLanguage(language));
+            scenarios.Add(new LiveOpsHubCaptureScenario(scenarioId, width, height, OpenUxRecurring)
+                .WithLanguage(language)
+                .WithExpectedFrames(UxSizeInvariantFrames()));
+        }
+
+        /// <summary>
+        /// Ba khung thiết kế KHÔNG đổi theo cỡ cửa sổ — đo được trên mọi ảnh của ma trận. Chiều rộng để 0 (= không đo chiều đó)
+        /// vì bề rộng là cái đang thay đổi có chủ đích ở bộ ảnh này.
+        /// </summary>
+        private static LiveOpsHubCaptureExpectedFrame[] UxSizeInvariantFrames()
+        {
+            return new[]
+            {
+                new LiveOpsHubCaptureExpectedFrame("liveops-hub-header", 0f, UxHeaderHeight),
+                new LiveOpsHubCaptureExpectedFrame("liveops-hub-section-header", 0f, UxSectionHeaderHeight),
+                new LiveOpsHubCaptureExpectedFrame("liveops-hub-status", 0f, UxStatusBarHeight),
+            };
         }
 
         private static EditorWindow OpenUxCalendar(bool withSelection)
