@@ -168,6 +168,10 @@ namespace DreamTech.LiveOps.Editor
         internal static string CalendarAddEndAutoNote => LiveOpsHubStringCatalog.Text(nameof(CalendarAddEndAutoNote));
         internal static string CalendarAddTimesLabel => LiveOpsHubStringCatalog.Text(nameof(CalendarAddTimesLabel));
         internal static string CalendarTimeRangeFormat => LiveOpsHubStringCatalog.Text(nameof(CalendarTimeRangeFormat));
+        /// <summary>
+        /// Dòng phụ dưới ô Config key. Dấu backtick trong [SD1 §3.11] là cách TÀI LIỆU ghi "chỗ này là mono", không phải ký tự
+        /// hiện lên màn hình — in ra thì người dùng đọc thấy "`hunt_default`" (V17).
+        /// </summary>
         internal static string CalendarAddConfigKeyNoteFormat => LiveOpsHubStringCatalog.Text(nameof(CalendarAddConfigKeyNoteFormat));
         internal static string CalendarAddSubmitFormat => LiveOpsHubStringCatalog.Text(nameof(CalendarAddSubmitFormat));
         internal static string CalendarAddBackToTimesButton => LiveOpsHubStringCatalog.Text(nameof(CalendarAddBackToTimesButton));

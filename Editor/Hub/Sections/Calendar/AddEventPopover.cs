@@ -139,8 +139,16 @@ namespace DreamTech.LiveOps.Editor
         private void RefreshTypeList()
         {
             if (_typeList == null || _flow.Step != AddEventFlowModel.StepChooseType) return;
-            _typeList.Clear();
             string filter = _typeFilter == null ? string.Empty : _typeFilter.value;
+            AddEventFlowModel pointed = _flow.PointingAtFilteredType(filter);
+            if (!ReferenceEquals(pointed, _flow))
+            {
+                _flow = pointed;
+                // Trỏ lại đổi tiêu đề và nút "Tiếp"; vẽ đúng hai phần đó thay vì gọi Refresh() — Refresh() gọi lại chính hàm này.
+                RefreshHeader();
+                RefreshButtons();
+            }
+            _typeList.Clear();
             IReadOnlyList<AddEventTypeChoice> choices = _flow.TypeChoices(filter);
             for (int index = 0; index < choices.Count; index++) _typeList.Add(BuildTypeRow(choices[index]));
         }
@@ -184,6 +192,7 @@ namespace DreamTech.LiveOps.Editor
             _stepTimes.Clear();
 
             LiveOpsUtcDateTimeField start = new LiveOpsUtcDateTimeField(LiveOpsHubStrings.CalendarFieldStartLabel);
+            start.AddToClassList(LiveOpsHubClassNames.CalendarInspectorField);
             start.SetDeviceOffset(_services.TimeZone.DeviceOffsetAt(_services.Clock.UtcNow));
             start.SetRawTextWithoutNotify(_flow.StartDateText, _flow.StartTimeText);
             start.RawTextCommitted += (dateText, timeText) =>
@@ -202,11 +211,14 @@ namespace DreamTech.LiveOps.Editor
         {
             VisualElement row = new VisualElement();
             row.AddToClassList(LiveOpsHubClassNames.CalendarFieldRow);
+            row.AddToClassList(LiveOpsHubClassNames.CalendarInspectorRow);
             IntegerField duration = new IntegerField(LiveOpsHubStrings.CalendarFieldDurationLabel)
             {
                 value = _flow.DurationHours,
                 isDelayed = true,
             };
+            duration.AddToClassList(LiveOpsHubClassNames.CalendarInspectorField);
+            duration.AddToClassList(LiveOpsHubClassNames.CalendarInspectorFieldNumber);
             duration.RegisterValueChangedCallback(change =>
             {
                 _flow = _flow.WithTimes(_flow.StartDateText, _flow.StartTimeText, change.newValue);
@@ -227,6 +239,7 @@ namespace DreamTech.LiveOps.Editor
                 : string.Empty;
             Label note = new Label(text);
             note.AddToClassList(LiveOpsHubClassNames.CalendarFieldSubline);
+            note.AddToClassList(LiveOpsHubClassNames.CalendarFieldNoteInline);
             return note;
         }
 
@@ -236,14 +249,19 @@ namespace DreamTech.LiveOps.Editor
             VisualElement wrapper = new VisualElement();
             VisualElement row = new VisualElement();
             row.AddToClassList(LiveOpsHubClassNames.CalendarFieldRow);
-            row.Add(new Label(LiveOpsHubStrings.CalendarFieldEndLabel));
+            row.AddToClassList(LiveOpsHubClassNames.CalendarInspectorRow);
+            Label endLabel = new Label(LiveOpsHubStrings.CalendarFieldEndLabel);
+            endLabel.AddToClassList(LiveOpsHubClassNames.CalendarInspectorLabel);
+            row.Add(endLabel);
             Label endValue = new Label(EndText());
             endValue.AddToClassList(LiveOpsHubClassNames.Mono);
+            endValue.AddToClassList(LiveOpsHubClassNames.CalendarInspectorValue);
             row.Add(endValue);
             wrapper.Add(row);
 
             Label endNote = new Label(EndNoteText());
             endNote.AddToClassList(LiveOpsHubClassNames.CalendarFieldSubline);
+            endNote.AddToClassList(LiveOpsHubClassNames.CalendarWrapText);
             wrapper.Add(endNote);
             return wrapper;
         }
@@ -269,6 +287,8 @@ namespace DreamTech.LiveOps.Editor
             _stepReview.Clear();
 
             TextField id = new TextField(LiveOpsHubStrings.CalendarFieldIdLabel) { value = _flow.SuggestedEventId, isDelayed = true };
+            id.AddToClassList(LiveOpsHubClassNames.CalendarInspectorField);
+            id.AddToClassList(LiveOpsHubClassNames.CalendarInspectorFieldText);
             id.AddToClassList(LiveOpsHubClassNames.Mono);
             id.RegisterValueChangedCallback(change =>
             {
@@ -279,8 +299,13 @@ namespace DreamTech.LiveOps.Editor
 
             VisualElement timesRow = new VisualElement();
             timesRow.AddToClassList(LiveOpsHubClassNames.CalendarFieldRow);
-            timesRow.Add(new Label(LiveOpsHubStrings.CalendarAddTimesLabel));
-            timesRow.Add(new Label(TimesText()));
+            timesRow.AddToClassList(LiveOpsHubClassNames.CalendarInspectorRow);
+            Label timesLabel = new Label(LiveOpsHubStrings.CalendarAddTimesLabel);
+            timesLabel.AddToClassList(LiveOpsHubClassNames.CalendarInspectorLabel);
+            timesRow.Add(timesLabel);
+            Label timesValue = new Label(TimesText());
+            timesValue.AddToClassList(LiveOpsHubClassNames.CalendarInspectorValue);
+            timesRow.Add(timesValue);
             timesRow.Add(BuildDurationNote(_flow.DurationHours, _services.Format));
             _stepReview.Add(timesRow);
 
@@ -289,9 +314,13 @@ namespace DreamTech.LiveOps.Editor
                 value = _flow.ConfigKey,
                 isDelayed = true,
             };
+            configKey.AddToClassList(LiveOpsHubClassNames.CalendarInspectorField);
+            configKey.AddToClassList(LiveOpsHubClassNames.CalendarInspectorFieldText);
             configKey.AddToClassList(LiveOpsHubClassNames.Mono);
-            LiveOpsPlaceholder.Attach(configKey, string.Format(CultureInfo.InvariantCulture,
+            LiveOpsPlaceholder configKeyHint = LiveOpsPlaceholder.Attach(configKey, string.Format(CultureInfo.InvariantCulture,
                 LiveOpsHubStrings.CalendarConfigKeyPlaceholderFormat, _flow.EffectiveConfigKey));
+            // [SD1 §3.11]: chữ dẫn NGHIÊNG cỡ nhỏ. Cỡ thường thì "mặc định của loại: hunt_default" dài hơn ô và cụt (V17).
+            configKeyHint.AddToClassList(LiveOpsHubClassNames.CalendarFlowHint);
             configKey.RegisterValueChangedCallback(change =>
             {
                 _flow = _flow.WithConfigKey(change.newValue ?? string.Empty);
@@ -302,6 +331,7 @@ namespace DreamTech.LiveOps.Editor
             Label configKeyNote = new Label(string.Format(CultureInfo.InvariantCulture,
                 LiveOpsHubStrings.CalendarAddConfigKeyNoteFormat, _flow.EffectiveConfigKey));
             configKeyNote.AddToClassList(LiveOpsHubClassNames.CalendarFieldSubline);
+            configKeyNote.AddToClassList(LiveOpsHubClassNames.CalendarWrapText);
             _stepReview.Add(configKeyNote);
 
             _stepReview.Add(BuildQuickCheck());
@@ -322,20 +352,30 @@ namespace DreamTech.LiveOps.Editor
             LiveEventCalendarFinding finding = _flow.DropFinding;
             if (finding == null)
             {
-                Label okTag = new Label(LiveOpsHubStrings.CalendarQuickCheckOkTag);
+                // Họ FILL là màu của DẤU, không phải nền chữ: gắn lên chính Label thì tag thành khối nền quiet, chữ trên nó
+                // chỉ còn 1,87:1 và mất luôn dấu Ok ([SD1 §3.11], C9).
+                VisualElement okTag = new VisualElement();
                 okTag.AddToClassList(LiveOpsHubClassNames.Tag);
-                LiveOpsHubStyle.SetState(okTag, HealthState.Ok);
+                LiveOpsStateMark okMark = new LiveOpsStateMark();
+                okMark.SetHealth(HealthState.Ok);
+                okTag.Add(okMark);
+                Label okText = new Label(LiveOpsHubStrings.CalendarQuickCheckOkTag);
+                okText.AddToClassList(LiveOpsHubClassNames.CalendarWrapText);
+                okTag.Add(okText);
                 return okTag;
             }
             VisualElement card = new VisualElement();
             card.AddToClassList(LiveOpsHubClassNames.FindingRow);
+            card.AddToClassList(LiveOpsHubClassNames.CalendarFindingCardStacked);
             LiveOpsHubStyle.SetSeverityStripe(card, HealthState.Blocked);
             LiveEventCalendarDocument document = _services.Session.Document ?? LiveEventCalendarDocument.Empty;
             Label headline = new Label(LiveOpsFindingText.Headline(finding, _services.Format, document.LatestStamp));
+            headline.AddToClassList(LiveOpsHubClassNames.CalendarWrapText);
             LiveOpsHubStyle.SetStateText(headline, HealthState.Blocked);
             card.Add(headline);
             Label meta = new Label(LiveOpsFindingText.Meta(finding, _services.Format, _services.Clock.UtcNow));
             meta.AddToClassList(LiveOpsHubClassNames.Caption);
+            meta.AddToClassList(LiveOpsHubClassNames.CalendarWrapText);
             card.Add(meta);
             return card;
         }
@@ -344,8 +384,11 @@ namespace DreamTech.LiveOps.Editor
         {
             if (_buttons == null) return;
             _buttons.Clear();
+            // Hàng nút WRAP và gợi ý phím chiếm trọn dòng đầu: cùng dòng với nút thì gợi ý ăn ~110px của 320px, nút chính còn
+            // "Thêm hunt-0921 vào lịc" và nút danger còn "Vẫn thêm (game" — đúng câu hậu quả bị giấu (C7).
+            _buttons.AddToClassList(LiveOpsHubClassNames.CalendarFlowButtonsWrap);
             Label keyHint = new Label(LiveOpsHubStrings.CalendarAddKeyHint);
-            keyHint.AddToClassList(LiveOpsHubClassNames.CalendarFlowKeyHint);
+            keyHint.AddToClassList(LiveOpsHubClassNames.CalendarFlowKeyLine);
             _buttons.Add(keyHint);
 
             if (_flow.Step == AddEventFlowModel.StepChooseType)
@@ -396,6 +439,7 @@ namespace DreamTech.LiveOps.Editor
         {
             Button button = new Button(action) { text = text };
             button.AddToClassList(LiveOpsHubClassNames.Button);
+            button.AddToClassList(LiveOpsHubClassNames.CalendarFlowButton);
             if (isPrimary) button.AddToClassList(LiveOpsHubClassNames.ButtonPrimary);
             return button;
         }
