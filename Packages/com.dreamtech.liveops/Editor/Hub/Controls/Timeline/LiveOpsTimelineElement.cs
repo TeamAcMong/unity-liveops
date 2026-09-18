@@ -1220,9 +1220,20 @@ namespace DreamTech.LiveOps.Editor
             {
                 float rowTopInOverlay = row.Row.worldBound.y - overlayTop;
                 if (float.IsNaN(rowTopInOverlay)) rowTopInOverlay = laneTopInOverlay;
-                top = Math.Max(rulerBottomInOverlay, rowTopInOverlay);
-                CollectReadoutBlockedSpans(top, overlayTop, previewGeometry);
-                left = NearestFreeReadoutLeft(left, readoutWidth);
+                float inRow = Math.Max(rulerBottomInOverlay, rowTopInOverlay);
+                CollectReadoutBlockedSpans(inRow, overlayTop, previewGeometry);
+                float pushed = NearestFreeReadoutLeft(left, readoutWidth);
+                if (IsReadoutSpanFree(pushed, readoutWidth))
+                {
+                    top = inRow;
+                    left = pushed;
+                }
+                else
+                {
+                    // Cửa sổ chật tới mức không còn chỗ nào trống (hàng 48px, thanh trải hết bề rộng): giữ ĐÚNG chỗ của thiết
+                    // kế thay vì dời sang một chỗ cũng bị che — dời mà vẫn che là đổi chỗ lỗi, không phải sửa lỗi.
+                    top = Math.Max(rulerBottomInOverlay, above);
+                }
             }
             Readout.style.left = left; // style-inline-allowed: 6
             Readout.style.top = Math.Max(rulerBottomInOverlay, top); // style-inline-allowed: 6
@@ -1264,6 +1275,19 @@ namespace DreamTech.LiveOps.Editor
                         barWidth = preview.width;
                     }
                     _readoutBlockedSpans.Add((barLeft - ReadoutGapAboveBar, barLeft + barWidth + ReadoutGapAboveBar));
+                }
+                // (R-03) Nhãn "chồng 12 giờ", tag "bị bỏ" và chip "Đợt tới" cũng là vật cản: chúng là chỗ DUY NHẤT nói ra lý do
+                // một đợt bị bỏ hay đợt tới là đợt nào, che chúng cũng tệ như che thanh. Chúng là con của làn nhưng không phải
+                // thanh, và đã có layout thật nên đọc thẳng layout.
+                foreach (VisualElement child in row.Lane.Children())
+                {
+                    if (child is LiveOpsTimelineBar) continue;
+                    if (child.ClassListContains(LiveOpsHubClassNames.TimelineHidden)) continue;
+                    Rect box = child.layout;
+                    if (float.IsNaN(box.x) || float.IsNaN(box.y) || box.width <= 0f || box.height <= 0f) continue;
+                    float childTopInOverlay = laneTopInOverlay + box.y;
+                    if (bottomInOverlay <= childTopInOverlay || topInOverlay >= childTopInOverlay + box.height) continue;
+                    _readoutBlockedSpans.Add((box.x - ReadoutGapAboveBar, box.xMax + ReadoutGapAboveBar));
                 }
             }
         }
