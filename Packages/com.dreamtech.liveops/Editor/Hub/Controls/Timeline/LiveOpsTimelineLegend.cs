@@ -13,6 +13,9 @@ namespace DreamTech.LiveOps.Editor
         private const string LoopIconName = "preAudioLoopOff";
         private const int LoopIconSize = 10;
 
+        /// <summary>Màu loại của dải mẫu — khe 0, đúng màu làn đầu tiên trên trục nên mắt nối được mẫu với thanh thật.</summary>
+        private const int SampleColorSlot = 0;
+
         public LiveOpsTimelineLegend()
         {
             AddToClassList(LiveOpsHubClassNames.TimelineLegend);
@@ -59,11 +62,19 @@ namespace DreamTech.LiveOps.Editor
             Add(item);
         }
 
+        /// <summary>
+        /// (UX-19, V13) Mẫu mang CẢ dải màu đáy 3px của thanh thật, không chỉ nền + viền: ở skin sáng nền nút và nền cửa sổ đo
+        /// ra 1,00:1, nên mẫu "nhạt = đã khép" và "thanh phẳng" biến mất hẳn và chú giải chỉ còn chữ. Dải lấy màu loại 0 —
+        /// cùng token với thanh trên trục, nên mẫu đổi màu theo skin cùng nhịp thứ nó giải thích.
+        /// </summary>
         private static VisualElement Sample(string variantClassName)
         {
             VisualElement sample = new VisualElement { pickingMode = PickingMode.Ignore };
             sample.AddToClassList(LiveOpsHubClassNames.TimelineLegendSample);
             sample.AddToClassList(variantClassName);
+            VisualElement stripe = SamplePart(LiveOpsHubClassNames.TimelineBarStripe);
+            LiveOpsHubStyle.SetEventColor(stripe, SampleColorSlot);
+            sample.Add(stripe);
             return sample;
         }
 

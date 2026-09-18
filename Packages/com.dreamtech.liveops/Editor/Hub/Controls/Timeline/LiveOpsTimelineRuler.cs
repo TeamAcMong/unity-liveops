@@ -37,6 +37,12 @@ namespace DreamTech.LiveOps.Editor
         /// </summary>
         private const float MonthTierLabelGap = 6f;
 
+        /// <summary>padding ngang của cờ "bây giờ" trong USS (<c>padding: 0 3px</c>) — dùng để ước lượng quãng cờ chiếm.</summary>
+        private const float NowFlagPadding = 3f;
+
+        /// <summary>padding trái của nhãn thước trong USS (<c>padding: 0 0 0 2px</c>) — trừ ra khi đo ô của nhãn ngày.</summary>
+        private const float DayLabelPaddingLeft = 2f;
+
         private const string ClockFormat = "HH:mm";
         private const float LineWidth = 1f;
         private const float HalfPixel = 0.5f;
@@ -141,19 +147,20 @@ namespace DreamTech.LiveOps.Editor
                         // nên phải sắp theo x mới biết nhãn nào chồng nhãn nào (phiếu D-2).
                         break;
                     case LiveOpsTimelineRulerTier.DayOrHour:
-                        BindLabel(LabelAt(_dayLabels, DayTier, dayCount++), tick, NextTickPosition(ticks, index), format.ShortDateTimeUtc(tick.TimeUtc));
+                        BindDayLabel(LabelAt(_dayLabels, DayTier, dayCount++), tick, NextTickPosition(ticks, index), format.ShortDateTimeUtc(tick.TimeUtc));
                         break;
                     default:
                         BindLabel(LabelAt(_deviceLabels, DeviceTier, deviceCount++), tick, NextTickPosition(ticks, index), deviceTooltip);
                         break;
                 }
             }
-            monthCount = BindMonthTierLabels(ticks);
+            // (UX-17, V9) Cờ "bây giờ" bind TRƯỚC nhãn tầng 1: nhãn tháng phải biết cờ đang chiếm quãng nào mới né được.
+            BindNowFlag(model, format);
+            monthCount = BindMonthTierLabels(ticks, NowFlagRange());
             HideFrom(_monthLabels, monthCount);
             HideFrom(_dayLabels, dayCount);
             HideFrom(_deviceLabels, deviceCount);
 
-            BindNowFlag(model, format);
             BindPublishedFlag(model, format);
             // Cờ và bubble luôn cuối tầng để vẽ trên nhãn ngày (Hình 1: bubble đè số ngày quanh con trỏ).
             MonthTier.Add(NowFlag);
@@ -170,6 +177,22 @@ namespace DreamTech.LiveOps.Editor
             Bubble.text = _format.ShortDateTime(cursorUtc.Value);
             Bubble.tooltip = _format.DeviceTimeLine(cursorUtc.Value);
             Bubble.style.left = _geometry.XOf(cursorUtc.Value); // style-inline-allowed: 6
+        }
+
+        /// <summary>
+        /// Quãng x mà cờ "bây giờ" chiếm trên tầng 1 (cờ căn giữa vạch bằng <c>translate: -50%</c>). Đo bằng ước lượng
+        /// <c>LabelCharacterWidth</c> + padding của cờ: bind chạy TRƯỚC layout nên <c>worldBound</c> của cờ chưa có số thật.
+        /// Trả về quãng rỗng khi cờ đang ẩn.
+        /// </summary>
+        private (float left, float right) NowFlagRange()
+        {
+            if (NowFlag.ClassListContains(LiveOpsHubClassNames.TimelineHidden) || NowFlag.text.Length == 0)
+            {
+                return (float.NaN, float.NaN);
+            }
+            float width = NowFlag.text.Length * LiveOpsTimelineGeometry.LabelCharacterWidth + NowFlagPadding * 2f;
+            float center = NowFlag.style.left.value.value;
+            return (center - width / 2f, center + width / 2f);
         }
 
         private void BindNowFlag(LiveOpsTimelineModel model, LiveOpsHubFormat format)
@@ -201,7 +224,7 @@ namespace DreamTech.LiveOps.Editor
         /// Tick tháng được thêm trước tick tuần nên khi trùng x, nhãn THÁNG giữ chỗ còn nhãn "Tuần n" bị bỏ — nhãn tháng là
         /// thứ duy nhất nói năm, bỏ nó thì khung không còn mốc tháng nào.
         /// </summary>
-        private int BindMonthTierLabels(IReadOnlyList<LiveOpsTimelineRulerTick> ticks)
+        private int BindMonthTierLabels(IReadOnlyList<LiveOpsTimelineRulerTick> ticks, (float left, float right) nowFlag)
         {
             List<LiveOpsTimelineRulerTick> tierTicks = new List<LiveOpsTimelineRulerTick>();
             for (int index = 0; index < ticks.Count; index++)
@@ -213,12 +236,21 @@ namespace DreamTech.LiveOps.Editor
 
             int visibleCount = 0;
             float nextFreeX = float.NegativeInfinity;
+            bool hasFlag = !float.IsNaN(nowFlag.left);
             for (int index = 0; index < tierTicks.Count; index++)
             {
                 LiveOpsTimelineRulerTick tick = tierTicks[index];
                 if (tick.X < nextFreeX) continue;
-                BindLabel(LabelAt(_monthLabels, MonthTier, visibleCount++), tick, float.NaN, string.Empty);
-                nextFreeX = tick.X + tick.Text.Length * LiveOpsTimelineGeometry.LabelCharacterWidth + MonthTierLabelGap;
+                float width = tick.Text.Length * LiveOpsTimelineGeometry.LabelCharacterWidth;
+                float left = tick.X;
+                // (UX-17, V9) Cờ "08:47" nằm đè nhãn tháng là mất luôn NĂM — nhãn tháng là chỗ duy nhất nói năm. Nhãn dời sang
+                // phải cờ; hết chỗ trước mốc tháng kế thì bỏ nhãn như luật chồng nhãn sẵn có.
+                if (hasFlag && left < nowFlag.right && left + width > nowFlag.left)
+                {
+                    left = nowFlag.right + MonthTierLabelGap;
+                }
+                BindLabel(LabelAt(_monthLabels, MonthTier, visibleCount++), tick, float.NaN, string.Empty, left);
+                nextFreeX = left + width + MonthTierLabelGap;
             }
             return visibleCount;
         }
@@ -241,13 +273,56 @@ namespace DreamTech.LiveOps.Editor
             return _geometry.TrackWidth;
         }
 
-        private static void BindLabel(Label label, LiveOpsTimelineRulerTick tick, float nextPosition, string tooltipText)
+        private static void BindLabel(Label label, LiveOpsTimelineRulerTick tick, float nextPosition, string tooltipText,
+            float left = float.NaN)
         {
-            label.text = tick.Text;
+            BindLabelText(label, tick, nextPosition, tooltipText, tick.Text, left);
+        }
+
+        /// <summary>
+        /// (UX-17, UJ-19) Nhãn tầng 2 rút gọn dần cho tới khi lọt ô của nó: "Mon 14/9" → "14/9" → "14". Bản cũ luôn ghi chữ đầy
+        /// đủ rồi để <c>overflow: hidden</c> cắt, nên ô 25px ở cửa sổ 700 đọc ra "Mon 1" — một NGÀY KHÁC, không chỉ xấu chữ.
+        /// Chữ đầy đủ vẫn còn trong tooltip.
+        /// </summary>
+        private static void BindDayLabel(Label label, LiveOpsTimelineRulerTick tick, float nextPosition, string tooltipText)
+        {
+            float room = float.IsNaN(nextPosition)
+                ? float.PositiveInfinity
+                : Math.Max(0f, nextPosition - tick.X) - DayLabelPaddingLeft;
+            BindLabelText(label, tick, nextPosition, tooltipText, FitDayText(tick, room), float.NaN);
+        }
+
+        /// <summary>Bậc rút gọn đầu tiên lọt ô; không bậc nào lọt thì lấy bậc ngắn nhất (thà hiện số ngày còn hơn chữ cụt sai).</summary>
+        private static string FitDayText(LiveOpsTimelineRulerTick tick, float room)
+        {
+            string full = tick.Text;
+            if (Fits(full, room)) return full;
+            string withoutPrefix = WithoutMondayPrefix(full);
+            if (Fits(withoutPrefix, room)) return withoutPrefix;
+            int separator = withoutPrefix.IndexOf('/');
+            string dayOnly = separator > 0 ? withoutPrefix.Substring(0, separator) : withoutPrefix;
+            return dayOnly;
+        }
+
+        private static bool Fits(string text, float room)
+        {
+            return text.Length * LiveOpsTimelineGeometry.LabelCharacterWidth <= room;
+        }
+
+        private static string WithoutMondayPrefix(string text)
+        {
+            string prefix = LiveOpsHubStrings.TimelineRulerMondayPrefix + " ";
+            return text.StartsWith(prefix, StringComparison.Ordinal) ? text.Substring(prefix.Length) : text;
+        }
+
+        private static void BindLabelText(Label label, LiveOpsTimelineRulerTick tick, float nextPosition, string tooltipText,
+            string text, float left)
+        {
+            label.text = text;
             label.tooltip = tooltipText;
             label.EnableInClassList(LiveOpsHubClassNames.TimelineRulerLabelEmphasized, tick.IsEmphasized);
             label.EnableInClassList(LiveOpsHubClassNames.TimelineHidden, false);
-            label.style.left = tick.X; // style-inline-allowed: 3
+            label.style.left = float.IsNaN(left) ? tick.X : left; // style-inline-allowed: 3
             // Nhãn ngày/giờ cắt theo bề rộng ô của nó [SD1 §3.2]; nhãn tầng 1 (tháng, tuần) không giới hạn — thước cắt ở mép track.
             label.style.width = float.IsNaN(nextPosition) ? StyleKeyword.Auto : new StyleLength(Math.Max(0f, nextPosition - tick.X)); // style-inline-allowed: 3
         }

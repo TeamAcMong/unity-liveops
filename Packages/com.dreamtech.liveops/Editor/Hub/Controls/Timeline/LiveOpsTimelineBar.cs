@@ -145,16 +145,29 @@ namespace DreamTech.LiveOps.Editor
         {
             if (model.IsStrip)
             {
+                float room = width - LiveOpsTimelineGeometry.LabelHorizontalPadding;
+                // (UX-31, T11) Ba bậc chứ không một: câu đầy đủ → "loại · số đợt" → chỉ SỐ ĐỢT. Bản cũ nhảy thẳng từ câu đầy đủ
+                // về rỗng, nên ở zoom Tháng dải sky-race mất luôn con số 42 — thứ duy nhất nói dải này thay bao nhiêu thanh.
                 string stripText = LiveOpsHubStringCatalog.Format(nameof(LiveOpsHubStrings.TimelineStripLabelFormat), model.EventType,
                     model.StripCount, model.StripHoursPerDay);
-                float room = width - LiveOpsTimelineGeometry.LabelHorizontalPadding;
-                return stripText.Length * LiveOpsTimelineGeometry.LabelCharacterWidth <= room ? stripText : string.Empty;
+                if (Fits(stripText, room)) return stripText;
+                string shortText = string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.TimelineStripLabelShortFormat,
+                    model.EventType, model.StripCount);
+                if (Fits(shortText, room)) return shortText;
+                string countText = model.StripCount.ToString(CultureInfo.InvariantCulture);
+                return Fits(countText, room) ? countText : string.Empty;
             }
             bool isRecurring = model.Source == LiveOpsTimelineBarSource.Recurring;
             string identifier = model.RenamedFromId.Length > 0
                 ? string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.TimelineRenamedLabelFormat, model.RenamedFromId, model.EventId)
                 : model.EventId;
             return LiveOpsTimelineGeometry.BarLabel(identifier, width, isRecurring, model.IsChangedSincePublished);
+        }
+
+        /// <summary>Chữ có lọt bề rộng còn lại không — cùng ước lượng <c>LabelCharacterWidth</c> mà [SD1 §3.5] dùng cho nhãn thanh.</summary>
+        private static bool Fits(string text, float room)
+        {
+            return text.Length * LiveOpsTimelineGeometry.LabelCharacterWidth <= room;
         }
 
         /// <summary>
@@ -172,6 +185,18 @@ namespace DreamTech.LiveOps.Editor
         {
             EnableInClassList(LiveOpsHubClassNames.TimelineBarDragging, dragging);
             EnableInClassList(LiveOpsHubClassNames.TimelineBarWillDrop, willDrop);
+        }
+
+        /// <summary>
+        /// (UX-14, UJ-13) Dấu "bị bỏ" trong lúc xem trước kéo: <c>true</c>/<c>false</c> = kết quả xem trước, <c>null</c> = về
+        /// đúng kết quả kiểm của model. Không gộp vào <see cref="SetDragPreview"/> vì "sẽ bị bỏ" (viền cảnh báo của cử chỉ
+        /// đang làm) và "bị bỏ" (kết luận của bản kiểm) là hai thứ khác nhau, thanh có thể mang cái này mà không mang cái kia.
+        /// </summary>
+        internal void SetDroppedPreview(bool? dropped)
+        {
+            bool value = dropped ?? (Model != null && Model.IsDropped);
+            EnableInClassList(LiveOpsHubClassNames.TimelineBarDropped, value);
+            SetVisible(Strike, value);
         }
 
         /// <summary>Xem trước khi kéo: dời bằng translate, đổi bề rộng khi kéo mép; thả hoặc huỷ thì <see cref="ClearPreviewGeometry"/>.</summary>
