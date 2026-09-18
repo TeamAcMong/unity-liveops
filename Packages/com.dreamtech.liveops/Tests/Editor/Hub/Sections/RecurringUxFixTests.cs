@@ -177,6 +177,7 @@ namespace DreamTech.LiveOps.Editor.Tests
 
             Section.Form.ActiveField.value = LongerThanPeriodHours;
             yield return WaitForOccurrenceRows(0);
+            yield return _scope.WaitForLayout();
 
             AssertNotVisible(RecurringNextOccurrencesTable.AddMoreElementName, "nút Thêm 5 khi bảng trống vì luật hỏng");
             LogAssert.NoUnexpectedReceived();
@@ -219,10 +220,12 @@ namespace DreamTech.LiveOps.Editor.Tests
             yield return null;
             yield return ClickAt(Section.Form.PeriodField);
 
+            // Nháy đo TRƯỚC: class chớp chỉ sống 300ms, chờ focus xong rồi mới nhìn thì đo vào lúc nó đã tắt.
             Button cancel = _scope.View.Q<Button>(RecurringRuleForm.DraftCancelElementName);
             Assert.IsNotNull(cancel, "khối nháp thiếu nút Huỷ (Esc)");
             Assert.IsTrue(cancel.ClassListContains(LiveOpsHubClassNames.RowFlash),
                 "bấm ô bị khoá phải nháy nút Huỷ để chỉ đường ra");
+            yield return WaitForFocusInside(Section.Form.PrefixField);
             Assert.IsTrue(IsFocusInside(Section.Form.PrefixField), "…và đưa con trỏ về chính ô đang giữ nháp");
             LogAssert.NoUnexpectedReceived();
         }
@@ -479,7 +482,8 @@ namespace DreamTech.LiveOps.Editor.Tests
             Label found = null;
             group.Query<Label>().ForEach(label =>
             {
-                if (found == null && string.Equals(label.text, expectedText) && !IsInsideFieldRow(label)) found = label;
+                if (found == null && string.Equals(label.text, expectedText, System.StringComparison.Ordinal)
+                    && !IsInsideFieldRow(label)) found = label;
             });
             return found;
         }
@@ -507,6 +511,23 @@ namespace DreamTech.LiveOps.Editor.Tests
             return model.AnchorDeviceLine;
         }
 
+        /// <summary>
+        /// Focus không phải lúc nào cũng xong trong khung gửi sự kiện: panel xử lý focus của chính cú bấm trước, phần đặt
+        /// lại focus chạy ở lượt sau, và cửa sổ vừa mở có thể nhận focus muộn một khung. Chờ theo V-23 rồi mới kết luận.
+        /// </summary>
+        private IEnumerator WaitForFocusInside(VisualElement field)
+        {
+            int frames = 0;
+            double startedAt = EditorApplication.timeSinceStartup;
+            while (!IsFocusInside(field))
+            {
+                bool framesExhausted = ++frames > MaximumWaitFrames;
+                bool secondsExhausted = EditorApplication.timeSinceStartup - startedAt > MaximumWaitSeconds;
+                if (framesExhausted && secondsExhausted) yield break;
+                yield return null;
+            }
+        }
+
         private bool IsFocusInside(VisualElement field)
         {
             VisualElement focused = _scope.View.panel.focusController.focusedElement as VisualElement;
@@ -525,6 +546,8 @@ namespace DreamTech.LiveOps.Editor.Tests
             Vector2 center = element.worldBound.center;
             _scope.Window.SendEvent(new Event { type = EventType.MouseDown, mousePosition = center, button = 0, clickCount = 1 });
             _scope.Window.SendEvent(new Event { type = EventType.MouseUp, mousePosition = center, button = 0, clickCount = 1 });
+            // Hai khung: khung đầu để panel xử lý xong focus của chính cú bấm, khung sau để phần đặt lại focus chạy.
+            yield return null;
             yield return null;
         }
 
@@ -537,6 +560,9 @@ namespace DreamTech.LiveOps.Editor.Tests
         /// <summary>Chờ bảng đợt kế tiếp tính lại sau debounce 250 ms (V-23: quá CẢ 60 khung LẪN 5 giây mới fail).</summary>
         private IEnumerator WaitForOccurrenceRows(int expectedRowCount)
         {
+            // Nhường ÍT NHẤT một khung trước khi đo: resolvedStyle chỉ đổi sau một lượt resolve style của panel, nên đọc
+            // ngay sau khi gán giá trị là đọc lại con số của khung trước — cái bẫy làm test này đỏ nhầm.
+            yield return null;
             int frames = 0;
             double startedAt = EditorApplication.timeSinceStartup;
             while (Section.Form.Occurrences.RowCount != expectedRowCount)
