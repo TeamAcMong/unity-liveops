@@ -17,7 +17,11 @@ namespace DreamTech.LiveOps.Editor
         internal const float Level1Height = 212f;
         internal const float TypeToConfirmHeight = 290f;
 
-        /// <summary>Hộp không bao giờ cao hơn thế — câu hậu quả dài bất thường thì thân tự cuộn, không đẩy hộp qua cả màn hình.</summary>
+        /// <summary>
+        /// Hộp không bao giờ cao hơn thế. Phần vượt trần do <see cref="LiveOpsConfirmContent"/> nuốt bằng ô cuộn của thân
+        /// (<see cref="LiveOpsConfirmContent.ScrollElementName"/>) — không có ô cuộn đó thì câu hậu quả dài đẩy hàng nút
+        /// (flex-shrink: 0) xuống dưới mép cửa sổ và người dùng mất cả hai nút lẫn gợi ý phím.
+        /// </summary>
         internal const float MaximumHeight = 420f;
 
         /// <summary>
@@ -26,11 +30,51 @@ namespace DreamTech.LiveOps.Editor
         /// </summary>
         internal const float MinimumHeight = 64f;
 
+        /// <summary>
+        /// Cửa sổ chủ của hộp: cửa sổ hub đang mở tự ghi tên mình vào đây (<see cref="RegisterOwnerWindow"/>). Vì sao KHÔNG
+        /// đọc <c>EditorWindow.focusedWindow</c> nữa (soát W8-UX R4): focus là thứ Unity và người dùng đổi liên tục (popover
+        /// vừa đóng, Console vừa bật, cửa sổ Project vừa click) nên chỗ đặt hộp phụ thuộc một thứ không ai kiểm được — và
+        /// không có đường nào chứng minh nó rơi đúng vào hub. Hộp luôn mở TỪ một thao tác trong hub nên chủ PHẢI là hub.
+        /// Tĩnh vì lớp này được dựng từ <c>ModalLiveOpsHubConfirmationPresenter</c>, file nằm ngoài quyền ghi của gói nên
+        /// không truyền chủ xuống qua constructor được — ghi ở mục 5 báo cáo gói.
+        /// </summary>
+        private static EditorWindow _ownerWindow;
+
         private LiveOpsConfirmContent _content;
         private int _heightPasses;
 
         internal LiveOpsConfirmContent Content => _content;
         internal LiveOpsConfirmResult Result { get; private set; } = LiveOpsConfirmResult.Safe;
+
+        /// <summary>
+        /// Rect của cửa sổ chủ đã DÙNG THẬT để đặt hộp (rỗng khi không tìm được chủ). Có để test đọc được: khoá chỗ đặt bằng
+        /// mỗi hàm thuần <see cref="PlacementFor"/> thì đường nối "hộp ↔ cửa sổ hub" vẫn có thể trơ hoàn toàn mà cổng xanh.
+        /// </summary>
+        internal Rect ResolvedOwnerPosition { get; private set; }
+
+        /// <summary>Cửa sổ hub gọi lúc bật để nhận làm chủ của hộp xác nhận — xem <see cref="_ownerWindow"/>.</summary>
+        internal static void RegisterOwnerWindow(EditorWindow owner)
+        {
+            if (owner != null) _ownerWindow = owner;
+        }
+
+        /// <summary>Cửa sổ hub gọi lúc tắt. Chỉ xoá khi chính nó đang là chủ: hai hub mở cùng lúc thì cái đóng không cướp chủ của cái còn lại.</summary>
+        internal static void UnregisterOwnerWindow(EditorWindow owner)
+        {
+            if (ReferenceEquals(_ownerWindow, owner)) _ownerWindow = null;
+        }
+
+        /// <summary>
+        /// Rect cửa sổ chủ: hub đã đăng ký → cửa sổ đang focus (không tính chính hộp) → cửa sổ Editor chính. Hub đã đóng là
+        /// null giả của Unity nên <c>== null</c> bắt được và rơi tiếp xuống bậc sau.
+        /// </summary>
+        internal static Rect ResolveOwnerPosition(EditorWindow exclude)
+        {
+            EditorWindow owner = _ownerWindow;
+            if (owner == null || ReferenceEquals(owner, exclude)) owner = focusedWindow;
+            if (owner != null && !ReferenceEquals(owner, exclude)) return owner.position;
+            return EditorGUIUtility.GetMainWindowPosition();
+        }
 
         /// <summary>Mở modal và chờ người dùng; trả Safe khi Enter/Esc/nút an toàn/đóng cửa sổ. Không gọi trong test (chặn batchmode).</summary>
         public static LiveOpsConfirmResult Show(LiveOpsConfirmRequest request)
@@ -45,14 +89,22 @@ namespace DreamTech.LiveOps.Editor
         /// Mở KHÔNG modal (test UI + kịch bản chụp <c>hf-confirm-level*-layout</c>): cùng nội dung, cùng kích thước, cửa sổ thường để
         /// batchmode không bị chặn. Người gọi đóng cửa sổ.
         /// </summary>
-        internal static LiveOpsConfirmWindow OpenForTest(LiveOpsConfirmRequest request, ILiveOpsHubLayoutLoader layoutLoader = null)
+        /// <param name="placeOnOwnerWindow">
+        /// true = đặt hộp bằng ĐÚNG đường production (<see cref="ResolveOwnerPosition"/> + <see cref="PlacementFor"/>) để test
+        /// đo được chỗ đặt thật trên cửa sổ hub thật; false (mặc định, mọi kịch bản chụp) = ghim ở (0,0) cho ảnh không phụ
+        /// thuộc chỗ cửa sổ chủ đang nằm.
+        /// </param>
+        internal static LiveOpsConfirmWindow OpenForTest(LiveOpsConfirmRequest request, ILiveOpsHubLayoutLoader layoutLoader = null,
+            bool placeOnOwnerWindow = false)
         {
             LiveOpsConfirmWindow window = Create(request, layoutLoader);
             window.Show();
-            // SP-16: kích thước đặt SAU Show mới giữ (đặt trước bị kẹp ≈ 401×202). Đặt ở (0,0) để test/ảnh chụp không phụ thuộc
-            // chỗ cửa sổ chủ đang nằm; chiều cao vẫn do ApplyMeasuredHeight chốt lại theo nội dung.
+            // SP-16: kích thước đặt SAU Show mới giữ (đặt trước bị kẹp ≈ 401×202); chiều cao vẫn do ApplyMeasuredHeight chốt
+            // lại theo nội dung.
             Vector2 size = SizeFor(request.Level);
-            window.position = new Rect(0f, 0f, size.x, size.y);
+            window.position = placeOnOwnerWindow
+                ? window.PlaceOnOwnerWindow(size)
+                : new Rect(0f, 0f, size.x, size.y);
             window.Focus();
             return window;
         }
@@ -120,16 +172,22 @@ namespace DreamTech.LiveOps.Editor
         }
 
         /// <summary>
-        /// Cửa sổ chủ = cửa sổ đang focus lúc mở (hub, vì hộp luôn mở từ một thao tác trong hub); không có thì rơi về cửa sổ
-        /// Editor chính như trước. Vì sao không dùng thẳng cửa sổ chính: hub nổi ở (40,52) làm hộp căn giữa màn hình rơi đúng
-        /// lên inspector và nửa phải trục — che chính chỗ người dùng đang đọc để quyết (UX-27 / UJ-12).
+        /// Đặt hộp lên cửa sổ chủ (hub đã đăng ký; xem <see cref="ResolveOwnerPosition"/>) và nhớ lại Rect đã dùng. Vì sao
+        /// không dùng thẳng cửa sổ chính: hub nổi ở (40,52) làm hộp căn giữa màn hình rơi đúng lên inspector và nửa phải
+        /// trục — che chính chỗ người dùng đang đọc để quyết (UX-27 / UJ-12).
+        /// <para>
+        /// Gọi trong <see cref="Create"/> tức TRƯỚC <c>ShowModalUtility</c> là CỐ Ý: vòng modal chặn luồng tới khi hộp đóng
+        /// nên không còn chỗ nào đặt sau Show. Cảnh báo SP-16 (hình học đặt trước Show bị kẹp) không chạm ca này vì
+        /// <c>minSize</c>/<c>maxSize</c> đã gán ngay phía trên, nên khung kẹp là 400×[64…420] chứ không phải mặc định.
+        /// </para>
         /// </summary>
-        private void PlaceOnOwnerWindow(Vector2 size)
+        private Rect PlaceOnOwnerWindow(Vector2 size)
         {
-            EditorWindow owner = focusedWindow;
-            Rect ownerPosition = owner != null && owner != this ? owner.position : EditorGUIUtility.GetMainWindowPosition();
-            if (ownerPosition.width <= 0f || ownerPosition.height <= 0f) return;
+            Rect ownerPosition = ResolveOwnerPosition(this);
+            ResolvedOwnerPosition = ownerPosition;
+            if (ownerPosition.width <= 0f || ownerPosition.height <= 0f) return position;
             position = PlacementFor(ownerPosition, size);
+            return position;
         }
 
         private void FocusInitialOnce(GeometryChangedEvent geometryEvent)

@@ -77,6 +77,11 @@
 /*
  * (UX-30 / UJ-25) Nút chỉ có icon (⋮). Nút chữ giữ min-width 54px để hai nút cạnh nhau không so le; một icon 12px trong
  * ô đó thành "nút rộng rỗng có dấu ⋮ nhỏ ở trái". Ô vuông theo chiều cao nút 18px, icon căn giữa.
+ * Số 18 viết thẳng chứ không qua token khoảng cách vì đây là BỀ RỘNG phải bằng đúng chiều cao của .liveops-hub-button
+ * (18px, liveops-hub-components.uss) — vuông là điều kiện, không phải một bậc khoảng cách. Bảng UX-30 của kế hoạch ghi
+ * 22px; 22 sẽ CAO HƠN nút chữ cạnh nó và hai nút so le, nên lấy 18 (lệch tự duyệt, ghi ở §V-39 của kế hoạch).
+ * Luật nằm ở sheet của màn (không phải liveops-hub-components.uss) vì file đó ngoài quyền ghi của gói: thiếu sheet thì nút
+ * quay về min-width 54px — fail-open giống hệt mọi luật khác của chính section này, xem OverviewSection.cs.
  */
 .liveops-hub-overview-icon-button {
     min-width: 18px;

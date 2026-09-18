@@ -44,7 +44,7 @@
     flex-direction: row;
     align-items: center;
     height: 18px;
-    margin-left: 12px;
+    margin-left: var(--liveops-hub-space-12);
     padding: 0 6px;
     border-width: 1px;
     border-color: var(--unity-colors-window-border);
@@ -602,7 +602,8 @@
 
 /*
  * (UX-20 / UJ-19) Khoảng cách 6 px cũ làm câu trái đã cắt "…" dính luôn vào giờ UTC và đọc thành một câu
- * ("…Move hunt-091…13/9 08:47 UTC"). 12 px là mức đọc ra hai vế mà vẫn không lấy thêm chỗ đáng kể của vế trái.
+ * ("…Move hunt-091…13/9 08:47 UTC"). 12 px là mức đọc ra hai vế mà vẫn không lấy thêm chỗ đáng kể của vế trái — dùng
+ * token space-12 chứ không viết số, như mọi luật khoảng cách khác của khung (soát W8-UX R14).
  */
 .liveops-hub-status-right {
     flex-shrink: 0;
