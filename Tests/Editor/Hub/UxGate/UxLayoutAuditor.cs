@@ -74,6 +74,13 @@ namespace DreamTech.LiveOps.Editor.Tests
         /// <summary>MỌI ScrollView của màn (chẩn đoán), kể cả cái không có vấn đề — chỉ dòng mang dấu hiệu mới tính là lỗi.</summary>
         public List<string> ScrollViews { get; } = new List<string>();
 
+        /// <summary>
+        /// MỌI phần tử có tên mà cao hoặc rộng 0 — CHẨN ĐOÁN, không phải lỗi. Khung hub có sẵn vài chỗ cao 0 đúng thiết kế
+        /// (spacer ngang của header, vùng ghi chú rỗng, chỗ cắm outcome khi chưa có outcome). Yêu cầu (a) của §3.3 nói về
+        /// "phần tử QUAN TRỌNG theo danh sách của màn" — việc đó là <see cref="MissingElement"/>; danh sách này chỉ để người
+        /// soát đọc khi đang truy một màn trống.
+        /// </summary>
+
         public List<string> AbsoluteOverText { get; } = new List<string>();
         public List<string> SiblingOverlap { get; } = new List<string>();
         public List<string> NotStretched { get; } = new List<string>();
@@ -88,7 +95,6 @@ namespace DreamTech.LiveOps.Editor.Tests
         {
             List<string> problems = new List<string>();
             AppendProblems(problems, UxLayoutFindingKinds.MissingElement, MissingElement);
-            AppendProblems(problems, UxLayoutFindingKinds.ZeroSizeNamed, ZeroSizeNamed);
             AppendProblems(problems, UxLayoutFindingKinds.TextCut, TextCut);
             AppendProblems(problems, UxLayoutFindingKinds.ChildOverflow, ChildOverflow);
             AppendProblems(problems, UxLayoutFindingKinds.AbsoluteOverText, AbsoluteOverText);

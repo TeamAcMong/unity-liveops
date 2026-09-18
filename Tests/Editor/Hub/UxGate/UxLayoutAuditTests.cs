@@ -167,6 +167,7 @@ namespace DreamTech.LiveOps.Editor.Tests
         {
             List<string> problems = new List<string>();
             List<string> jsonPaths = new List<string>();
+            List<string> clampedSizes = new List<string>();
             foreach (LiveOpsHubLanguageId language in UxHubWindowFixture.AllLanguages)
             {
                 _fixture = UxHubWindowFixture.Open(screen.SectionId, UxHubWindowFixture.AllSizes[0], language, screen.CreateServices());
@@ -175,6 +176,7 @@ namespace DreamTech.LiveOps.Editor.Tests
                 foreach (UxWindowSize size in UxHubWindowFixture.AllSizes)
                 {
                     yield return _fixture.Resize(size);
+                    if (_fixture.ClampNote.Length > 0 && !clampedSizes.Contains(_fixture.ClampNote)) clampedSizes.Add(_fixture.ClampNote);
                     UxLayoutAuditResult result = UxLayoutAuditor.Audit(_fixture.Window, screen.Id, size, language,
                         screen.RequiredElements, screen.StretchRules);
                     jsonPaths.Add(UxLayoutAuditor.WriteJson(result));
@@ -186,8 +188,14 @@ namespace DreamTech.LiveOps.Editor.Tests
                 _fixture.Dispose();
                 _fixture = null;
             }
+            if (clampedSizes.Count > 0)
+            {
+                UnityEngine.Debug.LogWarning("UxLayoutAuditTests '" + screen.Id + "': máy chạy không đủ chỗ cho "
+                    + string.Join("; ", clampedSizes.ToArray()) + " — lượt kiểm vẫn chạy nhưng cỡ đó chưa được đo đúng.");
+            }
             Assert.IsEmpty(problems, "Kiểm bố cục màn '" + screen.Id + "' thấy " + problems.Count + " chỗ người dùng không dùng được."
                 + "\nJSON chẩn đoán: " + jsonPaths[0] + " (và " + (jsonPaths.Count - 1) + " file cùng thư mục)"
+                + (clampedSizes.Count > 0 ? "\nCỡ chưa đo đúng trên máy này: " + string.Join("; ", clampedSizes.ToArray()) : string.Empty)
                 + "\n - " + string.Join("\n - ", problems.ToArray()));
         }
 

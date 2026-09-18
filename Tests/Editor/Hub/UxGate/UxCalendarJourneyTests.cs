@@ -150,9 +150,11 @@ namespace DreamTech.LiveOps.Editor.Tests
             bool hoverCardSeenDuringDrag = false;
 
             yield return UxEventSender.Drag(_fixture.Window, from, to, DragSteps, EventModifiers.None, () => HoldStep());
+            // Chờ hết hẹn giờ hiện card SAU khi nhả: lỗi UX-05 gồm cả "vừa thả ra là card bật lên ngay chỗ vừa kéo".
+            yield return UxEventSender.Settle(UxEventSender.SettleFrames, HoverCardWaitMilliseconds);
 
-            Assert.IsFalse(hoverCardSeenDuringDrag || _fixture.Calendar.HoverCardHost.IsVisible,
-                "hover card hiện trong lúc kéo (UX-05)");
+            Assert.IsFalse(hoverCardSeenDuringDrag, "hover card hiện TRONG lúc kéo (UX-05)");
+            Assert.IsFalse(_fixture.Calendar.HoverCardHost.IsVisible, "hover card bật lên ngay sau khi thả chuột (UX-05)");
 
             IEnumerator HoldStep()
             {
@@ -311,7 +313,7 @@ namespace DreamTech.LiveOps.Editor.Tests
                 bar.worldBound.center + new Vector2(80f, 0f), DragSteps, EventModifiers.None);
             string statusBefore = _fixture.Window.StatusBar.RightLabel.text;
 
-            yield return UxEventSender.ExecuteMenuItem("Edit/Undo");
+            yield return UxEventSender.PerformUndo(_fixture.Window);
 
             Assert.AreNotEqual(statusBefore, _fixture.Window.StatusBar.RightLabel.text,
                 "hoàn tác xong status bar không đổi câu — người dùng không được mời làm lại (UX-26)");
