@@ -390,14 +390,23 @@ namespace DreamTech.LiveOps.Editor.Tests
             foreach (LiveOpsHubLanguageId language in UxHubWindowFixture.AllLanguages)
             {
                 yield return OpenCalendarWithHiddenLane(UxHubWindowFixture.AllSizes[4], language);
-                Label chip = _fixture.Calendar.Toolbar.HiddenLanesChip;
+                VisualElement chip = _fixture.Calendar.Toolbar.HiddenLanesChip;
                 Assert.IsNotNull(chip, "toolbar không có chip làn ẩn");
                 Assert.IsTrue(UxLayoutAuditor.IsShownOnScreen(chip),
                     "đang ẩn một làn mà chip \"Hiện\" không hiện ra — người dùng không biết mình đang giấu gì (UX-12)");
-                Assert.IsTrue(UxEventSender.PickReaches(_fixture.Window, chip),
-                    "chip \"Hiện\" không nhận được con trỏ — chip là Label không bấm được (UX-12)");
 
-                yield return UxEventSender.Click(_fixture.Window, chip);
+                // Cổng đợt: gói A tách chip thành NHÃN + NÚT, nên phần phải bấm được là chính cái nút, không phải cả chip.
+                // Vẫn hỏi qua cây con của chip (Q) chứ không chỉ qua ô nhớ của toolbar: nút phải THẬT SỰ nằm trong chip
+                // người dùng nhìn thấy, chứ không phải một nút mồ côi ở chỗ khác.
+                Button show = chip.Q<Button>();
+                Assert.IsNotNull(show, "chip làn ẩn không có nút bấm nào — chữ \"Hiện\" nằm trong Label thì không bấm được (UX-12)");
+                Assert.AreSame(_fixture.Calendar.Toolbar.HiddenLanesShowButton, show,
+                    "nút trong chip không phải nút \"Hiện\" mà màn nối vào ShowAllLanes (UX-12)");
+                Assert.IsTrue(UxLayoutAuditor.IsShownOnScreen(show), "nút \"Hiện\" của chip làn ẩn không hiện ra (UX-12)");
+                Assert.IsTrue(UxEventSender.PickReaches(_fixture.Window, show),
+                    "nút \"Hiện\" không nhận được con trỏ — bị lớp khác đè hoặc cha PickingMode.Ignore (UX-12)");
+
+                yield return UxEventSender.Click(_fixture.Window, show);
 
                 Assert.AreEqual(0, _fixture.Calendar.Presenter.HiddenLanes.Count,
                     "bấm chip \"Hiện\" không trả làn nào về (UX-12)");
