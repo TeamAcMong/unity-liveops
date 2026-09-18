@@ -195,7 +195,9 @@ namespace DreamTech.LiveOps.Editor
             start.AddToClassList(LiveOpsHubClassNames.CalendarInspectorField);
             start.SetDeviceOffset(_services.TimeZone.DeviceOffsetAt(_services.Clock.UtcNow));
             start.SetRawTextWithoutNotify(_flow.StartDateText, _flow.StartTimeText);
-            start.RawTextCommitted += (dateText, timeText) =>
+            // Một đường chốt duy nhất của ô giờ: bản trước nghe RawTextCommitted (chỉ bắn khi chữ HỎNG) nên gõ ngày/giờ HỢP LỆ
+            // rồi Enter/Tab là _flow không đổi — bước 3 hiện giờ cũ và đợt được thêm với giờ cũ (UJ-03/UX-04).
+            start.TextCommitted += (dateText, timeText) =>
             {
                 _flow = _flow.WithTimes(dateText, timeText, _flow.DurationHours);
                 Refresh();

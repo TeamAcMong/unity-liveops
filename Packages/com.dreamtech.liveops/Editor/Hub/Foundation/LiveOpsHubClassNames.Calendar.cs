@@ -53,6 +53,10 @@ namespace DreamTech.LiveOps.Editor
         internal const string CalendarTypeRowDisabled = "liveops-hub-calendar-type-row--disabled";
         internal const string CalendarTypeRowTag = "liveops-hub-calendar-type-row-tag";
         internal const string CalendarFlowButtons = "liveops-hub-calendar-flow-buttons";
+        // HẾT chỗ dùng từ W8-UX (gợi ý phím đổi sang CalendarFlowKeyLine) nhưng CHƯA xoá được: luật
+        // .liveops-hub-calendar-flow-key-hint còn ở CalendarSection.uss (quyền ghi của gói màn Lịch) và
+        // check-class-names.py --strict đòi mỗi selector phải có hằng. Xoá CẶP (luật + hằng) khi gộp, kẻo hằng
+        // thừa ở lại rồi có người dựng lại lối cũ trong im lặng.
         internal const string CalendarFlowKeyHint = "liveops-hub-calendar-flow-key-hint";
 
         // W8-UX (C7, V17): gợi ý phím thành dòng riêng, hàng nút wrap, nút xuống dòng thay vì bị cắt, chữ dẫn nghiêng cỡ nhỏ.

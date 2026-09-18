@@ -460,7 +460,8 @@
     min-width: 0;
 }
 
-/* Ô số ("Dài") giữ đúng 52px như [SD1 §3.1] để hậu tố và ghi chú còn chỗ. */
+/* Hàng "Dài" rộng 136px = cột nhãn 84 + ô nhập 52; riêng ô nhập giữ đúng 52px như [SD1 §3.1] (luật con ngay dưới) để hậu
+   tố "giờ" và ghi chú "= 3 ngày" còn chỗ trong cùng hàng. */
 .liveops-hub-calendar-inspector-field--number {
     width: 136px;
     flex-grow: 0;
@@ -503,6 +504,15 @@
     white-space: normal;
 }
 
+/* Nút CÓ xuống dòng: .liveops-hub-button khoá height 18px, nên dòng thứ hai của nút ("Sửa thành 2026-09-19 12:00", "Mở
+   luật lặp …") bị cắt ngang. Hai class nên thắng luật một class, không phụ thuộc thứ tự trong sheet. */
+.liveops-hub-button.liveops-hub-calendar-wrap-text {
+    height: auto;
+    min-height: 18px;
+    padding-top: 2px;
+    padding-bottom: 2px;
+}
+
 /* Card "Vấn đề" trong pane 280px xếp CỘT: hàng ngang (luật của màn Kiểm lịch) đẩy hai nút đề xuất ra ngoài pane (C4). */
 .liveops-hub-calendar-finding-card--stacked {
     flex-direction: column;
@@ -521,8 +531,11 @@
 }
 
 /* Ghi chú "= 3 ngày" đứng NGAY SAU hậu tố trong cùng hàng: margin-left 63px của .liveops-hub-calendar-field-subline là số đo
-   của dòng phụ đứng riêng, dùng lại trong hàng thì đẩy ghi chú ra ngoài pane. */
-.liveops-hub-calendar-field-note-inline {
+   của dòng phụ đứng riêng, dùng lại trong hàng thì đẩy ghi chú ra ngoài pane.
+   Viết KÈM .liveops-hub-calendar-field-subline cho đủ độ ưu tiên: nhãn mang cả hai class, mà luật một class ở
+   CalendarSection.uss (gắn sau sheet gốc của hub) thắng khi hai bên ngang điểm — luật một class ở đây là luật CHẾT, sửa
+   xong vẫn thấy ghi chú bị đẩy ra ngoài. */
+.liveops-hub-calendar-field-subline.liveops-hub-calendar-field-note-inline {
     margin-left: var(--liveops-hub-space-4);
     flex-shrink: 0;
 }

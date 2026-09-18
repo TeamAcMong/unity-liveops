@@ -399,7 +399,7 @@ namespace DreamTech.LiveOps.Editor
 
         /// <summary>
         /// Ô giờ chỉ nhận UTC [SD1 §3.13]. Chuỗi không đọc được VẪN ghi vào asset nguyên văn: tài liệu phải chứa được đợt hỏng để
-        /// hub và bộ kiểm cùng thấy và báo lỗi, nên field bắt <c>RawTextCommitted</c> chứ không chỉ giá trị đã parse.
+        /// hub và bộ kiểm cùng thấy và báo lỗi, nên field bắt <c>TextCommitted</c> chứ không chỉ giá trị đã parse.
         /// </summary>
         private static int IndexOfType(List<string> choices, string typeId)
         {
@@ -433,11 +433,11 @@ namespace DreamTech.LiveOps.Editor
                 field.tooltip = _model.StartLockReason;
                 return field;
             }
-            // Ô giờ báo hai đường và inspector phải nghe CẢ HAI: chuỗi đọc được đi bằng ChangeEvent<DateTime>, chuỗi hỏng đi bằng
-            // RawTextCommitted. Bản trước chỉ nghe đường thứ hai, nên gõ đúng dạng rồi Enter/Tab/bấm ra ngoài KHÔNG ghi gì vào
-            // asset — ô hiện giá trị mới nên người dùng tưởng đã ăn, tới lần dựng lại mới thấy mất (UJ-03).
-            field.RegisterValueChangedCallback(change => CommitTime(entry, isEnd, LiveEventUtcText.Format(change.newValue)));
-            field.RawTextCommitted += (dateText, timeText) => CommitTime(entry, isEnd, JoinRawText(dateText, timeText));
+            // Ô giờ chốt bằng ĐÚNG MỘT đường (TextCommitted), đọc được hay không cũng vậy: bản trước có hai đường (ChangeEvent cho
+            // chuỗi đọc được, RawTextCommitted cho chuỗi hỏng) và nơi nghe chỉ đăng ký một đường là mất nửa số lần ghi mà không có
+            // lỗi biên dịch nào — gõ đúng dạng rồi Enter/Tab/bấm ra ngoài KHÔNG ghi gì vào asset (UJ-03).
+            field.TextCommitted += (dateText, timeText) =>
+                CommitTime(entry, isEnd, LiveOpsUtcDateTimeField.ToAssetText(dateText, timeText));
             if (_model.State == CalendarInspectorModel.StateUnreadableTimes && _model.IsUnreadableEnd == isEnd)
             {
                 field.SetErrorText(_model.UnreadableFieldErrorText);
@@ -462,16 +462,6 @@ namespace DreamTech.LiveOps.Editor
             string message = _presenter.DragToastMessage(entry, next);
             _presenter.ApplyEdit(new ReplaceFixedEventEdit(next), LiveOpsEditOperation.ChangeFixedEventTimes, entry.EntryKey,
                 message, string.Empty, _presenter.DragUndoStepName(entry, next));
-        }
-
-        /// <summary>
-        /// Ghép nửa ngày và nửa giờ của chuỗi KHÔNG đọc được. Dấu cách là dấu ngăn cố ý (chữ người dùng gõ chưa phải ISO nên ghép
-        /// bằng "T" là bịa thêm dạng chuẩn cho một chuỗi hỏng); <see cref="LiveOpsUtcDateTimeField.SplitRawText"/> tách lại được
-        /// đúng hai nửa đó.
-        /// </summary>
-        private static string JoinRawText(string dateText, string timeText)
-        {
-            return dateText + (timeText.Length > 0 ? " " + timeText : string.Empty);
         }
 
         /// <summary>Đổi "Dài" giữ nguyên giờ bắt đầu (7.3) — người dùng nghĩ theo "đợt chạy mấy giờ", không theo "kết thúc lúc nào".</summary>
