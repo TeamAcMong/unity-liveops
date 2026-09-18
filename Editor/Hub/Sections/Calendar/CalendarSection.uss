@@ -352,8 +352,13 @@
     margin-right: var(--liveops-hub-space-4);
 }
 
+/* (UX-11 · V8, R-02) Danh sách CO theo nội dung, không giãn lấp pane: `flex-grow: 1` đẩy ghi chú xuống tận đáy nên ở cửa sổ
+   cao có tới ~425px trống giữa dòng cuối và ghi chú, người đọc tưởng ghi chú thuộc về thứ khác. `flex-shrink` + `min-height: 0`
+   giữ đường cuộn khi danh sách dài hơn chỗ còn lại. */
 .liveops-hub-calendar-compare-body {
-    flex-grow: 1;
+    flex-grow: 0;
+    flex-shrink: 1;
+    min-height: 0;
 }
 
 .liveops-hub-calendar-compare-group-label {

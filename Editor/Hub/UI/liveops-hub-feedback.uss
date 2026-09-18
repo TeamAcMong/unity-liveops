@@ -44,7 +44,9 @@
     bottom: 64px;
 }
 
-.liveops-hub-content--raised-toast-tall > .liveops-hub-toast {
+/* (R-09) Luật HAI class: bậc cao phải có cả lớp nền nên nó thắng bằng ĐỘ ĐẶC HIỆU, không thắng nhờ nằm sau trong file — sắp xếp
+   lại file không được làm toast tụt về 64px. Màn Lịch luôn bật lớp nền rồi mới bật thêm bậc cao. */
+.liveops-hub-content--raised-toast.liveops-hub-content--raised-toast-tall > .liveops-hub-toast {
     bottom: 96px;
 }
 

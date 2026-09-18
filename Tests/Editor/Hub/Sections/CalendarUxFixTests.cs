@@ -81,11 +81,15 @@ namespace DreamTech.LiveOps.Editor.Tests
             yield return OpenCalendar(LiveOpsHubTestServices.DesignSampleScenario, 1280, 760);
             CalendarSection section = Calendar();
             LiveOpsTimelineElement timeline = section.Timeline;
-            double zoomedPixelsPerHour = timeline.PixelsPerHour * 2d;
+            double pixelsPerHourBeforeWheel = timeline.PixelsPerHour;
 
-            timeline.SetContinuousScale(zoomedPixelsPerHour, timeline.RangeStartUtc.AddDays(2));
+            // (R-04) Đi qua SỰ KIỆN bánh xe thật kèm phím lệnh, không gọi SetContinuousScale: đoạn mã mà UJ-01 tố nằm trong
+            // `OnWheel` (đọc modifier, quy delta ra nấc, neo theo x của chuột) — gọi thẳng hàm là bỏ qua đúng đoạn đó.
+            SendActionWheel(timeline, -LiveOpsTimelineElement.WheelDeltaPerNotch * 2f);
             yield return null;
 
+            Assert.AreNotEqual(pixelsPerHourBeforeWheel, timeline.PixelsPerHour,
+                "⌘+lăn phải đổi thang đo của trục — không đổi nghĩa là sự kiện bánh xe không tới nơi");
             Assert.IsTrue(timeline.IsContinuousScale, "màn vẽ lại KHÔNG được ép trục về preset sau khi người dùng ⌘+lăn");
             LiveOpsTimelineModel model = section.Presenter.Model;
             Assert.IsNotNull(model, "vẽ lại phải dựng model mới");
@@ -295,7 +299,10 @@ namespace DreamTech.LiveOps.Editor.Tests
             Assert.AreEqual(1, section.Presenter.HiddenLanes.Count, "ẩn một làn trước đã");
             Button showButton = section.Toolbar.HiddenLanesShowButton;
             Assert.IsNotNull(showButton, "chip phải có nút 'Hiện'");
-            Click(showButton);
+            // (R-04) Trước khi bấm phải chắc nút NHẬN được chuột: gửi thẳng sự kiện vào Button vẫn xanh kể cả khi nút bị một lớp
+            // khác phủ hoặc để pickingMode = Ignore — tức vẫn xanh trong đúng ca UJ-07 "bấm mãi không ăn".
+            AssertPickable(showButton, "nút 'Hiện' của chip làn ẩn");
+            ClickWithPointer(showButton);
             yield return null;
 
             Assert.AreEqual(0, section.Presenter.HiddenLanes.Count, "bấm 'Hiện' phải đưa mọi làn trở lại");
@@ -458,12 +465,220 @@ namespace DreamTech.LiveOps.Editor.Tests
             Assert.AreEqual(DisplayStyle.Flex, toolbar.OverflowMenu.resolvedStyle.display, "và menu ⋮ phải hiện");
         }
 
+        // ====================================================== UX-11 · R-01/R-05 nâng toast trên CỬA SỔ THẬT
+
+        /// <summary>
+        /// (UX-11 · C8, R-01) Đọc class trên <c>hub-content</c> của CỬA SỔ THẬT ở hai bề rộng. Test cũ chỉ nghe sự kiện của bus
+        /// bằng một lambda nên khoá đúng giả thuyết chứ không khoá triệu chứng: ảnh chụp sau lượt sửa trước vẫn thiếu
+        /// <c>liveops-hub-content--raised-toast</c> ở CẢ 10 ảnh, và ở 820×560 thì không còn lớp nâng nào nên toast rơi về 8px.
+        /// Gốc thật: <c>LiveOpsHubWindow.CreateGUI</c> gọi <c>ShowSection</c> (bước 6) TRƯỚC <c>SubscribeServices</c> (bước 8),
+        /// nên lần bật lớp trong <c>CreateView</c> rơi vào một bus chưa ai nghe.
+        /// </summary>
+        [UnityTest]
+        public IEnumerator Ux11_RaisedToastClass_IsOnRealWindow_AtBothWidths()
+        {
+            yield return OpenCalendar(LiveOpsHubTestServices.DesignSampleScenario, 1280, 760);
+            VisualElement content = HubContent();
+
+            Assert.IsTrue(content.ClassListContains(LiveOpsHubClassNames.ContentRaisedToast),
+                "màn Lịch đang hiện thì cột nội dung phải mang lớp nâng toast, không thì toast nằm dưới minimap");
+            Assert.IsTrue(content.ClassListContains(LiveOpsHubClassNames.CalendarDepthContentRaisedToastTall),
+                "ở 1280 chân màn (minimap + chú giải + gợi ý) cao hơn 64px nên phải lên bậc cao");
+
+            _window.position = new Rect(0, 0, 820, 560);
+            yield return WaitForLayout(_window.rootVisualElement);
+            yield return null;
+
+            Assert.IsTrue(content.ClassListContains(LiveOpsHubClassNames.ContentRaisedToast),
+                "thu hẹp cửa sổ không được làm mất lớp nâng toast — đây đúng là ảnh h13 của lượt trước");
+        }
+
+        /// <summary>
+        /// (UX-11 · R-01/R-05) Và số đo thật: toast HIỆN ở 820 phải cách đáy ít nhất một bậc nâng. Class đúng mà USS thua độ đặc
+        /// hiệu thì bảng class vẫn xanh trong khi người dùng vẫn thấy toast đè lên chú giải.
+        /// </summary>
+        [UnityTest]
+        public IEnumerator Ux11_VisibleToast_KeepsRaisedOffsetAtNarrowWidth()
+        {
+            yield return OpenCalendar(LiveOpsHubTestServices.DesignSampleScenario, 820, 560);
+            CalendarSection section = Calendar();
+
+            section.CommandHandler.HideLane("lava-quest");
+            yield return null;
+            yield return null;
+
+            VisualElement toast = _window.HubRoot.Q(LiveOpsToast.ElementName);
+            Assert.IsNotNull(toast, "ẩn làn phải bắn một toast");
+            Assert.IsTrue(toast.ClassListContains(LiveOpsHubClassNames.ToastVisible), "toast đó phải đang hiện");
+            // Đo bằng BỐ CỤC (`layout`, toạ độ trong cột nội dung) chứ không bằng `worldBound`: `worldBound` cộng cả `translate`
+            // của hiệu ứng trượt lên 8px nên đo sớm vài khung sẽ hụt. Cũng không đọc `resolvedStyle.bottom` — Yoga trả số ÂM cho
+            // `bottom` của element neo tuyệt đối.
+            float lift = HubContent().layout.height - toast.layout.yMax;
+            Assert.GreaterOrEqual(lift, CalendarSection.DefaultToastRaisePixels - 2f,
+                "toast của màn Lịch phải nằm trên chân màn, không rơi về 8px (nâng đo được: " + lift + "px)");
+        }
+
+        // ====================================================== UX-11 · V8/R-02 ghi chú pane So với
+
+        /// <summary>
+        /// (UX-11 · V8, R-02) Ghi chú của pane "So với đã đăng" phải nằm NGAY DƯỚI danh sách. Trước khi sửa, thân pane
+        /// <c>flex-grow: 1</c> đẩy ghi chú xuống tận đáy: số đo ảnh h11 là dòng cuối ở y≈276 còn ghi chú ở y=715 — 425px trống.
+        /// </summary>
+        [UnityTest]
+        public IEnumerator V8_ComparePaneNote_SitsRightUnderTheList()
+        {
+            yield return OpenCalendar(LiveOpsHubTestServices.DesignSampleScenario, 1280, 760);
+            CalendarSection section = Calendar();
+            // Pane chỉ có dòng khi nháp KHÁC bản đã đăng — sửa một đợt trước, đúng như Hình 11 dựng trạng thái.
+            Assert.IsTrue(section.Services.Session.Document.TryGetFixedEvent(LiveOpsDesignSample.LavaQuestMidEntryKey,
+                out FixedLiveEventEntry entry));
+            section.Services.Session.Apply(new ReplaceFixedEventEdit(entry.WithTimes(entry.StartUtcText, "2026-09-21T00:00:00Z")),
+                "Dời mép cuối " + entry.EventId);
+            yield return null;
+
+            section.Toolbar.CompareToggle.value = true;
+            yield return null;
+            yield return null;
+
+            Assert.Greater(section.ComparePane.Rows.Count, 0, "phải có ít nhất một dòng khác biệt để đo");
+            VisualElement lastRow = section.ComparePane.Rows[section.ComparePane.Rows.Count - 1].Element;
+            float gap = section.ComparePane.Note.worldBound.yMin - lastRow.worldBound.yMax;
+            Assert.GreaterOrEqual(gap, 0f, "ghi chú không được chồng lên dòng cuối");
+            Assert.LessOrEqual(gap, 40f,
+                "ghi chú phải ngay dưới danh sách; khoảng trống lớn làm người đọc tưởng nó thuộc về thứ khác (đo được: " + gap + "px)");
+        }
+
+        // ====================================================== UX-02 · R-05 tab zoom sau khi lăn
+
+        /// <summary>
+        /// (UX-02 · UJ-23, R-05) Bấm tab zoom sau khi đã ⌘+lăn: khung MỚI phải lấy TÂM khung đang xem làm neo, không nhảy về một
+        /// mốc mặc định. Đoạn <c>ApplyZoomPreset</c>/<c>CurrentAnchorUtc</c> thêm ở lượt trước chưa có test nào chạm tới.
+        /// </summary>
+        [UnityTest]
+        public IEnumerator Ux02_ZoomPresetTab_AnchorsOnTheViewCentre()
+        {
+            yield return OpenCalendar(LiveOpsHubTestServices.DesignSampleScenario, 1280, 760);
+            CalendarSection section = Calendar();
+            LiveOpsTimelineElement timeline = section.Timeline;
+            // Dời khung ra XA "bây giờ" để phân biệt được hai lời giải (neo theo tâm khung hay rơi về bây giờ).
+            DateTime farStartUtc = new DateTime(2027, 3, 1, 0, 0, 0, DateTimeKind.Utc);
+            timeline.SetContinuousScale(timeline.PixelsPerHour, farStartUtc);
+            yield return null;
+            DateTime anchorUtc = timeline.RangeStartUtc.AddTicks((timeline.RangeEndUtc - timeline.RangeStartUtc).Ticks / 2L);
+
+            AssertPickable(section.Toolbar.ZoomTabs.TabAt(0), "tab zoom 'Ngày'");
+            ClickWithPointer(section.Toolbar.ZoomTabs.TabAt(0));
+            yield return null;
+            yield return null;
+
+            Assert.IsFalse(timeline.IsContinuousScale, "bấm tab preset thì trục trở lại preset");
+            DateTime newCentreUtc = timeline.RangeStartUtc.AddTicks((timeline.RangeEndUtc - timeline.RangeStartUtc).Ticks / 2L);
+            AssertSameMinute(anchorUtc, newCentreUtc, "tâm khung sau khi đổi preset phải là tâm khung người dùng đang nhìn");
+        }
+
+        // ====================================================== UX-14 · R-05 nhánh "đợt bị đè"
+
+        /// <summary>
+        /// (UX-14 · UJ-13, R-05) Nhánh thứ hai của bộ lọc kiểm nhanh: kéo đè lên một đợt khác làm ĐỢT ĐÓ bị bỏ — lỗi MỚI đó là
+        /// hậu quả của chính bước kéo này nên readout phải nêu nó (nhánh này chưa có test nào).
+        /// </summary>
+        [Test]
+        public void Ux14_QuickCheck_NamesTheEventThisDragBroke()
+        {
+            LiveOpsHubServices services = CreateServices();
+            CalendarTimelinePresenter presenter = CreatePresenter(services);
+            List<string> tags = new List<string>();
+            presenter.QuickCheckTagChanged += (text, health) => tags.Add(text);
+
+            // lava-quest-2026-09b (17→20/9) kéo về 9→12/9: nó mở TRƯỚC lava-quest-2026-09a (10→13/9) nên 09a thành đợt bị bỏ.
+            DateTime newStartUtc = new DateTime(2026, 9, 9, 0, 0, 0, DateTimeKind.Utc);
+            presenter.HandleIntent(new MoveBarIntent(LiveOpsDesignSample.LavaQuestMidEntryKey, newStartUtc,
+                newStartUtc.AddDays(3), LiveOpsTimelineGesturePhase.Preview));
+
+            Assert.Greater(tags.Count, 0, "mỗi bước xem trước phải phát một câu kiểm nhanh");
+            string tag = tags[tags.Count - 1];
+            Assert.AreNotEqual(LiveOpsHubStrings.CalendarQuickCheckOkTag, tag,
+                "bước kéo này làm một đợt khác bị bỏ nên KHÔNG được báo Ok");
+            StringAssert.Contains("lava-quest-2026-09a", tag, "và phải nêu đúng đợt vừa bị đè");
+            StringAssert.DoesNotContain("lava-quest-2026-10", tag, "vẫn không được nêu lỗi có sẵn của đợt khác");
+        }
+
+        // ====================================================== UX-05 · R-06 dọn đích đã rời panel
+
+        /// <summary>
+        /// (UX-05 · UJ-05, R-06) Vẽ lại làn THAY cả làn: thanh cũ vẫn còn cha (làn cũ) nhưng cả cụm đã rời panel. Luật dọn cũ
+        /// ("không cha VÀ không panel") bỏ lọt đúng ca này, nên thẻ của thanh đã chết treo lại che chỗ người dùng đang nhắm.
+        /// </summary>
+        [UnityTest]
+        public IEnumerator Ux05_HoverCard_PrunesBarWhoseLaneLeftThePanel()
+        {
+            yield return OpenCalendar(LiveOpsHubTestServices.DesignSampleScenario, 1280, 760);
+            double nowSeconds = 10d;
+            VisualElement host = new VisualElement();
+            _window.HubRoot.Add(host);
+            VisualElement lane = new VisualElement();
+            host.Add(lane);
+            VisualElement bar = new VisualElement();
+            lane.Add(bar);
+            LiveOpsHoverCardHost cardHost = new LiveOpsHoverCardHost(host, () => nowSeconds);
+            cardHost.Attach(bar, () => new Label("lava-quest-2026-09b"));
+            yield return null;
+
+            cardHost.HandlePointerEnter(bar);
+            nowSeconds += LiveOpsHoverCardHost.ShowDelayMilliseconds / 1000d;
+            cardHost.Tick();
+            Assert.IsTrue(cardHost.IsVisible, "thẻ phải đang hiện trước khi làn bị thay");
+
+            host.Remove(lane);
+            cardHost.PruneDetachedTargets();
+
+            Assert.IsFalse(cardHost.IsVisible, "làn bị thay thì thẻ của thanh cũ phải tắt, dù thanh vẫn còn cha");
+            Assert.AreEqual(0, cardHost.AttachedTargetCount, "và builder của thanh chết phải được dọn");
+        }
+
+        // ====================================================== R-12 sáu cỡ cửa sổ
+
+        /// <summary>
+        /// (R-12) Màn Lịch đụng đúng chỗ phụ thuộc breakpoint (<c>--medium</c> là dưới 1100px, không chỉ 820), nên đo ở CẢ SÁU cỡ
+        /// của cổng đợt. Ca nặng nhất là 1024×700: vẫn là <c>--medium</c> nên drawer chiếm 280px, và nếu pane Danh sách 240px cũng
+        /// mở thì track còn rất ít chỗ.
+        /// </summary>
+        [UnityTest]
+        public IEnumerator Layout_SixWindowSizes_KeepTimelineUsable()
+        {
+            yield return OpenCalendar(LiveOpsHubTestServices.DesignSampleScenario, 1280, 760);
+            CalendarSection section = Calendar();
+            int[] widths = { 700, 820, 1024, 1280, 1440, 1920 };
+            int[] heights = { 560, 560, 700, 760, 900, 1040 };
+
+            for (int index = 0; index < widths.Length; index++)
+            {
+                _window.position = new Rect(0, 0, widths[index], heights[index]);
+                yield return WaitForLayout(_window.rootVisualElement);
+                yield return null;
+                string what = widths[index] + "×" + heights[index];
+
+                VisualElement view = SectionView();
+                float bodyHeight = _window.SectionBody.resolvedStyle.height;
+                Assert.Greater(bodyHeight, 100f, what + ": thân màn phải có chiều cao thật");
+                AssertFillsHeight(view.Q(LiveOpsHubPaths.CalendarElementNames.Main), bodyHeight, what + " calendar-main");
+                AssertFillsHeight(view.Q(LiveOpsHubPaths.CalendarElementNames.TimelineColumn), bodyHeight,
+                    what + " calendar-timeline-column");
+                Assert.Greater(section.Timeline.TrackWidth, 120f,
+                    what + ": track phải còn chỗ vẽ — dưới 120px thì thước không đọc được");
+                Assert.LessOrEqual(view.worldBound.xMax, _window.SectionBody.worldBound.xMax + 1f,
+                    what + ": màn không được tràn ra ngoài thân cửa sổ");
+            }
+        }
+
         // ============================================================================================ tiện ích
 
         private static void AssertFillsHeight(VisualElement element, float bodyHeight, string what)
         {
             Assert.IsNotNull(element, what + " phải có trong cây");
-            Assert.GreaterOrEqual(element.resolvedStyle.height, bodyHeight * 0.5f,
+            // (R-13) Ngưỡng 0,85 chứ không phải 0,5: số đo thật ở 820×560 là 457/514 ≈ 89% ở cả hai bản Unity, nên 0,5 cho lọt
+            // một hồi quy làm cột timeline còn 60% chiều cao — đúng loại hồi quy mà test này sinh ra để chặn.
+            Assert.GreaterOrEqual(element.resolvedStyle.height, bodyHeight * 0.85f,
                 what + " phải lấp chiều cao thân màn, không sụp về chiều cao nội tại");
         }
 
@@ -493,14 +708,80 @@ namespace DreamTech.LiveOps.Editor.Tests
             return null;
         }
 
-        /// <summary>Bấm nút bằng <c>NavigationSubmitEvent</c> — <c>ClickEvent</c> không chạy <c>Clickable</c> của Button.</summary>
-        private static void Click(Button button)
+        /// <summary>
+        /// (R-04) Bấm bằng SỰ KIỆN CHUỘT thật: <c>Clickable</c> của Button nghe PointerDown/PointerUp, nên đường này chạy đúng
+        /// đoạn mã mà người dùng chạm tới. <c>NavigationSubmitEvent</c> (đường cũ) gửi thẳng vào Button nên vẫn xanh kể cả khi nút
+        /// bị phủ — dùng kèm <see cref="AssertPickable"/> để bắt đúng ca "bấm mãi không ăn".
+        /// </summary>
+        private static void ClickWithPointer(VisualElement element)
         {
-            using (NavigationSubmitEvent submit = NavigationSubmitEvent.GetPooled())
+            Vector2 point = element.worldBound.center;
+            Assert.IsFalse(float.IsNaN(point.x), "phần tử phải có layout thật trước khi bấm");
+            SendPointer<PointerDownEvent>(element, EventType.MouseDown, point);
+            SendPointer<PointerUpEvent>(element, EventType.MouseUp, point);
+        }
+
+        /// <summary>
+        /// Dựng sự kiện con trỏ từ một <c>Event</c> IMGUI: có vậy <c>button</c>, <c>position</c> và <c>clickCount</c> mới đúng —
+        /// <c>GetPooled()</c> không tham số để <c>button = -1</c> nên <c>Clickable</c> bỏ qua.
+        /// </summary>
+        private static void SendPointer<TEvent>(VisualElement element, EventType eventType, Vector2 point)
+            where TEvent : PointerEventBase<TEvent>, new()
+        {
+            Event systemEvent = new Event
             {
-                submit.target = button;
-                button.SendEvent(submit);
+                type = eventType,
+                mousePosition = point,
+                button = 0,
+                clickCount = 1,
+            };
+            using (TEvent pointerEvent = PointerEventBase<TEvent>.GetPooled(systemEvent))
+            {
+                pointerEvent.target = element;
+                element.SendEvent(pointerEvent);
             }
+        }
+
+        /// <summary>(R-04) Panel có trả về đúng phần tử này (hoặc con của nó) khi bấm vào giữa nó không.</summary>
+        private static void AssertPickable(VisualElement element, string what)
+        {
+            Assert.IsNotNull(element.panel, what + " phải nằm trong panel thật");
+            Assert.Greater(element.worldBound.width, 0f, what + " phải có bề rộng thật");
+            VisualElement picked = element.panel.Pick(element.worldBound.center);
+            Assert.IsNotNull(picked, what + " không nhận được chuột — có gì đó phủ lên hoặc pickingMode = Ignore");
+            for (VisualElement walk = picked; walk != null; walk = walk.parent)
+            {
+                if (ReferenceEquals(walk, element)) return;
+            }
+            Assert.Fail(what + " bị '" + picked.name + "' phủ mất: bấm vào giữa nút lại trúng phần tử khác");
+        }
+
+        /// <summary>
+        /// (R-04) ⌘+lăn THẬT trên trục: dựng <c>Event</c> IMGUI dạng ScrollWheel kèm phím lệnh rồi gửi vào element, đúng đường mà
+        /// <c>LiveOpsTimelineElement.OnWheel</c> đọc (modifier + delta + toạ độ chuột để neo).
+        /// </summary>
+        private static void SendActionWheel(LiveOpsTimelineElement timeline, float deltaY)
+        {
+            Vector2 point = timeline.Ruler.Track.worldBound.center;
+            Event systemEvent = new Event
+            {
+                type = EventType.ScrollWheel,
+                mousePosition = point,
+                delta = new Vector2(0f, deltaY),
+                modifiers = Application.platform == RuntimePlatform.OSXEditor ? EventModifiers.Command : EventModifiers.Control,
+            };
+            using (WheelEvent wheel = WheelEvent.GetPooled(systemEvent))
+            {
+                wheel.target = timeline;
+                timeline.SendEvent(wheel);
+            }
+        }
+
+        private VisualElement HubContent()
+        {
+            VisualElement content = _window.HubRoot.Q(LiveOpsHubPaths.ShellElementNames.Content);
+            Assert.IsNotNull(content, "cửa sổ hub phải có cột nội dung 'hub-content'");
+            return content;
         }
 
         private static void DragShorter(CalendarTimelinePresenter presenter)
