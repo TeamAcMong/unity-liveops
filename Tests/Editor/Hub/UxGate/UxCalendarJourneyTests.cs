@@ -38,10 +38,11 @@ namespace DreamTech.LiveOps.Editor.Tests
         private static readonly DateTime DesignNowUtc = new DateTime(2026, 9, 13, 1, 47, 0, DateTimeKind.Utc);
 
         /// <summary>
-        /// Mốc "bây giờ" của ca UX-06: nằm GIỮA hunt-0914 (14/9 00:00 → 17/9 00:00) nên đợt đó đang chạy thật. Mốc thiết kế
-        /// 13/9 01:47 không có đợt nào đang chạy, không dựng được cảnh "rút ngắn đợt đang chạy" (G-FIX-UX-5).
+        /// Mốc "bây giờ" của ca UX-06: nằm GIỮA lava-quest-2026-09b (17/9 00:00 → 20/9 00:00) nên đợt đó đang chạy thật — cùng
+        /// đợt mà hợp đồng của gói A dùng. Mốc thiết kế 13/9 01:47 không có đợt nào đang chạy, không dựng được cảnh "rút ngắn
+        /// đợt đang chạy" (G-FIX-UX-5).
         /// </summary>
-        private static readonly DateTime RunningNowUtc = new DateTime(2026, 9, 15, 12, 0, 0, DateTimeKind.Utc);
+        private static readonly DateTime RunningNowUtc = new DateTime(2026, 9, 18, 12, 0, 0, DateTimeKind.Utc);
 
         private const int DragSteps = 6;
 
@@ -334,25 +335,31 @@ namespace DreamTech.LiveOps.Editor.Tests
                 // màn im lặng là ĐÚNG. Lượt này lấy "bây giờ" nằm giữa hunt-0914 (14/9 → 17/9) và khẳng định điều kiện đó trước
                 // khi kéo, để test không lặng lẽ trôi thành ca khác khi dữ liệu mẫu đổi (G-FIX-UX-5).
                 yield return OpenCalendar(UxHubWindowFixture.AllSizes[4], language, LiveOpsConfirmResult.Safe, RunningNowUtc);
-                Assert.IsTrue(_fixture.Services.Session.Document.TryGetFixedEvent(LiveOpsDesignSample.HuntEarlyEntryKey,
-                    out FixedLiveEventEntry running), "mẫu thiết kế phải còn đợt hunt-0914 để kéo");
+                Assert.IsTrue(_fixture.Services.Session.Document.TryGetFixedEvent(LiveOpsDesignSample.LavaQuestMidEntryKey,
+                    out FixedLiveEventEntry running), "mẫu thiết kế phải còn đợt lava-quest-2026-09b để kéo");
                 Assert.IsTrue(DateTime.Parse(running.StartUtcText, CultureInfo.InvariantCulture, DateTimeStyles.AdjustToUniversal
                     | DateTimeStyles.AssumeUniversal) <= RunningNowUtc
                     && DateTime.Parse(running.EndUtcText, CultureInfo.InvariantCulture, DateTimeStyles.AdjustToUniversal
                     | DateTimeStyles.AssumeUniversal) > RunningNowUtc,
                     "điều kiện của ca này: đợt được kéo phải ĐANG CHẠY ở mốc bây giờ của test (UX-06)");
-                LiveOpsTimelineBar bar = _fixture.BarOf(LiveOpsDesignSample.HuntEarlyEntryKey);
+                LiveOpsTimelineBar bar = _fixture.BarOf(LiveOpsDesignSample.LavaQuestMidEntryKey);
                 VisualElement handle = bar.Q(className: LiveOpsHubClassNames.TimelineBarEdgeEnd)
                     ?? bar.Q(className: LiveOpsHubClassNames.TimelineBarHandle);
                 Assert.IsNotNull(handle, "thanh không có tay cầm mép để kéo rút ngắn");
-                int revisionBefore = _fixture.Services.Session.DocumentRevision;
+                string endBefore = running.EndUtcText;
                 Vector2 from = handle.worldBound.center;
 
                 yield return UxEventSender.Drag(_fixture.Window, from, from - new Vector2(70f, 0f), DragSteps, EventModifiers.None);
 
                 Assert.Greater(_confirmation.Requests.Count, 0, "kéo rút ngắn đợt đang chạy mà không hỏi gì (UX-06)");
-                Assert.AreEqual(revisionBefore, _fixture.Services.Session.DocumentRevision,
-                    "người dùng chọn Giữ mà tài liệu vẫn đổi — hộp hỏi SAU khi đã áp (UX-06)");
+                // Đo thứ người dùng thấy — GIỜ KẾT THÚC — chứ không đo số hiệu bản sửa: lần kéo liên tục có ghi nháp rồi trả
+                // lại, nên bộ đếm bản sửa nhúc nhích cả khi chọn "Giữ" (đúng hợp đồng gói A:
+                // CalendarUxFixTests.Ux06_ShortenRunningDrag_KeepLeavesNoToastNoUndoStep khẳng định giờ kết thúc TRỞ VỀ giá trị
+                // cũ). Đo nội dung là đo đúng lời hứa "hỏi TRƯỚC khi áp" (G-FIX-UX-6).
+                Assert.IsTrue(_fixture.Services.Session.Document.TryGetFixedEvent(LiveOpsDesignSample.LavaQuestMidEntryKey,
+                    out FixedLiveEventEntry afterKeep), "đợt vừa kéo phải còn trong tài liệu");
+                Assert.AreEqual(endBefore, afterKeep.EndUtcText,
+                    "người dùng chọn Giữ mà giờ kết thúc vẫn đổi — hộp hỏi SAU khi đã áp (UX-06)");
                 DisposeFixture();
             }
         }
@@ -387,7 +394,11 @@ namespace DreamTech.LiveOps.Editor.Tests
         {
             foreach (LiveOpsHubLanguageId language in UxHubWindowFixture.AllLanguages)
             {
-                yield return OpenCalendarWithSelection(UxHubWindowFixture.AllSizes[4], language);
+                // Card "Vấn đề" chỉ có nút khi phát hiện của đợt ĐANG CHỌN có cách sửa. lava-quest-2026-09a sạch, nên bản đầu
+                // của test trách "không có nút sửa nào" trong khi màn đúng. Đợt có cách sửa trong mẫu thiết kế là
+                // lava-quest-2026-10 (endUtc "2026-10-3" hỏng) — chọn đúng đợt đó (G-FIX-UX-6).
+                yield return OpenCalendarWithSelection(UxHubWindowFixture.AllSizes[4], language,
+                    LiveOpsDesignSample.LavaQuestLateEntryKey);
                 VisualElement issues = _fixture.Root.Q(className: LiveOpsHubClassNames.CalendarInspectorIssues);
                 Assert.IsNotNull(issues, "inspector không có card Vấn đề để bấm (UX-09)");
                 Button fix = issues.Q<Button>();
@@ -615,10 +626,11 @@ namespace DreamTech.LiveOps.Editor.Tests
             yield return _fixture.WaitForLayout();
         }
 
-        private IEnumerator OpenCalendarWithSelection(UxWindowSize size, LiveOpsHubLanguageId language)
+        private IEnumerator OpenCalendarWithSelection(UxWindowSize size, LiveOpsHubLanguageId language,
+            string entryKey = LiveOpsDesignSample.LavaQuestEarlyEntryKey)
         {
             yield return OpenCalendar(size, language);
-            LiveOpsTimelineBar bar = _fixture.BarOf(LiveOpsDesignSample.LavaQuestEarlyEntryKey);
+            LiveOpsTimelineBar bar = _fixture.BarOf(entryKey);
             yield return UxEventSender.Click(_fixture.Window, bar);
         }
 
