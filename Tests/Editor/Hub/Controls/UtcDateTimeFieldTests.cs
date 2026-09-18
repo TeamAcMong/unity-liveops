@@ -35,7 +35,7 @@ namespace DreamTech.LiveOps.Editor.Tests
             yield return ControlsTestPanel.WaitForLayout(field);
             field.SetRawTextWithoutNotify("2026-09-15", "12:00");
             List<(DateTime PreviousValue, DateTime NewValue)> changes = RecordChanges(field);
-            List<string> rawCommits = RecordRawCommits(field);
+            List<string> commits = RecordCommits(field);
 
             field.DateInput.value = "2026-09-16";
             yield return null;
@@ -46,7 +46,8 @@ namespace DreamTech.LiveOps.Editor.Tests
             Assert.AreEqual(1, changes.Count, "một lần ghi ô ngày = đúng một ChangeEvent<DateTime>");
             Assert.AreEqual(new DateTime(2026, 9, 15, 12, 0, 0, DateTimeKind.Utc), changes[0].PreviousValue);
             Assert.AreEqual(field.value, changes[0].NewValue);
-            Assert.AreEqual(0, rawCommits.Count, "chuỗi đọc được không đi đường ghi chuỗi thô");
+            CollectionAssert.AreEqual(new[] { "2026-09-16|12:00" }, commits,
+                "chốt được một giờ đọc được cũng đi đúng đường chốt đó — nơi nghe chỉ đăng ký một chỗ (UX-04)");
 
             Assert.AreEqual("19:00 16/9 giờ máy", field.DeviceTimeLabel.text, "dòng phụ phải là giờ máy +7 và luôn có chữ \"giờ máy\"");
             Assert.AreEqual(DisplayStyle.Flex, field.DeviceTimeLabel.resolvedStyle.display);
@@ -58,6 +59,8 @@ namespace DreamTech.LiveOps.Editor.Tests
             yield return null;
             Assert.AreEqual("07:00 18/9 giờ máy", field.DeviceTimeLabel.text);
             Assert.AreEqual(3, changes.Count);
+            CollectionAssert.AreEqual(new[] { "2026-09-16|12:00", "2026-09-16|00:00", "2026-09-18|00:00" }, commits,
+                "ba lần chốt chữ = ba lần báo, không lần nào lặng lẽ");
 
             Assert.AreEqual(76f, field.DateInput.layout.width, 0.5f, "ô ngày 76px ([SD1 §3.1])");
             Assert.AreEqual(44f, field.TimeInput.layout.width, 0.5f, "ô giờ 44px");
@@ -72,7 +75,7 @@ namespace DreamTech.LiveOps.Editor.Tests
             field.SetRawTextWithoutNotify("2026-09-16", "12:00");
             DateTime lastReadable = field.value;
             List<(DateTime PreviousValue, DateTime NewValue)> changes = RecordChanges(field);
-            List<string> rawCommits = RecordRawCommits(field);
+            List<string> commits = RecordCommits(field);
             Color normalBorder = InputOf(field.DateInput).resolvedStyle.borderTopColor;
 
             field.DateInput.value = "2026-10-3";
@@ -84,7 +87,7 @@ namespace DreamTech.LiveOps.Editor.Tests
             Assert.IsTrue(field.HasParseError);
             Assert.AreEqual(lastReadable, field.value, "giá trị giữ lần đọc được gần nhất");
             Assert.AreEqual(0, changes.Count, "chuỗi hỏng không được thành ChangeEvent<DateTime>");
-            CollectionAssert.AreEqual(new[] { "2026-10-3|12:00" }, rawCommits, "phiên lịch phải nhận chuỗi thô để ghi nguyên văn vào asset");
+            CollectionAssert.AreEqual(new[] { "2026-10-3|12:00" }, commits, "phiên lịch phải nhận chuỗi thô để ghi nguyên văn vào asset");
 
             Assert.IsTrue(field.DateInput.ClassListContains(LiveOpsHubClassNames.UtcFieldPartError));
             Assert.IsFalse(field.TimeInput.ClassListContains(LiveOpsHubClassNames.UtcFieldPartError), "chỉ viền đúng ô hỏng");
@@ -101,6 +104,8 @@ namespace DreamTech.LiveOps.Editor.Tests
             yield return null;
             Assert.IsFalse(field.HasParseError);
             Assert.AreEqual(1, changes.Count, "sửa chuỗi hỏng về giá trị cũ vẫn phải báo để phiên ghi lại chuỗi chuẩn");
+            CollectionAssert.AreEqual(new[] { "2026-10-3|12:00", "2026-09-16|12:00" }, commits,
+                "lần sửa về chuỗi chuẩn cũng là một lần chốt");
             Assert.AreEqual(DisplayStyle.None, field.ErrorLabel.resolvedStyle.display);
             Assert.IsFalse(field.DateInput.ClassListContains(LiveOpsHubClassNames.UtcFieldPartError));
 
@@ -109,7 +114,7 @@ namespace DreamTech.LiveOps.Editor.Tests
             Assert.IsTrue(field.HasParseError);
             Assert.AreEqual("2026-10-3", field.RawDateText);
             Assert.AreEqual(1, changes.Count);
-            Assert.AreEqual(1, rawCommits.Count);
+            Assert.AreEqual(2, commits.Count, "nạp chuỗi từ asset không phải người dùng chốt — không thêm lần báo nào");
 
             // Giờ hỏng: viền ô giờ, câu nói về ô giờ.
             field.SetRawTextWithoutNotify("2026-10-03", "7:0");
@@ -179,14 +184,14 @@ namespace DreamTech.LiveOps.Editor.Tests
             field.parent.Add(outside);
             yield return ControlsTestPanel.WaitForLayout(field, outside);
             List<(DateTime PreviousValue, DateTime NewValue)> changes = RecordChanges(field);
-            List<string> rawCommits = RecordRawCommits(field);
+            List<string> commits = RecordCommits(field);
 
             yield return MoveFocus(field.DateInput);
             TypeText(field.DateInput, "2026-09-16");
             yield return MoveFocus(field.TimeInput);
 
             Assert.AreEqual("2026-09-16", field.RawDateText, "rời ô ngày phải chốt chữ của ô ngày");
-            Assert.AreEqual(0, rawCommits.Count, "Tab sang ô giờ còn trống không được ghi nửa cặp thành chuỗi thô vào asset");
+            Assert.AreEqual(0, commits.Count, "Tab sang ô giờ còn trống không được ghi nửa cặp thành chuỗi thô vào asset");
             Assert.AreEqual(0, changes.Count);
             Assert.IsFalse(field.HasParseError, "đang nhập dở cặp ngày/giờ không phải lỗi");
             Assert.AreEqual(DisplayStyle.None, field.ErrorLabel.resolvedStyle.display, "không hiện \"Ô giờ còn trống\" khi con trỏ đang ở chính ô giờ");
@@ -196,21 +201,21 @@ namespace DreamTech.LiveOps.Editor.Tests
             yield return MoveFocus(outside);
             Assert.AreEqual(new DateTime(2026, 9, 16, 7, 0, 0, DateTimeKind.Utc), field.value);
             Assert.AreEqual(1, changes.Count, "gõ nốt ô giờ rồi rời field = đúng một lần ghi");
-            Assert.AreEqual(0, rawCommits.Count);
+            CollectionAssert.AreEqual(new[] { "2026-09-16|07:00" }, commits, "gõ nốt nửa còn lại = đúng một lần chốt");
             Assert.IsFalse(field.HasParseError);
 
             // Rời hẳn field khi ô giờ vẫn trống: lúc này mới báo và đưa chuỗi thô ra — đúng một lần.
             LiveOpsUtcDateTimeField second = new LiveOpsUtcDateTimeField();
             field.parent.Add(second);
             yield return ControlsTestPanel.WaitForLayout(second);
-            List<string> secondRawCommits = RecordRawCommits(second);
+            List<string> secondCommits = RecordCommits(second);
             yield return MoveFocus(second.DateInput);
             TypeText(second.DateInput, "2026-09-16");
             yield return MoveFocus(second.TimeInput);
-            Assert.AreEqual(0, secondRawCommits.Count);
+            Assert.AreEqual(0, secondCommits.Count);
             yield return MoveFocus(outside);
             Assert.IsTrue(second.HasParseError, "rời field khi cặp còn thiếu giờ phải báo lỗi");
-            CollectionAssert.AreEqual(new[] { "2026-09-16|" }, secondRawCommits, "rời field thì phiên nhận chuỗi thô đúng một lần");
+            CollectionAssert.AreEqual(new[] { "2026-09-16|" }, secondCommits, "rời field thì phiên nhận chuỗi thô đúng một lần");
             Assert.AreEqual(LiveOpsHubStrings.UtcFieldTimeEmpty, second.ErrorLabel.text);
             Assert.IsTrue(second.TimeInput.ClassListContains(LiveOpsHubClassNames.UtcFieldPartError), "viền đúng ô còn trống");
             Assert.IsFalse(second.DateInput.ClassListContains(LiveOpsHubClassNames.UtcFieldPartError));
@@ -329,6 +334,45 @@ namespace DreamTech.LiveOps.Editor.Tests
             Assert.Greater(focusInCount, 0, "focus phải vào ô đích — không có FocusInEvent thì test không đi đường chốt chữ thật");
         }
 
+        /// <summary>
+        /// Tách chuỗi thô của asset: nửa ngày người dùng gõ CÓ THỂ chứa dấu cách ("16 09 2026"), nên cắt ở dấu cách đầu tiên là
+        /// xé đôi chữ người dùng gõ và ô giờ nhận "09 2026 12:00" (lỗi do chính vòng ghép/tách hai ô sinh ra).
+        /// </summary>
+        [TestCase("2026-09-16T12:00:00Z", "2026-09-16", "12:00:00")]
+        [TestCase("2026-09-16 12:00", "2026-09-16", "12:00")]
+        [TestCase("16 09 2026 12:00", "16 09 2026", "12:00")]
+        [TestCase("16 09 2026", "16 09 2026", "")]
+        [TestCase("2026-9-19 99:99", "2026-9-19", "99:99")]
+        [TestCase("2026-09-16", "2026-09-16", "")]
+        [TestCase("", "", "")]
+        public void UtcField_SplitRawText_KeepsUserTextWhole(string rawText, string expectedDateText, string expectedTimeText)
+        {
+            LiveOpsUtcDateTimeField.SplitRawText(rawText, out string dateText, out string timeText);
+            Assert.AreEqual(expectedDateText, dateText, "nửa ngày phải nguyên khối như người dùng gõ");
+            Assert.AreEqual(expectedTimeText, timeText, "nửa giờ chỉ nhận đuôi thật sự là một lần gõ giờ");
+        }
+
+        /// <summary>Ghép rồi tách phải trả lại đúng hai nửa ban đầu — hai chiều của cùng một vòng, không được lệch nhau.</summary>
+        [TestCase("16 09 2026", "12:00")]
+        [TestCase("2026-10-3", "12:00")]
+        [TestCase("2026-09-16", "")]
+        public void UtcField_JoinThenSplit_RoundTrips(string dateText, string timeText)
+        {
+            string joined = LiveOpsUtcDateTimeField.JoinRawText(dateText, timeText);
+            LiveOpsUtcDateTimeField.SplitRawText(joined, out string splitDateText, out string splitTimeText);
+            Assert.AreEqual(dateText, splitDateText);
+            Assert.AreEqual(timeText, splitTimeText);
+        }
+
+        /// <summary>Chuỗi ghi vào asset: dạng chuẩn khi đọc được, nguyên văn khi không — một chỗ quyết, nơi nghe không tự ghép.</summary>
+        [TestCase("2026-09-16", "12:00", "2026-09-16T12:00:00Z")]
+        [TestCase("2026-10-3", "12:00", "2026-10-3 12:00")]
+        [TestCase("2026-09-16", "", "2026-09-16")]
+        public void UtcField_ToAssetText_UsesCanonicalOnlyWhenReadable(string dateText, string timeText, string expected)
+        {
+            Assert.AreEqual(expected, LiveOpsUtcDateTimeField.ToAssetText(dateText, timeText));
+        }
+
         private static VisualElement InputOf(TextField textField)
         {
             return textField.Q(className: TextField.inputUssClassName);
@@ -342,10 +386,11 @@ namespace DreamTech.LiveOps.Editor.Tests
             return changes;
         }
 
-        private static List<string> RecordRawCommits(LiveOpsUtcDateTimeField field)
+        /// <summary>Ghi lại MỌI lần chốt chữ — đường chốt của ô là một, chữ đọc được hay không cũng đi qua đây.</summary>
+        private static List<string> RecordCommits(LiveOpsUtcDateTimeField field)
         {
             List<string> commits = new List<string>();
-            field.RawTextCommitted += (dateText, timeText) => commits.Add(dateText + "|" + timeText);
+            field.TextCommitted += (dateText, timeText) => commits.Add(dateText + "|" + timeText);
             return commits;
         }
     }
