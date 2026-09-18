@@ -518,6 +518,8 @@ namespace DreamTech.LiveOps.Editor
             rowElement.AddToClassList(LiveOpsHubClassNames.TimelineLaneRow);
             LiveOpsTimelineLaneHeader header = new LiveOpsTimelineLaneHeader();
             header.UnplaceableClicked += typeId => UnplaceableRequested?.Invoke(typeId);
+            // (UX-13, UJ-08) Chevron của header đi cùng đường với mục menu "Thu gọn / Mở làn" — một lệnh, hai lối vào.
+            header.CollapseToggleClicked += (typeId, collapsed) => RequestToggleLaneCollapsed(typeId, collapsed);
             rowElement.Add(header);
             LiveOpsTimelineLane lane = new LiveOpsTimelineLane();
             lane.NextChipClicked += next => FrameInstance(next.EventType, next.StartUtc, next.EndUtc);
@@ -1162,7 +1164,11 @@ namespace DreamTech.LiveOps.Editor
         {
             _readoutText.text = DragController.ReadoutMainText(_format);
             string overlap = DragController.ReadoutOverlapText(_format);
-            _readoutOverlap.text = overlap.Length > 0 ? LiveOpsHubStrings.TimelineReadoutSeparator + overlap : string.Empty;
+            // (UX-18, T2) Dấu ngăn dính vào chữ; khe trái do USS giữ. Ghép " · " + chữ thì UI Toolkit bỏ khoảng trắng ĐẦU của
+            // Label và người dùng đọc ra "UTC· chồng 12 giờ".
+            _readoutOverlap.text = overlap.Length > 0
+                ? string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.TimelineReadoutOverlapPrefixFormat, overlap)
+                : string.Empty;
             _readoutOverlap.EnableInClassList(LiveOpsHubClassNames.TimelineHidden, overlap.Length == 0);
             Readout.EnableInClassList(LiveOpsHubClassNames.TimelineHidden, false);
 
@@ -1179,9 +1185,17 @@ namespace DreamTech.LiveOps.Editor
             left = Math.Max(ReadoutMargin, Math.Min(left, _trackWidth - ReadoutMargin - readoutWidth));
             float laneTopInOverlay = row.Lane.worldBound.y - _overlay.worldBound.y;
             if (float.IsNaN(laneTopInOverlay)) laneTopInOverlay = 0f;
-            float top = Math.Max(0f, laneTopInOverlay + barTop - ReadoutHeight - ReadoutGapAboveBar);
+            // (UX-18, T3) Chỗ "phía trên thanh" của làn ĐẦU TIÊN chính là hàng dấu của thước: đặt readout ở đó là nó đè lên
+            // thước. Không đủ chỗ phía trên thì lật xuống DƯỚI thanh — thanh vẫn nhìn thấy, thước vẫn đọc được.
+            float rulerBottomInOverlay = Math.Max(0f, Ruler.worldBound.yMax - _overlay.worldBound.y);
+            if (float.IsNaN(rulerBottomInOverlay)) rulerBottomInOverlay = 0f;
+            float top = laneTopInOverlay + barTop - ReadoutHeight - ReadoutGapAboveBar;
+            if (top < rulerBottomInOverlay)
+            {
+                top = laneTopInOverlay + barTop + LiveOpsTimelineGeometry.BarHeight + ReadoutGapAboveBar;
+            }
             Readout.style.left = left; // style-inline-allowed: 6
-            Readout.style.top = top; // style-inline-allowed: 6
+            Readout.style.top = Math.Max(rulerBottomInOverlay, top); // style-inline-allowed: 6
         }
 
         private void ClearDragVisuals()

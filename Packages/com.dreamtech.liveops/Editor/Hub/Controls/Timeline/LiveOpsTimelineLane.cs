@@ -195,6 +195,17 @@ namespace DreamTech.LiveOps.Editor
                 LiveOpsTimelineBar bar = _bars[index];
                 bool willDrop = willDropBarKeys != null && willDropBarKeys.Contains(bar.Model.BarKey);
                 bar.EnableInClassList(LiveOpsHubClassNames.TimelineBarWillDrop, willDrop);
+                // (UX-14, UJ-13) Thanh ĐANG được xem trước phải mang dấu "bị bỏ" của XEM TRƯỚC, không của model: kéo hết chồng
+                // giờ mà thanh vẫn gạch ngang là màn hình nói ngược với thứ người dùng vừa làm. Thanh không nằm trong xem trước
+                // (null) giữ nguyên trạng thái model.
+                bar.SetDroppedPreview(IsUnderPreview(bar, willDropBarKeys, previewGeometry) ? (bool?)willDrop : null);
+            }
+            // Nhãn "chồng 12 giờ" phải đi theo vùng chồng đang vẽ; bind ở SetLane là chữ của model cũ, treo lại suốt cử chỉ kéo.
+            if (_lane != null && _geometry != null)
+            {
+                BindOverlapLabels(_lane.IsCollapsed
+                    ? Array.Empty<(DateTime startUtc, DateTime endUtc)>()
+                    : DrawnOverlaps, _geometry);
             }
             RebuildDroppedTags(willDropBarKeys, previewGeometry);
             MarkDirtyRepaint();
@@ -250,10 +261,12 @@ namespace DreamTech.LiveOps.Editor
             {
                 LiveOpsTimelineBar bar = _bars[index];
                 bool willDrop = willDropBarKeys != null && willDropBarKeys.Contains(bar.Model.BarKey);
-                if (!bar.Model.IsDropped && !willDrop) continue;
+                // (UX-14) Thanh trong xem trước mà xem trước nói KHÔNG bị bỏ thì tag cũ của model không được treo lại.
+                bool droppedNow = willDrop || (bar.Model.IsDropped && !IsUnderPreview(bar, willDropBarKeys, previewGeometry));
+                if (!droppedNow) continue;
                 VisualElement tag = DroppedTagAt(used++);
                 tag.EnableInClassList(LiveOpsHubClassNames.TimelineDroppedTagWillDrop, willDrop);
-                tag.Q<Label>().text = willDrop ? LiveOpsHubStrings.TimelineWillDropTag : LiveOpsHubStrings.TimelineDroppedTag;
+                tag.Q<Label>().text = DroppedTagTextFor(bar, willDrop);
                 float right = bar.Left + bar.Width;
                 if (previewGeometry != null && previewGeometry.TryGetValue(bar.Model.BarKey, out (float left, float width) preview))
                 {
@@ -266,6 +279,27 @@ namespace DreamTech.LiveOps.Editor
                 _droppedTagByBarKey[bar.Model.BarKey] = tag;
             }
             for (int index = used; index < _droppedTags.Count; index++) _droppedTags[index].EnableInClassList(LiveOpsHubClassNames.TimelineHidden, true);
+        }
+
+        /// <summary>
+        /// (UX-14) Thanh này có nằm trong xem trước của cử chỉ kéo không — tức là hình học của nó vừa được tính lại. Chỉ những
+        /// thanh đó mới được lấy dấu "bị bỏ" từ xem trước; thanh đứng yên giữ nguyên kết quả kiểm của model.
+        /// </summary>
+        private static bool IsUnderPreview(LiveOpsTimelineBar bar, ICollection<string> willDropBarKeys,
+            IDictionary<string, (float left, float width)> previewGeometry)
+        {
+            return willDropBarKeys != null && previewGeometry != null && previewGeometry.ContainsKey(bar.Model.BarKey);
+        }
+
+        /// <summary>
+        /// (UX-31, UJ-24) Chữ của tag: thanh đủ rộng để tự mang nhãn id thì tag chỉ nói trạng thái; thanh hẹp (nhãn trong thân
+        /// rỗng) thì tag phải nói luôn id, nếu không người dùng chỉ thấy "một đợt nào đó bị bỏ".
+        /// </summary>
+        private static string DroppedTagTextFor(LiveOpsTimelineBar bar, bool willDrop)
+        {
+            string state = willDrop ? LiveOpsHubStrings.TimelineWillDropTag : LiveOpsHubStrings.TimelineDroppedTag;
+            if (bar.Label.text.Length > 0 || bar.Model.EventId.Length == 0) return state;
+            return string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.TimelineDroppedTagWithIdFormat, bar.Model.EventId, state);
         }
 
         private VisualElement DroppedTagAt(int index)
@@ -512,11 +546,14 @@ namespace DreamTech.LiveOps.Editor
             nameRow.AddToClassList(LiveOpsHubClassNames.TimelineLaneNameRow);
             Add(nameRow);
             // (Hình 12 khung 12) Chevron gập đứng TRƯỚC swatch: nó nói trạng thái của cả làn, swatch chỉ nói màu loại.
-            Chevron = new VisualElement { pickingMode = PickingMode.Ignore };
+            // (UX-13, UJ-08) Nó TRÔNG như nút nên phải LÀ nút: vùng bấm 16×14 nhận chuột và đổi trạng thái thu gọn. Trước đợt
+            // W8-UX nó PickingMode.Ignore, bấm rơi vào hư không và lối vào duy nhất là menu chuột phải — không ai đoán ra.
+            Chevron = new VisualElement { pickingMode = PickingMode.Position, tooltip = LiveOpsHubStrings.TimelineMenuCollapseLane };
             Chevron.AddToClassList(LiveOpsHubClassNames.TimelineLaneChevron);
             VisualElement chevronShape = new VisualElement { pickingMode = PickingMode.Ignore };
             chevronShape.AddToClassList(LiveOpsHubClassNames.TimelineLaneChevronShape);
             Chevron.Add(chevronShape);
+            Chevron.RegisterCallback<ClickEvent>(OnChevronClicked);
             nameRow.Add(Chevron);
             Swatch = new VisualElement { pickingMode = PickingMode.Ignore };
             Swatch.AddToClassList(LiveOpsHubClassNames.Swatch);
@@ -575,6 +612,9 @@ namespace DreamTech.LiveOps.Editor
         /// <summary>Bấm chip "Không đặt được (n)" — TypeId của làn; presenter chọn đợt không đặt được (INTERIM I-5 ở W4).</summary>
         internal event Action<string> UnplaceableClicked;
 
+        /// <summary>(UX-13) Bấm chevron — (TypeId, trạng thái thu gọn MỚI); element biến thành <c>ToggleLaneCollapsedIntent</c>.</summary>
+        internal event Action<string, bool> CollapseToggleClicked;
+
         internal void Bind(LiveOpsTimelineLaneModel lane)
         {
             Model = lane ?? throw new ArgumentNullException(nameof(lane));
@@ -585,6 +625,7 @@ namespace DreamTech.LiveOps.Editor
             LiveOpsHubStyle.SetEventColor(Swatch, lane.ColorSlot);
             Swatch.EnableInClassList(LiveOpsHubClassNames.TimelineHidden, isUntyped);
             Chevron.EnableInClassList(LiveOpsHubClassNames.TimelineLaneChevronCollapsed, lane.IsCollapsed);
+            Chevron.tooltip = lane.IsCollapsed ? LiveOpsHubStrings.TimelineMenuExpandLane : LiveOpsHubStrings.TimelineMenuCollapseLane;
             EnableInClassList(LiveOpsHubClassNames.TimelineLaneCollapsed, lane.IsCollapsed);
             LoopIcon.EnableInClassList(LiveOpsHubClassNames.TimelineHidden, !lane.IsRecurring);
             LoopIcon.tooltip = lane.IsRecurring ? LiveOpsHubStrings.TimelineRecurringLaneTooltip : string.Empty;
@@ -607,6 +648,14 @@ namespace DreamTech.LiveOps.Editor
                 : string.Empty;
             SecondaryMetaLabel.text = lane.SecondaryMetaText;
             SecondaryMetaLabel.EnableInClassList(LiveOpsHubClassNames.TimelineHidden, lane.SecondaryMetaText.Length == 0);
+        }
+
+        private void OnChevronClicked(ClickEvent clickEvent)
+        {
+            if (Model == null) return;
+            // Chặn lan lên: làn dưới header không được hiểu cú bấm này thành chọn thanh hay mở khung chọn.
+            clickEvent.StopPropagation();
+            CollapseToggleClicked?.Invoke(Model.TypeId, !Model.IsCollapsed);
         }
 
         private void OnUnplaceableClicked(ClickEvent clickEvent)
