@@ -319,8 +319,8 @@ namespace DreamTech.LiveOps.Editor
                 english: "Times");
             table.AddShared(nameof(LiveOpsHubStrings.CalendarTimeRangeFormat), "{0} → {1} UTC");
             table.Add(nameof(LiveOpsHubStrings.CalendarAddConfigKeyNoteFormat),
-                vietnamese: "để trống = mặc định của loại, Xuất ghi `{0}`",
-                english: "leave empty = the type default, Export writes `{0}`");
+                vietnamese: "để trống = mặc định của loại, Xuất ghi {0}",
+                english: "leave empty = the type default, Export writes {0}");
             table.Add(nameof(LiveOpsHubStrings.CalendarAddSubmitFormat),
                 vietnamese: "Thêm {0} vào lịch",
                 english: "Add {0} to the calendar");
