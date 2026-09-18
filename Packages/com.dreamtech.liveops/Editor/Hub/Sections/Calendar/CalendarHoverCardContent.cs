@@ -57,7 +57,9 @@ namespace DreamTech.LiveOps.Editor
                 format.DeviceClock(bar.StartUtc) + " " + LiveOpsHubStrings.DeviceTimeSuffix)));
             card.Add(KeyValueRow(LiveOpsHubStrings.CalendarDepthHoverEndLabel, string.Format(CultureInfo.InvariantCulture,
                 LiveOpsHubStrings.CalendarDepthHoverEndValueFormat, format.ShortDateTime(bar.EndUtc),
-                format.Duration(bar.EndUtc - bar.StartUtc, true))));
+                // (UX-28, V11/UJ-20) Dạng ĐỦ CHỮ: thẻ rộng 260px và người đọc đang dừng chuột để đọc kỹ — "1n 12g" là dạng của
+                // readout khi kéo, chỗ duy nhất thật sự thiếu chỗ.
+                format.Duration(bar.EndUtc - bar.StartUtc, false))));
 
             if (finding != null) card.Add(ProblemRow(finding, format, latestStamp, services.Clock.UtcNow));
 

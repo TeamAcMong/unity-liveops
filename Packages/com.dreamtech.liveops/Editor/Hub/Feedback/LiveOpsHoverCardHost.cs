@@ -64,6 +64,16 @@ namespace DreamTech.LiveOps.Editor
         public bool IsVisible { get; private set; }
         public bool IsPinned { get; private set; }
 
+        /// <summary>
+        /// (UX-05, UJ-05) Thẻ đang bị tắt vì một cử chỉ đang chạy (kéo thanh trên trục). Vì sao cần cổng riêng thay vì dựa vào
+        /// PointerLeave: lúc kéo, element giữ pointer capture và mỗi bước xem trước dựng lại làn — thanh đang hover bị thay bằng
+        /// element MỚI, nên Leave của thanh cũ không bao giờ tới và thẻ treo lại che đúng chỗ người dùng đang nhắm.
+        /// </summary>
+        public bool IsSuppressed { get; private set; }
+
+        /// <summary>Số đích còn đăng ký — test dọn đích chết đọc ở đây.</summary>
+        internal int AttachedTargetCount => _contentBuilders.Count;
+
         /// <summary>Đích đang có thẻ (hoặc đang chờ 500ms); null khi không có.</summary>
         public VisualElement CurrentTarget { get; private set; }
 
@@ -74,11 +84,50 @@ namespace DreamTech.LiveOps.Editor
         {
             if (target == null) throw new ArgumentNullException(nameof(target));
             if (buildContent == null) throw new ArgumentNullException(nameof(buildContent));
+            PruneDetachedTargets();
             bool isNew = !_contentBuilders.ContainsKey(target);
             _contentBuilders[target] = buildContent;
             if (!isNew) return;
             target.RegisterCallback<PointerEnterEvent>(pointerEvent => HandlePointerEnter(target));
             target.RegisterCallback<PointerLeaveEvent>(pointerEvent => HandlePointerLeave(target));
+        }
+
+        /// <summary>
+        /// (UX-05) Bật/tắt cổng khi một cử chỉ bắt đầu và kết thúc. Bật: ẩn thẻ đang hiện và huỷ thẻ đang chờ. Tắt: KHÔNG tự
+        /// hiện lại — người dùng vừa nhả chuột thì cái họ nhìn là thanh vừa thả, không phải một thẻ bật lên đè lên nó.
+        /// </summary>
+        public void Suppress(bool isSuppressed)
+        {
+            if (IsSuppressed == isSuppressed) return;
+            IsSuppressed = isSuppressed;
+            if (isSuppressed) Hide();
+        }
+
+        /// <summary>
+        /// (UX-05) Dọn đích đã rời cây: mỗi lần vẽ lại làn thay thanh bằng element mới, builder của element cũ ở lại mãi trong
+        /// từ điển và thẻ của nó có thể còn đang hiện. Gọi sau mỗi lần gắn lại hover card cho tập thanh mới.
+        /// </summary>
+        public void PruneDetachedTargets()
+        {
+            List<VisualElement> dead = null;
+            foreach (KeyValuePair<VisualElement, Func<VisualElement>> pair in _contentBuilders)
+            {
+                if (pair.Key.panel != null) continue;
+                if (dead == null) dead = new List<VisualElement>();
+                dead.Add(pair.Key);
+            }
+            if (dead == null) return;
+            for (int index = 0; index < dead.Count; index++)
+            {
+                VisualElement target = dead[index];
+                _contentBuilders.Remove(target);
+                if (_pendingTarget == target)
+                {
+                    _pendingTarget = null;
+                    _showAtSeconds = double.NaN;
+                }
+                if (CurrentTarget == target) HideVisibleCard();
+            }
         }
 
         /// <summary>F8: hiện ngay và ghim — rời chuột không tắt, chỉ <see cref="Hide"/> (Esc/F8 lần nữa/điều hướng) mới tắt.</summary>
@@ -118,7 +167,7 @@ namespace DreamTech.LiveOps.Editor
 
         internal void HandlePointerEnter(VisualElement target)
         {
-            if (IsPinned) return;
+            if (IsPinned || IsSuppressed) return;
             if (IsVisible && CurrentTarget == target)
             {
                 CancelHide();
