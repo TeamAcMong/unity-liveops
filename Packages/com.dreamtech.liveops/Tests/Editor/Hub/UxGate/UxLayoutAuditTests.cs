@@ -455,10 +455,16 @@ namespace DreamTech.LiveOps.Editor.Tests
             };
         }
 
+        /// <summary>
+        /// Bề rộng header làn của timeline [SD1 §3.2]: cột timeline = header làn 168px + track. Track không bao giờ với tới
+        /// 168px đó, nên luật giãn phải tính trên phần cột CÒN LẠI (G-FIX-UX-4 ở cổng đợt W8-UX).
+        /// </summary>
+        private const float TimelineLaneHeaderWidth = 168f;
+
         private static UxLayoutStretchRule RulerTrackStretchRule()
         {
             return new UxLayoutStretchRule("." + LiveOpsHubClassNames.TimelineRulerTrack,
-                LiveOpsHubPaths.CalendarElementNames.TimelineColumn, false, StretchRatio);
+                LiveOpsHubPaths.CalendarElementNames.TimelineColumn, false, StretchRatio, TimelineLaneHeaderWidth);
         }
 
         private static UxLayoutStretchRule[] CalendarStretchRules()
