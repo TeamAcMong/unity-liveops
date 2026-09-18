@@ -13,6 +13,9 @@ namespace DreamTech.LiveOps.Editor
         private const string LoopIconName = "preAudioLoopOff";
         private const int LoopIconSize = 10;
 
+        /// <summary>Màu loại của dải mẫu — khe 0, đúng màu làn đầu tiên trên trục nên mắt nối được mẫu với thanh thật.</summary>
+        private const int SampleColorSlot = 0;
+
         public LiveOpsTimelineLegend()
         {
             AddToClassList(LiveOpsHubClassNames.TimelineLegend);
@@ -25,7 +28,9 @@ namespace DreamTech.LiveOps.Editor
             AddItem(recurring, LiveOpsHubStrings.TimelineLegendRecurring, loopIcon);
 
             AddItem(Sample(LiveOpsHubClassNames.TimelineLegendSampleEnded), LiveOpsHubStrings.TimelineLegendEnded);
-            AddItem(Sample(LiveOpsHubClassNames.TimelineLegendSampleOverlap), LiveOpsHubStrings.TimelineLegendOverlap);
+            // (R-10) Mẫu "vùng chồng giờ" giải thích MẢNG NỀN gạch chéo trên trục, không phải một thanh. Gắn dải màu loại cho nó
+            // là mẫu nói sai thứ nó giải thích — người đọc tưởng vùng chồng cũng là một đợt. Nó đã có viền + nền blocked riêng.
+            AddItem(Sample(LiveOpsHubClassNames.TimelineLegendSampleOverlap, false), LiveOpsHubStrings.TimelineLegendOverlap);
 
             VisualElement changed = Sample(LiveOpsHubClassNames.TimelineLegendSampleFixed);
             changed.Add(SamplePart(LiveOpsHubClassNames.TimelineBarChangedSquare));
@@ -59,11 +64,21 @@ namespace DreamTech.LiveOps.Editor
             Add(item);
         }
 
-        private static VisualElement Sample(string variantClassName)
+        /// <summary>
+        /// (UX-19, V13) Mẫu mang CẢ dải màu đáy 3px của thanh thật, không chỉ nền + viền: ở skin sáng nền nút và nền cửa sổ đo
+        /// ra 1,00:1, nên mẫu "nhạt = đã khép" và "thanh phẳng" biến mất hẳn và chú giải chỉ còn chữ. Dải lấy màu loại 0 —
+        /// cùng token với thanh trên trục, nên mẫu đổi màu theo skin cùng nhịp thứ nó giải thích.
+        /// </summary>
+        /// <param name="withStripe">Chỉ mẫu hình THANH mới mang dải màu loại; mẫu vùng chồng giờ là mảng nền nên không (R-10).</param>
+        private static VisualElement Sample(string variantClassName, bool withStripe = true)
         {
             VisualElement sample = new VisualElement { pickingMode = PickingMode.Ignore };
             sample.AddToClassList(LiveOpsHubClassNames.TimelineLegendSample);
             sample.AddToClassList(variantClassName);
+            if (!withStripe) return sample;
+            VisualElement stripe = SamplePart(LiveOpsHubClassNames.TimelineBarStripe);
+            LiveOpsHubStyle.SetEventColor(stripe, SampleColorSlot);
+            sample.Add(stripe);
             return sample;
         }
 
