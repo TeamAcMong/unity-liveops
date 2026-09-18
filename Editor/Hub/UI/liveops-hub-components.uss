@@ -352,6 +352,14 @@
     border-radius: 3px;
     border-color: var(--unity-colors-window-border);
     -unity-text-align: middle-left;
+    /* Co theo nội dung: không có nó thì tag trong một cột stretch kéo hết bề rộng và đọc như một khối nền (C9). */
+    align-self: flex-start;
+    flex-shrink: 0;
+}
+
+/* Dấu trạng thái đứng đầu tag ("dấu Ok" của [SD1 §3.11]) — nền tag không bao giờ là chỗ nói trạng thái. */
+.liveops-hub-tag > .liveops-hub-state-mark {
+    margin-right: var(--liveops-hub-space-4);
 }
 
 .liveops-hub-caption {
@@ -412,6 +420,143 @@
 
 .liveops-hub-row--flash {
     background-color: var(--unity-colors-highlight-background-hover);
+}
+
+/* ---------------------------------------------------------------- Inspector đợt trong pane 280px (W8-UX: C3, C4, C5, C6, T10)
+
+   Vì sao class của màn Lịch lại sống ở đây: luật trong CalendarSection.uss thuộc gói khác của cùng đợt W8, nên gói inspector
+   thêm class CỦA MÌNH ở sheet dùng chung và gắn từ C#. Số đo bám [SD1 §3.1] (inspector 280px) và đo lại trên ảnh h01. */
+
+/* Hàng field wrap: chỗ không đủ thì hậu tố / ghi chú / nút xuống dòng dưới, thay vì bị đẩy ra ngoài pane. */
+.liveops-hub-calendar-inspector-row {
+    flex-wrap: wrap;
+}
+
+/* Nút trong hàng inspector không co — co là mất chữ; hàng đã wrap nên nó xuống dòng. */
+.liveops-hub-calendar-inspector-row > .liveops-hub-button {
+    flex-shrink: 0;
+}
+
+.liveops-hub-calendar-inspector-field {
+    flex-shrink: 1;
+    min-width: 0;
+}
+
+/* Nhãn BaseField giữ min-width 120px mặc định của Unity: trong 272px còn lại của pane thì "UTC", hậu tố "giờ" và nút
+   "Về mặc định" bị đẩy ra ngoài (C3). 84px đủ cho nhãn dài nhất của cả hai ngôn ngữ mà không phải cắt chữ. */
+.liveops-hub-calendar-inspector-field > .unity-base-field__label {
+    width: 84px;
+    min-width: 84px;
+    flex-shrink: 0;
+}
+
+/* 2022.3 đặt flex-grow: 1 cho .unity-base-field__input nên ô nhập giãn hết bề rộng và nuốt mọi thứ đứng sau (C5). */
+.liveops-hub-calendar-inspector-field > .unity-base-field__input {
+    flex-grow: 0;
+    flex-shrink: 1;
+    min-width: 0;
+}
+
+/* Ô số ("Dài") giữ đúng 52px như [SD1 §3.1] để hậu tố và ghi chú còn chỗ. */
+.liveops-hub-calendar-inspector-field--number {
+    width: 136px;
+    flex-grow: 0;
+    flex-shrink: 0;
+}
+
+.liveops-hub-calendar-inspector-field--number > .unity-base-field__input {
+    width: 52px;
+    flex-grow: 0;
+    flex-shrink: 0;
+}
+
+/* Ô chữ (Id, Loại, Config key) ăn phần còn lại của hàng nhưng CO được, để nút cạnh nó không bị đẩy ra ngoài. */
+.liveops-hub-calendar-inspector-field--text {
+    flex-grow: 1;
+}
+
+.liveops-hub-calendar-inspector-field--text > .unity-base-field__input {
+    flex-grow: 1;
+}
+
+/* Cột nhãn của hàng CHỈ ĐỌC ("Phải bấm tham gia", "Nguồn") trùng cột nhãn của field (T10); nhãn dài xuống dòng, không cắt. */
+.liveops-hub-calendar-inspector-label {
+    width: 84px;
+    min-width: 84px;
+    flex-shrink: 0;
+    white-space: normal;
+}
+
+.liveops-hub-calendar-inspector-value {
+    flex-shrink: 1;
+    min-width: 0;
+    white-space: normal;
+}
+
+/* Câu dài của inspector và của popover (ghi chú, hướng dẫn, headline/meta của card Vấn đề) xuống dòng — một dòng thì mép
+   pane cắt mất nửa câu (C6, UJ-16). */
+.liveops-hub-calendar-wrap-text {
+    white-space: normal;
+}
+
+/* Card "Vấn đề" trong pane 280px xếp CỘT: hàng ngang (luật của màn Kiểm lịch) đẩy hai nút đề xuất ra ngoài pane (C4). */
+.liveops-hub-calendar-finding-card--stacked {
+    flex-direction: column;
+    align-items: stretch;
+    padding-right: 6px;
+}
+
+.liveops-hub-calendar-finding-card--stacked > .liveops-hub-button {
+    margin-left: 0;
+    margin-top: var(--liveops-hub-space-4);
+    height: auto;
+    min-height: 18px;
+    white-space: normal;
+    padding-top: 2px;
+    padding-bottom: 2px;
+}
+
+/* Ghi chú "= 3 ngày" đứng NGAY SAU hậu tố trong cùng hàng: margin-left 63px của .liveops-hub-calendar-field-subline là số đo
+   của dòng phụ đứng riêng, dùng lại trong hàng thì đẩy ghi chú ra ngoài pane. */
+.liveops-hub-calendar-field-note-inline {
+    margin-left: var(--liveops-hub-space-4);
+    flex-shrink: 0;
+}
+
+/* ---------------------------------------------------------------- Popover Thêm đợt 320px (W8-UX: C7, V17) */
+
+/* Gợi ý phím chiếm trọn DÒNG ĐẦU của hàng nút (hàng đã wrap) — nằm cùng dòng với nút thì nút chỉ còn ~110px và bị cắt. */
+.liveops-hub-calendar-flow-key-line {
+    width: 100%;
+    flex-basis: 100%;
+    flex-shrink: 0;
+    font-size: 10px;
+    opacity: 0.82;
+    white-space: normal;
+}
+
+.liveops-hub-calendar-flow-buttons--wrap {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+}
+
+/* Nút của popover xuống dòng thay vì bị cắt: "Vẫn thêm (game sẽ bỏ đợt này)" mà cụt là nút phá huỷ giấu đúng câu hậu quả. */
+.liveops-hub-calendar-flow-button {
+    flex-shrink: 1;
+    min-width: 0;
+    height: auto;
+    min-height: 18px;
+    white-space: normal;
+    padding-top: 2px;
+    padding-bottom: 2px;
+    margin-top: 2px;
+}
+
+/* Chữ dẫn trong ô Config key: nghiêng cỡ nhỏ như [SD1 §3.11] — cỡ thường thì câu "mặc định của loại: hunt_default" dài hơn
+   ô và bị cắt (V17). */
+.liveops-hub-calendar-flow-hint {
+    font-size: 10px;
+    -unity-font-style: italic;
 }
 
 /* ---------------------------------------------------------------- Placeholder phủ TextField — [FD §2.11] */
