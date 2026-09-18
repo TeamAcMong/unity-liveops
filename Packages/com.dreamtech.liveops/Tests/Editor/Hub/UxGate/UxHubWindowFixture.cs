@@ -97,7 +97,12 @@ namespace DreamTech.LiveOps.Editor.Tests
         /// <summary>
         /// Mở hub ở <paramref name="sectionId"/>. <paramref name="services"/> null = mẫu thiết kế; <paramref name="prepare"/> chạy
         /// TRƯỚC Show (view của màn dựng trong CreateGUI, sửa sau Show là đua với lượt layout đầu) và chỉ được dựng trạng thái
-        /// khởi đầu giống người dùng mở lại hub — không dùng để gây hành vi đang được kiểm.
+        /// KHỞI ĐẦU giống người dùng mở lại hub — không dùng để gây hành vi đang được kiểm.
+        /// <para>
+        /// Chỗ duy nhất hiện dùng nó là trạng thái "đang ẩn n làn" (UX-12): làn chỉ ẩn được qua menu chuột phải (GenericMenu của
+        /// IMGUI, <c>SendEvent</c> không với tới), nên nếu không dựng sẵn thì test khoá UX-12 buộc phải <c>Assert.Ignore</c> —
+        /// và một test Ignore ở CẢ hai bản Unity không khoá được lỗi nào.
+        /// </para>
         /// </summary>
         public static UxHubWindowFixture Open(string sectionId, UxWindowSize size, LiveOpsHubLanguageId language,
             LiveOpsHubServices services = null, Action<IReadOnlyList<IHubSection>> prepare = null)
@@ -126,29 +131,34 @@ namespace DreamTech.LiveOps.Editor.Tests
         /// <summary>
         /// Chờ root có layout rồi chờ thêm để GeometryChanged (breakpoint, bề rộng track) và lượt dựng lại sau nó chạy xong.
         /// Cửa sổ bị hệ điều hành KẸP nhỏ hơn cỡ yêu cầu (màn hình máy chạy thấp hơn 1040) KHÔNG làm test đỏ: lượt kiểm vẫn chạy
-        /// trên cửa sổ thật đó — lỗi tìm được vẫn là lỗi thật — nhưng <see cref="ClampNote"/> ghi lại để câu assert nói rõ cỡ nào
-        /// chưa được đo đúng trên máy này. Làm đỏ thì cổng hỏng vĩnh viễn trên mọi máy màn hình nhỏ; im lặng thì người đọc tưởng
-        /// đã đo đủ sáu cỡ.
+        /// trên cửa sổ thật đó — lỗi tìm được vẫn là lỗi thật — nhưng <see cref="IsClamped"/>/<see cref="ClampNote"/> ghi lại để
+        /// câu assert VÀ JSON chẩn đoán nói rõ cỡ nào chưa được đo đúng trên máy này. Làm đỏ thì cổng hỏng vĩnh viễn trên mọi máy
+        /// màn hình nhỏ; im lặng thì người đọc tưởng đã đo đủ sáu cỡ.
+        /// <para>
+        /// Kẹp đo trên <c>window.position</c> chứ không trên chiều cao root trừ đi một hằng "chrome" đoán trước: bản đầu tiên trừ
+        /// 40 px nên 1440x900 kẹp còn 886 (hụt 14) KHÔNG bị đánh dấu, và lượt cổng tưởng đã đo đủ sáu cỡ (R-08). Khung cửa sổ là
+        /// thứ hệ điều hành kẹp, so đúng nó thì không cần đoán chrome.
+        /// </para>
         /// </summary>
         public IEnumerator WaitForLayout()
         {
             yield return UxEventSender.WaitUntil(() => LiveOpsHubWindowTestScope.HasLayout(Root),
                 "cửa sổ hub " + Size + " không có layout — test UxGate phải chạy KHÔNG -nographics");
             yield return UxEventSender.Settle(UxEventSender.SettleFrames * 3, UxEventSender.SettleMilliseconds * 4);
-            Rect bound = Root.worldBound;
-            bool clamped = bound.width < Size.Width - WindowClampTolerance
-                || bound.height < Size.Height - WindowClampTolerance - HostChromeHeight;
-            ClampNote = clamped
-                ? Size + " bị kẹp còn " + UxLayoutAuditor.Number(bound.width) + "x" + UxLayoutAuditor.Number(bound.height)
-                  + " (màn hình máy chạy nhỏ hơn cỡ yêu cầu)"
+            Rect position = Window.position;
+            IsClamped = position.width < Size.Width - WindowClampTolerance || position.height < Size.Height - WindowClampTolerance;
+            ClampNote = IsClamped
+                ? Size + " bị kẹp còn cửa sổ " + UxLayoutAuditor.Number(position.width) + "x" + UxLayoutAuditor.Number(position.height)
+                  + " (vùng vẽ " + UxLayoutAuditor.Number(Root.worldBound.width) + "x" + UxLayoutAuditor.Number(Root.worldBound.height)
+                  + ") — màn hình máy chạy nhỏ hơn cỡ yêu cầu"
                 : string.Empty;
         }
 
         /// <summary>Rỗng khi cửa sổ đúng cỡ; khác rỗng = cỡ này chưa được đo đúng trên máy đang chạy (xem <see cref="WaitForLayout"/>).</summary>
         public string ClampNote { get; private set; } = string.Empty;
 
-        /// <summary>Dải tab của cửa sổ nổi ăn vào chiều cao root; không tính là cửa sổ bị kẹp.</summary>
-        private const float HostChromeHeight = 40f;
+        /// <summary>true = hệ điều hành kẹp cửa sổ nhỏ hơn cỡ yêu cầu; JSON chẩn đoán ghi cờ này để báo cáo đọc được.</summary>
+        public bool IsClamped { get; private set; }
 
         /// <summary>Đổi cỡ cửa sổ như kéo mép cửa sổ (UX-03): đặt position rồi chờ layout ổn định.</summary>
         public IEnumerator Resize(UxWindowSize size)
@@ -159,28 +169,55 @@ namespace DreamTech.LiveOps.Editor.Tests
         }
 
         /// <summary>
-        /// Đi tới màn như người dùng: bấm hàng rail của màn đó; rail hẹp (không có hàng hiện) thì bấm ô rail thu gọn cùng thứ tự.
-        /// Không gọi <c>ApplyNavigation</c> — điều hướng bằng code bỏ qua đúng đường chuột mà hub phải hỗ trợ ở cỡ hẹp.
+        /// Đi tới màn như người dùng: BẤM hàng rail của màn đó. Không gọi <c>ApplyNavigation</c> — điều hướng bằng code bỏ qua
+        /// đúng đường chuột mà hub phải hỗ trợ.
+        /// <para>
+        /// Chỉ dùng được ở cỡ CÓ hàng rail. Ở rail thu gọn, bấm ô icon mở <c>GenericMenu.DropDown</c> (IMGUI) — phiên tự động
+        /// không lái được menu đó, và ở 2022.3 batchmode menu còn ở lại chặn mọi test sau (lượt đầu của đợt này treo tới hết hạn
+        /// giờ vì đúng chuyện đó). Đường hẹp vì vậy kiểm bằng <see cref="RailEntryFor"/> + <c>PickReaches</c>, không bấm.
+        /// </para>
         /// </summary>
         public IEnumerator NavigateByRail(string sectionId)
         {
             if (string.Equals(Window.ActiveSectionId, sectionId, StringComparison.Ordinal)) yield break;
             VisualElement row = Window.Rail.GetRow(sectionId);
-            if (row != null && UxLayoutAuditor.IsShownOnScreen(row))
-            {
-                yield return UxEventSender.Click(Window, row);
-            }
-            else
-            {
-                int sectionIndex = IndexOfSection(sectionId);
-                IReadOnlyList<VisualElement> cells = Window.Rail.NarrowCells;
-                Assert.IsTrue(sectionIndex >= 0 && cells != null && sectionIndex < cells.Count && UxLayoutAuditor.IsShownOnScreen(cells[sectionIndex]),
-                    "không có hàng rail nào bấm được để tới màn '" + sectionId + "' ở cỡ " + Size);
-                yield return UxEventSender.Click(Window, cells[sectionIndex]);
-            }
+            Assert.IsTrue(row != null && UxLayoutAuditor.IsShownOnScreen(row),
+                "không có hàng rail nào hiện ra để bấm tới màn '" + sectionId + "' ở cỡ " + Size
+                + " — ở rail thu gọn hãy dùng RailEntryFor + PickReaches, đừng bấm (ô icon mở GenericMenu)");
+            yield return UxEventSender.Click(Window, row);
             yield return UxEventSender.WaitUntil(() => string.Equals(Window.ActiveSectionId, sectionId, StringComparison.Ordinal),
                 "bấm rail không đưa hub tới màn '" + sectionId + "'");
             yield return UxEventSender.Settle(UxEventSender.SettleFrames * 2, UxEventSender.SettleMilliseconds * 2);
+        }
+
+        /// <summary>
+        /// Lối vào rail của một màn ở cỡ hiện tại: hàng rail khi rail còn hàng, ô icon của tầng chứa màn đó khi rail đã thu gọn.
+        /// Null = ở cỡ này người dùng không có lối nào tới màn đó.
+        /// </summary>
+        public VisualElement RailEntryFor(string sectionId)
+        {
+            VisualElement row = Window.Rail.GetRow(sectionId);
+            if (row != null && UxLayoutAuditor.IsShownOnScreen(row)) return row;
+            int sectionIndex = IndexOfSection(sectionId);
+            IReadOnlyList<VisualElement> cells = Window.Rail.NarrowCells;
+            if (sectionIndex < 0 || cells == null || sectionIndex >= cells.Count) return null;
+            return cells[sectionIndex];
+        }
+
+        /// <summary>
+        /// Nút "Thêm đợt" của header màn Lịch, tìm theo CHỮ của nó trong catalog. Lấy nút ĐẦU TIÊN của vùng hành động là sai:
+        /// thêm một nút nữa vào header là test UX-10 bấm nhầm nút và đỏ vì một lý do không có thật (R-19).
+        /// </summary>
+        public Button AddEventButton()
+        {
+            VisualElement actions = Root.Q(LiveOpsHubPaths.ShellElementNames.SectionActions);
+            if (actions == null) return null;
+            string label = LiveOpsHubStrings.CalendarAddEventButton;
+            foreach (Button button in actions.Query<Button>().ToList())
+            {
+                if (string.Equals(button.text, label, StringComparison.Ordinal)) return button;
+            }
+            return null;
         }
 
         /// <summary>Thanh timeline theo khoá (entry key) — tên element của thanh là khoá của nó.</summary>

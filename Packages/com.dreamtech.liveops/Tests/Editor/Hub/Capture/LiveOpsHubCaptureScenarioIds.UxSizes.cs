@@ -31,5 +31,29 @@ namespace DreamTech.LiveOps.Editor.Tests
         internal const string UxRecurring1280 = "ux-recurring-1280x760";
         internal const string UxRecurring1440 = "ux-recurring-1440x900";
         internal const string UxRecurring1920 = "ux-recurring-1920x1040";
+
+        // Nhánh TIẾNG ANH của cùng ma trận. Vì sao có: chính báo cáo gói ghi bản en nhiều lỗi hơn bản vi (37 so với 32 ở cỡ
+        // 700) — duyệt ảnh chỉ ở bản ít lỗi hơn là duyệt nửa nhẹ của vấn đề (R-10). Id thêm mảnh "-en-" để hai nhánh xếp cạnh
+        // nhau khi sắp theo tên.
+        internal const string UxCalendarEnglish700 = "ux-calendar-en-700x560";
+        internal const string UxCalendarEnglish820 = "ux-calendar-en-820x560";
+        internal const string UxCalendarEnglish1024 = "ux-calendar-en-1024x700";
+        internal const string UxCalendarEnglish1280 = "ux-calendar-en-1280x760";
+        internal const string UxCalendarEnglish1440 = "ux-calendar-en-1440x900";
+        internal const string UxCalendarEnglish1920 = "ux-calendar-en-1920x1040";
+
+        internal const string UxCalendarSelectedEnglish700 = "ux-calendar-selected-en-700x560";
+        internal const string UxCalendarSelectedEnglish820 = "ux-calendar-selected-en-820x560";
+        internal const string UxCalendarSelectedEnglish1024 = "ux-calendar-selected-en-1024x700";
+        internal const string UxCalendarSelectedEnglish1280 = "ux-calendar-selected-en-1280x760";
+        internal const string UxCalendarSelectedEnglish1440 = "ux-calendar-selected-en-1440x900";
+        internal const string UxCalendarSelectedEnglish1920 = "ux-calendar-selected-en-1920x1040";
+
+        internal const string UxRecurringEnglish700 = "ux-recurring-en-700x560";
+        internal const string UxRecurringEnglish820 = "ux-recurring-en-820x560";
+        internal const string UxRecurringEnglish1024 = "ux-recurring-en-1024x700";
+        internal const string UxRecurringEnglish1280 = "ux-recurring-en-1280x760";
+        internal const string UxRecurringEnglish1440 = "ux-recurring-en-1440x900";
+        internal const string UxRecurringEnglish1920 = "ux-recurring-en-1920x1040";
     }
 }

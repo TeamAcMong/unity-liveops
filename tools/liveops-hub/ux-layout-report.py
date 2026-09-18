@@ -28,6 +28,8 @@ FINDING_KINDS = [
     ("notStretched", "không giãn theo cửa sổ"),
     ("siblingOverlap", "anh em chồng nhau"),
     ("absoluteOverText", "lớp nổi đè chữ"),
+    ("pairOverlap", "hai khối cấm chồng lại chồng"),
+    ("lowContrast", "dấu màu không đủ tương phản"),
 ]
 
 # Hai khoá CHẨN ĐOÁN, không tính vào tổng: zeroSizeNamed (khung hub có spacer/vùng rỗng cao 0 đúng thiết kế — ô quan trọng
@@ -66,16 +68,36 @@ def normalise(document, path):
                        if any(mark in line for mark in SCROLL_VIEW_PROBLEM_MARKS)]
     counts["scrollViews"] = len(scroll_problems)
     entries["scrollViews"] = scroll_problems
+    # Cờ "cỡ này CHƯA đo đúng" và "loại này đã bị cắt bớt dòng" phải hiện ra trong bảng: một lượt xanh mà nửa số cỡ bị hệ
+    # điều hành kẹp, hoặc một loại 1.176 dòng chỉ còn 200, đều là báo cáo nói dối nếu chỉ in con số (R-08, R-14).
+    window_position = document.get("windowPosition") or {}
+    requested_size = document.get("requestedSize") or {}
+    truncated = document.get("truncated") or {}
     return {
         "path": path,
         "screen": document.get("screen", "?"),
         "size": document.get("size", "?"),
         "language": document.get("language", "?"),
         "unityVersion": document.get("unityVersion", "?"),
+        "clamped": bool(document.get("clamped")),
+        "clampNote": document.get("clampNote", ""),
+        "actualSize": "%dx%d" % (int(window_position.get("width", 0)), int(window_position.get("height", 0)))
+                      if window_position else "?",
+        "requestedSize": "%dx%d" % (int(requested_size.get("width", 0)), int(requested_size.get("height", 0)))
+                         if requested_size else "?",
+        "truncated": truncated,
         "counts": counts,
         "entries": entries,
         "total": sum(count for kind, count in counts.items() if kind not in [item[0] for item in DIAGNOSTIC_KINDS]),
     }
+
+
+def truncation_text(record):
+    """Mô tả các loại đã chạm trần dòng của một lượt; rỗng thì trả "-"."""
+    truncated = record["truncated"]
+    if not truncated:
+        return "-"
+    return "; ".join("%s=%s" % (kind, count) for kind, count in sorted(truncated.items()))
 
 
 def kind_labels():
@@ -92,14 +114,34 @@ def group_totals(records, key):
 def markdown_table(records, before_records):
     lines = []
     labels = kind_labels()
-    header = ["màn", "cỡ", "ngôn ngữ", "bản Unity"] + [label for _, label in labels] + ["tổng"]
+    header = ["màn", "cỡ", "cỡ thật", "ngôn ngữ", "bản Unity"] + [label for _, label in labels] + ["cắt bớt", "tổng"]
     lines.append("| " + " | ".join(header) + " |")
     lines.append("|" + "---|" * len(header))
     for record in sorted(records, key=lambda item: (item["screen"], item["size"], item["language"], item["unityVersion"])):
-        row = [record["screen"], record["size"], record["language"], record["unityVersion"]]
+        actual = record["actualSize"] + (" KẸP" if record["clamped"] else "")
+        row = [record["screen"], record["size"], actual, record["language"], record["unityVersion"]]
         row += [str(record["counts"].get(kind, 0)) for kind, _ in labels]
+        row.append(truncation_text(record))
         row.append(str(record["total"]))
         lines.append("| " + " | ".join(row) + " |")
+
+    clamped_records = [record for record in records if record["clamped"]]
+    if clamped_records:
+        lines.append("")
+        lines.append("### Cỡ CHƯA đo đúng trên máy chạy (cửa sổ bị hệ điều hành kẹp)")
+        lines.append("")
+        for record in sorted(clamped_records, key=lambda item: (item["screen"], item["size"])):
+            lines.append("- %s · %s · %s — %s" % (record["screen"], record["size"], record["language"],
+                                                  record["clampNote"] or "cửa sổ nhỏ hơn cỡ yêu cầu"))
+
+    truncated_records = [record for record in records if record["truncated"]]
+    if truncated_records:
+        lines.append("")
+        lines.append("### Loại bị CẮT BỚT dòng (JSON chỉ giữ phần đầu — con số dưới đây mới là số thật)")
+        lines.append("")
+        for record in sorted(truncated_records, key=lambda item: (item["screen"], item["size"])):
+            lines.append("- %s · %s · %s — %s" % (record["screen"], record["size"], record["language"],
+                                                  truncation_text(record)))
 
     if before_records:
         lines.append("")
@@ -164,7 +206,10 @@ def main():
         body += "\n" + detail_lines(records)
     print("# %s\n" % title)
     print(body)
-    print("\nTổng: %d chỗ không dùng được trên %d lượt kiểm." % (sum(item["total"] for item in records), len(records)))
+    clamped_count = sum(1 for item in records if item["clamped"])
+    truncated_count = sum(1 for item in records if item["truncated"])
+    print("\nTổng: %d chỗ không dùng được trên %d lượt kiểm (%d lượt bị kẹp cỡ, %d lượt bị cắt bớt dòng)."
+          % (sum(item["total"] for item in records), len(records), clamped_count, truncated_count))
     if options.html:
         write_html(options.html, title, body)
         print("HTML: %s" % options.html)

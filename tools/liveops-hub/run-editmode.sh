@@ -13,7 +13,11 @@
 #
 # Cách dùng:
 #   run-editmode.sh --unity 6000|2022 [--project <đường dẫn>] [--repository <worktree>] [--category Logic|UI|UxGate|all]
-#                   [--filter <regex>] [--results <file.xml>] [--timeout GIÂY] [--allow-empty] [--category-mode category|fixture]
+#                   [--exclude UxGate] [--filter <regex>] [--results <file.xml>] [--timeout GIÂY] [--allow-empty]
+#                   [--category-mode category|fixture]
+# --exclude UxGate: chạy category đang chọn NHƯNG bỏ test của cổng đợt W8-UX. Cần vì test UxGate mang CẢ category UI, nên từ
+#   khi có nó, mọi lượt `--category UI` của gói khác kèm 23–25 test đỏ không thuộc gói đang soát và không có cách loại ra.
+#   Cú pháp gửi Unity là -testCategory "LiveOpsHub.UI;!LiveOpsHub.UxGate" (phủ định đã xác nhận ở SP-15).
 # Mặc định project: 6000 → worktree (git top-level); 2022 → ~/.cache/unity-liveops/temp-2022/<gói> (make-temp-project-2022.sh).
 # In "N passed / M failed / K skipped" + tên test fail; thoát 1 khi fail, thiếu XML, total = 0 (trừ --allow-empty),
 # hoặc log có "error CS"; 2 khi dùng sai; 3 khi ổ đĩa < 5 GB.
@@ -34,6 +38,7 @@ repository=${REPOSITORY:-}
 unity_version=""
 project=""
 category=all
+exclude=""
 filter=""
 results=""
 timeout_seconds=$DEFAULT_TEST_TIMEOUT_SECONDS
@@ -50,6 +55,7 @@ while [ "$#" -gt 0 ]; do
     --project) [ "$#" -ge 2 ] || fail_usage "--project cần đường dẫn"; project=$2; shift 2;;
     --repository) [ "$#" -ge 2 ] || fail_usage "--repository cần đường dẫn"; repository=$2; shift 2;;
     --category) [ "$#" -ge 2 ] || fail_usage "--category cần Logic|UI|UxGate|all"; category=$2; shift 2;;
+    --exclude) [ "$#" -ge 2 ] || fail_usage "--exclude cần Logic|UI|UxGate"; exclude=$2; shift 2;;
     --filter) [ "$#" -ge 2 ] || fail_usage "--filter cần regex"; filter=$2; shift 2;;
     --results) [ "$#" -ge 2 ] || fail_usage "--results cần đường dẫn"; results=$2; shift 2;;
     --timeout) [ "$#" -ge 2 ] || fail_usage "--timeout cần số giây"; timeout_seconds=$2; shift 2;;
@@ -74,6 +80,13 @@ case "$category" in
   UxGate|uxgate|UXGATE) category=UxGate;;
   all|All) category=all;;
   *) fail_usage "--category phải là Logic, UI, UxGate hoặc all";;
+esac
+case "$exclude" in
+  "") ;;
+  Logic|logic) exclude=$LOGIC_CATEGORY;;
+  UI|ui) exclude=$UI_CATEGORY;;
+  UxGate|uxgate|UXGATE) exclude=$UX_GATE_CATEGORY;;
+  *) fail_usage "--exclude phải là Logic, UI hoặc UxGate";;
 esac
 case "$platform" in EditMode|PlayMode) ;; *) fail_usage "--platform phải là EditMode hoặc PlayMode";; esac
 case "$category_mode" in category|fixture) ;; *) fail_usage "--category-mode phải là category hoặc fixture";; esac
@@ -144,11 +157,16 @@ esac
 
 combined_filter=$filter
 if [ "$category_mode" = category ]; then
+  category_argument=""
   case "$category" in
-    Logic) unity_arguments+=(-testCategory "!$UI_CATEGORY");;
-    UI) unity_arguments+=(-testCategory "$UI_CATEGORY");;
-    UxGate) unity_arguments+=(-testCategory "$UX_GATE_CATEGORY");;
+    Logic) category_argument="!$UI_CATEGORY";;
+    UI) category_argument=$UI_CATEGORY;;
+    UxGate) category_argument=$UX_GATE_CATEGORY;;
   esac
+  if [ -n "$exclude" ]; then
+    if [ -n "$category_argument" ]; then category_argument="$category_argument;!$exclude"; else category_argument="!$exclude"; fi
+  fi
+  [ -n "$category_argument" ] && unity_arguments+=(-testCategory "$category_argument")
 else
   # Dự phòng SP-15: test UI chỉ nằm trong assembly Editor.Tests (namespace DreamTech.LiveOps.Editor.Tests) và mang
   # category trong XML; lọc bằng regex tên. Logic = mọi test không thuộc fixture UI — lọc sau khi đọc XML.
@@ -182,13 +200,14 @@ if [ ! -s "$results" ]; then
 fi
 
 summary_status=0
-python3 - "$results" "$category" "$category_mode" "$UI_CATEGORY" "$allow_empty" "$UX_GATE_CATEGORY" <<'PYTHON' || summary_status=$?
+python3 - "$results" "$category" "$category_mode" "$UI_CATEGORY" "$allow_empty" "$UX_GATE_CATEGORY" "$exclude" <<'PYTHON' || summary_status=$?
 import sys
 import xml.etree.ElementTree as ElementTree
 
 results_path, category, category_mode, ui_category = sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4]
 allow_empty = sys.argv[5] == "1"
 ux_gate_category = sys.argv[6]
+excluded_category = sys.argv[7]
 root = ElementTree.parse(results_path).getroot()
 
 def categories_of(element, inherited):
@@ -222,6 +241,11 @@ if category_mode == "fixture" and category != "all":
         cases = [(case, names) for case, names in cases if ux_gate_category in names]
     else:
         cases = [(case, names) for case, names in cases if ui_category not in names]
+
+# Loại trừ đọc lại từ XML kể cả khi Unity đã lọc: cú pháp phủ định của -testCategory im lặng khi sai, nên số đếm in ra phải
+# là số của tập ĐÚNG ý người gọi chứ không phải của tập Unity hiểu.
+if excluded_category:
+    cases = [(case, names) for case, names in cases if excluded_category not in names]
 
 passed = failed = skipped = 0
 failed_cases = []

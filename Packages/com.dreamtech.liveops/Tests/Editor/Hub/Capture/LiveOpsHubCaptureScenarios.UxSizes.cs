@@ -5,7 +5,7 @@ using UnityEditor;
 namespace DreamTech.LiveOps.Editor.Tests
 {
     /// <summary>
-    /// Kịch bản chụp của ma trận cỡ cửa sổ W8-UX (§3.4): ba trạng thái × sáu cỡ. Ảnh TRƯỚC chụp trên gốc đợt, ảnh SAU trên nhánh
+    /// Kịch bản chụp của ma trận cỡ cửa sổ W8-UX (§3.4): ba trạng thái × sáu cỡ × hai ngôn ngữ (36 ảnh mỗi skin). Ảnh TRƯỚC chụp trên gốc đợt, ảnh SAU trên nhánh
     /// đã gộp — người duyệt đặt hai contact sheet cạnh nhau thay vì đọc 63 dòng bảng lỗi.
     /// <para>
     /// Kịch bản KHÔNG khai <c>expectedFrames</c>: ở đây không có con số thiết kế nào để đo (hình thiết kế chỉ có một cỡ), nên
@@ -41,16 +41,41 @@ namespace DreamTech.LiveOps.Editor.Tests
             AddUxRecurringSize(scenarios, LiveOpsHubCaptureScenarioIds.UxRecurring1280, 1280, 760);
             AddUxRecurringSize(scenarios, LiveOpsHubCaptureScenarioIds.UxRecurring1440, 1440, 900);
             AddUxRecurringSize(scenarios, LiveOpsHubCaptureScenarioIds.UxRecurring1920, 1920, 1040);
+
+            // Nhánh tiếng Anh của đúng ba trạng thái trên (R-10): chữ dài hơn nên cắt chữ và tràn hàng lộ ra ở bản này trước.
+            AddUxSize(scenarios, LiveOpsHubCaptureScenarioIds.UxCalendarEnglish700, 700, 560, false, LiveOpsHubLanguageId.English);
+            AddUxSize(scenarios, LiveOpsHubCaptureScenarioIds.UxCalendarEnglish820, 820, 560, false, LiveOpsHubLanguageId.English);
+            AddUxSize(scenarios, LiveOpsHubCaptureScenarioIds.UxCalendarEnglish1024, 1024, 700, false, LiveOpsHubLanguageId.English);
+            AddUxSize(scenarios, LiveOpsHubCaptureScenarioIds.UxCalendarEnglish1280, 1280, 760, false, LiveOpsHubLanguageId.English);
+            AddUxSize(scenarios, LiveOpsHubCaptureScenarioIds.UxCalendarEnglish1440, 1440, 900, false, LiveOpsHubLanguageId.English);
+            AddUxSize(scenarios, LiveOpsHubCaptureScenarioIds.UxCalendarEnglish1920, 1920, 1040, false, LiveOpsHubLanguageId.English);
+
+            AddUxSize(scenarios, LiveOpsHubCaptureScenarioIds.UxCalendarSelectedEnglish700, 700, 560, true, LiveOpsHubLanguageId.English);
+            AddUxSize(scenarios, LiveOpsHubCaptureScenarioIds.UxCalendarSelectedEnglish820, 820, 560, true, LiveOpsHubLanguageId.English);
+            AddUxSize(scenarios, LiveOpsHubCaptureScenarioIds.UxCalendarSelectedEnglish1024, 1024, 700, true, LiveOpsHubLanguageId.English);
+            AddUxSize(scenarios, LiveOpsHubCaptureScenarioIds.UxCalendarSelectedEnglish1280, 1280, 760, true, LiveOpsHubLanguageId.English);
+            AddUxSize(scenarios, LiveOpsHubCaptureScenarioIds.UxCalendarSelectedEnglish1440, 1440, 900, true, LiveOpsHubLanguageId.English);
+            AddUxSize(scenarios, LiveOpsHubCaptureScenarioIds.UxCalendarSelectedEnglish1920, 1920, 1040, true, LiveOpsHubLanguageId.English);
+
+            AddUxRecurringSize(scenarios, LiveOpsHubCaptureScenarioIds.UxRecurringEnglish700, 700, 560, LiveOpsHubLanguageId.English);
+            AddUxRecurringSize(scenarios, LiveOpsHubCaptureScenarioIds.UxRecurringEnglish820, 820, 560, LiveOpsHubLanguageId.English);
+            AddUxRecurringSize(scenarios, LiveOpsHubCaptureScenarioIds.UxRecurringEnglish1024, 1024, 700, LiveOpsHubLanguageId.English);
+            AddUxRecurringSize(scenarios, LiveOpsHubCaptureScenarioIds.UxRecurringEnglish1280, 1280, 760, LiveOpsHubLanguageId.English);
+            AddUxRecurringSize(scenarios, LiveOpsHubCaptureScenarioIds.UxRecurringEnglish1440, 1440, 900, LiveOpsHubLanguageId.English);
+            AddUxRecurringSize(scenarios, LiveOpsHubCaptureScenarioIds.UxRecurringEnglish1920, 1920, 1040, LiveOpsHubLanguageId.English);
         }
 
-        private static void AddUxSize(List<LiveOpsHubCaptureScenario> scenarios, string scenarioId, int width, int height, bool withSelection)
+        private static void AddUxSize(List<LiveOpsHubCaptureScenario> scenarios, string scenarioId, int width, int height,
+            bool withSelection, LiveOpsHubLanguageId language = LiveOpsHubLanguageId.Vietnamese)
         {
-            scenarios.Add(new LiveOpsHubCaptureScenario(scenarioId, width, height, () => OpenUxCalendar(withSelection)));
+            scenarios.Add(new LiveOpsHubCaptureScenario(scenarioId, width, height, () => OpenUxCalendar(withSelection))
+                .WithLanguage(language));
         }
 
-        private static void AddUxRecurringSize(List<LiveOpsHubCaptureScenario> scenarios, string scenarioId, int width, int height)
+        private static void AddUxRecurringSize(List<LiveOpsHubCaptureScenario> scenarios, string scenarioId, int width, int height,
+            LiveOpsHubLanguageId language = LiveOpsHubLanguageId.Vietnamese)
         {
-            scenarios.Add(new LiveOpsHubCaptureScenario(scenarioId, width, height, OpenUxRecurring));
+            scenarios.Add(new LiveOpsHubCaptureScenario(scenarioId, width, height, OpenUxRecurring).WithLanguage(language));
         }
 
         private static EditorWindow OpenUxCalendar(bool withSelection)

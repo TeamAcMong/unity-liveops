@@ -14,11 +14,12 @@
 # lượt sau gặp khoá mồ côi (capture.sh bị kill -9) vẫn trả được skin cho user.
 #
 # Cách dùng:
-#   capture.sh --unity 6000|2022|all --scenarios "<id,id,…>|registered|ux-sizes" --label <nhãn>
+#   capture.sh --unity 6000|2022|all --scenarios "<id,id,…>|registered|ux-sizes|ux-sizes-en|ux-sizes-all" --label <nhãn>
 #              [--project <đường dẫn>] [--repository <worktree>] [--skins dark,light] [--output <thư mục gốc>]
 #              [--timeout GIÂY] [--no-measure] [--dry-run]
-# Bí danh: --scenarios ux-sizes = 18 ảnh ma trận cỡ cửa sổ của đợt W8-UX (§3.4): Lịch chưa chọn + Lịch đã chọn + Luật lặp,
-#   mỗi màn 6 cỡ (700x560, 820x560, 1024x700, 1280x760, 1440x900, 1920x1040). Chụp TRƯỚC trên gốc đợt, SAU trên nhánh đã gộp.
+# Bí danh: --scenarios ux-sizes = 18 ảnh ma trận cỡ cửa sổ của đợt W8-UX (§3.4) bản TIẾNG VIỆT: Lịch chưa chọn + Lịch đã chọn
+#   + Luật lặp, mỗi màn 6 cỡ (700x560, 820x560, 1024x700, 1280x760, 1440x900, 1920x1040). ux-sizes-en = đúng 18 ảnh đó bản
+#   TIẾNG ANH; ux-sizes-all = cả 36. Chụp TRƯỚC trên gốc đợt, SAU trên nhánh đã gộp.
 # Ra: <output>/<nhãn>/<bản Unity>/<id>-<skin>.png + <id>-<skin>.json (+ capture-<skin>.log, measurements.json)
 # Mặc định output ~/.cache/unity-liveops/captures; project 6000 = worktree, 2022 = ~/.cache/unity-liveops/temp-2022/<gói>.
 # --dry-run in đúng lệnh sẽ chạy rồi thoát 0. Thoát: 0 đạt; 1 Unity lỗi, thiếu ảnh hoặc số đo lệch; 2 dùng sai; 3 đĩa < 5 GB.
@@ -75,7 +76,20 @@ readonly UX_SIZES_SCENARIOS=\
 ux-calendar-selected-700x560,ux-calendar-selected-820x560,ux-calendar-selected-1024x700,ux-calendar-selected-1280x760,\
 ux-calendar-selected-1440x900,ux-calendar-selected-1920x1040,\
 ux-recurring-700x560,ux-recurring-820x560,ux-recurring-1024x700,ux-recurring-1280x760,ux-recurring-1440x900,ux-recurring-1920x1040"
-if [ "$scenarios" = ux-sizes ]; then scenarios=$UX_SIZES_SCENARIOS; fi
+# Nhánh tiếng Anh của cùng ba trạng thái: chữ dài hơn nên cắt chữ và tràn hàng lộ ra ở bản này trước (bản en 37 lỗi so với
+# bản vi 32 ở cỡ 700). Duyệt ảnh chỉ ở bản vi là duyệt nửa nhẹ của vấn đề.
+readonly UX_SIZES_ENGLISH_SCENARIOS=\
+"ux-calendar-en-700x560,ux-calendar-en-820x560,ux-calendar-en-1024x700,ux-calendar-en-1280x760,ux-calendar-en-1440x900,\
+ux-calendar-en-1920x1040,\
+ux-calendar-selected-en-700x560,ux-calendar-selected-en-820x560,ux-calendar-selected-en-1024x700,\
+ux-calendar-selected-en-1280x760,ux-calendar-selected-en-1440x900,ux-calendar-selected-en-1920x1040,\
+ux-recurring-en-700x560,ux-recurring-en-820x560,ux-recurring-en-1024x700,ux-recurring-en-1280x760,\
+ux-recurring-en-1440x900,ux-recurring-en-1920x1040"
+case "$scenarios" in
+  ux-sizes) scenarios=$UX_SIZES_SCENARIOS;;
+  ux-sizes-en) scenarios=$UX_SIZES_ENGLISH_SCENARIOS;;
+  ux-sizes-all) scenarios=$UX_SIZES_SCENARIOS,$UX_SIZES_ENGLISH_SCENARIOS;;
+esac
 [ -n "$label" ] || fail_usage "thiếu --label"
 case "$label" in */*|.*) fail_usage "nhãn không được chứa '/' hoặc bắt đầu bằng '.'";; esac
 case "$skins" in dark|light|dark,light|light,dark) ;; *) fail_usage "--skins chỉ nhận dark, light hoặc dark,light";; esac

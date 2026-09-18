@@ -151,8 +151,16 @@ namespace DreamTech.LiveOps.Editor.Tests
         }
 
         /// <summary>
-        /// Lăn chuột <paramref name="notches"/> nấc (âm = lăn lên) tại <paramref name="position"/>. Mỗi nấc là một sự kiện riêng như
-        /// bánh xe thật, delta theo đúng hằng nấc của timeline để số nấc test viết ra khớp số nấc control hiểu.
+        /// Lượng <c>Event.delta.y</c> mà bánh xe của hệ điều hành sinh ra cho MỘT nấc (macOS/Windows đều quanh 3). Hằng RIÊNG
+        /// của test, KHÔNG lấy <c>LiveOpsTimelineElement.WheelDeltaPerNotch</c>: đi theo chính hằng của code đang kiểm thì "một
+        /// nấc" của test luôn khớp "một nấc" của control kể cả khi control quy đổi sai, nên lỗi "mỗi nấc nhảy ba mức thu phóng"
+        /// không bao giờ lộ ra (R-20).
+        /// </summary>
+        internal const float OperatingSystemWheelDeltaPerNotch = 3f;
+
+        /// <summary>
+        /// Lăn chuột <paramref name="notches"/> nấc (âm = lăn lên) tại <paramref name="position"/>. Mỗi nấc là một sự kiện riêng
+        /// như bánh xe thật, delta là delta THẬT của hệ điều hành.
         /// </summary>
         internal static IEnumerator Wheel(EditorWindow window, Vector2 position, int notches, EventModifiers modifiers)
         {
@@ -164,7 +172,7 @@ namespace DreamTech.LiveOps.Editor.Tests
                 Send(window, new Event
                 {
                     type = EventType.ScrollWheel, mousePosition = position,
-                    delta = new Vector2(0f, direction * LiveOpsTimelineElement.WheelDeltaPerNotch), modifiers = modifiers,
+                    delta = new Vector2(0f, direction * OperatingSystemWheelDeltaPerNotch), modifiers = modifiers,
                 });
                 yield return Settle(1, SettleMilliseconds);
             }
@@ -291,12 +299,28 @@ namespace DreamTech.LiveOps.Editor.Tests
         /// </summary>
         internal static void PumpDelayCalls()
         {
+            MethodInfo pump = ResolveDelayCallPump();
+            if (pump == null) return;
+            pump.Invoke(null, null);
+        }
+
+        /// <summary>
+        /// Tra được hàng <c>delayCall</c> trên bản Unity đang chạy không. <c>UxGateSelfCheckTests</c> hỏi câu này: mất nó thì
+        /// hộp xác nhận hoãn bằng <c>delayCall</c> không bao giờ chạy trong một cử chỉ, hành trình UJ-11 xanh vì không có gì để
+        /// kiểm, và cổng hỏng đội lốt cổng xanh (R-07).
+        /// </summary>
+        internal static bool CanPumpDelayCalls()
+        {
+            return ResolveDelayCallPump() != null;
+        }
+
+        private static MethodInfo ResolveDelayCallPump()
+        {
             if (_delayCallPump == null)
             {
                 _delayCallPump = typeof(EditorApplication).GetMethod(DelayCallPumpMethodName, BindingFlags.Static | BindingFlags.NonPublic);
-                if (_delayCallPump == null) return;
             }
-            _delayCallPump.Invoke(null, null);
+            return _delayCallPump;
         }
 
         // ================================================================================================ nội bộ
