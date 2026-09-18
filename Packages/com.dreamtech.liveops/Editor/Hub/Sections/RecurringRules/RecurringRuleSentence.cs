@@ -46,7 +46,7 @@ namespace DreamTech.LiveOps.Editor
                     // Chữ nối mở một cụm MỚI: cụm cũ đã đủ (chữ nối cũ + token của nó), chỗ ngắt dòng hợp lý là ở đây.
                     if (group.childCount > 0) group = NewGroup();
                     Label text = new Label(token.Text);
-                    // (UX-32) Label của UI Toolkit có padding mặc định: "168 giờ" + ", neo từ" đọc thành "168 giờ , neo từ".
+                    // (UX-32) Label của UI Toolkit có padding mặc định: "7 ngày" + ", neo từ" đọc thành "7 ngày , neo từ".
                     text.AddToClassList(LiveOpsHubClassNames.RecurringSentenceText);
                     group.Add(text);
                     continue;

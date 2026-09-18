@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Collections.Generic;
 using System.Globalization;
 using DreamTech.LiveOps.Tests;
 using NUnit.Framework;
@@ -29,6 +30,9 @@ namespace DreamTech.LiveOps.Editor.Tests
 
         /// <summary>sky-race chạy 20 giờ mỗi 24 giờ; 30 > 24 nên luật hỏng và game bỏ hẳn luật (UJ-15).</summary>
         private const int LongerThanPeriodHours = 30;
+
+        /// <summary>Chu kỳ của weekly-pass trong mẫu thiết kế — 168 giờ, tức 7 ngày chẵn.</summary>
+        private const int WeekPeriodHours = 168;
 
         /// <summary>Cỡ nhỏ nhất của ma trận kiểm bố cục (mục 2 chốt của user) — chỗ mọi thứ vỡ trước.</summary>
         private const int NarrowWidth = 700;
@@ -123,7 +127,7 @@ namespace DreamTech.LiveOps.Editor.Tests
         }
 
         /// <summary>
-        /// (UX-21) Tên luật là DANH TÍNH của hàng: pane hẹp thì meta ("mỗi 168 giờ · chạy 7 ngày") phải co trước, còn tên
+        /// (UX-21) Tên luật là DANH TÍNH của hàng: pane hẹp thì meta ("mỗi 7 ngày · chạy 7 ngày") phải co trước, còn tên
         /// không được co thành "weekly-pa…". <c>flex-shrink</c> tính theo flex-basis nên chỉ đổi tỉ lệ là chưa đủ.
         /// </summary>
         [UnityTest]
@@ -165,8 +169,17 @@ namespace DreamTech.LiveOps.Editor.Tests
             Assert.AreNotEqual(DisplayStyle.None, error.resolvedStyle.display, "dòng lỗi phải hiện");
             Assert.GreaterOrEqual(error.worldBound.xMin, Section.Form.ActiveField.worldBound.xMin - 0.5f,
                 "câu lỗi thụt theo cột ô, không nằm dưới cột nhãn");
+
+            // Ô này mang CẢ HAI class: --invalid (giá trị hỏng) và --drafting (chưa ghi). Viền phải là viền CHẶN, không
+            // phải viền "đang nhập" — hai luật một class cùng độ đặc hiệu thì luật đứng sau thắng, và đó là lỗi cũ.
+            Assert.IsTrue(Section.Form.ActiveField.ClassListContains(LiveOpsHubClassNames.RecurringFieldInvalid),
+                "ô giữ giá trị hỏng phải mang class --invalid");
+            Assert.IsTrue(Section.Form.ActiveField.ClassListContains(LiveOpsHubClassNames.RecurringFieldDrafting),
+                "…và vẫn đang giữ nháp, nếu không test này không đo đúng ca UX-22");
+            yield return AssertInvalidBorderWinsOverDrafting(Section.Form.ActiveField);
             LogAssert.NoUnexpectedReceived();
         }
+
 
         /// <summary>(UX-22) "0 đợt kế tiếp" mà vẫn mời "Thêm 5": thêm 5 lần nữa của một luật game sẽ bỏ vẫn là 0 đợt.</summary>
         [UnityTest]
@@ -209,10 +222,11 @@ namespace DreamTech.LiveOps.Editor.Tests
 
         /// <summary>
         /// (UX-23, UJ-21) Bấm vào một ô bị khoá hiện không phản hồi gì — người dùng bấm lại vài lần rồi bỏ. Bấm phải đưa
-        /// họ về đúng chỗ quyết định: focus ô đang giữ nháp và nháy nút "Huỷ (Esc)".
+        /// họ tới đúng LỐI RA: focus nút "Huỷ (Esc)" và nháy chính nút đó. Cổng hành trình của gói G khoá cùng hành vi
+        /// (<c>UxRecurringJourneyTests</c>), nên hai gói phải nói một câu.
         /// </summary>
         [UnityTest]
-        public IEnumerator PrefixDraft_ClickLockedField_FocusesDraftAndFlashesCancel()
+        public IEnumerator PrefixDraft_ClickLockedField_FocusesCancelAndFlashesIt()
         {
             yield return OpenPublishedPrefixSample(WideWidth, WideHeight);
 
@@ -220,13 +234,44 @@ namespace DreamTech.LiveOps.Editor.Tests
             yield return null;
             yield return ClickAt(Section.Form.PeriodField);
 
-            // Nháy đo TRƯỚC: class chớp chỉ sống 300ms, chờ focus xong rồi mới nhìn thì đo vào lúc nó đã tắt.
             Button cancel = _scope.View.Q<Button>(RecurringRuleForm.DraftCancelElementName);
             Assert.IsNotNull(cancel, "khối nháp thiếu nút Huỷ (Esc)");
+            // Class chớp được thêm ở KHUNG SAU khi gỡ (không thì transition không chạy lại ở lần bấm thứ hai), nên chờ
+            // nó xuất hiện thay vì đọc ngay; nó chỉ sống 300ms nên phải đo trước khi chờ focus.
+            yield return WaitForClass(cancel, LiveOpsHubClassNames.RowFlash);
             Assert.IsTrue(cancel.ClassListContains(LiveOpsHubClassNames.RowFlash),
                 "bấm ô bị khoá phải nháy nút Huỷ để chỉ đường ra");
-            yield return WaitForFocusInside(Section.Form.PrefixField);
-            Assert.IsTrue(IsFocusInside(Section.Form.PrefixField), "…và đưa con trỏ về chính ô đang giữ nháp");
+            yield return WaitForFocusInside(cancel);
+            Assert.IsTrue(IsFocusInside(cancel), "…và đưa con trỏ tới chính nút Huỷ, chỗ người dùng đang thiếu");
+            LogAssert.NoUnexpectedReceived();
+        }
+
+        /// <summary>
+        /// (UJ-21) Bấm ô khoá lần thứ hai cũng phải nháy: gỡ rồi thêm lại class trong cùng một khung thì computed style
+        /// không đổi và transition không chạy lại — người dùng bấm tiếp và màn im.
+        /// </summary>
+        [UnityTest]
+        public IEnumerator PrefixDraft_ClickLockedFieldTwice_FlashesBothTimes()
+        {
+            yield return OpenPublishedPrefixSample(WideWidth, WideHeight);
+
+            Section.Form.PrefixField.value = NewPrefix;
+            yield return null;
+            Button cancel = _scope.View.Q<Button>(RecurringRuleForm.DraftCancelElementName);
+            Assert.IsNotNull(cancel, "khối nháp thiếu nút Huỷ (Esc)");
+
+            yield return ClickAt(Section.Form.PeriodField);
+            yield return WaitForClass(cancel, LiveOpsHubClassNames.RowFlash);
+            Assert.IsTrue(cancel.ClassListContains(LiveOpsHubClassNames.RowFlash), "lần bấm thứ nhất phải nháy");
+
+            // Lần hai bấm NGAY trong lúc nháy thứ nhất còn sống — đó mới là ca UJ-21 (bấm liên tiếp vào ô chết).
+            SendClick(Section.Form.ActiveField);
+            Assert.IsFalse(cancel.ClassListContains(LiveOpsHubClassNames.RowFlash),
+                "class chớp phải RỜI cây ngay trong khung bấm: gỡ rồi thêm lại trong cùng một khung thì computed style "
+                + "không đổi và transition không chạy lại");
+            yield return WaitForClass(cancel, LiveOpsHubClassNames.RowFlash);
+            Assert.IsTrue(cancel.ClassListContains(LiveOpsHubClassNames.RowFlash),
+                "…và quay lại ở khung sau: lần bấm thứ hai cũng nháy");
             LogAssert.NoUnexpectedReceived();
         }
 
@@ -275,6 +320,73 @@ namespace DreamTech.LiveOps.Editor.Tests
             Assert.AreEqual(1f, background.g, 0.02f);
             Assert.AreEqual(1f, background.b, 0.02f);
             LogAssert.NoUnexpectedReceived();
+        }
+
+        /// <summary>
+        /// (UX-25) Đổi MÀU dấu trên hàng đang chọn không được xoá HÌNH của nó: dấu Blocked là tròn đặc + vạch cắt, mà
+        /// vạch cắt vẽ bằng đúng màu on-selection vừa gán cho nền — nếu không chữa, trên hàng chọn nó tàng hình và dấu
+        /// Blocked chỉ còn khác dấu Ok ở cỡ.
+        /// </summary>
+        [UnityTest]
+        public IEnumerator SelectedRowBlockedMark_KeepsItsBar()
+        {
+            yield return OpenDesignSample(WideWidth, WideHeight);
+
+            Button row = Section.List.FindRow(WeeklyPassType);
+            Assert.IsNotNull(row);
+            Assert.IsTrue(row.ClassListContains(LiveOpsHubClassNames.RecurringListRowSelected), "weekly-pass là hàng đang chọn");
+
+            // Dấu Blocked dựng NGAY TRONG hàng đang chọn: mẫu thiết kế không có luật nào bị chặn, mà thứ phải đo ở đây là
+            // luật USS của hàng chọn chứ không phải dữ liệu mẫu.
+            LiveOpsStateMark blockedMark = new LiveOpsStateMark();
+            blockedMark.SetHealth(HealthState.Blocked);
+            row.Add(blockedMark);
+            yield return LiveOpsHubWindowTestScope.WaitForLayout(blockedMark);
+
+            Color face = blockedMark.resolvedStyle.backgroundColor;
+            Color bar = blockedMark.Bar.resolvedStyle.backgroundColor;
+            Assert.AreNotEqual(DisplayStyle.None, blockedMark.Bar.resolvedStyle.display, "dấu Blocked phải còn con vạch cắt");
+            Assert.Greater(blockedMark.Bar.resolvedStyle.width, 0f, "vạch cắt phải có bề ngang thật");
+            blockedMark.RemoveFromHierarchy();
+
+            bool sameColor = Mathf.Abs(face.r - bar.r) < 0.01f && Mathf.Abs(face.g - bar.g) < 0.01f
+                && Mathf.Abs(face.b - bar.b) < 0.01f && Mathf.Abs(face.a - bar.a) < 0.01f;
+            Assert.IsFalse(sameColor, "vạch cắt trùng màu nền ⇒ dấu Blocked thành chấm tròn đặc, mất hình 'biển cấm'");
+            LogAssert.NoUnexpectedReceived();
+        }
+
+        /// <summary>
+        /// (R-06) Dấu Warning của câu "sau khi ghi" là chuyện của HÀNG, không phải của tập phát hiện: F8 / Shift F8 đi qua
+        /// các luật mà Kiểm lịch CÓ phát hiện. Gộp hai thứ lại thì F8 dừng ở một hàng mà màn Kiểm lịch không hề nhắc tới.
+        /// </summary>
+        [UnityTest]
+        public IEnumerator FindingNavigation_SkipsRuleThatOnlyHasAfterWriteNotice()
+        {
+            yield return OpenDesignSample(WideWidth, WideHeight);
+            yield return SelectRule(SkyRaceType);
+
+            Assert.IsTrue(RecurringRuleModel.HasAfterWriteNotice(Section.Services.Session, WeeklyPassType),
+                "mẫu thiết kế phải còn câu 'sau khi ghi' ở weekly-pass — nếu không, test này đo nhầm thứ");
+            Assert.IsFalse(HasRecurringFinding(WeeklyPassType),
+                "…và Kiểm lịch KHÔNG có phát hiện nào cho weekly-pass, đó mới là ca R-06");
+
+            Assert.IsFalse(Section.TryMoveToFinding(1), "F8 không có chỗ để tới: màn không có luật nào mang phát hiện thật");
+            Assert.AreEqual(SkyRaceType, Section.SelectedEventType, "…nên luật đang chọn phải giữ nguyên");
+            LogAssert.NoUnexpectedReceived();
+        }
+
+        private bool HasRecurringFinding(string eventType)
+        {
+            LiveEventCalendarCheckReport report = Section.Services.Session.Check.LastReport;
+            if (report == null) return false;
+            IReadOnlyList<LiveEventCalendarFinding> findings = report.Findings;
+            for (int index = 0; index < findings.Count; index++)
+            {
+                LiveEventCalendarFinding finding = findings[index];
+                if (finding.IsIgnored || !LiveOpsHubFindingRouting.BelongsTo(finding, LiveOpsHubHealthTarget.RecurringRules)) continue;
+                if (string.Equals(finding.TargetId, eventType, System.StringComparison.Ordinal)) return true;
+            }
+            return false;
         }
 
         /// <summary>
@@ -329,7 +441,7 @@ namespace DreamTech.LiveOps.Editor.Tests
 
         // ------------------------------------------------------------------ UX-32 chi tiết chữ
 
-        /// <summary>(UX-32, T1) Label của UI Toolkit có padding mặc định nên câu token đọc thành "168 giờ , neo từ …".</summary>
+        /// <summary>(UX-32, T1) Label của UI Toolkit có padding mặc định nên câu token đọc thành "7 ngày , neo từ …".</summary>
         [UnityTest]
         public IEnumerator SentenceText_HasNoPaddingAroundWords()
         {
@@ -386,20 +498,23 @@ namespace DreamTech.LiveOps.Editor.Tests
         }
 
         /// <summary>
-        /// (UX-32, T6) Màn Luật lặp đọc "Mỗi 7 ngày" còn header làn của Lịch đọc "lặp mỗi 168 giờ" cho CÙNG một luật —
-        /// người dùng phải tự quy đổi để tin rằng hai chỗ nói cùng một thứ. Nhịp đọc theo giờ ở cả hai chỗ.
+        /// (UX-32, T6) Cùng một luật mà hai màn đọc nhịp bằng hai đơn vị thì người dùng phải tự quy đổi mới tin hai chỗ
+        /// nói cùng một thứ. Chuỗi nhịp trên màn này phải TRÙNG chuỗi header làn của màn Lịch — weekly-pass 168 giờ đọc
+        /// "7 ngày" ở cả hai chỗ (<c>TimelineModelTests</c> khoá "lặp mỗi 7 ngày · chạy 7 ngày").
         /// </summary>
         [UnityTest]
-        public IEnumerator PeriodRhythm_ReadsInHoursLikeLaneHeader()
+        public IEnumerator PeriodRhythm_ReadsSameUnitAsLaneHeader()
         {
             yield return OpenDesignSample(WideWidth, WideHeight);
 
             Button periodToken = _scope.View.Q<Button>(RecurringRuleSentence.TokenElementName(RecurringRuleFields.PeriodHours));
             Assert.IsNotNull(periodToken, "câu đọc thiếu token chu kỳ");
-            StringAssert.Contains("168", periodToken.text, "nhịp đọc theo GIỜ như header làn, không quy sang ngày");
+            string laneUnit = RecurringRuleModel.PeriodText(WeekPeriodHours, Section.Services.Format);
+            Assert.AreEqual("7 ngày", laneUnit, "168 giờ chẵn ngày và dài hơn một ngày ⇒ đọc theo ngày, y như header làn");
+            Assert.AreEqual(laneUnit, periodToken.text, "token nhịp phải đọc đúng chuỗi mà header làn của màn Lịch in ra");
             Label suffix = SuffixOf(Section.Form.PeriodField);
             Assert.IsNotNull(suffix);
-            StringAssert.Contains("7", suffix.text, "đổi sang ngày vẫn còn — ở đúng chỗ của nó: chữ phụ '= 7 ngày'");
+            StringAssert.Contains("7", suffix.text, "ô Chu kỳ vẫn in số giờ thô nên chữ phụ '= 7 ngày' phải còn");
             LogAssert.NoUnexpectedReceived();
         }
 
@@ -539,13 +654,79 @@ namespace DreamTech.LiveOps.Editor.Tests
             return false;
         }
 
+        /// <summary>
+        /// So màu viền thật của ô với hai ô MẪU dựng ngay trong màn (cùng bộ stylesheet, cùng skin): một ô chỉ --invalid,
+        /// một ô chỉ --drafting. Đo theo mẫu chứ không theo mã màu chép tay để test còn đúng ở cả skin tối lẫn sáng.
+        /// </summary>
+        private IEnumerator AssertInvalidBorderWinsOverDrafting(VisualElement field)
+        {
+            VisualElement invalidProbe = Probe(LiveOpsHubClassNames.RecurringFieldInvalid);
+            VisualElement draftingProbe = Probe(LiveOpsHubClassNames.RecurringFieldDrafting);
+            _scope.View.Add(invalidProbe);
+            _scope.View.Add(draftingProbe);
+            yield return LiveOpsHubWindowTestScope.WaitForLayout(invalidProbe);
+
+            Color blocked = invalidProbe.resolvedStyle.borderTopColor;
+            Color warning = draftingProbe.resolvedStyle.borderTopColor;
+            Color actual = field.resolvedStyle.borderTopColor;
+            invalidProbe.RemoveFromHierarchy();
+            draftingProbe.RemoveFromHierarchy();
+
+            Assert.AreNotEqual(blocked, warning, "hai ô mẫu phải khác màu, nếu không phép so này vô nghĩa");
+            AssertSameColor(blocked, actual, "viền của ô giữ giá trị hỏng phải là viền CHẶN, không phải viền 'đang nhập'");
+        }
+
+        private static VisualElement Probe(string stateClassName)
+        {
+            VisualElement probe = new VisualElement();
+            probe.AddToClassList(LiveOpsHubClassNames.RecurringFieldInput);
+            probe.AddToClassList(stateClassName);
+            return probe;
+        }
+
+        private static void AssertSameColor(Color expected, Color actual, string message)
+        {
+            Assert.AreEqual(expected.r, actual.r, 0.01f, message);
+            Assert.AreEqual(expected.g, actual.g, 0.01f, message);
+            Assert.AreEqual(expected.b, actual.b, 0.01f, message);
+            Assert.AreEqual(expected.a, actual.a, 0.01f, message);
+        }
+
+        /// <summary>Chờ class xuất hiện trên phần tử (V-23: quá CẢ 60 khung LẪN 5 giây mới thôi).</summary>
+        private static IEnumerator WaitForClass(VisualElement element, string className)
+        {
+            yield return WaitForClassState(element, className, true);
+        }
+
+        private static IEnumerator WaitForClassState(VisualElement element, string className, bool expected)
+        {
+            int frames = 0;
+            double startedAt = EditorApplication.timeSinceStartup;
+            while (element.ClassListContains(className) != expected)
+            {
+                bool framesExhausted = ++frames > MaximumWaitFrames;
+                bool secondsExhausted = EditorApplication.timeSinceStartup - startedAt > MaximumWaitSeconds;
+                if (framesExhausted && secondsExhausted) yield break;
+                yield return null;
+            }
+        }
+
+        /// <summary>
+        /// Gửi cú bấm rồi TRẢ NGAY, không nhả khung nào: nơi gọi cần đọc trạng thái ĐÚNG TRONG khung bấm (class chớp phải
+        /// rời cây ở đây). Phần tử phải đã có bố cục — dùng sau một <see cref="ClickAt"/> hoặc một lần chờ bố cục.
+        /// </summary>
+        private void SendClick(VisualElement element)
+        {
+            Vector2 center = element.worldBound.center;
+            _scope.Window.SendEvent(new Event { type = EventType.MouseDown, mousePosition = center, button = 0, clickCount = 1 });
+            _scope.Window.SendEvent(new Event { type = EventType.MouseUp, mousePosition = center, button = 0, clickCount = 1 });
+        }
+
         /// <summary>Chuột thật lên tâm một phần tử của màn — kể cả phần tử đang bị khoá (đó là chỗ UX-23 đo).</summary>
         private IEnumerator ClickAt(VisualElement element)
         {
             yield return LiveOpsHubWindowTestScope.WaitForLayout(element);
-            Vector2 center = element.worldBound.center;
-            _scope.Window.SendEvent(new Event { type = EventType.MouseDown, mousePosition = center, button = 0, clickCount = 1 });
-            _scope.Window.SendEvent(new Event { type = EventType.MouseUp, mousePosition = center, button = 0, clickCount = 1 });
+            SendClick(element);
             // Hai khung: khung đầu để panel xử lý xong focus của chính cú bấm, khung sau để phần đặt lại focus chạy.
             yield return null;
             yield return null;

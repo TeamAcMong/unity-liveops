@@ -51,8 +51,8 @@ namespace DreamTech.LiveOps.Editor
         internal static string RecurringActiveHoursLabel => LiveOpsHubStringCatalog.Text(nameof(RecurringActiveHoursLabel));
 
         /// <summary>
-        /// (UX-32) Nhịp đọc theo GIỜ như header làn của màn Lịch: cùng một luật mà một màn đọc "mỗi 7 ngày" còn màn kia
-        /// đọc "lặp mỗi 168 giờ" thì người dùng phải tự quy đổi mới tin được hai chỗ nói cùng một thứ.
+        /// (UX-32) "24 giờ" — nhánh GIỜ của nhịp, dùng khi chu kỳ không chẵn ngày hoặc đúng bằng một ngày. Chu kỳ chẵn
+        /// ngày và dài hơn một ngày đọc theo NGÀY, y như header làn của màn Lịch cho cùng luật đó.
         /// </summary>
         internal static string RecurringHoursFormat => LiveOpsHubStringCatalog.Text(nameof(RecurringHoursFormat));
 

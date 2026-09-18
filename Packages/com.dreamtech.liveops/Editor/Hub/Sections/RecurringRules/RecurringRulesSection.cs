@@ -288,8 +288,8 @@ namespace DreamTech.LiveOps.Editor
                 RecurringLiveEventRule rule = rules[index];
                 LiveEventTypeDefinition definition;
                 int colorSlot = document != null && document.TryGetEventType(rule.EventType, out definition) ? definition.ColorSlot : 0;
-                // (UX-32) "mỗi …" là NHỊP nên đọc theo giờ, đúng đơn vị header làn của màn Lịch; "chạy …" vẫn quy sang
-                // đơn vị người đọc được vì nó là độ dài một đợt, không phải nhịp để đối chiếu giữa hai màn.
+                // (UX-32) "mỗi …" là NHỊP nên quy đổi bằng đúng luật của header làn màn Lịch (PeriodText); "chạy …" là
+                // độ dài MỘT đợt, không phải nhịp để đối chiếu giữa hai màn, nên giữ cách quy đổi thường (HoursText).
                 string meta = string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.RecurringListMetaFormat,
                     RecurringRuleModel.PeriodText(rule.PeriodHours, Services.Format),
                     RecurringRuleModel.HoursText(rule.ActiveHours, Services.Format));
@@ -298,15 +298,30 @@ namespace DreamTech.LiveOps.Editor
             return rows;
         }
 
+        /// <summary>
+        /// Mức của DẤU trên hàng danh sách. (UX-32) Câu "vẫn còn weekly-pass-35 đang chạy" treo dưới ô là một cảnh báo
+        /// THẬT về chính luật này: bỏ nó ra ngoài thì pane trái nói "không sao" trong lúc form ngay cạnh nói "có chuyện",
+        /// cùng một luật, cùng một màn.
+        /// <para>
+        /// Tách khỏi <see cref="FindingSeverityOf"/> vì F8 đi qua tập PHÁT HIỆN của Kiểm lịch: gộp hai thứ lại thì F8
+        /// dừng cả ở luật không có phát hiện nào, và người dùng bấm F8 để tìm việc phải sửa lại rơi vào một hàng mà màn
+        /// Kiểm lịch không hề nhắc tới.
+        /// </para>
+        /// </summary>
         private HealthState? SeverityOf(string eventType)
         {
+            HealthState? worst = FindingSeverityOf(eventType);
+            if (!RecurringRuleModel.HasAfterWriteNotice(Services.Session, eventType)) return worst;
+            bool findingIsWorse = worst.HasValue && SectionHealth.RankOf(worst.Value) >= SectionHealth.RankOf(HealthState.Warning);
+            return findingIsWorse ? worst : HealthState.Warning;
+        }
+
+        /// <summary>Mức lấy TỪ phát hiện của Kiểm lịch cho luật này — đúng tập mà F8 / Shift F8 đi qua.</summary>
+        private HealthState? FindingSeverityOf(string eventType)
+        {
             LiveEventCalendarCheckReport report = Services.Session.Check.LastReport;
-            // (UX-32) Câu "vẫn còn weekly-pass-35 đang chạy" treo dưới ô là một cảnh báo THẬT về chính luật này: bỏ nó ra
-            // ngoài thì pane trái nói "không sao" trong lúc form ngay cạnh nói "có chuyện", cùng một luật, cùng một màn.
-            HealthState? worst = RecurringRuleModel.HasAfterWriteNotice(Services.Session, eventType, Services.Format)
-                ? HealthState.Warning
-                : (HealthState?)null;
-            if (report == null) return worst;
+            if (report == null) return null;
+            HealthState? worst = null;
             IReadOnlyList<LiveEventCalendarFinding> findings = report.Findings;
             for (int index = 0; index < findings.Count; index++)
             {
@@ -327,7 +342,7 @@ namespace DreamTech.LiveOps.Editor
             IReadOnlyList<RecurringLiveEventRule> rules = document.RecurringRules;
             for (int index = 0; index < rules.Count; index++)
             {
-                if (SeverityOf(rules[index].EventType).HasValue) eventTypes.Add(rules[index].EventType);
+                if (FindingSeverityOf(rules[index].EventType).HasValue) eventTypes.Add(rules[index].EventType);
             }
             return eventTypes;
         }

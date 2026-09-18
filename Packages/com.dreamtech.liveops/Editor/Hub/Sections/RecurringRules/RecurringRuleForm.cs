@@ -314,7 +314,8 @@ namespace DreamTech.LiveOps.Editor
 
         /// <summary>
         /// (Q-W4-4, user duyệt 16/9) Ô đang giữ nháp được viền warning; BA ô còn lại bị KHOÁ tới khi nháp được ghi hoặc huỷ,
-        /// kèm lý do in THÀNH CHỮ ngay cạnh ô (SPIKE-B SP-3 — tooltip chỉ phụ, không test nào assert tooltip).
+        /// kèm lý do in THÀNH CHỮ ngay cạnh ô (SPIKE-B SP-3 — chữ là đường chính, tooltip là đường phụ; cả hai đều có
+        /// test gác: <c>RecurringRulesSectionTests.AssertFieldLocked/AssertFieldUnlocked</c> so cả câu lẫn tooltip).
         /// <para>
         /// Vì sao khoá: nháp sống ở ĐÚNG MỘT ô (<see cref="RecurringPrefixDraft"/>), nên gõ tiếp vào ô thứ hai sẽ thay nháp
         /// cũ bằng nháp mới và cái vừa gõ ở ô thứ nhất biến mất không dấu vết — người dùng tưởng cả hai đang chờ ghi.
@@ -357,11 +358,21 @@ namespace DreamTech.LiveOps.Editor
         /// <summary>
         /// (UX-23, UJ-21) Bấm vào một ô đang bị khoá hiện không phản hồi gì — người dùng bấm lại vài lần rồi bỏ. Ô khoá
         /// không nhận được sự kiện của chính nó (UI Toolkit bỏ qua callback trên cây đã tắt), nên form bắt ở gốc rồi tự
-        /// dò xem con trỏ rơi vào hàng nào: rơi vào hàng bị khoá thì đưa focus về ô đang giữ nháp và nháy nút "Huỷ (Esc)".
+        /// dò xem con trỏ rơi vào hàng nào: rơi vào hàng bị khoá thì đưa focus TỚI NÚT "Huỷ (Esc)" và nháy nút đó.
+        /// <para>
+        /// Focus đi tới nút Huỷ chứ không về ô đang giữ nháp: ô nháp đã có viền warning và con trỏ vừa rời khỏi nó, còn
+        /// thứ người dùng đang thiếu là LỐI RA. Cổng hành trình của gói G khoá đúng hành vi này
+        /// (<c>UxRecurringJourneyTests.PrefixDraft_LocksFormWithOneSentence_AndClickOnLockedFieldFocusesCancel</c>).
+        /// </para>
+        /// <para>
+        /// Gác bằng CÙNG điều kiện với <see cref="BindDraftBlock"/> (nháp phải thuộc đúng luật đang mở): nháp của luật
+        /// khác thì khối nháp đã bị gỡ khỏi cây, bấm ô sẽ cướp focus rồi nháy một nút không còn trên màn.
+        /// </para>
         /// </summary>
         private void OnPointerDownInsideForm(PointerDownEvent pointerEvent)
         {
             if (!_draft.NeedsConfirmation) return;
+            if (!string.Equals(_draft.EventType, _model.EventType, StringComparison.Ordinal)) return;
             string draftFieldName = _slots.ContainsKey(_draft.FieldName) ? _draft.FieldName : RecurringRuleFields.IdPrefix;
             Vector2 position = new Vector2(pointerEvent.position.x, pointerEvent.position.y);
             for (int index = 0; index < _slotOrder.Count; index++)
@@ -371,8 +382,7 @@ namespace DreamTech.LiveOps.Editor
                 if (!SlotOf(slotFieldName).Row.worldBound.Contains(position)) continue;
                 // Focus đặt ở LƯỢT SAU: panel tự xử lý focus của chính cú bấm này sau khi trickle-down chạy xong, nên gọi
                 // Focus() ngay ở đây thì nó bị cú bấm ghi đè và con trỏ không đi đâu cả.
-                VisualElement draftInput = SlotOf(draftFieldName).Input;
-                draftInput.schedule.Execute(() => draftInput.Focus());
+                _draftCancelButton.schedule.Execute(() => _draftCancelButton.Focus());
                 FlashDraftCancel();
                 return;
             }
@@ -381,13 +391,29 @@ namespace DreamTech.LiveOps.Editor
         /// <summary>Đủ để transition 300ms của <c>liveops-hub-row--flash</c> chạy hết rồi mới gỡ class (motion USS).</summary>
         private const long FlashMilliseconds = 300;
 
+        /// <summary>Bộ hẹn giờ gỡ class chớp của lần nháy ĐANG chạy — lần nháy mới phải huỷ nó, xem <see cref="FlashDraftCancel"/>.</summary>
+        private IVisualElementScheduledItem _flashReleaseSchedule;
+
+        /// <summary>
+        /// (UJ-21) Bấm ô khoá nhiều lần liên tiếp phải nháy được nhiều lần. Gỡ rồi thêm lại class trong CÙNG một khung thì
+        /// computed style không đổi, transition không chạy lại và từ lần thứ hai người dùng không thấy gì: gỡ ở khung này,
+        /// thêm lại ở khung sau. Bộ hẹn giờ của lần trước cũng phải huỷ, nếu không nó gỡ class giữa lần nháy đang chạy.
+        /// </summary>
         private void FlashDraftCancel()
         {
+            if (_flashReleaseSchedule != null)
+            {
+                _flashReleaseSchedule.Pause();
+                _flashReleaseSchedule = null;
+            }
             _draftCancelButton.RemoveFromClassList(LiveOpsHubClassNames.RowFlash);
-            _draftCancelButton.AddToClassList(LiveOpsHubClassNames.RowFlash);
-            _draftCancelButton.schedule
-                .Execute(() => _draftCancelButton.RemoveFromClassList(LiveOpsHubClassNames.RowFlash))
-                .StartingIn(FlashMilliseconds);
+            _draftCancelButton.schedule.Execute(() =>
+            {
+                _draftCancelButton.AddToClassList(LiveOpsHubClassNames.RowFlash);
+                _flashReleaseSchedule = _draftCancelButton.schedule
+                    .Execute(() => _draftCancelButton.RemoveFromClassList(LiveOpsHubClassNames.RowFlash))
+                    .StartingIn(FlashMilliseconds);
+            });
         }
 
         private string PresetNameOf(int presetIndex)
