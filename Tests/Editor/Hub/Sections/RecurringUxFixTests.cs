@@ -41,6 +41,11 @@ namespace DreamTech.LiveOps.Editor.Tests
         private const int WideWidth = 1440;
         private const int WideHeight = 900;
 
+        /// <summary>Cỡ cửa sổ của ma trận ảnh (9.5) — chỗ ảnh h14e chụp, nên cũng là chỗ phải đo được lối cuộn.</summary>
+        private const int CaptureWidth = 1280;
+
+        private const int CaptureHeight = 760;
+
         /// <summary>Thân màn phải lấp ít nhất 95% chiều cao khung — ngưỡng của kiểm bố cục tự động (mục 3.3 (e)).</summary>
         private const float FillRatio = 0.95f;
 
@@ -110,6 +115,53 @@ namespace DreamTech.LiveOps.Editor.Tests
                 "dưới ngưỡng hẹp, cột Giờ máy nhường chỗ cho cột Lúc này");
             VisualElement nowCell = OccurrenceCell(LiveOpsHubClassNames.RecurringCellNow);
             Assert.AreNotEqual(DisplayStyle.None, nowCell.resolvedStyle.display, "cột Lúc này không bao giờ bị ẩn");
+        }
+
+        /// <summary>
+        /// (UX-21, R-07) Mở foldout JSON ở 1280×760 thì thân form CAO HƠN khung — đó là chuyện bình thường, nhưng luật của
+        /// đợt là "vượt khung thì phải CUỘN ĐƯỢC tới": dòng lỗi JSON và hàng nút "Áp"/"Copy" nằm dưới mép vùng cuộn, cuộn
+        /// tới phải thấy TRỌN, không bị cắt ngang thân chữ. Ảnh h14e chụp đúng cỡ này nên kịch bản chụp cũng cuộn như đây.
+        /// </summary>
+        [UnityTest]
+        public IEnumerator JsonFoldoutOpen_ScrollReachesErrorAndButtons()
+        {
+            yield return OpenDesignSample(CaptureWidth, CaptureHeight);
+
+            Section.Form.JsonFoldout.value = true;
+            Section.Form.JsonFoldout.Editor.value = BrokenJson;
+            yield return _scope.WaitForLayout();
+
+            ScrollView scroll = _scope.View.Q<ScrollView>(className: LiveOpsHubClassNames.RecurringFormScroll);
+            Assert.IsNotNull(scroll, "màn thiếu ScrollView của pane form");
+            float viewportHeight = scroll.contentViewport.resolvedStyle.height;
+            Assert.Greater(scroll.contentContainer.resolvedStyle.height, viewportHeight,
+                "foldout JSON mở ở cỡ này phải làm thân cao hơn khung — nếu không, test này không đo đúng ca");
+
+            VisualElement apply = _scope.View.Q(RecurringRuleJsonFoldout.ApplyElementName);
+            Label error = _scope.View.Q<Label>(RecurringRuleJsonFoldout.ErrorElementName);
+            Assert.IsNotNull(apply, "foldout thiếu nút Áp");
+            Assert.IsNotNull(error, "foldout thiếu dòng lỗi");
+            Assert.Greater(error.text.Length, 0, "JSON hỏng thì dòng lỗi phải có chữ");
+
+            scroll.ScrollTo(apply);
+            yield return _scope.WaitForLayout();
+
+            AssertInsideViewport(scroll, error, "dòng lỗi JSON");
+            AssertInsideViewport(scroll, apply, "nút Áp");
+            LogAssert.NoUnexpectedReceived();
+        }
+
+        /// <summary>JSON thiếu dấu phẩy cuối dòng 3 — cùng chữ với kịch bản ảnh h14e.</summary>
+        private const string BrokenJson = "{\n  \"type\": \"weekly-pass\",\n  \"idPrefix\": \"s\"\n  \"periodHours\": 168,\n"
+            + "  \"activeHours\": 168,\n  \"configKey\": \"weekly_pass_s3\"\n}";
+
+        private static void AssertInsideViewport(ScrollView scroll, VisualElement element, string what)
+        {
+            Rect viewport = scroll.contentViewport.worldBound;
+            Rect bounds = element.worldBound;
+            Assert.GreaterOrEqual(bounds.yMin, viewport.yMin - 0.5f, what + " bị cắt ở mép TRÊN vùng cuộn");
+            Assert.LessOrEqual(bounds.yMax, viewport.yMax + 0.5f, what + " bị cắt ở mép DƯỚI vùng cuộn — cuộn tới rồi vẫn "
+                + "chỉ thấy nửa thân chữ");
         }
 
         /// <summary>
