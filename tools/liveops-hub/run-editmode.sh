@@ -6,11 +6,13 @@
 # kết luận từ XML + log chứ không từ exit code.
 # Category (mục 9.1): LiveOpsHub.Logic chạy được -nographics; LiveOpsHub.UI PHẢI chạy không -nographics (layout NaN, không
 # vẽ, không nhận phím). Test cũ không gắn category tính là Logic. `all` chạy mọi test, không -nographics.
+# LiveOpsHub.UxGate (đợt W8-UX) là TẬP CON của UI: hành trình gửi sự kiện chuột/phím thật qua cửa sổ hub + kiểm bố cục 6 cỡ.
+# Chạy riêng bằng --category UxGate cho cổng đợt; lượt --category UI vẫn phủ nó vì mỗi test mang cả hai category.
 # Cú pháp lọc đã xác nhận ở SP-15 (UTF 1.1.33 + 1.8.0: -testCategory phủ định, -testFilter regex, kết hợp cả hai): mặc định dùng -testCategory ("!LiveOpsHub.UI" cho Logic);
 # --category-mode fixture là phương án dự phòng (lọc bằng tên fixture chứa ".Hub." thay category).
 #
 # Cách dùng:
-#   run-editmode.sh --unity 6000|2022 [--project <đường dẫn>] [--repository <worktree>] [--category Logic|UI|all]
+#   run-editmode.sh --unity 6000|2022 [--project <đường dẫn>] [--repository <worktree>] [--category Logic|UI|UxGate|all]
 #                   [--filter <regex>] [--results <file.xml>] [--timeout GIÂY] [--allow-empty] [--category-mode category|fixture]
 # Mặc định project: 6000 → worktree (git top-level); 2022 → ~/.cache/unity-liveops/temp-2022/<gói> (make-temp-project-2022.sh).
 # In "N passed / M failed / K skipped" + tên test fail; thoát 1 khi fail, thiếu XML, total = 0 (trừ --allow-empty),
@@ -22,6 +24,7 @@ readonly UNITY_2022=/Applications/Unity/Hub/Editor/2022.3.62f2/Unity.app/Content
 readonly UNITY_6000=/Applications/Unity/Hub/Editor/6000.6.0f1/Unity.app/Contents/MacOS/Unity
 readonly PACKAGE_RELATIVE_PATH=Packages/com.dreamtech.liveops
 readonly UI_CATEGORY=LiveOpsHub.UI
+readonly UX_GATE_CATEGORY=LiveOpsHub.UxGate
 readonly LOGIC_CATEGORY=LiveOpsHub.Logic
 readonly DEFAULT_TEST_TIMEOUT_SECONDS=1500
 readonly MINIMUM_FREE_GIGABYTES=5
@@ -46,7 +49,7 @@ while [ "$#" -gt 0 ]; do
     --unity) [ "$#" -ge 2 ] || fail_usage "--unity cần 6000|2022"; unity_version=$2; shift 2;;
     --project) [ "$#" -ge 2 ] || fail_usage "--project cần đường dẫn"; project=$2; shift 2;;
     --repository) [ "$#" -ge 2 ] || fail_usage "--repository cần đường dẫn"; repository=$2; shift 2;;
-    --category) [ "$#" -ge 2 ] || fail_usage "--category cần Logic|UI|all"; category=$2; shift 2;;
+    --category) [ "$#" -ge 2 ] || fail_usage "--category cần Logic|UI|UxGate|all"; category=$2; shift 2;;
     --filter) [ "$#" -ge 2 ] || fail_usage "--filter cần regex"; filter=$2; shift 2;;
     --results) [ "$#" -ge 2 ] || fail_usage "--results cần đường dẫn"; results=$2; shift 2;;
     --timeout) [ "$#" -ge 2 ] || fail_usage "--timeout cần số giây"; timeout_seconds=$2; shift 2;;
@@ -55,7 +58,7 @@ while [ "$#" -gt 0 ]; do
     --platform) [ "$#" -ge 2 ] || fail_usage "--platform cần EditMode|PlayMode"; platform=$2; shift 2;;
     --graphics) graphics_mode=on; shift;;
     --nographics) graphics_mode=off; shift;;
-    --help|-h) sed -n '2,20p' "$0" | sed 's/^# \{0,1\}//'; exit 0;;
+    --help|-h) sed -n '2,22p' "$0" | sed 's/^# \{0,1\}//'; exit 0;;
     *) fail_usage "tham số lạ '$1'";;
   esac
 done
@@ -68,8 +71,9 @@ esac
 case "$category" in
   Logic|logic) category=Logic;;
   UI|ui) category=UI;;
+  UxGate|uxgate|UXGATE) category=UxGate;;
   all|All) category=all;;
-  *) fail_usage "--category phải là Logic, UI hoặc all";;
+  *) fail_usage "--category phải là Logic, UI, UxGate hoặc all";;
 esac
 case "$platform" in EditMode|PlayMode) ;; *) fail_usage "--platform phải là EditMode hoặc PlayMode";; esac
 case "$category_mode" in category|fixture) ;; *) fail_usage "--category-mode phải là category hoặc fixture";; esac
@@ -143,15 +147,20 @@ if [ "$category_mode" = category ]; then
   case "$category" in
     Logic) unity_arguments+=(-testCategory "!$UI_CATEGORY");;
     UI) unity_arguments+=(-testCategory "$UI_CATEGORY");;
+    UxGate) unity_arguments+=(-testCategory "$UX_GATE_CATEGORY");;
   esac
 else
   # Dự phòng SP-15: test UI chỉ nằm trong assembly Editor.Tests (namespace DreamTech.LiveOps.Editor.Tests) và mang
   # category trong XML; lọc bằng regex tên. Logic = mọi test không thuộc fixture UI — lọc sau khi đọc XML.
   case "$category" in
-    UI) combined_filter=${filter:-.*};;
+    UI|UxGate) combined_filter=${filter:-.*};;
   esac
 fi
 [ -n "$combined_filter" ] && unity_arguments+=(-testFilter "$combined_filter")
+
+# JSON chẩn đoán của kiểm bố cục ghi vào ~/.cache/unity-liveops/ux-gate/<nhãn>/<bản Unity>/ — đặt nhãn theo GÓI để hai lượt
+# (trước/sau đợt) không ghi đè nhau. Test đọc biến này (UxHubWindowFixture.DiagnosticsLabelVariable).
+export LIVEOPS_UX_GATE_LABEL=${LIVEOPS_UX_GATE_LABEL:-$(package_name)}
 
 echo "run-editmode.sh: $platform $unity_label category=$category filter='${filter}' project=$project"
 echo "   results: $results"
@@ -173,11 +182,13 @@ if [ ! -s "$results" ]; then
 fi
 
 summary_status=0
-python3 - "$results" "$category" "$category_mode" "$UI_CATEGORY" "$allow_empty" <<'PYTHON' || summary_status=$?
+python3 - "$results" "$category" "$category_mode" "$UI_CATEGORY" "$allow_empty" "$UX_GATE_CATEGORY" <<'PYTHON' || summary_status=$?
 import sys
 import xml.etree.ElementTree as ElementTree
 
-results_path, category, category_mode, ui_category, allow_empty = sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4], sys.argv[5] == "1"
+results_path, category, category_mode, ui_category = sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4]
+allow_empty = sys.argv[5] == "1"
+ux_gate_category = sys.argv[6]
 root = ElementTree.parse(results_path).getroot()
 
 def categories_of(element, inherited):
@@ -207,6 +218,8 @@ for child in root:
 if category_mode == "fixture" and category != "all":
     if category == "UI":
         cases = [(case, names) for case, names in cases if ui_category in names]
+    elif category == "UxGate":
+        cases = [(case, names) for case, names in cases if ux_gate_category in names]
     else:
         cases = [(case, names) for case, names in cases if ui_category not in names]
 
