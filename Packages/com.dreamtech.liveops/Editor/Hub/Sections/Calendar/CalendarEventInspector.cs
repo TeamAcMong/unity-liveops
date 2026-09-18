@@ -299,7 +299,8 @@ namespace DreamTech.LiveOps.Editor
                 string message = string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.CalendarRenameToastFormat,
                     entry.EventId, newId);
                 _presenter.ApplyEdit(new ReplaceFixedEventEdit(entry.WithEventId(newId)),
-                    LiveOpsEditOperation.RenameOrRetypeFixedEvent, entry.EntryKey, message, string.Empty);
+                    LiveOpsEditOperation.RenameOrRetypeFixedEvent, entry.EntryKey, message, string.Empty,
+                    string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.CalendarRenameUndoStepFormat, entry.EventId));
             });
             return field;
         }
@@ -336,7 +337,8 @@ namespace DreamTech.LiveOps.Editor
                 string message = string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.CalendarRetypeToastFormat,
                     entry.EventId, newType);
                 _presenter.ApplyEdit(new ReplaceFixedEventEdit(entry.WithEventType(newType)),
-                    LiveOpsEditOperation.RenameOrRetypeFixedEvent, entry.EntryKey, message, string.Empty);
+                    LiveOpsEditOperation.RenameOrRetypeFixedEvent, entry.EntryKey, message, string.Empty,
+                    string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.CalendarRetypeUndoStepFormat, entry.EventId));
             });
             row.Add(field);
             return row;
@@ -361,8 +363,15 @@ namespace DreamTech.LiveOps.Editor
             LiveOpsUtcDateTimeField field = new LiveOpsUtcDateTimeField(label);
             field.SetDeviceOffset(_services.TimeZone.DeviceOffsetAt(_services.Clock.UtcNow));
             string rawText = isEnd ? entry.EndUtcText : entry.StartUtcText;
-            if (LiveEventUtcText.TryParse(rawText, out DateTime utc)) field.SetValueWithoutNotify(utc);
-            else field.SetRawTextWithoutNotify(DatePartOf(rawText), TimePartOf(rawText));
+            if (LiveEventUtcText.TryParse(rawText, out DateTime utc))
+            {
+                field.SetValueWithoutNotify(utc);
+            }
+            else
+            {
+                LiveOpsUtcDateTimeField.SplitRawText(rawText, out string rawDateText, out string rawTimeText);
+                field.SetRawTextWithoutNotify(rawDateText, rawTimeText);
+            }
 
             if (!isEnd && _model.IsStartLocked)
             {
@@ -370,7 +379,11 @@ namespace DreamTech.LiveOps.Editor
                 field.tooltip = _model.StartLockReason;
                 return field;
             }
-            field.RawTextCommitted += (dateText, timeText) => CommitTime(entry, isEnd, dateText, timeText);
+            // Ô giờ báo hai đường và inspector phải nghe CẢ HAI: chuỗi đọc được đi bằng ChangeEvent<DateTime>, chuỗi hỏng đi bằng
+            // RawTextCommitted. Bản trước chỉ nghe đường thứ hai, nên gõ đúng dạng rồi Enter/Tab/bấm ra ngoài KHÔNG ghi gì vào
+            // asset — ô hiện giá trị mới nên người dùng tưởng đã ăn, tới lần dựng lại mới thấy mất (UJ-03).
+            field.RegisterValueChangedCallback(change => CommitTime(entry, isEnd, LiveEventUtcText.Format(change.newValue)));
+            field.RawTextCommitted += (dateText, timeText) => CommitTime(entry, isEnd, JoinRawText(dateText, timeText));
             if (_model.State == CalendarInspectorModel.StateUnreadableTimes && _model.IsUnreadableEnd == isEnd)
             {
                 field.SetErrorText(_model.UnreadableFieldErrorText);
@@ -378,17 +391,33 @@ namespace DreamTech.LiveOps.Editor
             return field;
         }
 
-        private void CommitTime(FixedLiveEventEntry entry, bool isEnd, string dateText, string timeText)
+        /// <summary>
+        /// Ghi một mép giờ. <paramref name="timeUtcText"/> đã là chuỗi cuối cùng sẽ nằm trong asset — dạng chuẩn khi đọc được,
+        /// nguyên văn người dùng gõ khi không (tài liệu phải chứa được đợt hỏng để bộ kiểm báo đúng chuỗi).
+        /// </summary>
+        private void CommitTime(FixedLiveEventEntry entry, bool isEnd, string timeUtcText)
         {
-            string canonical = LiveOpsUtcDateTimeField.TryParseParts(dateText, timeText, out DateTime utc)
-                ? LiveEventUtcText.Format(utc)
-                : dateText + (timeText.Length > 0 ? " " + timeText : string.Empty);
             FixedLiveEventEntry next = isEnd
-                ? entry.WithTimes(entry.StartUtcText, canonical)
-                : entry.WithTimes(canonical, entry.EndUtcText);
+                ? entry.WithTimes(entry.StartUtcText, timeUtcText)
+                : entry.WithTimes(timeUtcText, entry.EndUtcText);
+            if (string.Equals(next.StartUtcText, entry.StartUtcText, StringComparison.Ordinal)
+                && string.Equals(next.EndUtcText, entry.EndUtcText, StringComparison.Ordinal))
+            {
+                return;
+            }
             string message = _presenter.DragToastMessage(entry, next);
             _presenter.ApplyEdit(new ReplaceFixedEventEdit(next), LiveOpsEditOperation.ChangeFixedEventTimes, entry.EntryKey,
-                message, string.Empty);
+                message, string.Empty, _presenter.DragUndoStepName(entry, next));
+        }
+
+        /// <summary>
+        /// Ghép nửa ngày và nửa giờ của chuỗi KHÔNG đọc được. Dấu cách là dấu ngăn cố ý (chữ người dùng gõ chưa phải ISO nên ghép
+        /// bằng "T" là bịa thêm dạng chuẩn cho một chuỗi hỏng); <see cref="LiveOpsUtcDateTimeField.SplitRawText"/> tách lại được
+        /// đúng hai nửa đó.
+        /// </summary>
+        private static string JoinRawText(string dateText, string timeText)
+        {
+            return dateText + (timeText.Length > 0 ? " " + timeText : string.Empty);
         }
 
         /// <summary>Đổi "Dài" giữ nguyên giờ bắt đầu (7.3) — người dùng nghĩ theo "đợt chạy mấy giờ", không theo "kết thúc lúc nào".</summary>
@@ -408,7 +437,7 @@ namespace DreamTech.LiveOps.Editor
                     LiveEventUtcText.Format(startUtc.AddHours(change.newValue)));
                 string message = _presenter.DragToastMessage(entry, next);
                 _presenter.ApplyEdit(new ReplaceFixedEventEdit(next), LiveOpsEditOperation.ChangeFixedEventTimes, entry.EntryKey,
-                    message, string.Empty);
+                    message, string.Empty, _presenter.DragUndoStepName(entry, next));
             });
             row.Add(field);
             row.Add(new Label(LiveOpsHubStrings.CalendarDurationUnitLabel));
@@ -446,7 +475,8 @@ namespace DreamTech.LiveOps.Editor
             if (string.Equals(configKey, entry.ConfigKey, StringComparison.Ordinal)) return;
             string message = string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.CalendarConfigKeyToastFormat, entry.EventId);
             _presenter.ApplyEdit(new ReplaceFixedEventEdit(entry.WithConfigKey(configKey)), LiveOpsEditOperation.EditEventTypeFields,
-                entry.EntryKey, message, string.Empty);
+                entry.EntryKey, message, string.Empty,
+                string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.CalendarConfigKeyUndoStepFormat, entry.EventId));
         }
 
         /// <summary>"Phải bấm tham gia" thuộc loại event nên ở đây chỉ đọc; link dẫn đúng chỗ sửa được (một nguồn sự thật).</summary>
@@ -537,7 +567,7 @@ namespace DreamTech.LiveOps.Editor
                     : entry.WithTimes(_model.UnreadableFixValueText, entry.EndUtcText);
                 string message = _presenter.DragToastMessage(entry, next);
                 _presenter.ApplyEdit(new ReplaceFixedEventEdit(next), LiveOpsEditOperation.ChangeFixedEventTimes, entry.EntryKey,
-                    message, string.Empty);
+                    message, string.Empty, _presenter.DragUndoStepName(entry, next));
             })
             {
                 text = _model.UnreadableFixButtonText,
@@ -556,22 +586,6 @@ namespace DreamTech.LiveOps.Editor
             button.AddToClassList(LiveOpsHubClassNames.Button);
             button.AddToClassList(LiveOpsHubClassNames.ButtonDanger);
             return button;
-        }
-
-        private static string DatePartOf(string rawText)
-        {
-            if (string.IsNullOrEmpty(rawText)) return string.Empty;
-            int timeIndex = rawText.IndexOf('T');
-            return timeIndex < 0 ? rawText : rawText.Substring(0, timeIndex);
-        }
-
-        private static string TimePartOf(string rawText)
-        {
-            if (string.IsNullOrEmpty(rawText)) return string.Empty;
-            int timeIndex = rawText.IndexOf('T');
-            if (timeIndex < 0 || timeIndex + 1 >= rawText.Length) return string.Empty;
-            string time = rawText.Substring(timeIndex + 1).TrimEnd('Z');
-            return time.Length > 5 ? time.Substring(0, 5) : time;
         }
     }
 }

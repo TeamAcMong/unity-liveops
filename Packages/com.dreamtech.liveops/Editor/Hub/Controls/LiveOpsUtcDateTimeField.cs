@@ -230,6 +230,31 @@ namespace DreamTech.LiveOps.Editor
         }
 
         /// <summary>
+        /// Tách chuỗi giờ THÔ của asset thành (ngày, giờ) cho hai ô. Nhận CẢ dấu ngăn "T" của ISO LẪN dấu cách: khi chuỗi không
+        /// đọc được, inspector ghi nguyên văn thứ người dùng gõ và ghép hai nửa bằng DẤU CÁCH ("2026-09-1 12:00"), nên bộ tách chỉ
+        /// biết "T" sẽ dồn cả chuỗi vào ô ngày và để ô giờ trống — người dùng thấy giờ mình KHÔNG đụng tới tự biến mất, Dài về 0 và
+        /// câu lỗi vừa trích "12:00" vừa bảo "Ô giờ còn trống" (UJ-04).
+        /// Phần giây giữ nguyên (<c>HH:mm:ss</c> vẫn đọc được): cắt còn <c>HH:mm</c> là lặng lẽ đổi giờ của đợt khi asset có giây.
+        /// </summary>
+        internal static void SplitRawText(string rawText, out string dateText, out string timeText)
+        {
+            dateText = string.Empty;
+            timeText = string.Empty;
+            if (string.IsNullOrEmpty(rawText)) return;
+            string text = rawText.Trim();
+            if (text.Length == 0) return;
+            int separatorIndex = text.IndexOf('T');
+            if (separatorIndex < 0) separatorIndex = text.IndexOf(' ');
+            if (separatorIndex < 0)
+            {
+                dateText = text;
+                return;
+            }
+            dateText = text.Substring(0, separatorIndex).Trim();
+            timeText = text.Substring(separatorIndex + 1).Trim().TrimEnd('Z').Trim();
+        }
+
+        /// <summary>
         /// Câu lỗi mặc định: nói chuỗi nào không đọc được và dạng cần gõ; ngày thiếu số 0 thì nêu luôn cách viết đúng. Hai ô cùng hỏng thì
         /// nêu cả hai — chỉ nêu ô ngày thì lỗi giờ chỉ lộ ra sau khi sửa xong ngày, người dùng phải sửa hai lượt.
         /// </summary>
@@ -275,7 +300,8 @@ namespace DreamTech.LiveOps.Editor
             return TryParseTimeOfDay(timeText, out TimeSpan _);
         }
 
-        private static bool TryParseTimeOfDay(string timeText, out TimeSpan timeOfDay)
+        /// <summary>Đọc riêng nửa giờ (<c>HH:mm</c> hoặc <c>HH:mm:ss</c>) — đúng hai dạng mà ô giờ nhận, một chỗ khai.</summary>
+        internal static bool TryParseTimeOfDay(string timeText, out TimeSpan timeOfDay)
         {
             timeOfDay = default;
             if (string.IsNullOrEmpty(timeText)) return false;
