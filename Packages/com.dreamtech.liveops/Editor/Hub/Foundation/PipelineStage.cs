@@ -58,7 +58,10 @@ namespace DreamTech.LiveOps.Editor
             {
                 case PipelineStage.Configure: return "Settings";
                 case PipelineStage.Schedule: return LiveOpsHubPaths.CalendarIconName;
-                case PipelineStage.Check: return "Valid";
+                // (UX-20 / V14) KHÔNG dùng "Valid": glyph đó đo được 1,67:1 trên nền rail ở skin sáng (dấu ✓ 125 trên nền 165),
+                // dưới ngưỡng 3:1 của [FD §2.3], nên ở rail 36 px nó đọc thành "tầng bị tắt". "Search Icon" cùng họ đơn sắc với
+                // bánh răng/đĩa của các tầng khác (3,03:1 sáng) và nghĩa "soi kỹ" đúng với việc của tầng KIỂM.
+                case PipelineStage.Check: return "Search Icon";
                 case PipelineStage.Export: return "SaveAs";
                 case PipelineStage.Run: return "PlayButton";
                 default: throw new ArgumentOutOfRangeException(nameof(stage), stage, null);
