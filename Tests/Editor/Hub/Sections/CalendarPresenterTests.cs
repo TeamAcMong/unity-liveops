@@ -104,7 +104,9 @@ namespace DreamTech.LiveOps.Editor.Tests
             Assert.AreEqual(0, _confirmation.Requests.Count, "chưa chạy phần hoãn thì chưa hỏi");
             Assert.IsTrue(services.Session.Document.TryGetFixedEvent(LiveOpsDesignSample.LavaQuestMidEntryKey,
                 out FixedLiveEventEntry afterCommit));
-            Assert.AreEqual("2026-09-19T00:00:00Z", afterCommit.EndUtcText, "bước Undo đã ghi TRƯỚC khi hỏi (SP-2 (b))");
+            // (W8-UX UX-06, UJ-11) Đổi hợp đồng của SP-2 (b): nháp KHÔNG commit trước khi hỏi nữa — người dùng thấy trục, toast
+            // và status bar báo "Đã dời" trong lúc hộp còn đang hỏi là thứ làm hộp mất hết ý nghĩa.
+            Assert.AreEqual("2026-09-20T00:00:00Z", afterCommit.EndUtcText, "chưa trả lời hộp thì chưa ghi gì (UX-06)");
 
             deferred[0]();
             Assert.AreEqual(1, _confirmation.Requests.Count);
@@ -112,7 +114,10 @@ namespace DreamTech.LiveOps.Editor.Tests
             Assert.AreEqual(LiveOpsConfirmLevel.Level1, request.Level, "rút ngắn đợt đang chạy là hộp cấp 1");
             StringAssert.Contains("lava-quest-2026-09b", request.Title);
             StringAssert.Contains(LiveOpsHubStrings.CalendarUnknownPlayerCountSentence, request.Body);
-            Assert.AreEqual(1, undoCount, "chọn nút an toàn thì gọi Undo đúng bước vừa ghi, không dựng lại bằng tay");
+            Assert.AreEqual(0, undoCount, "không có bước Undo nào để gỡ vì nháp chưa bao giờ được ghi (UX-06)");
+            Assert.IsTrue(services.Session.Document.TryGetFixedEvent(LiveOpsDesignSample.LavaQuestMidEntryKey,
+                out FixedLiveEventEntry afterKeep));
+            Assert.AreEqual("2026-09-20T00:00:00Z", afterKeep.EndUtcText, "chọn Giữ thì giờ kết thúc trở về giá trị cũ");
         }
 
         [Test]
