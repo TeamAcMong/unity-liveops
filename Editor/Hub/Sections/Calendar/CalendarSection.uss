@@ -118,6 +118,13 @@
     flex-direction: row;
 }
 
+/* Hằng LiveOpsHubClassNames.CalendarSplit thuộc file G-CALENDAR không sửa được ở gói này (ownership.tsv); selector giữ ở đây
+   để check-class-names --strict còn khớp. Không đổi bố cục thật — `liveops-hub-calendar-fill-height` trên cùng element đã
+   làm việc đó (UX-01), nên chỉ còn flex-grow trùng lặp vô hại. */
+.liveops-hub-calendar-split {
+    flex-grow: 1;
+}
+
 .liveops-hub-calendar-list-pane {
     flex-grow: 1;
     min-height: 0;
