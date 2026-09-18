@@ -124,8 +124,11 @@ namespace DreamTech.LiveOps.Editor.Tests
             yield return null;
 
             Assert.AreEqual(1, toasts.Count, "một lần sửa ô giờ = đúng một toast");
-            string expected = string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.CalendarResizeUndoStepFormat,
-                "hunt-0916-bonus");
+            // (Cổng đợt W8-UX) Gói A tách một động từ "Đổi {0}" thành ba động từ thật (Dời / Đổi mép đầu / Đổi mép cuối, UX-26),
+            // và inspector đi CHUNG đường đặt tên đó (CalendarTimelinePresenter.DragUndoStepName). Ô đang sửa ở đây là ô Bắt đầu
+            // nên tên bước đúng là "Đổi mép đầu {0}" — cụ thể hơn câu cũ, nên test siết theo khoá mới chứ không nới ra.
+            string expected = string.Format(CultureInfo.InvariantCulture,
+                LiveOpsHubStrings.CalendarDepthMoveStartEdgeUndoStepFormat, "hunt-0916-bonus");
             Assert.AreEqual(expected, toasts[0].UndoGroupName,
                 "bước Undo của sửa trong inspector phải là câu ngắn như đường kéo — \"\" làm toast Hoàn tác lặp chữ (UJ-10)");
             Assert.AreNotEqual(toasts[0].Message, toasts[0].UndoGroupName, "toast giữ câu dài, Undo History không");

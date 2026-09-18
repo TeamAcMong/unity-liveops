@@ -136,11 +136,6 @@ namespace DreamTech.LiveOps.Editor
         /// <summary>Tên bước Undo của lệnh dời — câu ngắn hiện sau "Đã hoàn tác: " [SD1 §3.8 khung 14].</summary>
         internal static string CalendarMoveUndoStepFormat => LiveOpsHubStringCatalog.Text(nameof(CalendarMoveUndoStepFormat));
 
-        /// <summary>
-        /// Tên bước NGẮN cho hai kiểu kéo MÉP (đổi bắt đầu / đổi kết thúc) — [SD1 §3.4] (Q-W5-5). Kéo cả thanh dùng
-        /// <see cref="CalendarMoveUndoStepFormat"/>: "dời" và "đổi" là hai việc khác nhau với người đọc lại lịch sử.
-        /// </summary>
-        internal static string CalendarResizeUndoStepFormat => LiveOpsHubStringCatalog.Text(nameof(CalendarResizeUndoStepFormat));
         internal static string CalendarMoveStartToastFormat => LiveOpsHubStringCatalog.Text(nameof(CalendarMoveStartToastFormat));
         internal static string CalendarRenameToastFormat => LiveOpsHubStringCatalog.Text(nameof(CalendarRenameToastFormat));
         internal static string CalendarRetypeToastFormat => LiveOpsHubStringCatalog.Text(nameof(CalendarRetypeToastFormat));
