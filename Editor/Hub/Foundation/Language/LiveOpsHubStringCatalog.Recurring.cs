@@ -88,6 +88,9 @@ namespace DreamTech.LiveOps.Editor
             table.Add(nameof(LiveOpsHubStrings.RecurringActiveHoursLabel),
                 vietnamese: "Chạy mỗi đợt (giờ)",
                 english: "Run per occurrence (hours)");
+            table.Add(nameof(LiveOpsHubStrings.RecurringHoursFormat),
+                vietnamese: "{0} giờ",
+                english: "{0} {0|hour|hours}");
             table.AddShared(nameof(LiveOpsHubStrings.RecurringEqualsFormat), "= {0}");
             table.AddShared(nameof(LiveOpsHubStrings.RecurringAnchorDeviceLineFormat), "{0} · {1}");
             table.AddShared(nameof(LiveOpsHubStrings.RecurringAnchorTokenFormat), "{0} {1} {2} {3}");
@@ -258,9 +261,9 @@ namespace DreamTech.LiveOps.Editor
             table.Add(nameof(LiveOpsHubStrings.RecurringAddToastFormat),
                 vietnamese: "Thêm luật lặp {0}",
                 english: "Add recurring rule {0}");
-            table.Add(nameof(LiveOpsHubStrings.RecurringPrefixToastFormat),
-                vietnamese: "Đổi tiền tố id {0} → {1}",
-                english: "Change id prefix {0} → {1}");
+            table.Add(nameof(LiveOpsHubStrings.RecurringFieldWriteToastFormat),
+                vietnamese: "Đổi {0} của luật lặp {1}: {2} → {3}",
+                english: "Change {0} of recurring rule {1}: {2} → {3}");
 
             table.Add(nameof(LiveOpsHubStrings.RecurringAddTypeLabel),
                 vietnamese: "Loại chưa có luật",
@@ -310,6 +313,9 @@ namespace DreamTech.LiveOps.Editor
             table.Add(nameof(LiveOpsHubStrings.RecurringFieldLockedByDraftFormat),
                 vietnamese: "Khoá trong lúc ô {0} còn nháp chưa ghi",
                 english: "Locked while the {0} field still holds an unsaved draft");
+            table.Add(nameof(LiveOpsHubStrings.RecurringFieldsLockedByDraftFormat),
+                vietnamese: "Khoá trong lúc ô {0} còn nháp chưa ghi — Ghi hoặc Huỷ (Esc) nháp ở ô đó trước",
+                english: "Locked while the {0} field still holds an unsaved draft — write or cancel (Esc) that draft first");
 
             table.Add(nameof(LiveOpsHubStrings.RecurringPresetWeeklyMonday),
                 vietnamese: "Hằng tuần thứ Hai 00:00 UTC",

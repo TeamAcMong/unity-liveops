@@ -53,10 +53,14 @@ namespace DreamTech.LiveOps.Editor
         private readonly RecurringNextOccurrencesTable _occurrences = new RecurringNextOccurrencesTable();
         private readonly Dictionary<string, FieldSlot> _slots = new Dictionary<string, FieldSlot>(StringComparer.Ordinal);
 
+        /// <summary>Thứ tự ô đúng như trên màn: Dictionary không hứa thứ tự, mà câu khoá phải đứng ở ô ĐẦU của nhóm bị khoá.</summary>
+        private readonly List<string> _slotOrder = new List<string>();
+
         private readonly VisualElement _draftBlock;
         private readonly Label _draftNotice;
         private readonly HelpBox _draftHelpBox;
         private readonly Button _draftWriteButton;
+        private readonly Button _draftCancelButton;
         private readonly VisualElement _afterWriteBlock;
         private readonly HelpBox _afterWriteHelpBox;
         private readonly Button _afterWriteRevertButton;
@@ -100,10 +104,10 @@ namespace DreamTech.LiveOps.Editor
             _draftWriteButton = new Button(RaiseDraftWrite) { name = DraftWriteElementName };
             _draftWriteButton.AddToClassList(LiveOpsHubClassNames.Button);
             _draftWriteButton.AddToClassList(LiveOpsHubClassNames.ButtonDanger);
-            Button draftCancelButton = new Button(RaiseDraftCancel) { name = DraftCancelElementName, text = LiveOpsHubStrings.RecurringDraftCancelButton };
-            draftCancelButton.AddToClassList(LiveOpsHubClassNames.Button);
-            draftCancelButton.AddToClassList(LiveOpsHubClassNames.ButtonPrimary);
-            draftCancelButton.AddToClassList(LiveOpsHubClassNames.ButtonFirst);
+            _draftCancelButton = new Button(RaiseDraftCancel) { name = DraftCancelElementName, text = LiveOpsHubStrings.RecurringDraftCancelButton };
+            _draftCancelButton.AddToClassList(LiveOpsHubClassNames.Button);
+            _draftCancelButton.AddToClassList(LiveOpsHubClassNames.ButtonPrimary);
+            _draftCancelButton.AddToClassList(LiveOpsHubClassNames.ButtonFirst);
 
             _draftBlock = new VisualElement { name = DraftBlockElementName };
             _draftBlock.AddToClassList(LiveOpsHubClassNames.RecurringDraftBlock);
@@ -112,7 +116,7 @@ namespace DreamTech.LiveOps.Editor
             _draftBlock.Add(_draftHelpBox);
             VisualElement draftActions = new VisualElement();
             draftActions.AddToClassList(LiveOpsHubClassNames.RecurringDraftActions);
-            draftActions.Add(draftCancelButton);
+            draftActions.Add(_draftCancelButton);
             draftActions.Add(_draftWriteButton);
             _draftBlock.Add(draftActions);
 
@@ -157,6 +161,7 @@ namespace DreamTech.LiveOps.Editor
             Add(deleteButton);
 
             RegisterFieldCallbacks();
+            RegisterCallback<PointerDownEvent>(OnPointerDownInsideForm, TrickleDown.TrickleDown);
         }
 
         /// <summary>Một field vừa commit: luật ứng viên đã áp giá trị mới. Section quyết định ghi hay giữ nháp.</summary>
@@ -228,6 +233,9 @@ namespace DreamTech.LiveOps.Editor
             _cycleBar.ActiveHours = rule.ActiveHours;
             _cycleBar.SetColorSlot(_model.ColorSlot);
             _cycleText.text = _model.CycleText;
+            // (UX-22) Luật hỏng thì câu nhịp đọc như lỗi: thanh chu kỳ đã vẽ phần tràn bằng màu chặn, chữ dưới nó phải
+            // nói cùng một chuyện chứ không đọc như một ghi chú bình thường.
+            _cycleText.EnableInClassList(LiveOpsHubClassNames.TextBlocked, !_model.IsValid);
 
             _anchorNotice.text = _model.AnchorNotice;
             _anchorNotice.EnableInClassList(LiveOpsHubClassNames.RecurringHidden, _model.AnchorNotice.Length == 0);
@@ -256,12 +264,14 @@ namespace DreamTech.LiveOps.Editor
             if (rule.TryGetAnchorUtc(out anchorUtc))
             {
                 _anchorField.SetValueWithoutNotify(anchorUtc);
-                SetSuffix(RecurringRuleFields.Anchor, _model.AnchorDeviceLine);
+                SetSuffix(RecurringRuleFields.Anchor, string.Empty);
+                SetSubLine(RecurringRuleFields.Anchor, _model.AnchorDeviceLine);
                 return;
             }
             // Giờ không đọc được giữ NGUYÊN VĂN trong ô: sửa hộ người dùng là làm mất bằng chứng của chỗ hỏng.
             _anchorField.SetRawTextWithoutNotify(rule.AnchorUtcText, string.Empty);
             SetSuffix(RecurringRuleFields.Anchor, string.Empty);
+            SetSubLine(RecurringRuleFields.Anchor, string.Empty);
         }
 
         private void BindDraftBlock()
@@ -278,9 +288,16 @@ namespace DreamTech.LiveOps.Editor
             string draftFieldName = _slots.ContainsKey(_draft.FieldName) ? _draft.FieldName : RecurringRuleFields.IdPrefix;
             FieldSlot slot = SlotOf(draftFieldName);
             slot.NoticeHost.Add(_draftBlock);
-            _draftNotice.text = _draft.CellNotice;
-            _draftHelpBox.text = _draft.ConsequenceText;
+            // (UX-22) Giá trị hỏng (game sẽ BỎ HẲN luật) không ghi được, nên câu hậu quả "đợt weekly-pass-35 sẽ biến mất"
+            // và nút danger "Ghi giá trị mới…" là lời mời làm một việc không làm được. Còn lại đúng hai thứ: dòng lỗi
+            // dưới ô (SetError đã in) và lối ra "Huỷ (Esc)".
+            bool isWritable = _model.FieldErrorText(draftFieldName).Length == 0;
+            _draftNotice.text = isWritable ? _draft.CellNotice : string.Empty;
+            _draftHelpBox.text = isWritable ? _draft.ConsequenceText : string.Empty;
             _draftWriteButton.text = _draft.WriteButtonText;
+            _draftNotice.EnableInClassList(LiveOpsHubClassNames.RecurringHidden, !isWritable);
+            _draftHelpBox.EnableInClassList(LiveOpsHubClassNames.RecurringHidden, !isWritable);
+            _draftWriteButton.EnableInClassList(LiveOpsHubClassNames.RecurringHidden, !isWritable);
             MarkDrafting(draftFieldName);
         }
 
@@ -297,7 +314,8 @@ namespace DreamTech.LiveOps.Editor
 
         /// <summary>
         /// (Q-W4-4, user duyệt 16/9) Ô đang giữ nháp được viền warning; BA ô còn lại bị KHOÁ tới khi nháp được ghi hoặc huỷ,
-        /// kèm lý do in THÀNH CHỮ ngay cạnh ô (SPIKE-B SP-3 — tooltip chỉ phụ, không test nào assert tooltip).
+        /// kèm lý do in THÀNH CHỮ ngay cạnh ô (SPIKE-B SP-3 — chữ là đường chính, tooltip là đường phụ; cả hai đều có
+        /// test gác: <c>RecurringRulesSectionTests.AssertFieldLocked/AssertFieldUnlocked</c> so cả câu lẫn tooltip).
         /// <para>
         /// Vì sao khoá: nháp sống ở ĐÚNG MỘT ô (<see cref="RecurringPrefixDraft"/>), nên gõ tiếp vào ô thứ hai sẽ thay nháp
         /// cũ bằng nháp mới và cái vừa gõ ở ô thứ nhất biến mất không dấu vết — người dùng tưởng cả hai đang chờ ghi.
@@ -307,23 +325,95 @@ namespace DreamTech.LiveOps.Editor
         {
             bool hasDraft = fieldName.Length > 0;
             string draftingLabelText = hasDraft ? SlotOf(fieldName).Label.text : string.Empty;
-            foreach (KeyValuePair<string, FieldSlot> pair in _slots)
+            // (UX-23) MỘT câu cho cả nhóm, đặt ở ô đầu tiên bị khoá: in cùng một câu dưới từng ô thì màn đọc như ba lỗi
+            // khác nhau đang xảy ra cùng lúc, trong khi chỉ có một việc phải làm và nó ở ô thứ tư.
+            string lockSentence = hasDraft
+                ? string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.RecurringFieldsLockedByDraftFormat, draftingLabelText)
+                : string.Empty;
+            bool sentenceShown = false;
+            for (int index = 0; index < _slotOrder.Count; index++)
             {
-                bool isDrafting = hasDraft && string.Equals(pair.Key, fieldName, StringComparison.Ordinal);
-                pair.Value.Input.EnableInClassList(LiveOpsHubClassNames.RecurringFieldDrafting, isDrafting);
+                string slotFieldName = _slotOrder[index];
+                FieldSlot slot = SlotOf(slotFieldName);
+                bool isDrafting = hasDraft && string.Equals(slotFieldName, fieldName, StringComparison.Ordinal);
+                slot.Input.EnableInClassList(LiveOpsHubClassNames.RecurringFieldDrafting, isDrafting);
                 bool isLocked = hasDraft && !isDrafting;
-                pair.Value.Input.SetEnabled(!isLocked);
-                pair.Value.LockReason.text = isLocked
-                    ? string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.RecurringFieldLockedByDraftFormat, draftingLabelText)
-                    : string.Empty;
-                pair.Value.LockReason.tooltip = pair.Value.LockReason.text;
-                pair.Value.LockReason.EnableInClassList(LiveOpsHubClassNames.RecurringHidden, !isLocked);
+                slot.Input.SetEnabled(!isLocked);
+                bool showsSentence = isLocked && !sentenceShown;
+                if (showsSentence) sentenceShown = true;
+                slot.LockReason.text = showsSentence ? lockSentence : string.Empty;
+                // Tooltip vẫn đặt trên MỌI ô bị khoá: câu in ra chỉ có một chỗ, nhưng người rê chuột lên ô thứ ba cũng
+                // phải đọc được vì sao nó không gõ được (SP-3 nói tooltip là đường phụ, không phải đường duy nhất).
+                slot.Input.tooltip = isLocked ? lockSentence : string.Empty;
+                slot.LockReason.tooltip = slot.LockReason.text;
+                slot.LockReason.EnableInClassList(LiveOpsHubClassNames.RecurringHidden, !showsSentence);
             }
             // Foldout JSON sửa được cùng một luật bằng một đường khác, nên nó cũng phải khoá: "Áp" trong lúc còn nháp sẽ
             // dựng nháp mới đè nháp cũ. Ô nhập vẫn mở (đọc/sao chép được), chỉ nút ghi khoá kèm ĐÚNG câu lý do của Q-W4-4.
             _jsonFoldout.SetLockedByDraft(hasDraft
                 ? string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.RecurringFieldLockedByDraftFormat, draftingLabelText)
                 : string.Empty);
+        }
+
+        /// <summary>
+        /// (UX-23, UJ-21) Bấm vào một ô đang bị khoá hiện không phản hồi gì — người dùng bấm lại vài lần rồi bỏ. Ô khoá
+        /// không nhận được sự kiện của chính nó (UI Toolkit bỏ qua callback trên cây đã tắt), nên form bắt ở gốc rồi tự
+        /// dò xem con trỏ rơi vào hàng nào: rơi vào hàng bị khoá thì đưa focus TỚI NÚT "Huỷ (Esc)" và nháy nút đó.
+        /// <para>
+        /// Focus đi tới nút Huỷ chứ không về ô đang giữ nháp: ô nháp đã có viền warning và con trỏ vừa rời khỏi nó, còn
+        /// thứ người dùng đang thiếu là LỐI RA. Cổng hành trình của gói G khoá đúng hành vi này
+        /// (<c>UxRecurringJourneyTests.PrefixDraft_LocksFormWithOneSentence_AndClickOnLockedFieldFocusesCancel</c>).
+        /// </para>
+        /// <para>
+        /// Gác bằng CÙNG điều kiện với <see cref="BindDraftBlock"/> (nháp phải thuộc đúng luật đang mở): nháp của luật
+        /// khác thì khối nháp đã bị gỡ khỏi cây, bấm ô sẽ cướp focus rồi nháy một nút không còn trên màn.
+        /// </para>
+        /// </summary>
+        private void OnPointerDownInsideForm(PointerDownEvent pointerEvent)
+        {
+            if (!_draft.NeedsConfirmation) return;
+            if (!string.Equals(_draft.EventType, _model.EventType, StringComparison.Ordinal)) return;
+            string draftFieldName = _slots.ContainsKey(_draft.FieldName) ? _draft.FieldName : RecurringRuleFields.IdPrefix;
+            Vector2 position = new Vector2(pointerEvent.position.x, pointerEvent.position.y);
+            for (int index = 0; index < _slotOrder.Count; index++)
+            {
+                string slotFieldName = _slotOrder[index];
+                if (string.Equals(slotFieldName, draftFieldName, StringComparison.Ordinal)) continue;
+                if (!SlotOf(slotFieldName).Row.worldBound.Contains(position)) continue;
+                // Focus đặt ở LƯỢT SAU: panel tự xử lý focus của chính cú bấm này sau khi trickle-down chạy xong, nên gọi
+                // Focus() ngay ở đây thì nó bị cú bấm ghi đè và con trỏ không đi đâu cả.
+                _draftCancelButton.schedule.Execute(() => _draftCancelButton.Focus());
+                FlashDraftCancel();
+                return;
+            }
+        }
+
+        /// <summary>Đủ để transition 300ms của <c>liveops-hub-row--flash</c> chạy hết rồi mới gỡ class (motion USS).</summary>
+        private const long FlashMilliseconds = 300;
+
+        /// <summary>Bộ hẹn giờ gỡ class chớp của lần nháy ĐANG chạy — lần nháy mới phải huỷ nó, xem <see cref="FlashDraftCancel"/>.</summary>
+        private IVisualElementScheduledItem _flashReleaseSchedule;
+
+        /// <summary>
+        /// (UJ-21) Bấm ô khoá nhiều lần liên tiếp phải nháy được nhiều lần. Gỡ rồi thêm lại class trong CÙNG một khung thì
+        /// computed style không đổi, transition không chạy lại và từ lần thứ hai người dùng không thấy gì: gỡ ở khung này,
+        /// thêm lại ở khung sau. Bộ hẹn giờ của lần trước cũng phải huỷ, nếu không nó gỡ class giữa lần nháy đang chạy.
+        /// </summary>
+        private void FlashDraftCancel()
+        {
+            if (_flashReleaseSchedule != null)
+            {
+                _flashReleaseSchedule.Pause();
+                _flashReleaseSchedule = null;
+            }
+            _draftCancelButton.RemoveFromClassList(LiveOpsHubClassNames.RowFlash);
+            _draftCancelButton.schedule.Execute(() =>
+            {
+                _draftCancelButton.AddToClassList(LiveOpsHubClassNames.RowFlash);
+                _flashReleaseSchedule = _draftCancelButton.schedule
+                    .Execute(() => _draftCancelButton.RemoveFromClassList(LiveOpsHubClassNames.RowFlash))
+                    .StartingIn(FlashMilliseconds);
+            });
         }
 
         private string PresetNameOf(int presetIndex)
@@ -347,12 +437,21 @@ namespace DreamTech.LiveOps.Editor
             slot.Suffix.EnableInClassList(LiveOpsHubClassNames.RecurringHidden, slot.Suffix.text.Length == 0);
         }
 
+        private void SetSubLine(string fieldName, string text)
+        {
+            FieldSlot slot = SlotOf(fieldName);
+            slot.SubLine.text = text ?? string.Empty;
+            slot.SubLine.EnableInClassList(LiveOpsHubClassNames.RecurringHidden, slot.SubLine.text.Length == 0);
+        }
+
         private void SetError(string fieldName)
         {
             FieldSlot slot = SlotOf(fieldName);
             string error = _model.FieldErrorText(fieldName);
             slot.Error.text = error;
             slot.Error.EnableInClassList(LiveOpsHubClassNames.RecurringHidden, error.Length == 0);
+            // (UX-22) Viền chặn ngay tại ô: một dòng chữ đỏ ở dưới không nói được "chính ô NÀY đang giữ giá trị hỏng".
+            slot.Input.EnableInClassList(LiveOpsHubClassNames.RecurringFieldInvalid, error.Length > 0);
         }
 
         private void AddFieldRow(string fieldName, string labelText, VisualElement input, bool registerSlot)
@@ -373,6 +472,12 @@ namespace DreamTech.LiveOps.Editor
             VisualElement noticeHost = new VisualElement();
             group.Add(noticeHost);
             // Lý do khoá đứng TRƯỚC dòng lỗi: khi ô vừa khoá vừa lỗi, câu "vì sao không gõ được" phải đọc trước câu lỗi cũ.
+            // (UX-32) Dòng phụ đứng RIÊNG dưới ô (giờ máy của Neo): nối đuôi hàng ô thì hàng dài gấp đôi các hàng khác
+            // và ở 820 nó là thứ bị cắt đầu tiên.
+            Label subLine = new Label();
+            subLine.AddToClassList(LiveOpsHubClassNames.RecurringFieldSubLine);
+            subLine.AddToClassList(LiveOpsHubClassNames.RecurringHidden);
+            noticeHost.Add(subLine);
             Label lockReason = new Label();
             lockReason.AddToClassList(LiveOpsHubClassNames.RecurringFieldLockReason);
             // Chữ PHỤ, không phải chữ lỗi: ô bị khoá là trạng thái tạm và lành (chờ ghi/huỷ nháp), tô đỏ cả ba dòng thì màn
@@ -382,11 +487,14 @@ namespace DreamTech.LiveOps.Editor
             noticeHost.Add(lockReason);
             Label error = new Label();
             error.AddToClassList(LiveOpsHubClassNames.TextBlocked);
+            // (UX-22) Dòng lỗi thụt theo cột Ô, không nằm dưới cột nhãn: mắt đọc lỗi ngay dưới chỗ vừa gõ.
+            error.AddToClassList(LiveOpsHubClassNames.RecurringFieldError);
             noticeHost.Add(error);
             Add(group);
 
             if (!registerSlot) return;
-            _slots[fieldName] = new FieldSlot(group, row, noticeHost, label, input, suffix, error, lockReason);
+            _slots[fieldName] = new FieldSlot(group, row, noticeHost, label, input, suffix, error, lockReason, subLine);
+            _slotOrder.Add(fieldName);
         }
 
         private FieldSlot SlotOf(string fieldName)
@@ -499,8 +607,9 @@ namespace DreamTech.LiveOps.Editor
         private sealed class FieldSlot
         {
             internal FieldSlot(VisualElement group, VisualElement row, VisualElement noticeHost, Label label, VisualElement input,
-                Label suffix, Label error, Label lockReason)
+                Label suffix, Label error, Label lockReason, Label subLine)
             {
+                SubLine = subLine;
                 Group = group;
                 Row = row;
                 NoticeHost = noticeHost;
@@ -518,6 +627,9 @@ namespace DreamTech.LiveOps.Editor
             public VisualElement Input { get; }
             public Label Suffix { get; }
             public Label Error { get; }
+
+            /// <summary>Dòng phụ dưới ô (giờ máy của Neo) — không phải chữ phụ cuối hàng ô.</summary>
+            public Label SubLine { get; }
 
             /// <summary>Lý do ô đang bị khoá, in thành chữ (Q-W4-4 + SPIKE-B SP-3); rỗng và ẩn khi ô mở.</summary>
             public Label LockReason { get; }
