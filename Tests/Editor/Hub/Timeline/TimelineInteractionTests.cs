@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Reflection;
 using DreamTech.LiveOps.Tests;
 using DreamTech.LiveOps.Unity;
@@ -167,11 +168,17 @@ namespace DreamTech.LiveOps.Editor.Tests
             Assert.AreEqual(new DateTime(2026, 9, 17, 0, 0, 0, DateTimeKind.Utc), lane.DrawnOverlaps[0].startUtc);
             Assert.AreEqual(new DateTime(2026, 9, 17, 12, 0, 0, DateTimeKind.Utc), lane.DrawnOverlaps[0].endUtc);
             Assert.AreEqual("Kết thúc 17/9 12:00 UTC", Element.ReadoutText.text, "readout Hình 12 khung 7 (vế giờ)");
-            Assert.AreEqual(" · chồng 12 giờ với hunt-0916-bonus", Element.ReadoutOverlap.text, "vế chồng giờ chữ blocked");
+            // (UX-18, T2) Dấu ngăn dính vào chữ, khe trái do USS: khoảng trắng ĐẦU Label bị bỏ khi dựng chữ nên bản cũ
+            // (" · chồng…") vẽ ra "UTC· chồng 12 giờ".
+            Assert.AreEqual("· chồng 12 giờ với hunt-0916-bonus", Element.ReadoutOverlap.text, "vế chồng giờ chữ blocked");
             Assert.IsTrue(Element.ReadoutOverlap.ClassListContains(LiveOpsHubClassNames.TextBlocked));
             VisualElement willDropTag = TimelineTestQueries.Single(lane.Query<VisualElement>(className: LiveOpsHubClassNames.TimelineDroppedTagWillDrop).ToList(),
                 tag => !tag.ClassListContains(LiveOpsHubClassNames.TimelineHidden));
-            Assert.AreEqual(LiveOpsHubStrings.TimelineWillDropTag, willDropTag.Q<Label>().text, "tag \"sẽ bị bỏ\"");
+            // (UX-31, UJ-24) bonus hẹp nên nhãn id không nằm trong thân thanh — tag phải nói cả id lẫn trạng thái.
+            Assert.AreEqual(
+                string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.TimelineDroppedTagWithIdFormat,
+                    bonus.Model.EventId, LiveOpsHubStrings.TimelineWillDropTag),
+                willDropTag.Q<Label>().text, "tag \"sẽ bị bỏ\" của thanh hẹp");
 
             _panel.SendMouse(EventType.MouseUp, endEdge + new Vector2(twelveHours, 0f));
             MoveBarIntent commit = TimelineTestQueries.Single(Harness.IntentsOf<MoveBarIntent>(), move => move.IsCommit);

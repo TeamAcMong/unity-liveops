@@ -21,9 +21,15 @@ namespace DreamTech.LiveOps.Editor
         // Thanh [SD1 §3.5].
         internal static string TimelineRenamedLabelFormat => LiveOpsHubStringCatalog.Text(nameof(TimelineRenamedLabelFormat));
         internal static string TimelineStripLabelFormat => LiveOpsHubStringCatalog.Text(nameof(TimelineStripLabelFormat));
+
+        /// <summary>(UX-31) Nhãn dải khi thanh hẹp: bỏ vế nhịp, giữ loại + số đợt — "sky-race · 42".</summary>
+        internal static string TimelineStripLabelShortFormat => LiveOpsHubStringCatalog.Text(nameof(TimelineStripLabelShortFormat));
         internal static string TimelineStripTooltipFormat => LiveOpsHubStringCatalog.Text(nameof(TimelineStripTooltipFormat));
         internal static string TimelineBarTooltipFormat => LiveOpsHubStringCatalog.Text(nameof(TimelineBarTooltipFormat));
         internal static string TimelineDroppedTag => LiveOpsHubStringCatalog.Text(nameof(TimelineDroppedTag));
+
+        /// <summary>(UX-31, UJ-24) Tag bị bỏ của thanh hẹp: thanh không đủ chỗ cho nhãn id nên tag phải nói ra id — "hunt-0916-bonus · Bị bỏ".</summary>
+        internal static string TimelineDroppedTagWithIdFormat => LiveOpsHubStringCatalog.Text(nameof(TimelineDroppedTagWithIdFormat));
         internal static string TimelineWillDropTag => LiveOpsHubStringCatalog.Text(nameof(TimelineWillDropTag));
         internal static string TimelineOverlapLabelFormat => LiveOpsHubStringCatalog.Text(nameof(TimelineOverlapLabelFormat));
         internal static string TimelineClippedStartTooltip => LiveOpsHubStringCatalog.Text(nameof(TimelineClippedStartTooltip));
@@ -46,6 +52,12 @@ namespace DreamTech.LiveOps.Editor
         internal static string TimelineReadoutShiftFormat => LiveOpsHubStringCatalog.Text(nameof(TimelineReadoutShiftFormat));
         internal static string TimelineReadoutLengthFormat => LiveOpsHubStringCatalog.Text(nameof(TimelineReadoutLengthFormat));
         internal static string TimelineReadoutOverlapFormat => LiveOpsHubStringCatalog.Text(nameof(TimelineReadoutOverlapFormat));
+
+        /// <summary>
+        /// (UX-18, T2) Vế chồng giờ của readout là Label RIÊNG: khoảng trắng đầu Label bị bỏ khi dựng chữ, nên dấu ngăn phải
+        /// dính vào chữ và khe trái do USS giữ (<c>.liveops-hub-timeline-readout-overlap</c> margin-left).
+        /// </summary>
+        internal static string TimelineReadoutOverlapPrefixFormat => LiveOpsHubStringCatalog.Text(nameof(TimelineReadoutOverlapPrefixFormat));
         internal static string TimelinePositiveSign => LiveOpsHubStringCatalog.Text(nameof(TimelinePositiveSign));
         internal static string TimelineNegativeSign => LiveOpsHubStringCatalog.Text(nameof(TimelineNegativeSign));
 
