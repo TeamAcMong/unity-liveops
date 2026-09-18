@@ -255,7 +255,7 @@ namespace DreamTech.LiveOps.Editor
         {
             List<RecurringSentenceToken> tokens = new List<RecurringSentenceToken>();
             tokens.Add(Text(LiveOpsHubStrings.RecurringSentenceEveryPrefix));
-            tokens.Add(Token(HoursText(rule.PeriodHours, format), RecurringRuleFields.PeriodHours, RecurringTokenState.Normal, false));
+            tokens.Add(Token(PeriodText(rule.PeriodHours, format), RecurringRuleFields.PeriodHours, RecurringTokenState.Normal, false));
             tokens.Add(Text(LiveOpsHubStrings.RecurringSentenceAnchorPrefix));
             tokens.Add(Token(AnchorText(rule, format), RecurringRuleFields.Anchor, RecurringTokenState.Normal, false));
             tokens.Add(Text(LiveOpsHubStrings.RecurringSentenceActivePrefix));
@@ -276,6 +276,41 @@ namespace DreamTech.LiveOps.Editor
         {
             return new RecurringSentenceToken(text, fieldName, state, isMono);
         }
+
+        /// <summary>
+        /// (UX-32, T6) NHỊP của luật quy đổi bằng ĐÚNG luật của header làn màn Lịch
+        /// (<c>LiveOpsTimelineModel.HoursText</c>): chỉ đọc theo ngày khi chẵn ngày VÀ dài hơn một ngày. Nhờ vậy 168 giờ
+        /// đọc "7 ngày" ở cả hai màn, còn 24 giờ đọc "24 giờ" ở cả hai màn — đó mới là cái T6 đòi.
+        /// <para>
+        /// Gốc thật của T6 là HAI NGƯỠNG khác nhau: <see cref="LiveOpsHubFormat.Duration"/> đổi sang ngày từ ĐỦ 24 giờ,
+        /// header làn thì phải HƠN 24 giờ. Không gọi thẳng hàm bên Timeline được — nó private và file đó thuộc gói khác —
+        /// nên luật được chép lại ở đây, và <c>RecurringRuleModelTests.PeriodText_ReadsSameUnitAsTimelineLaneHeader</c>
+        /// so trực tiếp chuỗi của hai màn để hai bản chép không trôi khỏi nhau.
+        /// </para>
+        /// </summary>
+        internal static string PeriodText(int hours, LiveOpsHubFormat format)
+        {
+            if (hours <= 0) return format.Integer(hours);
+            if (hours > HoursPerDay && hours % HoursPerDay == 0) return format.Duration(TimeSpan.FromHours(hours), false);
+            // Qua Catalog.Format chứ không qua string.Format: khoá này mang dấu số nhiều {0|hour|hours} của bản tiếng Anh,
+            // và dấu đó chỉ được giải khi đi đúng đường (EnglishPluralTests gác chỗ này).
+            return LiveOpsHubStringCatalog.Format(nameof(LiveOpsHubStrings.RecurringHoursFormat), format.Integer(hours));
+        }
+
+        /// <summary>Ngưỡng quy đổi giờ → ngày, dùng chung với header làn của màn Lịch.</summary>
+        private const int HoursPerDay = 24;
+
+        /// <summary>
+        /// (UX-25) Id hiển thị trong một câu: gạch nối thường là chỗ UI Toolkit được phép ngắt dòng, nên "weekly-pass-35"
+        /// vỡ thành "weekly-" / "pass-35" giữa HelpBox và người đọc tưởng đó là hai id. U+2011 là gạch nối KHÔNG ngắt —
+        /// nhìn y hệt, chỉ khác ở chỗ được phép xuống dòng hay không.
+        /// </summary>
+        internal static string NonBreakingId(string id)
+        {
+            return string.IsNullOrEmpty(id) ? string.Empty : id.Replace('-', NonBreakingHyphen);
+        }
+
+        private const char NonBreakingHyphen = '\u2011';
 
         /// <summary>"7 ngày" / "20 giờ" — giờ âm hoặc 0 giữ nguyên số để câu đọc không nói dối khi luật đang hỏng.</summary>
         internal static string HoursText(int hours, LiveOpsHubFormat format)
@@ -373,6 +408,47 @@ namespace DreamTech.LiveOps.Editor
         }
 
         /// <summary>
+        /// (UX-32) Có câu "sau khi ghi" còn treo cho loại này hay không — hàng trong pane trái hỏi cái này để đừng nói
+        /// "không sao" trong lúc form ngay cạnh đang nói "vẫn còn weekly-pass-35 đang chạy".
+        /// <para>
+        /// Hàng danh sách KHÔNG im khi đang có nháp (khác <see cref="BuildAfterWriteNotice"/>, chỗ đó im vì khối nháp đã
+        /// là câu đang nói ngay dưới ô): pane trái ở xa khối nháp, bỏ dấu đi là hàng nói "không sao" trong lúc đợt cũ vẫn
+        /// đang chạy. Vì thế nó hỏi thẳng phần QUYẾT ĐỊNH, không dựng câu — gọi mỗi lần vẽ danh sách vẫn rẻ.
+        /// </para>
+        /// </summary>
+        internal static bool HasAfterWriteNotice(LiveOpsHubCalendarSession session, string eventType)
+        {
+            if (session == null || string.IsNullOrEmpty(eventType)) return false;
+            LiveEventCalendarDocument document = session.Document;
+            RecurringLiveEventRule writtenRule;
+            if (document == null || !document.TryGetRecurringRule(eventType, out writtenRule)) return false;
+            LiveEventCalendarDocument baseline = session.Publish != null ? session.Publish.ActiveBaseline : null;
+            RecurringLiveEventRule baselineRule;
+            LiveEventInstance published;
+            LiveEventInstance current;
+            return TryGetAfterWriteMismatch(writtenRule, baseline, session.Clock.UtcNow, eventType,
+                out baselineRule, out published, out current);
+        }
+
+        /// <summary>
+        /// Phần QUYẾT ĐỊNH của câu "sau khi ghi", tách khỏi phần dựng chữ: bản đã đăng còn một lần lặp đang chạy mang id
+        /// CŨ, mà luật trong Main.asset nay sinh id khác cho đúng lúc đó. Trả về hai lần lặp để nơi gọi khỏi tính lại —
+        /// <see cref="HasAfterWriteNotice"/> chỉ cần câu trả lời có/không nên không trả giá cho việc format chuỗi.
+        /// </summary>
+        private static bool TryGetAfterWriteMismatch(RecurringLiveEventRule writtenRule, LiveEventCalendarDocument baseline,
+            DateTime nowUtc, string eventType, out RecurringLiveEventRule baselineRule, out LiveEventInstance published,
+            out LiveEventInstance current)
+        {
+            baselineRule = null;
+            published = null;
+            current = null;
+            if (baseline == null || !baseline.TryGetRecurringRule(eventType, out baselineRule)) return false;
+            if (!RecurringOccurrences.TryGetOccurrenceAt(baselineRule, nowUtc, out published)) return false;
+            if (!RecurringOccurrences.TryGetOccurrenceAt(writtenRule, nowUtc, out current)) return false;
+            return !string.Equals(published.EventId, current.EventId, StringComparison.Ordinal);
+        }
+
+        /// <summary>
         /// Câu ở lại sau khi đã ghi: bản đã đăng còn một lần lặp đang chạy mang id CŨ, mà luật trong Main.asset nay sinh id
         /// khác cho đúng lúc đó. Câu biến mất khi lần lặp cũ khép — không cần ai bấm tắt (mục 7.4).
         /// Đang có nháp tại ô của chính luật này thì im: lúc đó khối cảnh báo của nháp mới là câu đang nói.
@@ -383,18 +459,21 @@ namespace DreamTech.LiveOps.Editor
             revertPrefix = string.Empty;
             if (draft.HasDraft && string.Equals(draft.EventType, eventType, StringComparison.Ordinal)) return string.Empty;
             RecurringLiveEventRule baselineRule;
-            if (baseline == null || !baseline.TryGetRecurringRule(eventType, out baselineRule)) return string.Empty;
             LiveEventInstance published;
-            if (!RecurringOccurrences.TryGetOccurrenceAt(baselineRule, nowUtc, out published)) return string.Empty;
             LiveEventInstance current;
-            if (!RecurringOccurrences.TryGetOccurrenceAt(writtenRule, nowUtc, out current)) return string.Empty;
-            if (string.Equals(published.EventId, current.EventId, StringComparison.Ordinal)) return string.Empty;
+            if (!TryGetAfterWriteMismatch(writtenRule, baseline, nowUtc, eventType, out baselineRule, out published, out current))
+            {
+                return string.Empty;
+            }
 
             revertPrefix = baselineRule.EffectiveIdPrefix;
             // Câu ở lại là HelpBox đụng đợt đang chạy nên phải mang cả hai mệnh đề của PD-17 như câu nháp và câu hộp (mục 7.0).
+            // (UX-25) Id in bằng gạch nối KHÔNG ngắt: HelpBox xuống dòng giữa "weekly-" và "pass-35" thì người đọc
+            // thấy hai mảnh và tưởng đó là hai id khác nhau. Thân hộp xác nhận thì KHÔNG dùng — ở đó người dùng phải gõ
+            // lại đúng id, mà U+2011 copy ra không khớp với id thật (đánh đổi ghi ở mục 14 kế hoạch).
             return RecurringPrefixDraft.WithPlayerCountCaveat(string.Format(CultureInfo.InvariantCulture,
-                LiveOpsHubStrings.RecurringAfterWriteNoticeFormat, published.EventId, format.ShortDateTimeUtc(published.EndUtc),
-                current.EventId));
+                LiveOpsHubStrings.RecurringAfterWriteNoticeFormat, NonBreakingId(published.EventId),
+                format.ShortDateTimeUtc(published.EndUtc), NonBreakingId(current.EventId)));
         }
     }
 

@@ -261,11 +261,15 @@ namespace DreamTech.LiveOps.Editor
             // TearDownChrome — gỡ đăng ký trong đó sẽ cắt luôn sự kiện đang chạy.
             LiveOpsHubLanguage.Changed -= OnLanguageChanged;
             LiveOpsHubLanguage.Changed += OnLanguageChanged;
+            // Hộp xác nhận đặt chỗ theo CỬA SỔ HUB, không theo cửa sổ đang focus (UX-27 / soát W8-UX R4): hộp luôn mở từ một
+            // thao tác trong hub, mà focus thì popover/Console/Project vừa click đều cướp được.
+            LiveOpsConfirmWindow.RegisterOwnerWindow(this);
         }
 
         private void OnDisable()
         {
             LiveOpsHubLanguage.Changed -= OnLanguageChanged;
+            LiveOpsConfirmWindow.UnregisterOwnerWindow(this);
             CaptureCurrentViewState();
             TearDownChrome();
             ReleaseServices();
@@ -276,6 +280,7 @@ namespace DreamTech.LiveOps.Editor
             // OnDisable chạy trước OnDestroy ở mọi đường đóng cửa sổ đã biết; gỡ lần nữa để một đường lạ không để lại handler
             // trỏ vào cửa sổ đã chết (event tĩnh sống lâu hơn cửa sổ).
             LiveOpsHubLanguage.Changed -= OnLanguageChanged;
+            LiveOpsConfirmWindow.UnregisterOwnerWindow(this);
         }
 
         private void ApplyWindowTitle()
@@ -292,12 +297,30 @@ namespace DreamTech.LiveOps.Editor
         {
             ApplyWindowTitle();
             if (_hubRoot == null && !IsLayoutMissing) return;
+            DropDerivedTextCaches();
             CaptureCurrentViewState();
             CreateGUI();
         }
 
+        /// <summary>
+        /// (UX-20 / UJ-20) Dựng lại khung thôi CHƯA đủ để chữ đổi hết: phiên lịch giữ <c>ExportGateState</c> ĐÃ DỰNG THÀNH CHỮ
+        /// trong một cache khoá theo <c>StateVersion</c> + format + readBack, mà đổi ngôn ngữ không đụng ba thứ đó — health màn
+        /// Xuất đọc lại đúng bản cũ và badge tầng XUẤT của rail vẫn ghi "chặn" giữa một cửa sổ đã sang English.
+        /// <c>NotifyPublishStateChanged</c> là seam DUY NHẤT của phiên tăng <c>StateVersion</c> mà không có tác dụng phụ nào
+        /// khác (không bắn sự kiện, không đánh dấu lịch đã sửa), nên ở đây nó có nghĩa "bỏ mọi bản dựng sẵn thành chữ".
+        /// Tên seam nói về publish là do file phiên nằm ngoài quyền ghi của gói — đã ghi vào contract-changes-G-UX-SHELL.md.
+        /// </summary>
+        private void DropDerivedTextCaches()
+        {
+            if (_services == null) return;
+            _services.Session.NotifyPublishStateChanged();
+            LiveOpsHealthThrottle.InvalidateAll();
+        }
+
         private void OnFocus()
         {
+            // Hai hub mở cùng lúc: cái người dùng vừa click là chủ của hộp xác nhận mở sau đó.
+            LiveOpsConfirmWindow.RegisterOwnerWindow(this);
             // Dự phòng khi probe skin chưa bắn (8.8): OnFocus chạy khi người dùng quay lại cửa sổ sau khi đổi Theme.
             _skin?.ApplyFromEditorSkin();
             // SP-8b: người dùng quay lại Unity sau khi sửa file ngoài — so hash ngay, không chờ auto refresh.
@@ -635,17 +658,29 @@ namespace DreamTech.LiveOps.Editor
             int recentActionGroup = windowState.RecentActionUndoGroup;
             bool hasRecentAction = recentActionGroup != LiveOpsToastModel.NoUndoGroup && recentActionText.Length > 0;
             if (!hasRecentAction) recentActionText = string.Empty;
-            bool isRecentActionOnTop = hasRecentAction && _undoTracker != null && _undoTracker.IsGroupOnTop(recentActionGroup);
+            LiveOpsHubRecentActionStep recentActionStep = RecentActionStepOf(hasRecentAction, recentActionGroup);
 
-            StatusBarSignature signature = new StatusBarSignature(session, nowUtc, recentActionText, isRecentActionOnTop);
+            StatusBarSignature signature = new StatusBarSignature(session, nowUtc, recentActionText, recentActionStep);
             if (!force && _hasStatusSignature && signature.Equals(_statusSignature)) return;
             _statusSignature = signature;
             _hasStatusSignature = true;
 
             LiveOpsHubStatusBarModel model = LiveOpsHubStatusBarModel.Build(session.Check, session.Asset != null, recentActionText,
-                isRecentActionOnTop, nowUtc, session.Publish.ActiveStamp, _services.Format, LiveOpsHubKeyLabels.Undo);
+                recentActionStep, nowUtc, session.Publish.ActiveStamp, _services.Format, LiveOpsHubKeyLabels.Undo, LiveOpsHubKeyLabels.Redo);
             _statusBar.SetLeft(model.LeftMark, model.LeftText, string.Empty);
             _statusBar.SetRight(model.RightText, model.RightTooltip);
+        }
+
+        /// <summary>
+        /// (UX-26) Hai chiều của stack Undo phải tách nhau: <c>IsGroupOnTop</c> gộp "sẽ gỡ" và "sẽ trả lại" thành một bool nên
+        /// sau khi Hoàn tác câu vẫn mời ⌘Z. Hỏi thẳng hai vế để câu nói đúng chuyện vừa xảy ra.
+        /// </summary>
+        private LiveOpsHubRecentActionStep RecentActionStepOf(bool hasRecentAction, int recentActionGroup)
+        {
+            if (!hasRecentAction || _undoTracker == null) return LiveOpsHubRecentActionStep.NotOnTop;
+            if (_undoTracker.IsNextUndo(recentActionGroup)) return LiveOpsHubRecentActionStep.NextUndo;
+            if (_undoTracker.IsNextRedo(recentActionGroup)) return LiveOpsHubRecentActionStep.NextRedo;
+            return LiveOpsHubRecentActionStep.NotOnTop;
         }
 
         /// <summary>
@@ -667,10 +702,10 @@ namespace DreamTech.LiveOps.Editor
             private readonly object _activeStamp;
             private readonly long _minuteStamp;
             private readonly string _recentActionText;
-            private readonly bool _isRecentActionOnTop;
+            private readonly int _recentActionStep;
 
             public StatusBarSignature(LiveOpsHubCalendarSession session, DateTime nowUtc, string recentActionText,
-                bool isRecentActionOnTop)
+                LiveOpsHubRecentActionStep recentActionStep)
             {
                 LiveOpsHubCheckState check = session != null ? session.Check : null;
                 _hasCheck = check != null;
@@ -685,7 +720,7 @@ namespace DreamTech.LiveOps.Editor
                 _activeStamp = session != null ? session.Publish.ActiveStamp : null;
                 _minuteStamp = nowUtc.Ticks / TimeSpan.TicksPerMinute;
                 _recentActionText = recentActionText ?? string.Empty;
-                _isRecentActionOnTop = isRecentActionOnTop;
+                _recentActionStep = (int)recentActionStep;
             }
 
             public bool Equals(StatusBarSignature other)
@@ -702,7 +737,7 @@ namespace DreamTech.LiveOps.Editor
                     && ReferenceEquals(_activeStamp, other._activeStamp)
                     && _minuteStamp == other._minuteStamp
                     && string.Equals(_recentActionText, other._recentActionText, StringComparison.Ordinal)
-                    && _isRecentActionOnTop == other._isRecentActionOnTop;
+                    && _recentActionStep == other._recentActionStep;
             }
 
             public override bool Equals(object other)

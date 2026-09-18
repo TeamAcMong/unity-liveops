@@ -11,9 +11,10 @@ namespace DreamTech.LiveOps.Editor
     /// <see cref="LiveOpsConfirmationPolicy"/>. Control không tự sửa tài liệu, presenter không tự dựng UI — hai bên gặp nhau đúng
     /// ở đây.
     /// <para>
-    /// Thao tác kéo theo SPIKE-B SP-2 (quyết định an toàn 16/9/2026): hộp xác nhận CHỈ mở sau khi chuột đã nhả (qua
-    /// <see cref="DeferConfirmation"/>, mặc định <c>EditorApplication.delayCall</c>); lúc nhả chuột kéo đã ghi MỘT bước Undo rồi mới
-    /// hỏi; chọn nút an toàn thì gọi Undo đúng bước đó (<see cref="UndoLastStep"/>) chứ không dựng lại trạng thái bằng tay.
+    /// Thao tác kéo theo SPIKE-B SP-2 (quyết định an toàn 16/9/2026) + vá W8-UX (UX-06, UJ-11): hộp xác nhận CHỈ mở sau khi
+    /// chuột đã nhả (qua <see cref="DeferConfirmation"/>, mặc định <c>EditorApplication.delayCall</c>), và lúc nó mở thì CHƯA có
+    /// gì được ghi — nháp continuous edit còn mở, toast và <see cref="DocumentEdited"/> chờ câu trả lời. Chọn nút an toàn = huỷ
+    /// nháp (<c>CancelContinuousEdit</c>), không để lại bước Undo nào để phải gỡ.
     /// </para>
     /// </summary>
     internal sealed class CalendarTimelinePresenter
@@ -32,12 +33,21 @@ namespace DreamTech.LiveOps.Editor
         private FixedLiveEventEntry _dragStartEntry;
         private LiveEventCalendarCheckReport _previewLaneCheckReport;
         private string _previewQuickCheckText = string.Empty;
+        private bool _isDragActive;
+
+        /// <summary>(UX-06) Đang chờ người dùng trả lời hộp xác nhận của một lần kéo — nháp còn mở, chưa commit gì.</summary>
+        private bool _isAwaitingDragConfirmation;
+
+        /// <summary>
+        /// (UX-14, UJ-13) Chữ ký các phát hiện đã có trên làn TRƯỚC khi bắt đầu kéo. Kiểm nhanh chỉ được nêu phát hiện MỚI sinh
+        /// ra vì bước kéo này; nêu lỗi có sẵn của một đợt khác cùng làn làm người dùng tưởng mình vừa làm hỏng thứ đó.
+        /// </summary>
+        private readonly HashSet<string> _dragStartFindingSignatures = new HashSet<string>(StringComparer.Ordinal);
 
         public CalendarTimelinePresenter(LiveOpsHubServices services)
         {
             _services = services ?? throw new ArgumentNullException(nameof(services));
             DeferConfirmation = DeferWithDelayCall;
-            UndoLastStep = Undo.PerformUndo;
         }
 
         /// <summary>Chọn đổi (bấm thanh, bấm chỗ trống, tìm theo id) — section cập nhật inspector theo đây.</summary>
@@ -74,11 +84,14 @@ namespace DreamTech.LiveOps.Editor
         /// </summary>
         public event Action<string, HealthState> QuickCheckTagChanged;
 
+        /// <summary>
+        /// (UX-05, UJ-05) Cử chỉ kéo bắt đầu (true) / kết thúc (false). Màn dùng để tắt hover card trong suốt cử chỉ: lúc kéo,
+        /// thanh đang hover bị thay bằng element mới sau mỗi bước xem trước nên PointerLeave của nó không bao giờ tới.
+        /// </summary>
+        public event Action<bool> DragActiveChanged;
+
         /// <summary>Cách hoãn hộp xác nhận tới sau khi chuột nhả; test thay bằng chạy đồng bộ (SP-2 (a)).</summary>
         internal Action<Action> DeferConfirmation { get; set; }
-
-        /// <summary>Gỡ đúng bước Undo vừa ghi khi người dùng chọn nút an toàn (SP-2 (b)).</summary>
-        internal Action UndoLastStep { get; set; }
 
         public string SelectedBarKey => _selectedBarKey;
 
@@ -335,6 +348,8 @@ namespace DreamTech.LiveOps.Editor
         private void PreviewDrag(LiveOpsHubCalendarSession session, LiveEventCalendarDocument document, FixedLiveEventEntry entry,
             MoveBarIntent intent)
         {
+            // (UX-06) Đang chờ người dùng trả lời hộp của lần kéo trước: không mở cử chỉ mới đè lên nháp chưa quyết.
+            if (_isAwaitingDragConfirmation) return;
             if (_dragGroup == LiveOpsHubEditOutcome.NoUndoGroup)
             {
                 // Đợt đã khép không dời được (bảng 7.0): chặn ngay ở bước xem trước, không mở Undo group rỗng.
@@ -342,8 +357,11 @@ namespace DreamTech.LiveOps.Editor
                 _dragStartDocument = document;
                 _dragStartEntry = entry;
                 _dragBarKey = intent.BarKey;
+                CaptureDragStartFindings(session, document, entry.EventType);
                 _dragGroup = session.BeginContinuousEdit(ProvisionalUndoName(entry));
                 if (_dragGroup == LiveOpsHubEditOutcome.NoUndoGroup) return;
+                _isDragActive = true;
+                DragActiveChanged?.Invoke(true);
             }
             session.UpdateContinuousEdit(BuildDragEdit(entry, intent));
             // 7.3: mỗi bước xem trước chạy kiểm nhanh CHÍNH LÀN đó trên nháp vừa đổi. Không có nó thì dấu "bị bỏ" và vế "chồng n
@@ -363,16 +381,54 @@ namespace DreamTech.LiveOps.Editor
             QuickCheckTagChanged?.Invoke(_previewQuickCheckText, QuickCheckHealthOf(_previewLaneCheckReport));
         }
 
-        /// <summary>Dấu đi theo KẾT QUẢ: có phát hiện Bị bỏ trên làn thì Blocked, không thì Ok (không bao giờ gán cứng Ok).</summary>
-        private static HealthState QuickCheckHealthOf(LiveEventCalendarCheckReport report)
+        /// <summary>
+        /// (UX-14) Dấu đi theo KẾT QUẢ của chính bước kéo: có phát hiện Bị bỏ MỚI dính đợt đang kéo thì Blocked, không thì Ok.
+        /// Trước đây bất kỳ phát hiện Bị bỏ nào trên làn cũng làm dấu đỏ, kể cả lỗi có sẵn của đợt khác.
+        /// </summary>
+        private HealthState QuickCheckHealthOf(LiveEventCalendarCheckReport report)
         {
             if (report == null) return HealthState.NotMeasured;
+            return NewDroppedFindingForDraggedBar(report) == null ? HealthState.Ok : HealthState.Blocked;
+        }
+
+        /// <summary>
+        /// (UX-14, UJ-13) Phát hiện Bị bỏ mà bước kéo này phải chịu trách nhiệm. Hai đường vào, theo đúng thứ tự:
+        /// (1) phát hiện dính ĐÚNG đợt đang kéo — nó tả trạng thái người dùng đang kéo tới, dù lỗi đó có sẵn từ trước;
+        /// (2) phát hiện MỚI so với lúc bắt đầu kéo dù ghi cho đợt khác — kéo đè lên đợt nào thì lỗi ghi cho đợt bị đè.
+        /// Thứ bị loại là phát hiện của đợt KHÁC và đã có từ trước (vd lava-quest-2026-10 gõ sai định dạng giờ kết thúc): nó
+        /// không phải hậu quả của cử chỉ này, mà readout cũ lại đọc đúng câu đó khi người dùng kéo một đợt hoàn toàn khác.
+        /// Chữ ký gồm luật + mã chi tiết + đợt đích: cùng một đợt có thể có nhiều lỗi khác nhau.
+        /// </summary>
+        private LiveEventCalendarFinding NewDroppedFindingForDraggedBar(LiveEventCalendarCheckReport report)
+        {
+            LiveEventCalendarFinding firstNew = null;
             IReadOnlyList<LiveEventCalendarFinding> findings = report.Findings;
             for (int index = 0; index < findings.Count; index++)
             {
-                if (findings[index].Consequence == LiveEventCalendarConsequence.Dropped) return HealthState.Blocked;
+                LiveEventCalendarFinding finding = findings[index];
+                if (finding.Consequence != LiveEventCalendarConsequence.Dropped) continue;
+                if (string.Equals(finding.TargetEntryKey ?? string.Empty, _dragBarKey, StringComparison.Ordinal)) return finding;
+                if (firstNew == null && !_dragStartFindingSignatures.Contains(SignatureOf(finding))) firstNew = finding;
             }
-            return HealthState.Ok;
+            return firstNew;
+        }
+
+        private static string SignatureOf(LiveEventCalendarFinding finding)
+        {
+            return (finding.RuleId ?? string.Empty) + "|" + (finding.DetailCode ?? string.Empty) + "|"
+                + (finding.TargetEntryKey ?? string.Empty);
+        }
+
+        /// <summary>(UX-14) Chụp phát hiện của làn NGAY TRƯỚC khi mở cử chỉ kéo — mốc so để biết lỗi nào là lỗi mới.</summary>
+        private void CaptureDragStartFindings(LiveOpsHubCalendarSession session, LiveEventCalendarDocument document,
+            string eventType)
+        {
+            _dragStartFindingSignatures.Clear();
+            if (string.IsNullOrEmpty(eventType)) return;
+            LiveEventCalendarCheckReport report = session.CheckLane(eventType, document);
+            if (report == null) return;
+            IReadOnlyList<LiveEventCalendarFinding> findings = report.Findings;
+            for (int index = 0; index < findings.Count; index++) _dragStartFindingSignatures.Add(SignatureOf(findings[index]));
         }
 
         private void ClearPreviewQuickCheck()
@@ -383,30 +439,67 @@ namespace DreamTech.LiveOps.Editor
             if (hadText) QuickCheckTagChanged?.Invoke(string.Empty, HealthState.Ok);
         }
 
-        /// <summary>Không có phát hiện Bị bỏ nào trên làn = câu Ok; có thì nêu đúng câu của phát hiện nặng nhất (V-8).</summary>
+        /// <summary>
+        /// (UX-14) Bước kéo này không sinh lỗi mới cho đợt đang kéo = câu Ok; có thì nêu đúng câu của phát hiện ĐÓ (V-8).
+        /// </summary>
         private string QuickCheckTextOf(LiveEventCalendarCheckReport report)
         {
             if (report == null) return string.Empty;
-            IReadOnlyList<LiveEventCalendarFinding> findings = report.Findings;
-            for (int index = 0; index < findings.Count; index++)
-            {
-                LiveEventCalendarFinding finding = findings[index];
-                if (finding.Consequence != LiveEventCalendarConsequence.Dropped) continue;
-                LiveEventCalendarDocument document = _services.Session.Document ?? LiveEventCalendarDocument.Empty;
-                return LiveOpsFindingText.Headline(finding, _services.Format, document.LatestStamp);
-            }
-            return LiveOpsHubStrings.CalendarQuickCheckOkTag;
+            LiveEventCalendarFinding finding = NewDroppedFindingForDraggedBar(report);
+            if (finding == null) return LiveOpsHubStrings.CalendarQuickCheckOkTag;
+            LiveEventCalendarDocument document = _services.Session.Document ?? LiveEventCalendarDocument.Empty;
+            return LiveOpsFindingText.Headline(finding, _services.Format, document.LatestStamp);
         }
 
+        /// <summary>
+        /// Nhả chuột. (UX-06, UJ-11) Thứ tự MỚI so với SPIKE-B SP-2: mức xác nhận quyết trên NHÁP trước khi commit, cần hỏi thì
+        /// giữ nháp và chờ câu trả lời — toast, tên bước Undo và <see cref="DocumentEdited"/> chỉ chạy SAU lựa chọn. Thứ tự cũ
+        /// (commit + toast rồi mới hỏi) làm trục, toast và status bar đồng loạt báo "Đã dời" trong lúc hộp còn đang hỏi, và chọn
+        /// nút an toàn vẫn để lại một bước Undo cùng dòng "Vừa làm …" trên status bar.
+        /// </summary>
         private void CommitDrag(LiveOpsHubCalendarSession session, FixedLiveEventEntry entry, MoveBarIntent intent)
         {
-            if (_dragGroup == LiveOpsHubEditOutcome.NoUndoGroup) return;
+            if (_dragGroup == LiveOpsHubEditOutcome.NoUndoGroup || _isAwaitingDragConfirmation) return;
             FixedLiveEventEntry after = ClampedEntry(_dragStartEntry ?? entry, intent);
             session.UpdateContinuousEdit(BuildDragEdit(_dragStartEntry ?? entry, intent));
+
+            LiveOpsConfirmDecision decision = LiveOpsConfirmationPolicy.Decide(LiveOpsEditOperation.ChangeFixedEventTimes,
+                _dragStartDocument, session.Document, BaselineDocument(), _services.Clock.UtcNow, _dragBarKey);
+            if (decision.Requirement == LiveOpsConfirmRequirement.Level1)
+            {
+                // Hộp vẫn chỉ mở SAU khi chuột đã nhả (SP-2 (a)) — chỉ khác ở chỗ chưa có gì được ghi khi nó mở.
+                LiveOpsConfirmRequest request = BuildShortenRequest(decision, _dragStartEntry, after);
+                MoveBarIntent capturedIntent = intent;
+                FixedLiveEventEntry capturedAfter = after;
+                _isAwaitingDragConfirmation = true;
+                DeferConfirmation(() => ConfirmThenFinishDrag(request, capturedAfter, capturedIntent));
+                return;
+            }
+            FinishDrag(session, after, intent);
+        }
+
+        /// <summary>(UX-06) Trả lời hộp: phá huỷ ⇒ commit đúng nháp đang giữ; an toàn ⇒ huỷ nháp, không toast, không bước Undo.</summary>
+        private void ConfirmThenFinishDrag(LiveOpsConfirmRequest request, FixedLiveEventEntry after, MoveBarIntent intent)
+        {
+            if (!_isAwaitingDragConfirmation) return;
+            _isAwaitingDragConfirmation = false;
+            LiveOpsHubCalendarSession session = _services.Session;
+            if (_services.Confirmation.Confirm(request) == LiveOpsConfirmResult.Destructive)
+            {
+                FinishDrag(session, after, intent);
+                return;
+            }
+            session.CancelContinuousEdit(_dragGroup);
+            ResetDragState();
+            DocumentEdited?.Invoke();
+        }
+
+        /// <summary>Gộp nháp thành một bước Undo rồi phát toast + tên bước ngắn; dùng chung cho cả hai nhánh của UX-06.</summary>
+        private void FinishDrag(LiveOpsHubCalendarSession session, FixedLiveEventEntry after, MoveBarIntent intent)
+        {
             LiveOpsHubEditOutcome outcome = session.CommitContinuousEdit(_dragGroup);
             LiveEventCalendarDocument before = _dragStartDocument;
             FixedLiveEventEntry beforeEntry = _dragStartEntry;
-            string barKey = _dragBarKey;
             ResetDragState();
             if (!outcome.Applied) return;
 
@@ -420,12 +513,6 @@ namespace DreamTech.LiveOps.Editor
             Undo.SetCurrentGroupName(undoneStepName);
             ToastRequested?.Invoke(LiveOpsToastModel.ForEdit(message, outcome.UndoGroup, string.Empty, undoneStepName));
             DocumentEdited?.Invoke();
-
-            LiveOpsConfirmDecision decision = LiveOpsConfirmationPolicy.Decide(LiveOpsEditOperation.ChangeFixedEventTimes, before,
-                session.Document, BaselineDocument(), _services.Clock.UtcNow, barKey);
-            if (decision.Requirement != LiveOpsConfirmRequirement.Level1) return;
-            LiveOpsConfirmRequest request = BuildShortenRequest(decision, beforeEntry, after);
-            DeferConfirmation(() => AskAndUndoIfSafe(request));
         }
 
         /// <summary>
@@ -569,6 +656,8 @@ namespace DreamTech.LiveOps.Editor
         private void CancelDrag()
         {
             if (_dragGroup == LiveOpsHubEditOutcome.NoUndoGroup) return;
+            // Panel biến mất hay Esc giữa lúc còn chờ hộp: bỏ luôn việc hỏi, nháp về giá trị cũ.
+            _isAwaitingDragConfirmation = false;
             _services.Session.CancelContinuousEdit(_dragGroup);
             ResetDragState();
             DocumentEdited?.Invoke();
@@ -587,6 +676,11 @@ namespace DreamTech.LiveOps.Editor
             _dragBarKey = string.Empty;
             _dragStartDocument = null;
             _dragStartEntry = null;
+            _dragStartFindingSignatures.Clear();
+            _isAwaitingDragConfirmation = false;
+            if (!_isDragActive) return;
+            _isDragActive = false;
+            DragActiveChanged?.Invoke(false);
         }
 
         /// <summary>Mép đầu đợt đang chạy khoá: dù control có gửi giờ bắt đầu khác, presenter vẫn giữ giờ cũ (bảng 7.0).</summary>
@@ -614,32 +708,58 @@ namespace DreamTech.LiveOps.Editor
         /// </summary>
         internal string DragUndoStepName(FixedLiveEventEntry before, FixedLiveEventEntry after)
         {
-            string format = IsEdgeDrag(before, after)
-                ? LiveOpsHubStrings.CalendarResizeUndoStepFormat
-                : LiveOpsHubStrings.CalendarMoveUndoStepFormat;
+            // (UX-26, UJ-10/UJ-22) Ba kiểu kéo, ba động từ THẬT. "Đổi {0}" chung cho cả hai mép làm status bar ("Vừa làm: Đổi
+            // hunt-0914") và toast ("Đã dời kết thúc …") đọc như hai thao tác khác nhau về cùng một lần kéo.
+            string format;
+            switch (EdgeOf(before, after))
+            {
+                case DragEdge.Start:
+                    format = LiveOpsHubStrings.CalendarDepthMoveStartEdgeUndoStepFormat;
+                    break;
+                case DragEdge.End:
+                    format = LiveOpsHubStrings.CalendarDepthMoveEndEdgeUndoStepFormat;
+                    break;
+                default:
+                    format = LiveOpsHubStrings.CalendarMoveUndoStepFormat;
+                    break;
+            }
             return string.Format(CultureInfo.InvariantCulture, format, after.EventId);
         }
 
-        /// <summary>Kéo một mép (chỉ bắt đầu hoặc chỉ kết thúc đổi) chứ không phải dời cả thanh.</summary>
-        private static bool IsEdgeDrag(FixedLiveEventEntry before, FixedLiveEventEntry after)
+        /// <summary>Mép nào đã đổi: chỉ đầu, chỉ cuối, hay cả hai (kéo cả thanh).</summary>
+        private enum DragEdge
         {
-            if (before == null) return false;
-            if (!before.TryGetStartUtc(out DateTime beforeStartUtc) || !before.TryGetEndUtc(out DateTime beforeEndUtc)) return false;
-            after.TryGetStartUtc(out DateTime afterStartUtc);
-            after.TryGetEndUtc(out DateTime afterEndUtc);
+            Body = 0,
+            Start = 1,
+            End = 2,
+        }
+
+        private static DragEdge EdgeOf(FixedLiveEventEntry before, FixedLiveEventEntry after)
+        {
+            if (before == null) return DragEdge.Body;
+            if (!before.TryGetStartUtc(out DateTime beforeStartUtc) || !before.TryGetEndUtc(out DateTime beforeEndUtc))
+            {
+                return DragEdge.Body;
+            }
+            if (!after.TryGetStartUtc(out DateTime afterStartUtc) || !after.TryGetEndUtc(out DateTime afterEndUtc))
+            {
+                return DragEdge.Body;
+            }
             bool startMoved = beforeStartUtc != afterStartUtc;
             bool endMoved = beforeEndUtc != afterEndUtc;
-            return startMoved != endMoved;
+            if (startMoved && !endMoved) return DragEdge.Start;
+            if (endMoved && !startMoved) return DragEdge.End;
+            return DragEdge.Body;
         }
 
         /// <summary>Câu toast nêu đúng mép đã đổi: chỉ kết thúc, chỉ bắt đầu, hay cả hai (kéo thân).</summary>
         internal string DragToastMessage(FixedLiveEventEntry before, FixedLiveEventEntry after)
         {
             LiveOpsHubFormat format = _services.Format;
-            after.TryGetStartUtc(out DateTime afterStartUtc);
-            after.TryGetEndUtc(out DateTime afterEndUtc);
+            bool hasAfterStart = after.TryGetStartUtc(out DateTime afterStartUtc);
+            bool hasAfterEnd = after.TryGetEndUtc(out DateTime afterEndUtc);
             bool hasBefore = before != null && before.TryGetStartUtc(out DateTime _) && before.TryGetEndUtc(out DateTime _);
-            if (hasBefore)
+            if (hasBefore && hasAfterStart && hasAfterEnd)
             {
                 before.TryGetStartUtc(out DateTime beforeStartUtc);
                 before.TryGetEndUtc(out DateTime beforeEndUtc);
@@ -657,7 +777,18 @@ namespace DreamTech.LiveOps.Editor
                 }
             }
             return string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.CalendarMoveToastFormat, after.EventId,
-                format.ShortDateTime(afterStartUtc), format.ShortDateTime(afterEndUtc));
+                TimeTextOrUnreadable(format, hasAfterStart, afterStartUtc),
+                TimeTextOrUnreadable(format, hasAfterEnd, afterEndUtc));
+        }
+
+        /// <summary>
+        /// (UX-04, UJ-04) Giờ đọc được thì in giờ; không đọc được thì NÓI là chưa đọc được. Trước đây chỗ này bỏ qua kết quả
+        /// <c>TryGet…</c> nên <c>default(DateTime)</c> ra "1/1 00:00" — một mốc người dùng chưa bao giờ gõ, in ngay cạnh câu lỗi
+        /// nói rằng hub không đọc được giờ đó.
+        /// </summary>
+        private static string TimeTextOrUnreadable(LiveOpsHubFormat format, bool hasValue, DateTime utc)
+        {
+            return hasValue ? format.ShortDateTime(utc) : LiveOpsHubStrings.CalendarDepthUnreadableTimeText;
         }
 
         /// <summary>Hộp "Rút ngắn đợt đang chạy …?" [SD1 §3.15]: câu hậu quả luôn nói "không biết số người chơi toàn cục" trước (7.0).</summary>
@@ -777,13 +908,6 @@ namespace DreamTech.LiveOps.Editor
                 builder = builder.WithTypeToConfirm(decision.RunningEventId);
             }
             return builder.WithButtons(destructiveLabel, LiveOpsHubStrings.KitConfirmKeepLabel).Build();
-        }
-
-        private void AskAndUndoIfSafe(LiveOpsConfirmRequest request)
-        {
-            if (_services.Confirmation.Confirm(request) == LiveOpsConfirmResult.Destructive) return;
-            UndoLastStep();
-            DocumentEdited?.Invoke();
         }
 
         private static void DeferWithDelayCall(Action action)

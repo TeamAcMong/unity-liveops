@@ -8,7 +8,8 @@ namespace DreamTech.LiveOps.Unity.Tests
 {
     /// <summary>
     /// Hai nhánh chính sách Q-9 của <see cref="JsonLiveEventCalendarParser.ParseOrDefault(string, LiveEventCalendarAsset, LiveEventCalendarRemoteFailurePolicy)"/>
-    /// khi JSON remote có chữ nhưng hỏng, và lời hứa không bao giờ trộn remote với asset khi JSON còn đọc được.
+    /// cho CẢ HAI ca remote không dùng được — JSON sai cú pháp, và JSON đúng cú pháp mà không có mảng lịch nào — cùng lời
+    /// hứa không bao giờ trộn remote với asset khi JSON còn đọc được, và "events": [] vẫn là lịch rỗng có chủ ý.
     /// </summary>
     [TestFixture]
     public sealed class LiveEventCalendarRemoteFailurePolicyTests
@@ -111,20 +112,60 @@ namespace DreamTech.LiveOps.Unity.Tests
                 CollectionAssert.AreEqual(new[] { "remote-1" }, EventIdsInSampleWindow(result.CombinedCalendar), policy.ToString());
                 Assert.AreEqual(1, result.Problems.Count, policy + "\n" + string.Join("\n", result.Problems));
                 Assert.AreEqual("Mục thứ 2 ('remote-broken'): startUtc không phải giờ ISO 8601: 'ngày mai' — bỏ qua.", result.Problems[0]);
-
-                // JSON đọc được nhưng thiếu mảng vẫn là kết quả remote (lịch rỗng + Problem), không phải asset.
-                LiveEventCalendarParseResult missingArrays = JsonLiveEventCalendarParser.ParseOrDefault("{}", asset, policy);
-                Assert.IsFalse(missingArrays.CameFromDefaultCalendar, policy.ToString());
-                Assert.IsEmpty(EventIdsInSampleWindow(missingArrays.CombinedCalendar), policy.ToString());
-                Assert.AreEqual("JSON lịch event thiếu mảng \"events\".", missingArrays.Problems[0], policy.ToString());
             }
+        }
+
+        [Test]
+        public void MissingCalendarArrays_KeepRemoteStaysEmpty_UseDefaultFallsBackToAsset()
+        {
+            // Ca hỏng THỨ HAI của Q-9: JSON đúng cú pháp nhưng không mang mảng lịch nào — "{}" (key remote bị đặt sai),
+            // hoặc gõ sai tên mảng thành "evets". Hậu quả với người chơi giống hệt JSON sai cú pháp: không đợt nào chạy.
+            // Nếu nhánh UseDefaultCalendar không phủ ca này thì lời hứa của Q-9 thủng đúng ở chỗ dễ gặp nhất.
+            LiveEventCalendarAsset asset = CreateDesignSampleAsset();
+            LiveEventCalendarParseResult assetResult = asset.ToParseResult();
+
+            foreach (string missingArraysJson in new[] { "{}", "{\"evets\":[]}", "{\"version\":2,\"unknown\":[]}" })
+            {
+                LiveEventCalendarParseResult keepRemote = JsonLiveEventCalendarParser.ParseOrDefault(missingArraysJson, asset,
+                    LiveEventCalendarRemoteFailurePolicy.KeepRemoteResult);
+                Assert.IsFalse(keepRemote.CameFromDefaultCalendar, missingArraysJson);
+                Assert.AreSame(FixedLiveEventCalendar.Empty, keepRemote.Calendar, missingArraysJson);
+                Assert.AreEqual("JSON lịch event thiếu mảng \"events\".", keepRemote.Problems[0], missingArraysJson);
+
+                LiveEventCalendarParseResult useDefault = JsonLiveEventCalendarParser.ParseOrDefault(missingArraysJson, asset);
+                Assert.IsTrue(useDefault.CameFromDefaultCalendar, missingArraysJson);
+                CollectionAssert.AreEquivalent(EventIdsInSampleWindow(assetResult.CombinedCalendar),
+                    EventIdsInSampleWindow(useDefault.CombinedCalendar), missingArraysJson);
+                Assert.IsNotEmpty(EventIdsInSampleWindow(useDefault.CombinedCalendar), missingArraysJson);
+                Assert.AreEqual("JSON remote không có mảng lịch nào, dùng lịch mặc định trong asset.", useDefault.Problems[0],
+                    missingArraysJson);
+                Assert.AreEqual(assetResult.Problems.Count + 1, useDefault.Problems.Count,
+                    missingArraysJson + "\n" + string.Join("\n", useDefault.Problems));
+                Assert.AreNotEqual(keepRemote.Problems[0], useDefault.Problems[0], "Hai ca hỏng phải nói hai câu khác nhau.");
+            }
+        }
+
+        [Test]
+        public void EmptyEventsArray_IsAnIntentionalEmptyCalendar_NotAFallback()
+        {
+            // Mảng CÓ MẶT mà rỗng = designer cố ý gỡ hết đợt bằng remote config. Không được coi là hỏng, kẻo không còn
+            // cách nào tắt sạch event từ xa: mọi bản "gỡ hết" sẽ bị thay bằng lịch cũ trong build.
+            LiveEventCalendarAsset asset = CreateDesignSampleAsset();
+
+            LiveEventCalendarParseResult result =
+                JsonLiveEventCalendarParser.ParseOrDefault("{\"version\":2,\"events\":[],\"recurring\":[]}", asset);
+
+            Assert.IsFalse(result.CameFromDefaultCalendar);
+            Assert.IsEmpty(EventIdsInSampleWindow(result.CombinedCalendar));
+            Assert.IsEmpty(result.Problems, string.Join("\n", result.Problems));
         }
 
         [Test]
         public void TwoArgumentOverload_UsesDefaultPolicyConstant()
         {
-            // Q-9 đã chốt (0.2.0): mặc định là UseDefaultCalendar — ĐỔI HÀNH VI so với 0.1.0. Đổi mặc định lần nữa = đổi
-            // hằng + test này + README + CHANGELOG (hai bản).
+            // Q-9 đã chốt (0.2.0): mặc định là UseDefaultCalendar. Không phải "đổi hành vi của 0.1.0" — 0.1.0 chưa có
+            // ParseOrDefault; đây là mặc định của một API mới. Đổi mặc định lần nữa = đổi hằng + test này + README +
+            // CHANGELOG (hai bản).
             Assert.AreEqual(LiveEventCalendarRemoteFailurePolicy.UseDefaultCalendar, JsonLiveEventCalendarParser.DefaultRemoteFailurePolicy);
 
             LiveEventCalendarAsset asset = CreateDesignSampleAsset();
@@ -182,6 +223,8 @@ namespace DreamTech.LiveOps.Unity.Tests
                 CollectionAssert.AreEqual(assetResult.Problems, result.Problems, "blank=" + (blankJson ?? "null"));
                 CollectionAssert.AreEquivalent(EventIdsInSampleWindow(assetResult.CombinedCalendar), EventIdsInSampleWindow(result.CombinedCalendar),
                     "blank=" + (blankJson ?? "null"));
+                // Không có dòng này thì mẫu thiết kế mất hết đợt trong cửa sổ vẫn cho test xanh (so rỗng với rỗng).
+                Assert.IsNotEmpty(EventIdsInSampleWindow(result.CombinedCalendar), "blank=" + (blankJson ?? "null"));
             }
         }
     }

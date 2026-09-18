@@ -223,21 +223,29 @@ Key là dữ liệu trong asset (field `remoteConfigKey`, mặc định `liveops
 
 ### 4.4 Remote config hỏng, hoặc về muộn
 
-**JSON có chữ nhưng `JsonUtility` không đọc được** — `ParseOrDefault` xử theo `LiveEventCalendarRemoteFailurePolicy`:
+**JSON có chữ nhưng KHÔNG DÙNG ĐƯỢC** — `ParseOrDefault` xử theo `LiveEventCalendarRemoteFailurePolicy`. "Không dùng
+được" gồm **hai** ca, vì hậu quả với người chơi giống hệt nhau (không đợt nào chạy):
+
+1. `JsonUtility` không đọc nổi — sai cú pháp, BOM, gốc không phải object.
+2. Đọc được nhưng **không có mảng lịch nào** — `{}`, gõ sai tên mảng (`"evets"`), hoặc một định dạng sau này đổi tên mảng.
 
 | Chính sách | Người chơi thấy gì | Đánh đổi |
 |---|---|---|
-| `UseDefaultCalendar` (**mặc định từ 0.2.0**) | lịch trong asset + một `Problem` | vẫn có event, đổi lại lịch trong build có thể **cũ hơn** bản đã đăng: đợt đã gỡ mở lại, id đổi thì mất tiến độ |
-| `KeepRemoteResult` (hành vi 0.1.0, nay phải **chọn tay**) | lịch rỗng + một `Problem` | không thấy đợt mới mở; đợt đang chạy vẫn khép theo giờ đã lưu và vẫn phát quà |
+| `UseDefaultCalendar` (**mặc định của `ParseOrDefault`**) | lịch trong asset + một `Problem` | vẫn có event, đổi lại lịch trong build có thể **cũ hơn** bản đã đăng: đợt đã gỡ mở lại, id đổi thì mất tiến độ |
+| `KeepRemoteResult` (giống `Parse`, phải **chọn tay**) | lịch rỗng + một `Problem` | không thấy đợt mới mở; đợt đang chạy vẫn khép theo giờ đã lưu và vẫn phát quà |
 
-> ⚠️ **ĐỔI HÀNH VI so với 0.1.0.** Ở 0.1.0 một bản remote hỏng làm lịch rỗng — cả game không đợt nào chạy. Từ 0.2.0,
-> `ParseOrDefault(json, asset)` dùng **lịch mặc định trong asset** và vẫn để lại `Problem` "JSON remote hỏng, dùng lịch
-> mặc định trong asset: …" để dev thấy. Game muốn giữ đúng cách cũ thì gọi overload ba tham số:
-> `ParseOrDefault(json, asset, LiveEventCalendarRemoteFailurePolicy.KeepRemoteResult)`.
+Câu `Problem` đứng đầu nói rõ ca nào: `"JSON remote hỏng, dùng lịch mặc định trong asset: <message của JsonUtility>"`
+hoặc `"JSON remote không có mảng lịch nào, dùng lịch mặc định trong asset."` — không nuốt lỗi.
 
-JSON **trống** thì luôn dùng lịch trong asset, không phụ thuộc chính sách. JSON đọc được nhưng có mục hỏng thì luôn dùng
-kết quả remote (mục hỏng bị bỏ + `Problems`) — package không bao giờ trộn hai nguồn, vì trộn sinh ra một lịch không ai
-từng đăng.
+> ℹ️ **Đây là mặc định của một API mới, KHÔNG phải đổi hành vi của 0.1.0.** Bản 0.1.0 không có `ParseOrDefault` (chỉ có
+> `Parse`, và `Parse` giữ nguyên từng chuỗi `Problems`), nên game bump `0.1.0` → `0.2.0` không bị đổi gì. Chỉ những bản
+> dựng **trước** của nhánh `0.2.0` — lúc mặc định còn là `KeepRemoteResult` — mới thấy khác. Muốn đúng cách của `Parse`
+> thì gọi overload ba tham số: `ParseOrDefault(json, asset, LiveEventCalendarRemoteFailurePolicy.KeepRemoteResult)`.
+
+JSON **trống** thì luôn dùng lịch trong asset, không phụ thuộc chính sách và **không** thêm `Problem` (remote chưa đăng
+không phải lỗi). `"events": []` — mảng **có mặt** mà rỗng — là lịch rỗng **có chủ ý**, luôn là kết quả remote: nếu không
+thì không còn cách nào gỡ sạch đợt từ xa. JSON có mảng lịch nhưng vài mục hỏng thì cũng luôn dùng kết quả remote (mục
+hỏng bị bỏ + `Problems`) — package không bao giờ trộn hai nguồn, vì trộn sinh ra một lịch không ai từng đăng.
 
 **Remote về muộn (async).** `LiveOpsSystem` chốt lịch lúc `Build()`, và 0.2.0 **chưa có** API đổi lịch giữa phiên. Nên
 chờ remote có hạn giờ rồi mới `Build()`; hết hạn thì dùng lịch trong asset và bản remote áp ở **lần mở app sau**:
@@ -374,7 +382,7 @@ NaN, không vẽ và không nhận phím. Test core, test lớp Unity và catego
 | `LiveOpsUnityAdapterTests` | tính giờ từ Date + Age + khứ hồi, parser JSON (múi giờ, mục hỏng, JSON hỏng), PlayerPrefs store |
 | `JsonLiveEventCalendarParserFormat2Tests` | định dạng 2: luật lặp hỏng bị bỏ riêng, `version` lớn hơn vẫn đọc, thiếu cả hai mảng |
 | `LiveEventCalendarAssetTests`, `CalendarRoundTripTests` | asset ↔ tài liệu ↔ JSON khứ hồi; asset sửa tay hỏng không làm `Build()` ném |
-| `LiveEventCalendarRemoteFailurePolicyTests` | hai chính sách khi JSON remote hỏng (mục 4.4) |
+| `LiveEventCalendarRemoteFailurePolicyTests` | hai chính sách × hai ca remote không dùng được, và `"events": []` không phải fallback (mục 4.4) |
 | `ReadmeSnippetCompileTests` | đoạn code trong README này compile và chạy được, và mọi id luật có mục trong README |
 | `Tests/Editor/Hub/**` | LiveOps Hub: khung, 6 màn, 12 luật, xuất JSON, ảnh cửa sổ |
 | Demo PlayMode (`Assets/Demo/Tests`) | runner tự khép đợt và phát rương, tiến độ qua lần nạp scene, bấm tham gia + quà mốc một lần, điều kiện level, mục lịch hỏng |

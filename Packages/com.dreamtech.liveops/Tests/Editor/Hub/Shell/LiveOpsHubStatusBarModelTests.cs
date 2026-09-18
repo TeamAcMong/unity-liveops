@@ -15,6 +15,7 @@ namespace DreamTech.LiveOps.Editor.Tests
     public sealed class LiveOpsHubStatusBarModelTests
     {
         private const string UndoKeyLabel = "⌘Z";
+        private const string RedoKeyLabel = "⌘⇧Z";
         private static readonly DateTime NowUtc = new DateTime(2026, 9, 13, 8, 47, 0, DateTimeKind.Utc);
         private static readonly LiveOpsHubFormat Format = new LiveOpsHubFormat(TimeSpan.FromHours(7));
 
@@ -97,6 +98,36 @@ namespace DreamTech.LiveOps.Editor.Tests
             StringAssert.EndsWith(" · Vừa làm: Xoá hunt-0916-bonus", buried.LeftText);
             Assert.IsFalse(buried.LeftText.Contains(UndoKeyLabel),
                 "bước Undo không còn trên đỉnh: mời bấm ⌘Z là mời gỡ thao tác của người khác");
+        }
+
+        /// <summary>
+        /// (UX-26 / UJ-10) Sau khi người dùng Hoàn tác chính bước đó, câu phải đổi hẳn thể: không còn "Vừa làm", không còn mời
+        /// ⌘Z (bấm tiếp là gỡ thao tác của người khác), và phải mời phím Làm lại để lấy lại bước vừa bỏ [SD1 §3.8 khung 14].
+        /// </summary>
+        [Test]
+        public void AfterUndo_ShowsRedoHint()
+        {
+            LiveOpsHubServices services = LiveOpsHubTestServices.ForScenario(LiveOpsHubTestServices.DesignSampleScenario);
+
+            LiveOpsHubStatusBarModel undone = LiveOpsHubStatusBarModel.Build(services.Session.Check, true, "Dời hunt-0916-bonus",
+                LiveOpsHubRecentActionStep.NextRedo, NowUtc, services.Session.Publish.ActiveStamp, Format, UndoKeyLabel, RedoKeyLabel);
+
+            StringAssert.EndsWith(" · Vừa hoàn tác: Dời hunt-0916-bonus (⌘⇧Z để làm lại)", undone.LeftText);
+            Assert.IsFalse(undone.LeftText.Contains("Vừa làm"), "bước đã bị hoàn tác không còn là thứ 'vừa làm'");
+            Assert.IsFalse(undone.LeftText.Contains("(" + UndoKeyLabel + ")"), "không mời ⌘Z nữa: bước đó đã bị gỡ");
+        }
+
+        /// <summary>Máy không gán phím Làm lại: câu vẫn nói đúng thể "vừa hoàn tác", chỉ bỏ ngoặc phím.</summary>
+        [Test]
+        public void AfterUndo_WithoutRedoKeyBinding_NoEmptyParentheses()
+        {
+            LiveOpsHubServices services = LiveOpsHubTestServices.ForScenario(LiveOpsHubTestServices.DesignSampleScenario);
+
+            LiveOpsHubStatusBarModel undone = LiveOpsHubStatusBarModel.Build(services.Session.Check, true, "Dời hunt-0916-bonus",
+                LiveOpsHubRecentActionStep.NextRedo, NowUtc, services.Session.Publish.ActiveStamp, Format, UndoKeyLabel, string.Empty);
+
+            StringAssert.EndsWith(" · Vừa hoàn tác: Dời hunt-0916-bonus", undone.LeftText);
+            Assert.IsFalse(undone.LeftText.Contains("()"), "không có phím gán thì bỏ hẳn ngoặc, không in cặp ngoặc rỗng");
         }
 
         [Test]

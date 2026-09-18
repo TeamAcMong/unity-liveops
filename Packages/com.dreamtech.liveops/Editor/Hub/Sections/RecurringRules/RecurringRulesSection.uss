@@ -19,6 +19,21 @@
 
 /* Token là Button nhưng phải ĐỌC như chữ: bỏ margin/viền mặc định của Button, chỉ còn nền --def + bo 2, padding 0 3.
    Viền của --highlighted bù lại bằng padding 0 2 nên bật viền không làm câu nhảy một pixel. */
+/* (UX-32) Chữ nối của câu là Label: Label của UI Toolkit có padding mặc định, nên "168 giờ" + ", neo từ" đọc thành
+   "168 giờ , neo từ" — một cách trắng đứng trước dấu phẩy. Câu là CHỮ, không phải hàng nút: padding/margin về 0. */
+.liveops-hub-recurring-sentence-text {
+    margin: 0;
+    padding: 0;
+}
+
+/* (UX-21) Một cụm "chữ nối + token" là một khối không tách: để rời ra thì wrap của câu bẻ ngay giữa ", neo từ" và
+   ngày tháng, và người đọc mất đúng mối nối đang đọc dở. flex-shrink 0 vì cụm co thì chữ trong nó bị cắt. */
+.liveops-hub-recurring-sentence-group {
+    flex-direction: row;
+    align-items: center;
+    flex-shrink: 0;
+}
+
 .liveops-hub-rule-token {
     height: 16px;
     margin: 0;
@@ -43,9 +58,21 @@
 
 /* ---------------------------------------------------------------- Bố cục hai pane */
 
+/* (UX-21) Gốc màn là TemplateContainer mà CreateView() trả về: không có class nào thì nó cao đúng bằng nội dung, và
+   flex-grow của hai pane bên trong không có gì để giãn theo — viền pane trái dừng giữa cửa sổ. min-height 0 để con
+   cuộn được thay vì đẩy gốc cao hơn khung. */
+.liveops-hub-recurring-body {
+    flex-grow: 1;
+    min-height: 0;
+}
+
 .liveops-hub-recurring-split {
     flex-direction: row;
     flex-grow: 1;
+    /* Không có min-height/min-width 0 thì flexbox lấy kích thước NỘI DUNG làm sàn: bảng đợt rộng hơn pane sẽ đẩy cả
+       hàng ra ngoài thay vì để ScrollView bên trong lo. */
+    min-height: 0;
+    min-width: 0;
 }
 
 /* Pane trái cố định 240px: danh sách luật là cột điều hướng, không co theo nội dung. flex-grow 1 để viền phải chạy
@@ -54,6 +81,8 @@
     width: 240px;
     min-width: 240px;
     flex-grow: 1;
+    /* Pane trái là cột điều hướng bề rộng cố định: để nó co theo cửa sổ hẹp thì tên luật mất trước meta. */
+    flex-shrink: 0;
     border-right-width: 1px;
     border-right-color: var(--unity-colors-window-border);
     padding: 6px 0;
@@ -66,6 +95,9 @@
 
 .liveops-hub-recurring-form-scroll {
     flex-grow: 1;
+    flex-shrink: 1;
+    min-width: 0;
+    min-height: 0;
     padding: 10px 12px;
     overflow: hidden;
 }
@@ -73,6 +105,8 @@
 /* Nội dung form không vượt 640px: câu token dài hơn thế thì mắt phải quét ngang mới đọc hết một câu. */
 .liveops-hub-recurring-form {
     max-width: 640px;
+    /* Dưới 640 thì form phải co theo pane, không giữ 640 rồi đẩy ScrollView mọc thanh cuộn ngang (700/820). */
+    min-width: 0;
 }
 
 .liveops-hub-recurring-hidden {
@@ -101,10 +135,33 @@
     color: var(--liveops-hub-color-on-selection);
 }
 
+/* (UX-25) Nền hàng đang chọn là màu highlight đặc: thoi Warning giữ nguyên warning-fill tụt còn 1,53:1 ở skin sáng —
+   dấu "luật này có vấn đề" biến mất đúng lúc người dùng đang nhìn nó. Đổi MÀU sang màu chữ-trên-nền-chọn, giữ nguyên
+   HÌNH (thoi / tròn), vì hình mới là thứ phân biệt hai họ dấu. */
+.liveops-hub-recurring-list-row--selected .liveops-hub-state-mark--warning,
+.liveops-hub-recurring-list-row--selected .liveops-hub-state-mark--blocked,
+.liveops-hub-recurring-list-row--selected .liveops-hub-state-mark--ok {
+    background-color: var(--liveops-hub-color-on-selection);
+}
+
+.liveops-hub-recurring-list-row--selected .liveops-hub-state-mark--not-measured {
+    border-color: var(--liveops-hub-color-on-selection);
+}
+
+/* (UX-25) Dấu Blocked là hình tròn đặc CÓ vạch cắt, mà vạch cắt vẽ bằng đúng màu on-selection vừa gán cho nền: trên hàng
+   đang chọn nó tàng hình và dấu Blocked tụt xuống thành một chấm tròn đặc, chỉ còn khác dấu Ok ở cỡ. Vạch cắt phải đổi
+   sang màu NỀN của hàng đang chọn để hình "biển cấm" còn nguyên. Ba class nên thắng luật hai class ở components. */
+.liveops-hub-recurring-list-row--selected .liveops-hub-state-mark--blocked > .liveops-hub-state-mark__bar {
+    background-color: var(--unity-colors-highlight-background);
+}
+
 /* Căn trái ghi rõ: hàng là một Button, mà Button của Unity căn giữa và NHẢ xuống con — không ghi thì chữ bị cắt cả hai đầu. */
 .liveops-hub-recurring-list-name {
     flex-grow: 1;
-    flex-shrink: 1;
+    /* (UX-21) flex-shrink tính theo flex-basis nên "co gấp 4 lần" vẫn cắt tên khi meta đã hết chỗ: tên là DANH TÍNH,
+       nó KHÔNG co — "weekly-pa…" là mất đúng thứ người dùng dùng để tìm hàng. */
+    flex-shrink: 0;
+    min-width: 72px;
     overflow: hidden;
     margin-left: 6px;
     -unity-text-align: middle-left;
@@ -118,8 +175,9 @@
     font-size: 10px;
     opacity: 0.82;
     margin: 0 4px 0 6px;
-    /* Co gấp 4 lần tên luật: tên là DANH TÍNH (người dùng tìm hàng theo nó), meta chỉ là nhịp — cắt meta trước. */
-    flex-shrink: 4;
+    /* Meta là thứ DUY NHẤT co: tên đã flex-shrink 0 nên mọi thiếu chỗ dồn hết vào đây. */
+    flex-shrink: 1;
+    min-width: 0;
     overflow: hidden;
     -unity-text-align: middle-left;
     white-space: nowrap;
@@ -138,15 +196,32 @@
 .liveops-hub-recurring-field-label {
     width: 96px;
     min-width: 96px;
+    /* (UX-25) "Run per occurrence (hours)" đo 143px: cột 96 mà không cho xuống dòng thì hoặc cắt chữ, hoặc đè lên ô số.
+       Xuống dòng là đường duy nhất giữ được CẢ nhãn LẪN cột thẳng hàng. margin-right để nhãn không bao giờ chạm ô. */
+    flex-shrink: 0;
+    white-space: normal;
+    margin-right: 6px;
 }
 
 .liveops-hub-recurring-field-label--focused {
     color: var(--liveops-hub-color-focus);
 }
 
+/* (UX-21) TextField/DropdownField của Unity mặc định flex-grow 1 — ở 2022.3 ô giãn tới 1183px và "form max-width 640"
+   không còn nghĩa gì. Bề rộng ghi rõ, co được xuống 120 khi pane hẹp. */
 .liveops-hub-recurring-field-input {
+    flex-grow: 0;
+    flex-shrink: 1;
+    width: 220px;
+    max-width: 220px;
     min-width: 120px;
     margin: 0;
+}
+
+/* (UX-22) Ô đang giữ một giá trị game sẽ bỏ: viền chặn ngay tại ô, không chỉ một dòng chữ đỏ ở dưới. */
+.liveops-hub-recurring-field-input--invalid {
+    border-width: 1px;
+    border-color: var(--liveops-hub-color-blocked-fill);
 }
 
 /* Ô số hẹp 64px: chu kỳ và thời gian chạy là số giờ, không cần rộng bằng ô chữ. */
@@ -162,6 +237,29 @@
     border-color: var(--liveops-hub-color-warning-fill);
 }
 
+/* (UX-22) Gõ một giá trị game sẽ BỎ HẲN thì ô mang CẢ HAI class: --invalid (giá trị hỏng) và --drafting (chưa ghi). Hai
+   luật một class có cùng độ đặc hiệu nên luật đứng sau thắng, tức viền cam "đang nhập" che mất viền đỏ "giá trị hỏng" —
+   đúng thứ UX-22 vừa thêm vào. Luật ghép hai class đặc hiệu hơn cả hai, nên chỗ hỏng luôn thắng chỗ đang nhập. */
+.liveops-hub-recurring-field-input--drafting.liveops-hub-recurring-field-input--invalid {
+    border-color: var(--liveops-hub-color-blocked-fill);
+}
+
+/* (UX-22) Dòng lỗi thụt đúng cột Ô (nhãn 96 + lề 6), không nằm dưới cột nhãn: mắt đọc lỗi ngay dưới chỗ vừa gõ. */
+.liveops-hub-recurring-field-error {
+    font-size: 10px;
+    margin: 0 3px 4px 102px;
+    white-space: normal;
+}
+
+/* (UX-32) Dòng phụ của ô — giờ máy của Neo — đứng RIÊNG một dòng dưới ô, không nối đuôi hàng ô: nối đuôi thì hàng dài
+   gấp đôi các hàng khác và ở 820 nó là thứ bị cắt đầu tiên. */
+.liveops-hub-recurring-field-sub-line {
+    font-size: 10px;
+    opacity: 0.82;
+    margin: 0 3px 4px 102px;
+    white-space: normal;
+}
+
 .liveops-hub-recurring-field-suffix {
     font-size: 10px;
     opacity: 0.82;
@@ -172,7 +270,7 @@
 /* ---------------------------------------------------------------- Nháp tại ô và câu ở lại sau khi ghi */
 
 .liveops-hub-recurring-draft-block {
-    margin: 2px 3px 6px 103px;
+    margin: 2px 3px 6px 102px;
 }
 
 .liveops-hub-recurring-draft-notice {
@@ -183,21 +281,25 @@
 .liveops-hub-recurring-draft-actions {
     flex-direction: row;
     align-items: center;
+    flex-wrap: wrap;
     margin-top: 4px;
 }
 
 .liveops-hub-recurring-after-write {
-    margin: 2px 3px 6px 103px;
+    margin: 2px 3px 6px 102px;
 }
 
 .liveops-hub-recurring-after-write-actions {
     flex-direction: row;
     align-items: center;
+    /* (UX-21) Ở 700/820 hàng "Hoàn về tiền tố …" + link không đủ chỗ: cho xuống dòng, đừng cắt cụt cái link. */
+    flex-wrap: wrap;
     margin-top: 4px;
 }
 
 /* Link chữ, không nền: đây là lối đi tiếp chứ không phải một hành động sửa. */
 .liveops-hub-recurring-link {
+    flex-shrink: 0;
     background-color: transparent;
     border-width: 0;
     margin-left: 8px;
@@ -208,7 +310,7 @@
 /* ---------------------------------------------------------------- Thanh chu kỳ */
 
 .liveops-hub-recurring-cycle-row {
-    margin: 4px 3px 10px 103px;
+    margin: 4px 3px 10px 102px;
 }
 
 .liveops-hub-recurring-cycle-text {
@@ -290,6 +392,11 @@
     flex-grow: 1;
 }
 
+/* (UX-32) "■Đang chạy": dấu chỉ có margin 1px của chính nó nên nó DÍNH chữ. Dấu là một từ riêng trong câu ngắn đó. */
+.liveops-hub-recurring-cell-now > .liveops-hub-state-mark {
+    margin-right: 4px;
+}
+
 /* Tag "đổi id" cao 15 ([SD1 §4.1]) — thấp hơn tag chung 18 vì nó nằm trong một hàng bảng cao 20. */
 .liveops-hub-recurring-id-change-tag {
     flex-direction: row;
@@ -349,10 +456,10 @@
     white-space: normal;
 }
 
-/* (Q-W4-4) Lý do ô bị khoá, in THÀNH CHỮ dưới chính ô đó — thẳng cột với khối nháp (nhãn 96 + 7 lề). */
+/* (Q-W4-4) Lý do ô bị khoá, in THÀNH CHỮ dưới chính ô đó — thẳng cột với khối nháp (nhãn 96 + 6 lề). */
 .liveops-hub-recurring-field-lock-reason {
     font-size: 10px;
-    margin: 0 3px 4px 103px;
+    margin: 0 3px 4px 102px;
     white-space: normal;
 }
 
@@ -362,4 +469,64 @@
 .liveops-hub-recurring-empty-action {
     margin: 8px 0 0 0;
     align-self: flex-start;
+}
+
+/* ---------------------------------------------------------------- Cỡ hẹp [FD §4.2] */
+
+/* (UX-21) Ở 700/820 bảng đợt rộng 452px trong một pane hẹp hơn thế: hoặc cuộn ngang, hoặc mất cột. Cột "Giờ máy" là cột
+   ĐƯỢC PHÉP biến mất — nó chỉ quy đổi lại giờ UTC ngay bên trái; cột "Lúc này" thì không, nó nói đợt nào đang chạy.
+   Breakpoint đi qua class --narrow mà LiveOpsHubBreakpoints gắn trên root hub (USS không có @media). */
+.liveops-hub--narrow .liveops-hub-recurring-cell-device {
+    display: none;
+}
+
+.liveops-hub--narrow .liveops-hub-recurring-cell-id {
+    width: 132px;
+    min-width: 132px;
+}
+
+.liveops-hub--narrow .liveops-hub-recurring-cell-start,
+.liveops-hub--narrow .liveops-hub-recurring-cell-end {
+    width: 84px;
+    min-width: 84px;
+}
+
+/* Dưới 720 thì cả cột nhãn cũng phải nhường: 96 + ô 120 + lề đã hơn một pane 700 trừ pane trái 240. */
+.liveops-hub--compact .liveops-hub-recurring-field-label {
+    width: 84px;
+    min-width: 84px;
+}
+
+.liveops-hub--compact .liveops-hub-recurring-field-input {
+    width: 150px;
+    max-width: 150px;
+    min-width: 96px;
+}
+
+/* Ô số vẫn là ô số ở cỡ compact: luật --compact ở trên có hai class nên nó thắng luật một class của ô số — phải ghi
+   lại ở đây, nếu không "Chu kỳ (giờ)" rộng bằng ô chữ và hàng lại tràn đúng chỗ vừa sửa. */
+.liveops-hub--compact .liveops-hub-recurring-field-number {
+    width: 56px;
+    min-width: 56px;
+    max-width: 56px;
+}
+
+/* ---------------------------------------------------------------- Nút "Thêm luật" của section header (UX-24) */
+
+/* Button LÀ TextElement: `text` được chính nút vẽ trên toàn hộp nội dung nên Image con nằm ĐÈ lên chữ. Chữ là Label con
+   đặt SAU Image — và vì con của VisualElement xếp theo CỘT mặc định, nút phải tự ghi hàng ngang. */
+.liveops-hub-recurring-add-rule-button {
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+}
+
+.liveops-hub-recurring-add-rule-button-icon {
+    margin-left: -2px;
+    margin-right: 4px;
+}
+
+.liveops-hub-recurring-add-rule-button-label {
+    margin: 0;
+    padding: 0;
 }

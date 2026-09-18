@@ -10,7 +10,7 @@
         Không có chữ trong file này: mọi câu đặt từ C# qua LiveOpsHubStrings (code-lint chặn tiếng Việt trong UXML).
         Stylesheet của màn gắn từ C# theo LiveOpsHubPaths.RecurringRulesSectionUss, để thiếu file thì card lỗi nêu đường dẫn.
     -->
-    <ui:VisualElement name="recurring-body">
+    <ui:VisualElement name="recurring-body" class="liveops-hub-recurring-body">
         <ui:VisualElement name="recurring-split" class="liveops-hub-recurring-split">
             <ui:VisualElement name="recurring-list-host" />
             <ui:ScrollView name="recurring-form-scroll" class="liveops-hub-recurring-form-scroll">

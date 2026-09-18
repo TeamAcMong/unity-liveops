@@ -9,6 +9,8 @@ namespace DreamTech.LiveOps.Editor
     internal static partial class LiveOpsHubClassNames
     {
         // Bố cục hai pane [SD1 §4.1]: trái 240px danh sách luật · phải form max-width 640.
+        // (UX-21) Gốc màn: TemplateContainer của CreateView() phải mang class này, nếu không hai pane không có gì để giãn theo.
+        internal const string RecurringBody = "liveops-hub-recurring-body";
         internal const string RecurringSplit = "liveops-hub-recurring-split";
         internal const string RecurringList = "liveops-hub-recurring-list";
         internal const string RecurringListScroll = "liveops-hub-recurring-list-scroll";
@@ -18,6 +20,10 @@ namespace DreamTech.LiveOps.Editor
         internal const string RecurringListMeta = "liveops-hub-recurring-list-meta";
         internal const string RecurringForm = "liveops-hub-recurring-form";
         internal const string RecurringFormScroll = "liveops-hub-recurring-form-scroll";
+
+        // (UX-32) Chữ nối của câu đọc; (UX-21) một cụm "chữ nối + token" không bị wrap bẻ đôi.
+        internal const string RecurringSentenceText = "liveops-hub-recurring-sentence-text";
+        internal const string RecurringSentenceGroup = "liveops-hub-recurring-sentence-group";
 
         // Ẩn/hiện một khối của màn bằng class (luật style inline [FD §2.14] chỉ cho hình học suy từ dữ liệu, không cho display).
         internal const string RecurringHidden = "liveops-hub-recurring-hidden";
@@ -30,6 +36,11 @@ namespace DreamTech.LiveOps.Editor
         internal const string RecurringFieldSuffix = "liveops-hub-recurring-field-suffix";
         internal const string RecurringFieldDrafting = "liveops-hub-recurring-field-input--drafting";
         internal const string RecurringFieldNumber = "liveops-hub-recurring-field-number";
+
+        // (UX-22) Dòng lỗi của ô + viền chặn tại chính ô; (UX-32) dòng phụ đứng riêng dưới ô (giờ máy của Neo).
+        internal const string RecurringFieldError = "liveops-hub-recurring-field-error";
+        internal const string RecurringFieldInvalid = "liveops-hub-recurring-field-input--invalid";
+        internal const string RecurringFieldSubLine = "liveops-hub-recurring-field-sub-line";
 
         // Khối cảnh báo tại chỗ dưới ô đang sửa [SD1 §4.2]: dòng phụ "Nháp tại ô này…" + HelpBox + hàng nút.
         internal const string RecurringDraftBlock = "liveops-hub-recurring-draft-block";
@@ -63,6 +74,11 @@ namespace DreamTech.LiveOps.Editor
 
         // Nút bước tiếp của trạng thái trống ("Thêm luật" / "Mở Tổng quan để tạo lịch").
         internal const string RecurringEmptyAction = "liveops-hub-recurring-empty-action";
+
+        // (UX-24) Nút "Thêm luật" của section header: icon và chữ là hai con riêng nên nút phải tự xếp hàng ngang.
+        internal const string RecurringAddRuleButton = "liveops-hub-recurring-add-rule-button";
+        internal const string RecurringAddRuleButtonIcon = "liveops-hub-recurring-add-rule-button-icon";
+        internal const string RecurringAddRuleButtonLabel = "liveops-hub-recurring-add-rule-button-label";
 
         // Popover "Thêm luật" (chọn loại chưa có luật + mẫu) và foldout JSON chỉ đọc của W4.
         internal const string RecurringAdd = "liveops-hub-recurring-add";
