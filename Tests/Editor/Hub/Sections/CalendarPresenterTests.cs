@@ -100,11 +100,10 @@ namespace DreamTech.LiveOps.Editor.Tests
 
             Assert.AreEqual(1, deferred.Count, "hộp chỉ mở SAU khi chuột đã nhả, không bao giờ giữa lúc kéo (SP-2 (a))");
             Assert.AreEqual(0, _confirmation.Requests.Count, "chưa chạy phần hoãn thì chưa hỏi");
-            Assert.IsTrue(services.Session.Document.TryGetFixedEvent(LiveOpsDesignSample.LavaQuestMidEntryKey,
-                out FixedLiveEventEntry afterCommit));
-            // (W8-UX UX-06, UJ-11) Đổi hợp đồng của SP-2 (b): nháp KHÔNG commit trước khi hỏi nữa — người dùng thấy trục, toast
-            // và status bar báo "Đã dời" trong lúc hộp còn đang hỏi là thứ làm hộp mất hết ý nghĩa.
-            Assert.AreEqual("2026-09-20T00:00:00Z", afterCommit.EndUtcText, "chưa trả lời hộp thì chưa ghi gì (UX-06)");
+            // (W8-UX UX-06, UJ-11) Đổi hợp đồng của SP-2 (b): nháp KHÔNG được gộp thành bước Undo trước khi hỏi nữa — toast và
+            // status bar báo "Đã dời" trong lúc hộp còn đang hỏi là thứ làm hộp mất hết ý nghĩa. Tài liệu vẫn mang bản xem
+            // trước vì đó chính là nháp người dùng đang nhìn.
+            Assert.IsTrue(services.Session.IsContinuousEditOpen, "chưa trả lời hộp thì nháp còn mở, chưa có bước Undo nào");
 
             deferred[0]();
             Assert.AreEqual(1, _confirmation.Requests.Count);

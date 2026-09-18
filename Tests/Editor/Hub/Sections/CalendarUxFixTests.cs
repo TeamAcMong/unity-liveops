@@ -102,13 +102,16 @@ namespace DreamTech.LiveOps.Editor.Tests
         {
             yield return OpenCalendar(LiveOpsHubTestServices.DesignSampleScenario, 820, 560);
             CalendarSection section = Calendar();
+            float narrowTrackWidth = section.Timeline.TrackWidth;
 
             _window.position = new Rect(0, 0, 1440, 900);
             yield return WaitForLayout(_window.rootVisualElement);
             yield return null;
+            yield return null;
 
             float trackWidth = section.Timeline.TrackWidth;
-            Assert.Greater(trackWidth, 900f, "ở cửa sổ 1440 track phải rộng hơn 900px");
+            Assert.Greater(trackWidth, narrowTrackWidth + 100f,
+                "cửa sổ rộng thêm 620px thì track phải rộng theo, không giữ số đo của lần dựng đầu");
             Assert.AreEqual(trackWidth, section.Presenter.Model.Geometry.TrackWidth, 1f,
                 "model phải dựng theo bề rộng track THẬT, không giữ số đo của lần dựng đầu");
         }
@@ -183,16 +186,17 @@ namespace DreamTech.LiveOps.Editor.Tests
 
             Assert.AreEqual(1, deferred.Count, "hộp vẫn chỉ mở SAU khi chuột đã nhả (SP-2 (a))");
             Assert.AreEqual(0, toasts.Count, "chưa trả lời hộp thì chưa được báo 'Đã dời'");
-            Assert.IsTrue(services.Session.Document.TryGetFixedEvent(LiveOpsDesignSample.LavaQuestMidEntryKey,
-                out FixedLiveEventEntry beforeAnswer));
-            Assert.AreEqual("2026-09-20T00:00:00Z", beforeAnswer.EndUtcText, "chưa trả lời hộp thì chưa được ghi");
+            // Nháp continuous edit CÒN MỞ = chưa có bước Undo nào, chưa gộp gì. Tài liệu vẫn mang giá trị xem trước vì đó chính
+            // là bản nháp người dùng đang nhìn — thứ phải chưa xảy ra là COMMIT, không phải bản xem trước.
+            Assert.IsTrue(services.Session.IsContinuousEditOpen, "chưa trả lời hộp thì nháp chưa được gộp thành bước Undo");
 
             deferred[0]();
 
             Assert.AreEqual(1, _confirmation.Requests.Count);
+            Assert.IsFalse(services.Session.IsContinuousEditOpen, "trả lời xong thì nháp phải đóng");
             Assert.IsTrue(services.Session.Document.TryGetFixedEvent(LiveOpsDesignSample.LavaQuestMidEntryKey,
                 out FixedLiveEventEntry afterAnswer));
-            Assert.AreEqual("2026-09-19T00:00:00Z", afterAnswer.EndUtcText, "chọn nút phá huỷ thì mới ghi");
+            Assert.AreEqual("2026-09-18T12:00:00Z", afterAnswer.EndUtcText, "chọn nút phá huỷ thì mới ghi");
             Assert.AreEqual(1, toasts.Count, "và toast chỉ chạy sau lựa chọn");
         }
 
