@@ -1,4 +1,7 @@
 using System.Collections;
+using System.Collections.Generic;
+using System.Globalization;
+using System.Text;
 using DreamTech.LiveOps.Tests;
 using DreamTech.LiveOps.Unity;
 using NUnit.Framework;
@@ -116,7 +119,33 @@ namespace DreamTech.LiveOps.Editor.Tests
                 "icon của tầng phải nằm trong lưới icon đã đo ([FD §2.12]) để probe icon còn gác được");
             Assert.IsNotNull(LiveOpsHubIcons.Get(iconName, darkSkin: false), "icon tầng KIỂM phải nạp được ở skin sáng");
             Assert.IsNotNull(LiveOpsHubIcons.Get(iconName, darkSkin: true), "icon tầng KIỂM phải nạp được ở skin tối");
+
+            // (soát W8-UX R10) Chốt đúng TIÊU CHÍ đã làm đổi glyph, không chỉ chốt "khác Valid": đổi sang một glyph nhạt khác
+            // mà vẫn xanh thì test này vô nghĩa. Số đo lấy từ probe icon của measure-capture.py trên nền rail skin sáng — ca
+            // xấu nhất vì nền nhạt hơn. Glyph chưa có trong bảng = chưa đo, và chưa đo thì không được dùng cho tầng.
+            float measuredContrast;
+            Assert.IsTrue(MeasuredIconContrastOnRail.TryGetValue(iconName, out measuredContrast),
+                "glyph '" + iconName + "' chưa có số đo tương phản trên nền rail — đo bằng probe icon rồi thêm vào bảng trước khi dùng");
+            Assert.GreaterOrEqual(measuredContrast, MinimumIconContrast,
+                "icon tầng phải đạt ngưỡng " + MinimumIconContrast + ":1 của [FD §2.3] trên nền rail skin sáng — '" + iconName
+                + "' đo được " + measuredContrast);
         }
+
+        /// <summary>Ngưỡng tương phản của [FD §2.3] cho hình đơn sắc trên nền.</summary>
+        private const float MinimumIconContrast = 3f;
+
+        /// <summary>
+        /// Tỉ lệ tương phản ĐO ĐƯỢC của từng glyph trên nền rail ở skin sáng (probe icon của <c>measure-capture.py</c>, đợt
+        /// W8-UX). Bảng này là lý do của <see cref="RailCheckStageIcon_IsNotThePaleValidGlyph"/>: "Valid" trượt ngưỡng, ba
+        /// glyph còn lại đạt. Thêm glyph mới thì phải đo và thêm số vào đây.
+        /// </summary>
+        private static readonly Dictionary<string, float> MeasuredIconContrastOnRail = new Dictionary<string, float>
+        {
+            { "Valid", 1.67f },
+            { "Search Icon", 3.03f },
+            { "Settings", 3.03f },
+            { "SaveAs", 3.03f },
+        };
 
         // ──────────────────────────────────────────────────────────────────────────────────── UX-20 · đổi ngôn ngữ
 
@@ -124,25 +153,68 @@ namespace DreamTech.LiveOps.Editor.Tests
         /// (UX-20 / UJ-20) Sau khi đổi ngôn ngữ, badge tầng XUẤT vẫn ghi "chặn" trong khi cả hub đã sang English. Nguyên
         /// nhân không nằm ở rail: phiên lịch giữ <c>ExportGateState</c> ĐÃ DỰNG THÀNH CHỮ trong một cache khoá theo
         /// <c>StateVersion</c> + format + readBack — đổi ngôn ngữ không đụng ba thứ đó nên cổng xuất trả lại đúng bản chữ cũ
-        /// cho health, và rail chỉ chép lại. Test khoá ở chỗ thật: dựng lại khung vì đổi ngôn ngữ phải bỏ bản cache đó.
+        /// cho health, và rail chỉ chép lại.
+        /// <para>
+        /// (soát W8-UX R6) Test đọc CHỮ BADGE người dùng thấy trên rail, không chỉ so danh tính object nội bộ: hồi quy làm
+        /// rơi cache mà vẫn vẽ badge tiếng Việt thì phải ĐỎ. Đổi ngôn ngữ bằng scope ghim chứ không bằng
+        /// <c>LiveOpsHubLanguage.Set</c> vì Set ghi thẳng vào EditorPrefs của MÁY người chạy test; scope không bắn
+        /// <c>LiveOpsHubLanguage.Changed</c> nên phải gọi tay đúng đường dựng lại mà handler đó gọi.
+        /// </para>
         /// </summary>
         [UnityTest]
-        public IEnumerator LanguageChange_DropsCachedExportGateText()
+        public IEnumerator LanguageChange_RebuildsRailBadge()
         {
-            LiveOpsHubServices services = LiveOpsHubTestServices.Build(LiveOpsHubTestServices.CreateBuilder(null)
-                .WithCalendarAsset(LiveOpsHubTestServices.CreateMemoryAsset(LiveOpsDesignSample.Document)));
-            yield return OpenSessionWindow(services);
+            LiveOpsHubServices services = LiveOpsHubTestServices.FromDesignSample();
 
-            ExportGateState before = services.Session.EvaluateExportGate(services.JsonReadBack, services.Format);
-            Assert.IsNotNull(before, "ngữ cảnh test phải dựng được cổng xuất");
+            ExportGateState beforeState;
+            string vietnameseBadge;
+            string vietnameseBlocked;
+            using (LiveOpsHubLanguage.Override(LiveOpsHubLanguageId.Vietnamese))
+            {
+                yield return OpenSessionWindow(services);
+                beforeState = services.Session.EvaluateExportGate(services.JsonReadBack, services.Format);
+                vietnameseBadge = ExportStageBadgeText();
+                vietnameseBlocked = LiveOpsHubStrings.ExportGateHealthBlockedBadge;
+            }
 
-            _sessionWindow.RebuildForLanguageChangeForTest();
-            yield return LiveOpsHubWindowTestScope.WaitFrames(2);
+            Assert.AreEqual(vietnameseBlocked, vietnameseBadge,
+                "ngữ cảnh test phải là cổng XUẤT đang chặn ở tiếng Việt — badge đang là '" + vietnameseBadge + "'");
 
-            ExportGateState after = services.Session.EvaluateExportGate(services.JsonReadBack, services.Format);
-            Assert.AreNotSame(before, after,
-                "đổi ngôn ngữ phải bỏ bản cổng xuất đã dựng thành chữ, nếu không badge rail giữ nguyên chữ ngôn ngữ cũ (UX-20)");
+            string englishBadge;
+            string englishBlocked;
+            ExportGateState afterState;
+            using (LiveOpsHubLanguage.Override(LiveOpsHubLanguageId.English))
+            {
+                _sessionWindow.RebuildForLanguageChangeForTest();
+                yield return LiveOpsHubWindowTestScope.WaitFrames(2);
+                englishBadge = ExportStageBadgeText();
+                englishBlocked = LiveOpsHubStrings.ExportGateHealthBlockedBadge;
+                afterState = services.Session.EvaluateExportGate(services.JsonReadBack, services.Format);
+            }
+
+            Assert.AreNotEqual(vietnameseBadge, englishBadge,
+                "badge tầng XUẤT phải đổi theo ngôn ngữ — vẫn là '" + englishBadge + "' giữa một hub đã sang English (UX-20/UJ-20)");
+            Assert.AreEqual(englishBlocked, englishBadge,
+                "badge tầng XUẤT sau khi đổi ngôn ngữ phải là chữ 'chặn' của tiếng Anh, không phải một câu khác");
+            Assert.AreNotSame(beforeState, afterState,
+                "đổi ngôn ngữ phải bỏ bản cổng xuất đã dựng thành chữ — đó là cơ chế làm badge đổi được (UX-20)");
         }
+
+        /// <summary>Chữ badge của tầng XUẤT trên rail — bề mặt người dùng thật sự đọc.</summary>
+        private string ExportStageBadgeText()
+        {
+            List<VisualElement> stageRows = _sessionWindow.Rail.Element.Query(className: LiveOpsHubClassNames.RailStageRow).ToList();
+            Assert.AreEqual(PipelineStageRowCount, stageRows.Count,
+                "rail P1 vẽ 4 tầng — số tầng đổi thì test đang soi nhầm hàng");
+            Label badge = stageRows[ExportStageRowIndex].Q<Label>(className: LiveOpsHubClassNames.RailBadge);
+            return badge == null ? string.Empty : badge.text;
+        }
+
+        /// <summary>Rail P1 vẽ 4 tầng (CẤU HÌNH, LÊN LỊCH, KIỂM, XUẤT — tầng CHẠY để dành P2/P3).</summary>
+        private const int PipelineStageRowCount = 4;
+
+        /// <summary>Chỉ số hàng tầng XUẤT trong rail.</summary>
+        private const int ExportStageRowIndex = 3;
 
         // ──────────────────────────────────────────────────────────────────────────────────── UX-26 · status sau ⌘Z
 
@@ -211,6 +283,34 @@ namespace DreamTech.LiveOps.Editor.Tests
         }
 
         /// <summary>
+        /// (UX-27 / UJ-12 · soát W8-UX R4) Hàm thuần ở trên có thể đúng hoàn toàn mà đường nối vẫn TRƠ: hộp thật vẫn đặt theo
+        /// cửa sổ đang focus, hoặc <c>PlaceOnOwnerWindow</c> không bao giờ chạy, và mọi cổng vẫn xanh. Test này mở CỬA SỔ HUB
+        /// THẬT rồi mở hộp bằng đúng đường production, đo Rect thật của hai cửa sổ — đúng cách UJ-12 đã đo trên máy
+        /// (hộp 760,203 400×240 so với hub 40,52 1280×814).
+        /// </summary>
+        [UnityTest]
+        public IEnumerator ConfirmWindow_RealWindow_OpensOverTheHubWindow()
+        {
+            LiveOpsHubServices services = LiveOpsHubTestServices.FromDesignSample();
+            yield return OpenSessionWindow(services);
+
+            Rect hub = _sessionWindow.position;
+            _confirmWindow = LiveOpsConfirmWindow.OpenForTest(ShortBodyRequest(), null, placeOnOwnerWindow: true);
+            yield return WaitForLayout(_confirmWindow.rootVisualElement);
+            yield return LiveOpsHubWindowTestScope.WaitFrames(3);
+
+            Assert.AreEqual(hub, _confirmWindow.ResolvedOwnerPosition,
+                "hộp phải lấy CỬA SỔ HUB làm chủ, không lấy cửa sổ đang focus (UX-27): chủ đã dùng là "
+                + _confirmWindow.ResolvedOwnerPosition);
+
+            Rect box = _confirmWindow.position;
+            Assert.GreaterOrEqual(box.xMin, hub.xMin - LayoutTolerance, "hộp thật phải nằm trong hub, không tràn sang trái: " + box);
+            Assert.LessOrEqual(box.xMax, hub.xMax + LayoutTolerance, "hộp thật phải nằm trong hub, không tràn sang phải: " + box);
+            Assert.GreaterOrEqual(box.yMin, hub.yMin - LayoutTolerance, "hộp thật phải nằm trong hub, không tràn lên trên: " + box);
+            Assert.LessOrEqual(box.yMax, hub.yMax + LayoutTolerance, "hộp thật phải nằm trong hub, không tràn xuống dưới: " + box);
+        }
+
+        /// <summary>
         /// (UX-27 / UJ-12) Gợi ý phím góc trái bị cắt thành "Enter không đổi gi": một dòng + ellipsis trong hàng nút 400 px
         /// không đủ chỗ cho câu hai vế. Câu này nói ĐÚNG hai phím thoát hiểm của hộp phá huỷ nên không được cắt — cho xuống
         /// dòng thay vì cắt.
@@ -243,17 +343,77 @@ namespace DreamTech.LiveOps.Editor.Tests
             yield return WaitForLayout(_confirmWindow.rootVisualElement);
             yield return LiveOpsHubWindowTestScope.WaitFrames(3);
 
-            // Chỗ dư đo bằng chính chỗ mà `margin-top: auto` của hàng nút nuốt: khung đã vẽ cao hơn nội dung tự nhiên bao
-            // nhiêu. Khung có flex-grow: 1 nên nó luôn bằng chiều cao cửa sổ — hằng 212 px cho câu ngắn để dư 125 px.
-            VisualElement frame = _confirmWindow.Content.Q(LiveOpsConfirmContent.ContentElementName);
-            float deadSpace = frame.layout.height - _confirmWindow.Content.MeasureContentHeight();
+            // (soát W8-UX R3) Đo bằng HÌNH HỌC ĐỘC LẬP, không bằng MeasureContentHeight: chính hàm đó là điều kiện dừng của
+            // vòng lặp chỉnh chiều cao, nên lấy nó làm thước là khẳng định lại điều kiện dừng bằng chính nó — đo hụt thì cả
+            // hai sai cùng chiều và test vẫn xanh trong khi nội dung bị cắt. Ở đây chỉ đọc worldBound của thân và của hàng
+            // nút: khoảng cách giữa hai mép đó chính là mảng trống mà người dùng nhìn thấy.
+            Label body = _confirmWindow.Content.Q<Label>(LiveOpsConfirmContent.BodyElementName);
+            Label keyHint = _confirmWindow.Content.Q<Label>(LiveOpsConfirmContent.KeyHintElementName);
+            Assert.IsNotNull(body, "hộp phải có câu thân");
+            Assert.IsNotNull(keyHint, "hộp phải có gợi ý phím");
+            VisualElement buttons = keyHint.hierarchy.parent;
+            float deadSpace = buttons.worldBound.yMin - body.worldBound.yMax;
 
             Assert.LessOrEqual(deadSpace, MaximumDeadSpace,
                 "hộp phải cao theo nội dung: đang dư " + deadSpace + " px giữa thân và hàng nút (UX-27)");
+            // Vế thứ hai của cùng hình học: hàng nút phải nằm TRONG cửa sổ. Đây là chỗ ô cuộn của thân gác (soát R5) — thân
+            // dài quá trần 420 px mà không cuộn được thì hàng nút bị đẩy ra ngoài và hộp phá huỷ hết đường thoát bằng chuột.
+            Assert.LessOrEqual(buttons.worldBound.yMax, _confirmWindow.rootVisualElement.worldBound.yMax + LayoutTolerance,
+                "hàng nút phải nằm trong vùng vẽ của cửa sổ — " + DescribeConfirmGeometry());
         }
 
-        /// <summary>Chỗ dư tối đa của khung so với nội dung tự nhiên — quá mức này là người đọc thấy một mảng trống.</summary>
-        private const float MaximumDeadSpace = 4f;
+        /// <summary>Mọi số đo của hộp trong một câu: assert đỏ phải nói được sai ở đâu mà không phải chạy lại Unity.</summary>
+        private string DescribeConfirmGeometry()
+        {
+            VisualElement root = _confirmWindow.rootVisualElement;
+            VisualElement frame = _confirmWindow.Content.Q(LiveOpsConfirmContent.ContentElementName);
+            VisualElement scroll = _confirmWindow.Content.Q(LiveOpsConfirmContent.ScrollElementName);
+            Label body = _confirmWindow.Content.Q<Label>(LiveOpsConfirmContent.BodyElementName);
+            Label title = _confirmWindow.Content.Q<Label>(LiveOpsConfirmContent.TitleElementName);
+            Label keyHint = _confirmWindow.Content.Q<Label>(LiveOpsConfirmContent.KeyHintElementName);
+            VisualElement buttons = keyHint == null ? null : keyHint.hierarchy.parent;
+            return "position=" + _confirmWindow.position + " root=" + root.worldBound + " frame=" + frame.worldBound
+                + " measured=" + _confirmWindow.Content.MeasureContentHeight()
+                + " title=" + (title == null ? "-" : title.worldBound.ToString())
+                + " scroll=" + (scroll == null ? "-" : scroll.worldBound.ToString())
+                + " body=" + (body == null ? "-" : body.worldBound.ToString())
+                + " buttons=" + (buttons == null ? "-" : buttons.worldBound.ToString());
+        }
+
+        /// <summary>
+        /// Chỗ dư tối đa giữa đáy thân và đỉnh hàng nút — quá mức này là người đọc thấy một mảng trống ("còn thứ gì chưa
+        /// hiện"). Lỗi gốc UJ-12 đo được 125 px.
+        /// </summary>
+        private const float MaximumDeadSpace = 8f;
+
+        /// <summary>
+        /// (soát W8-UX R5) Thân hộp phải CUỘN được chứ không đẩy hàng nút ra ngoài khung: câu hậu quả do nơi gọi dựng và
+        /// không có trần (danh sách id của "dán JSON đang chạy"), còn cửa sổ hộp có trần 420 px.
+        /// </summary>
+        [UnityTest]
+        public IEnumerator ConfirmWindow_VeryLongBody_ScrollsAndKeepsButtonsInsideWindow()
+        {
+            _confirmWindow = LiveOpsConfirmWindow.OpenForTest(VeryLongBodyRequest());
+            yield return WaitForLayout(_confirmWindow.rootVisualElement);
+            yield return LiveOpsHubWindowTestScope.WaitFrames(4);
+
+            ScrollView scroll = _confirmWindow.Content.Q<ScrollView>(LiveOpsConfirmContent.ScrollElementName);
+            Assert.IsNotNull(scroll, "thân hộp phải nằm trong một ô cuộn");
+            // Không có vế này thì test rỗng nghĩa: câu thân phải THẬT SỰ tràn khỏi ô cuộn, nếu không nó chỉ đang chứng minh
+            // rằng một hộp vừa khít thì nút nằm trong khung.
+            Assert.Greater(scroll.contentContainer.worldBound.height, scroll.contentViewport.worldBound.height + LayoutTolerance,
+                "ngữ cảnh test phải thật sự tràn: nội dung thân cao " + scroll.contentContainer.worldBound.height
+                + " px, ô cuộn cao " + scroll.contentViewport.worldBound.height + " px");
+
+            Label keyHint = _confirmWindow.Content.Q<Label>(LiveOpsConfirmContent.KeyHintElementName);
+            VisualElement buttons = keyHint.hierarchy.parent;
+            Assert.LessOrEqual(_confirmWindow.position.height, LiveOpsConfirmWindow.MaximumHeight + LayoutTolerance,
+                "hộp không được cao quá trần " + LiveOpsConfirmWindow.MaximumHeight + " px");
+            Assert.LessOrEqual(buttons.worldBound.yMax, _confirmWindow.rootVisualElement.worldBound.yMax + LayoutTolerance,
+                "câu hậu quả dài không được đẩy hàng nút ra ngoài vùng vẽ — người dùng mất cả hai nút lẫn gợi ý phím: "
+                + DescribeConfirmGeometry());
+            Assert.Greater(buttons.worldBound.height, 0f, "hàng nút phải còn chiều cao thật, không bị co về 0");
+        }
 
         // ──────────────────────────────────────────────────────────────────────────────────── UX-30 · Tổng quan 820
 
@@ -354,6 +514,29 @@ namespace DreamTech.LiveOps.Editor.Tests
                 .WithKeyHint("Esc: Giữ tiền tố cũ · Enter không đổi gì")
                 .Build();
         }
+
+        /// <summary>
+        /// Câu hậu quả dài như ca thật của "dán JSON đang chạy": danh sách id bị thay + id bị bỏ nối thành một câu, không có
+        /// trần số lượng. Dài hơn hẳn trần 420 px của cửa sổ hộp.
+        /// </summary>
+        private static LiveOpsConfirmRequest VeryLongBodyRequest()
+        {
+            StringBuilder body = new StringBuilder();
+            for (int index = 0; index < LongBodyIdCount; index++)
+            {
+                if (index > 0) body.Append(", ");
+                body.Append("weekly-pass-").Append(index.ToString("00", CultureInfo.InvariantCulture)).Append("-bonus-hunt");
+            }
+            return new LiveOpsConfirmRequest.Builder()
+                .WithTitle("Thay lịch đang chạy bằng JSON vừa dán?")
+                .WithBody(body.ToString())
+                .WithButtons("Thay lịch", "Giữ lịch cũ")
+                .WithKeyHint("Esc: Giữ lịch cũ · Enter không đổi gì")
+                .Build();
+        }
+
+        /// <summary>Đủ id để câu thân vượt trần 420 px của cửa sổ hộp ở bề rộng 400 px.</summary>
+        private const int LongBodyIdCount = 60;
 
         private static LiveOpsConfirmRequest ShortBodyRequest()
         {
