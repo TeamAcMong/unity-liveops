@@ -141,6 +141,9 @@ namespace DreamTech.LiveOps.Editor
             table.Add(nameof(LiveOpsHubStrings.CalendarStartLockedTooltipFormat),
                 vietnamese: "Bắt đầu: khoá — đã chạy từ {0} UTC",
                 english: "Start: locked — running since {0} UTC");
+            table.Add(nameof(LiveOpsHubStrings.CalendarEndedLockedTooltipFormat),
+                vietnamese: "Khoá — đợt đã khép lúc {0} UTC, không đổi được giờ nữa",
+                english: "Locked — this event ended at {0} UTC, its times can no longer change");
 
             table.Add(nameof(LiveOpsHubStrings.CalendarRecurringNoteFormat),
                 vietnamese: "Đợt sinh từ luật {0}. Sửa chu kỳ, thời gian chạy hoặc tiền tố ở Luật lặp.",
