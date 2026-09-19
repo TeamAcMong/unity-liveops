@@ -574,9 +574,24 @@ namespace DreamTech.LiveOps.Editor.Tests
         }
 
         /// <summary>Kéo một thanh để hub bật toast "đã dời" — trạng thái mà UX-11 nói tới (toast đè chân trang).</summary>
+        /// <summary>
+        /// Dựng cảnh cho màn calendar-toast: KÉO một thanh để màn bật toast "đã dời …".
+        /// <para>
+        /// Phải kéo đợt hunt-0914 (14/9 → 17/9, chưa bắt đầu ở mốc thiết kế 13/9 01:47), KHÔNG phải lava-quest-2026-09a:
+        /// đợt 09a ĐÃ KHÉP lúc 13/9 00:00 và <c>LiveOpsTimelineDragController.BeginBar</c> TỪ CHỐI mọi thanh
+        /// <c>IsEnded</c>, nên cú kéo cũ không hề xảy ra — không có lần ghi nào, không có toast nào, và màn bị báo là "có
+        /// toast trong cây nhưng display=None" ở cả 12 cặp cỡ × ngôn ngữ. Luật chia thanh ở
+        /// plan/w8-ux/UX2-BAR-ASSIGNMENT.md mục 3.1: ca nào phải GHI thì cấm đứng trên 09a.
+        /// </para>
+        /// <para>
+        /// Vì sao không dùng lava-quest-2026-09b như các ca kéo của <c>UxCalendarJourneyTests</c>: ma trận của màn này chạy
+        /// từ cỡ hẹp nhất 700x560, và ở cỡ đó trục KHÔNG vẽ thanh 09b (đo được: fixture báo "trục không vẽ thanh
+        /// 'entry-lava-quest-2026-09b'"). hunt-0914 nằm sát mốc "bây giờ" nên được vẽ ở mọi cỡ của ma trận.
+        /// </para>
+        /// </summary>
         private static IEnumerator DragBarToRaiseToast(UxHubWindowFixture fixture)
         {
-            LiveOpsTimelineBar bar = fixture.BarOf(LiveOpsDesignSample.LavaQuestEarlyEntryKey);
+            LiveOpsTimelineBar bar = fixture.BarOf(LiveOpsDesignSample.HuntEarlyEntryKey);
             Vector2 from = bar.worldBound.center;
             yield return UxEventSender.Drag(fixture.Window, from, from + new Vector2(60f, 0f),
                 UxEventSender.MinimumDragSteps, EventModifiers.None);
