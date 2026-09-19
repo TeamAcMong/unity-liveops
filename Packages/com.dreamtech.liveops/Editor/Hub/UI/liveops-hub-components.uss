@@ -443,10 +443,13 @@
 }
 
 /* Nhãn BaseField giữ min-width 120px mặc định của Unity: trong 272px còn lại của pane thì "UTC", hậu tố "giờ" và nút
-   "Về mặc định" bị đẩy ra ngoài (C3). 84px đủ cho nhãn dài nhất của cả hai ngôn ngữ mà không phải cắt chữ. */
+   "Về mặc định" bị đẩy ra ngoài (C3).
+   Vì sao 96 chứ không còn 84: con số 84 chọn khi pane chọn-nhiều chưa có ô "Shift both (hours)". Nhãn tiếng Anh đó cần 92px
+   chữ, cột 84 chỉ cho 81 nên đuôi "(hours)" bị cắt ở CẢ SÁU cỡ (RC-09). 96 cho 93px chữ — đủ cho nhãn dài nhất của cả hai
+   ngôn ngữ — và cột vẫn là MỘT số cho mọi field nên ô nhập của các hàng còn thẳng nhau. */
 .liveops-hub-calendar-inspector-field > .unity-base-field__label {
-    width: 84px;
-    min-width: 84px;
+    width: 96px;
+    min-width: 96px;
     flex-shrink: 0;
 }
 
@@ -460,10 +463,12 @@
     min-width: 0;
 }
 
-/* Hàng "Dài" rộng 136px = cột nhãn 84 + ô nhập 52; riêng ô nhập giữ đúng 52px như [SD1 §3.1] (luật con ngay dưới) để hậu
-   tố "giờ" và ghi chú "= 3 ngày" còn chỗ trong cùng hàng. */
+/* Hàng "Dài" rộng 150px = cột nhãn 96 + lề phải 2 của nhãn + ô nhập 52; riêng ô nhập giữ đúng 52px như [SD1 §3.1] (luật con
+   ngay dưới) để hậu tố "giờ" và ghi chú "= 3 ngày" còn chỗ trong cùng hàng.
+   Vì sao phải cộng đủ ba số: bản trước khai 136 trong khi ô nhập bắt đầu ở 86 (nhãn 84 + lề 2) và rộng 52 — tức mép phải của
+   ô nhập ở 138, thò 2px ra ngoài chính field và bị field cắt (RC-01, đỏ ở CẢ SÁU cỡ, cả hai ngôn ngữ). */
 .liveops-hub-calendar-inspector-field--number {
-    width: 136px;
+    width: 150px;
     flex-grow: 0;
     flex-shrink: 0;
 }
@@ -474,9 +479,14 @@
     flex-shrink: 0;
 }
 
-/* Ô chữ (Id, Loại, Config key) ăn phần còn lại của hàng nhưng CO được, để nút cạnh nó không bị đẩy ra ngoài. */
+/* Ô chữ (Id, Loại, Config key) ăn phần còn lại của hàng nhưng CO được, để nút cạnh nó không bị đẩy ra ngoài.
+   min-width 196 = cột nhãn 96 + lề 2 + 98 cho ô nhập (chuỗi id dài nhất của bộ mẫu đo được 90px chữ + 6 đệm + 2 viền). Đây là
+   chỗ NGƯỠNG XUỐNG DÒNG: hàng inspector đã có flex-wrap, nên khi nút cạnh ô (ví dụ "Back to default" ~100px) không còn chỗ thì
+   NÚT xuống dòng dưới và ô chữ giữ đủ bề rộng, thay vì ô chữ co lại và nuốt mất đuôi id (RC-02 — trước đó ô chỉ còn 77–91px
+   nên "lava_quest_v2" bị TextInput cắt). Số này nhỏ hơn bề rộng trong lòng pane (263px) nên chính ô chữ không bao giờ tràn hàng. */
 .liveops-hub-calendar-inspector-field--text {
     flex-grow: 1;
+    min-width: 196px;
 }
 
 .liveops-hub-calendar-inspector-field--text > .unity-base-field__input {
@@ -484,10 +494,11 @@
     flex-basis: 0;
 }
 
-/* Cột nhãn của hàng CHỈ ĐỌC ("Phải bấm tham gia", "Nguồn") trùng cột nhãn của field (T10); nhãn dài xuống dòng, không cắt. */
+/* Cột nhãn của hàng CHỈ ĐỌC ("Phải bấm tham gia", "Nguồn") trùng cột nhãn của field (T10) — đổi theo cùng số 96 ở trên, nếu
+   không hai cột nhãn lệch nhau 12px; nhãn dài xuống dòng, không cắt. */
 .liveops-hub-calendar-inspector-label {
-    width: 84px;
-    min-width: 84px;
+    width: 96px;
+    min-width: 96px;
     flex-shrink: 0;
     white-space: normal;
 }

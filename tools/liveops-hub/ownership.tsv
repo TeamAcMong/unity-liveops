@@ -773,7 +773,7 @@ file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/RecurringRules/Recurring
 file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubStrings.Recurring.cs	G-UX-RECURRING	W8-UX (mở đợt sửa UI/UX 17/9/2026, plan/w8-ux/UX-FIX-PLAN.md mục 2.1)
 file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubClassNames.Recurring.cs	G-UX-RECURRING	W8-UX (mở đợt sửa UI/UX 17/9/2026, plan/w8-ux/UX-FIX-PLAN.md mục 2.1)
 file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/Language/LiveOpsHubStringCatalog.Recurring.cs	G-UX-RECURRING	W8-UX (mở đợt sửa UI/UX 17/9/2026, plan/w8-ux/UX-FIX-PLAN.md mục 2.1)
-file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Sections/RecurringUxFixTests.cs	G-UX-RECURRING	W8-UX (mở đợt sửa UI/UX 17/9/2026, plan/w8-ux/UX-FIX-PLAN.md mục 2.1)
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Sections/RecurringUxFixTests.cs	G-UX-RECURRING,G-UX3-RECURRING	W8-UX (mở đợt sửa UI/UX 17/9/2026, plan/w8-ux/UX-FIX-PLAN.md mục 2.1); G-UX3-RECURRING THÊM một assert vào Narrow_FormFitsWithoutHorizontalScroll (khoá horizontalScrollerVisibility = Hidden của RC-06b — soát lượt 3 phát hiện bản sửa không có test nào gác). Chỉ THÊM, không nới và không xoá assert nào; không gói W8-UX3 nào khác chạm file này nên không có cửa va chạm ở cổng.
 file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Sections/RecurringRulesSectionTests.cs	G-UX-RECURRING	W8-UX (mở đợt sửa UI/UX 17/9/2026, plan/w8-ux/UX-FIX-PLAN.md mục 2.1)
 file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Sections/RecurringPrefixDraftTests.cs	G-UX-RECURRING	W8-UX (mở đợt sửa UI/UX 17/9/2026, plan/w8-ux/UX-FIX-PLAN.md mục 2.1)
 file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Sections/RecurringRuleModelTests.cs	G-UX-RECURRING	W8-UX (mở đợt sửa UI/UX 17/9/2026, plan/w8-ux/UX-FIX-PLAN.md mục 2.1)
@@ -850,3 +850,27 @@ file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubStrings.Recu
 file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/Language/LiveOpsHubStringCatalog.Recurring.cs	G-UX2-RECURRING	W8-UX2 (luợt 2 đợt sửa UI/UX 19/9/2026, plan/w8-ux/UX-PASS2-PLAN.md mục 3)
 file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/UxGate/**	G-UX2-DEFER,G-UX2-RECURRING,G-UX2-TIMEFIELD,G-UX2-DRAG,G-FIX-UX2-1	W8-UX2 (luợt 2 đợt sửa UI/UX 19/9/2026, plan/w8-ux/UX-PASS2-PLAN.md mục 3) — thứ tự gộp DEFER → RECURRING → TIMEFIELD → DRAG; UxCalendarJourneyTests.cs dùng chung: TIMEFIELD giữ hai ca UX-04 (ô giờ) + trợ giúp SelectedBar, DRAG giữ các ca kéo/tháng 10; bảng chia thanh ở plan/w8-ux/UX2-BAR-ASSIGNMENT.md
 file	tools/liveops-hub/ownership.tsv	G-UX2-TIMEFIELD	W8-UX2 (luợt 2 đợt sửa UI/UX 19/9/2026, plan/w8-ux/UX-PASS2-PLAN.md mục 3) — thêm khối đăng ký của bốn gói UX2 (F-06)
+# Lượt 3 đợt sửa UI/UX (W8-UX3, 19/9/2026, plan/w8-ux/UX-PASS3-PLAN.md). Bốn gói RỜI NHAU VỀ FILE; chỉ ownership.tsv là chỗ
+#   dùng chung (mỗi gói chỉ THÊM dòng của mình, cổng gỡ trùng như các lượt trước). Thứ tự gộp ở cổng: AUDIT → TIMELINE →
+#   CALENDAR → RECURRING (AUDIT đi trước vì nó đổi cách ĐẾM, hai gói sau phải đo trên luật đã đúng). Cạnh AUDIT→RECURRING là
+#   thứ tự GỘP, KHÔNG ghi vào cột phụ thuộc (cột đó đọc theo số đợt; ghi tên gói cùng đợt vào là --wave-deps báo lỗi giả) —
+#   cùng tiền lệ bốn cạnh CHỈ-PROBE của W2-TIERS 3.1.
+package	G-UX3-AUDIT	W8	S	W7
+package	G-UX3-CALENDAR	W8	M	W7
+package	G-UX3-TIMELINE	W8	M	W7
+package	G-UX3-RECURRING	W8	M	W7
+package	G-FIX-UX3-1	W8	S	W7
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/UxGate/UxLayoutAuditor.cs	G-UX3-AUDIT	W8-UX3 — hai chỗ luật đo nói SAI sự thật (hàng dưới lằn cuộn bị báo "bị cắt"; màu có alpha đo như màu đục)
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/UxGate/UxLayoutAuditTests.cs	G-UX3-AUDIT	W8-UX3 — luật tương phản phủ cả bốn dấu chú giải, không chỉ ba
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/UxGate/UxContrastTokenTests.cs	G-UX3-AUDIT,G-FIX-UX3-1	W8-UX3 — file MỚI: kiểm tự động tỉ lệ tương phản WCAG của mọi token màu, CẢ HAI skin (chữ 4,5:1 / hình khối 3:1) | G-FIX-UX3-1: ba dấu chú giải mà G-UX3-TIMELINE khai thêm phải vào BẢNG ĐO (bậc hình khối 3:1), không vào miễn trừ
+file	Packages/com.dreamtech.liveops/Editor/Hub/UI/liveops-hub-components.uss	G-UX3-CALENDAR	W8-UX3 — ô số + ô chữ của inspector tràn khỏi hàng
+file	Packages/com.dreamtech.liveops/Editor/Hub/UI/liveops-hub-controls.uss	G-UX3-CALENDAR	W8-UX3 — chữ trong TextField và ToolbarToggle lệch 2px (2022.3)
+file	Packages/com.dreamtech.liveops/Editor/Hub/UI/liveops-hub-shell.uss	G-UX3-CALENDAR	W8-UX3 — hai chevron của nút ghim rail chồng khung nhau ở 700/820
+file	Packages/com.dreamtech.liveops/Editor/Hub/Shell/LiveOpsHubRail.cs	G-UX3-CALENDAR	W8-UX3 — nút ghim rail dựng hai chevron sát nhau (chỉ sửa khi USS không đủ)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Calendar/**	G-UX3-CALENDAR	W8-UX3 — toolbar tiếng Việt ở 1024x700, popover Thêm đợt, ô inspector
+file	Packages/com.dreamtech.liveops/Editor/Hub/UI/liveops-hub-timeline.uss	G-UX3-TIMELINE	W8-UX3 — chip "Đợt tới"/tag "bị bỏ" tràn khỏi lane; dấu màu chú giải đổi sang token
+file	Packages/com.dreamtech.liveops/Editor/Hub/UI/liveops-hub-theme.uss	G-UX3-TIMELINE	W8-UX3 — token màu đạt WCAG ở CẢ HAI skin (quiet, json-string, json-literal, dấu chú giải)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Controls/Timeline/LiveOpsTimelineLane.cs	G-UX3-TIMELINE	W8-UX3 — lane cắt chữ của chip/tag thay vì cho xuống hàng hoặc thu gọn
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Controls/ControlsSkinTokenTests.cs	G-UX3-TIMELINE	W8-UX3 — bản sao hằng màu của token: chép lại hai màu JSON skin Light sau khi chúng đạt bậc chữ 4,5:1 (không nới assert nào)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/RecurringRules/**	G-UX3-RECURRING	W8-UX3 — bảng "đợt kế tiếp" và thanh cuộn ngang thừa của form
+file	tools/liveops-hub/ownership.tsv	G-UX3-AUDIT,G-UX3-CALENDAR,G-UX3-TIMELINE,G-UX3-RECURRING,G-FIX-UX3-1	W8-UX3 — G-UX3-AUDIT viết khối đăng ký lượt 3; ba gói còn lại chỉ nối tên vào dòng của chính mình

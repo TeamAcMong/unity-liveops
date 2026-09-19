@@ -108,6 +108,13 @@ namespace DreamTech.LiveOps.Editor.Tests
             Assert.Greater(viewportWidth, 0f);
             Assert.LessOrEqual(scroll.contentContainer.resolvedStyle.width, viewportWidth + 0.5f,
                 "nội dung form rộng hơn pane ⇒ người dùng phải quét ngang mới đọc hết một hàng");
+            // (RC-06b, soát lượt 3) Phép đo ngay trên chỉ nói "hôm nay nội dung vừa pane"; nó KHÔNG khoá được cách chữa.
+            // Bản sửa tắt hẳn thanh cuộn ngang (RecurringRulesSection đặt horizontalScrollerVisibility = Hidden), mà Hidden
+            // cũng gỡ luôn LỐI THOÁT cuộn: hôm nào nội dung thật sự rộng hơn viewport thì người dùng không còn cách nào
+            // đọc tới — bị cắt câm. Hai điều đó phải đi CÙNG NHAU, nên khoá cả thuộc tính ở đây: ai gỡ Hidden mà quên là
+            // thanh thừa quay lại, ai giữ Hidden mà làm nội dung tràn là dòng trên đỏ trước.
+            Assert.AreEqual(ScrollerVisibility.Hidden, scroll.horizontalScrollerVisibility,
+                "thanh cuộn ngang của pane form phải tắt hẳn — nội dung đã vừa pane thì thanh đó chỉ ăn chiều cao và nói dối");
 
             VisualElement deviceCell = OccurrenceCell(LiveOpsHubClassNames.RecurringCellDevice);
             Assert.IsNotNull(deviceCell, "bảng đợt kế tiếp thiếu cột Giờ máy");
