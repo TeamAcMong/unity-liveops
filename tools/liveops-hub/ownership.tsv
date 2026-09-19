@@ -859,9 +859,10 @@ package	G-UX3-AUDIT	W8	S	W7
 package	G-UX3-CALENDAR	W8	M	W7
 package	G-UX3-TIMELINE	W8	M	W7
 package	G-UX3-RECURRING	W8	M	W7
+package	G-FIX-UX3-1	W8	S	W7
 file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/UxGate/UxLayoutAuditor.cs	G-UX3-AUDIT	W8-UX3 — hai chỗ luật đo nói SAI sự thật (hàng dưới lằn cuộn bị báo "bị cắt"; màu có alpha đo như màu đục)
 file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/UxGate/UxLayoutAuditTests.cs	G-UX3-AUDIT	W8-UX3 — luật tương phản phủ cả bốn dấu chú giải, không chỉ ba
-file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/UxGate/UxContrastTokenTests.cs	G-UX3-AUDIT	W8-UX3 — file MỚI: kiểm tự động tỉ lệ tương phản WCAG của mọi token màu, CẢ HAI skin (chữ 4,5:1 / hình khối 3:1)
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/UxGate/UxContrastTokenTests.cs	G-UX3-AUDIT,G-FIX-UX3-1	W8-UX3 — file MỚI: kiểm tự động tỉ lệ tương phản WCAG của mọi token màu, CẢ HAI skin (chữ 4,5:1 / hình khối 3:1) | G-FIX-UX3-1: ba dấu chú giải mà G-UX3-TIMELINE khai thêm phải vào BẢNG ĐO (bậc hình khối 3:1), không vào miễn trừ
 file	Packages/com.dreamtech.liveops/Editor/Hub/UI/liveops-hub-components.uss	G-UX3-CALENDAR	W8-UX3 — ô số + ô chữ của inspector tràn khỏi hàng
 file	Packages/com.dreamtech.liveops/Editor/Hub/UI/liveops-hub-controls.uss	G-UX3-CALENDAR	W8-UX3 — chữ trong TextField và ToolbarToggle lệch 2px (2022.3)
 file	Packages/com.dreamtech.liveops/Editor/Hub/UI/liveops-hub-shell.uss	G-UX3-CALENDAR	W8-UX3 — hai chevron của nút ghim rail chồng khung nhau ở 700/820
@@ -872,4 +873,4 @@ file	Packages/com.dreamtech.liveops/Editor/Hub/UI/liveops-hub-theme.uss	G-UX3-TI
 file	Packages/com.dreamtech.liveops/Editor/Hub/Controls/Timeline/LiveOpsTimelineLane.cs	G-UX3-TIMELINE	W8-UX3 — lane cắt chữ của chip/tag thay vì cho xuống hàng hoặc thu gọn
 file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Controls/ControlsSkinTokenTests.cs	G-UX3-TIMELINE	W8-UX3 — bản sao hằng màu của token: chép lại hai màu JSON skin Light sau khi chúng đạt bậc chữ 4,5:1 (không nới assert nào)
 file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/RecurringRules/**	G-UX3-RECURRING	W8-UX3 — bảng "đợt kế tiếp" và thanh cuộn ngang thừa của form
-file	tools/liveops-hub/ownership.tsv	G-UX3-AUDIT,G-UX3-CALENDAR,G-UX3-TIMELINE,G-UX3-RECURRING	W8-UX3 — G-UX3-AUDIT viết khối đăng ký lượt 3; ba gói còn lại chỉ nối tên vào dòng của chính mình
+file	tools/liveops-hub/ownership.tsv	G-UX3-AUDIT,G-UX3-CALENDAR,G-UX3-TIMELINE,G-UX3-RECURRING,G-FIX-UX3-1	W8-UX3 — G-UX3-AUDIT viết khối đăng ký lượt 3; ba gói còn lại chỉ nối tên vào dòng của chính mình

@@ -158,6 +158,17 @@ namespace DreamTech.LiveOps.Editor.Tests
             new UxColorTokenRule("--liveops-hub-event-color-5", ShapeContrastRatio, UxColorTokenBackdrop.WindowBackground, "màu loại event 5"),
             new UxColorTokenRule("--liveops-hub-event-color-6", ShapeContrastRatio, UxColorTokenBackdrop.WindowBackground, "màu loại event 6"),
             new UxColorTokenRule("--liveops-hub-event-color-7", ShapeContrastRatio, UxColorTokenBackdrop.WindowBackground, "màu loại event 7"),
+            // Ba dấu của dải chú giải trục. Chúng CHỈ xuất hiện trong khai báo `background-color` của liveops-hub-timeline.uss
+            // (không chỗ nào dùng làm `color:`), nên đúng nhóm hình khối; và chốt của USER 19/9 gọi thẳng tên "ô màu chú giải"
+            // là ví dụ của bậc 3:1. Để chúng ở đây chứ không ở bảng miễn trừ vì chúng là thứ DUY NHẤT phân biệt ba trạng thái
+            // trong dải chú giải — không có chỗ nào khác mang thông tin thay, tức đúng nghĩa "thành phần đồ hoạ cần để hiểu
+            // nội dung" của WCAG 2.1 §1.4.11.
+            new UxColorTokenRule("--liveops-hub-legend-fixed", ShapeContrastRatio, UxColorTokenBackdrop.WindowBackground,
+                "dấu chú giải 'đợt cố định'"),
+            new UxColorTokenRule("--liveops-hub-legend-recurring", ShapeContrastRatio, UxColorTokenBackdrop.WindowBackground,
+                "dấu chú giải 'đợt lặp'"),
+            new UxColorTokenRule("--liveops-hub-legend-ended", ShapeContrastRatio, UxColorTokenBackdrop.WindowBackground,
+                "dấu chú giải 'đã khép'"),
         };
 
         /// <summary>
