@@ -56,6 +56,23 @@ namespace DreamTech.LiveOps.Editor.Tests
 
         private const int RulerZoomOutNotches = 6;
 
+        /// <summary>
+        /// Tập mã phiếu hoãn ĐƯỢC DUYỆT của cổng W8-UX. USER chốt ngày 18/9/2026: chỉ "chỗ không dùng được" của các màn
+        /// NGOÀI đợt (Xuất JSON, Tổng quan, Loại event, Kiểm lịch, khung) mới được đánh dấu hoãn — đúng năm phiếu này.
+        /// Dãy số không liền vì giữ nguyên mã của bảng kế hoạch: W9-02 và W9-07…W9-15 là màn TRONG đợt, đã bị rút khỏi
+        /// danh sách hoãn ngày 19/9/2026 và trả về cho một gói sửa bố cục riêng.
+        /// </summary>
+        private static readonly string[] ApprovedDeferralIds = { "W9-01", "W9-03", "W9-04", "W9-05", "W9-06" };
+
+        /// <summary>
+        /// Năm màn NGOÀI đợt đi kèm năm phiếu trên. Khoá cả MÀN chứ không chỉ mã phiếu: chặn đúng đường lách "thêm một
+        /// mã phiếu mới cho một màn TRONG đợt", thứ mà kiểm từng mục không nhìn ra.
+        /// </summary>
+        private static readonly string[] ApprovedDeferralScreens =
+        {
+            "export", "overview", "shell-rail-status", "event-types", "validation",
+        };
+
         private static readonly UxWindowSize Narrow700 = new UxWindowSize(700, 560);
         private static readonly UxWindowSize Medium820 = new UxWindowSize(820, 560);
         private static readonly UxWindowSize Wide1440 = new UxWindowSize(1440, 900);
@@ -75,6 +92,10 @@ namespace DreamTech.LiveOps.Editor.Tests
         [UnityTest]
         public IEnumerator Overview_LayoutIsUsable_AtEverySize()
         {
+            // Hoãn sang W9: màn này đỏ vì BỐ CỤC, ngoài phạm vi hành trình của đợt W8. Mọi câu assert bên dưới
+            // giữ nguyên — gỡ dòng của màn khỏi UxLayoutDeferralList là test chạy lại đầy đủ ngay lượt sau.
+            UxLayoutDeferralList.IgnoreWhenDeferred("overview");
+
             yield return RunScreen(new UxLayoutScreen("overview", LiveOpsHubSections.Ids.Overview)
                 .WithRequiredElements(WithShell(OverviewSection.BodyElementName, OverviewSection.MetricsElementName))
                 .WithStretchRules(SectionStretchRules(OverviewSection.BodyElementName))
@@ -84,6 +105,10 @@ namespace DreamTech.LiveOps.Editor.Tests
         [UnityTest]
         public IEnumerator EventTypes_LayoutIsUsable_AtEverySize()
         {
+            // Hoãn sang W9: màn này đỏ vì BỐ CỤC, ngoài phạm vi hành trình của đợt W8. Mọi câu assert bên dưới
+            // giữ nguyên — gỡ dòng của màn khỏi UxLayoutDeferralList là test chạy lại đầy đủ ngay lượt sau.
+            UxLayoutDeferralList.IgnoreWhenDeferred("event-types");
+
             yield return RunScreen(new UxLayoutScreen("event-types", LiveOpsHubSections.Ids.EventTypes)
                 .WithRequiredElements(WithShell(LiveOpsHubPaths.EventTypesElementNames.Body,
                     LiveOpsHubPaths.EventTypesElementNames.Content))
@@ -122,6 +147,10 @@ namespace DreamTech.LiveOps.Editor.Tests
         [UnityTest]
         public IEnumerator Validation_LayoutIsUsable_AtEverySize()
         {
+            // Hoãn sang W9: màn này đỏ vì BỐ CỤC, ngoài phạm vi hành trình của đợt W8. Mọi câu assert bên dưới
+            // giữ nguyên — gỡ dòng của màn khỏi UxLayoutDeferralList là test chạy lại đầy đủ ngay lượt sau.
+            UxLayoutDeferralList.IgnoreWhenDeferred("validation");
+
             yield return RunScreen(new UxLayoutScreen("validation", LiveOpsHubSections.Ids.Validation)
                 .WithRequiredElements(WithShell(LiveOpsHubPaths.ValidationElementNames.Body,
                     LiveOpsHubPaths.ValidationElementNames.Toolbar, LiveOpsHubPaths.ValidationElementNames.Content))
@@ -132,6 +161,10 @@ namespace DreamTech.LiveOps.Editor.Tests
         [UnityTest]
         public IEnumerator Export_LayoutIsUsable_AtEverySize()
         {
+            // Hoãn sang W9: màn này đỏ vì BỐ CỤC, ngoài phạm vi hành trình của đợt W8. Mọi câu assert bên dưới
+            // giữ nguyên — gỡ dòng của màn khỏi UxLayoutDeferralList là test chạy lại đầy đủ ngay lượt sau.
+            UxLayoutDeferralList.IgnoreWhenDeferred("export");
+
             yield return RunScreen(new UxLayoutScreen("export", LiveOpsHubSections.Ids.Export)
                 .WithRequiredElements(WithShell(ExportSection.BodyElementName))
                 .WithStretchRules(SectionStretchRules(ExportSection.BodyElementName))
@@ -142,6 +175,10 @@ namespace DreamTech.LiveOps.Editor.Tests
         [UnityTest]
         public IEnumerator Shell_RailAndStatusBar_AreUsable_AtEverySize()
         {
+            // Hoãn sang W9: màn này đỏ vì BỐ CỤC, ngoài phạm vi hành trình của đợt W8. Mọi câu assert bên dưới
+            // giữ nguyên — gỡ dòng của màn khỏi UxLayoutDeferralList là test chạy lại đầy đủ ngay lượt sau.
+            UxLayoutDeferralList.IgnoreWhenDeferred("shell-rail-status");
+
             yield return RunScreen(new UxLayoutScreen("shell-rail-status", LiveOpsHubSections.Ids.Overview)
                 .WithRequiredElements(LiveOpsHubPaths.ShellElementNames.Rail, LiveOpsHubPaths.ShellElementNames.Content,
                     LiveOpsHubPaths.ShellElementNames.SectionBody, LiveOpsHubPaths.ShellElementNames.StatusBar,
@@ -329,6 +366,49 @@ namespace DreamTech.LiveOps.Editor.Tests
             }
         }
 
+        /// <summary>
+        /// Danh sách HOÃN phải luôn đọc ra được việc: mỗi mục đúng một mã phiếu W9 riêng, đúng một màn riêng, có số chỗ và
+        /// có lý do. Không có gác này thì "thêm một dòng hoãn" là cách rẻ nhất để làm một màn đỏ biến mất mà không ai thấy.
+        /// <para>
+        /// Kiểm từng mục là chưa đủ: mục thứ sáu với một mã phiếu mới và một lý do dài quá 40 ký tự vẫn qua được, tức danh
+        /// sách phình âm thầm. Vì vậy test còn khoá CẢ TẬP mã phiếu và CẢ TẬP màn vào đúng phần USER đã duyệt — muốn thêm
+        /// một màn thì phải sửa <see cref="ApprovedDeferralIds"/>/<see cref="ApprovedDeferralScreens"/>, và chỗ sửa đó
+        /// buộc người sửa đọc câu chốt của USER ngay trên đầu hai mảng.
+        /// </para>
+        /// </summary>
+        [Test]
+        [Category(LiveOpsHubTestCategories.Logic)]
+        public void DeferralList_EveryEntry_HasUniqueIdAndReason()
+        {
+            HashSet<string> seenDeferralIds = new HashSet<string>();
+            HashSet<string> seenScreenIds = new HashSet<string>();
+            List<string> actualDeferralIds = new List<string>();
+            List<string> actualScreenIds = new List<string>();
+            foreach (UxLayoutDeferralEntry entry in UxLayoutDeferralList.All)
+            {
+                StringAssert.IsMatch("^W9-[0-9][0-9]$", entry.DeferralId,
+                    "mục hoãn của màn '" + entry.ScreenId + "' không mang mã phiếu dạng W9-NN nên không tra lại được");
+                Assert.IsTrue(seenDeferralIds.Add(entry.DeferralId),
+                    "mã phiếu hoãn '" + entry.DeferralId + "' bị khai hai lần — hai màn dùng chung một phiếu thì gỡ phiếu "
+                    + "xong vẫn còn màn im lặng");
+                Assert.IsTrue(seenScreenIds.Add(entry.ScreenId),
+                    "màn '" + entry.ScreenId + "' bị hoãn hai lần — mục thứ hai sẽ không bao giờ được tra tới");
+                Assert.Greater(entry.FindingCount, 0,
+                    "mục hoãn '" + entry.DeferralId + "' khai 0 chỗ không dùng được — màn đã xanh thì bỏ hoãn, đừng giữ lại");
+                Assert.Greater(entry.Reason.Length, 40,
+                    "mục hoãn '" + entry.DeferralId + "' có lý do quá ngắn — phải nói RÕ vì sao đợt này không sửa");
+                actualDeferralIds.Add(entry.DeferralId);
+                actualScreenIds.Add(entry.ScreenId);
+            }
+
+            CollectionAssert.AreEquivalent(ApprovedDeferralIds, actualDeferralIds,
+                "tập mã phiếu hoãn lệch phần USER đã duyệt 18/9/2026 (đúng 5 màn NGOÀI đợt) — thêm hay bớt một phiếu là "
+                + "đổi phạm vi của cổng, phải có câu trả lời của USER rồi mới sửa ApprovedDeferralIds");
+            CollectionAssert.AreEquivalent(ApprovedDeferralScreens, actualScreenIds,
+                "tập MÀN được hoãn lệch phần USER đã duyệt 18/9/2026 — màn TRONG đợt (Lịch, trục, Luật lặp) đỏ thì phải "
+                + "sửa, hoãn nó là tự cấp phép cho chính mình");
+        }
+
         // ================================================================================================ chạy một màn
 
         private LiveOpsConfirmWindow _confirmWindow;
@@ -494,9 +574,24 @@ namespace DreamTech.LiveOps.Editor.Tests
         }
 
         /// <summary>Kéo một thanh để hub bật toast "đã dời" — trạng thái mà UX-11 nói tới (toast đè chân trang).</summary>
+        /// <summary>
+        /// Dựng cảnh cho màn calendar-toast: KÉO một thanh để màn bật toast "đã dời …".
+        /// <para>
+        /// Phải kéo đợt hunt-0914 (14/9 → 17/9, chưa bắt đầu ở mốc thiết kế 13/9 01:47), KHÔNG phải lava-quest-2026-09a:
+        /// đợt 09a ĐÃ KHÉP lúc 13/9 00:00 và <c>LiveOpsTimelineDragController.BeginBar</c> TỪ CHỐI mọi thanh
+        /// <c>IsEnded</c>, nên cú kéo cũ không hề xảy ra — không có lần ghi nào, không có toast nào, và màn bị báo là "có
+        /// toast trong cây nhưng display=None" ở cả 12 cặp cỡ × ngôn ngữ. Luật chia thanh ở
+        /// plan/w8-ux/UX2-BAR-ASSIGNMENT.md mục 3.1: ca nào phải GHI thì cấm đứng trên 09a.
+        /// </para>
+        /// <para>
+        /// Vì sao không dùng lava-quest-2026-09b như các ca kéo của <c>UxCalendarJourneyTests</c>: ma trận của màn này chạy
+        /// từ cỡ hẹp nhất 700x560, và ở cỡ đó trục KHÔNG vẽ thanh 09b (đo được: fixture báo "trục không vẽ thanh
+        /// 'entry-lava-quest-2026-09b'"). hunt-0914 nằm sát mốc "bây giờ" nên được vẽ ở mọi cỡ của ma trận.
+        /// </para>
+        /// </summary>
         private static IEnumerator DragBarToRaiseToast(UxHubWindowFixture fixture)
         {
-            LiveOpsTimelineBar bar = fixture.BarOf(LiveOpsDesignSample.LavaQuestEarlyEntryKey);
+            LiveOpsTimelineBar bar = fixture.BarOf(LiveOpsDesignSample.HuntEarlyEntryKey);
             Vector2 from = bar.worldBound.center;
             yield return UxEventSender.Drag(fixture.Window, from, from + new Vector2(60f, 0f),
                 UxEventSender.MinimumDragSteps, EventModifiers.None);

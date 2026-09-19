@@ -43,6 +43,14 @@ namespace DreamTech.LiveOps.Editor
         /// <summary>padding trái của nhãn thước trong USS (<c>padding: 0 0 0 2px</c>) — trừ ra khi đo ô của nhãn ngày.</summary>
         private const float DayLabelPaddingLeft = 2f;
 
+        /// <summary>
+        /// (UX-17) Bề rộng một ký tự của nhãn tầng 1. Lớn hơn <c>LiveOpsTimelineGeometry.LabelCharacterWidth</c> (5,6px) vì
+        /// tầng này có <c>letter-spacing: 0.5px</c> và mốc tháng còn <c>-unity-font-style: bold</c>. Đo thật trên
+        /// 6000.6: "THÁNG 3 2027" (12 ký tự) vẽ ra 76px, tức 6,33px/ký tự — ước bằng 5,6 thì thiếu gần 9px và nhãn sát
+        /// mép track bị cắt dù phép tính bảo là vừa.
+        /// </summary>
+        private const float MonthTierLabelCharacterWidth = 6.4f;
+
         private const string ClockFormat = "HH:mm";
         private const float LineWidth = 1f;
         private const float HalfPixel = 0.5f;
@@ -150,7 +158,7 @@ namespace DreamTech.LiveOps.Editor
                         BindDayLabel(LabelAt(_dayLabels, DayTier, dayCount++), tick, NextTickPosition(ticks, index), format.ShortDateTimeUtc(tick.TimeUtc));
                         break;
                     default:
-                        BindLabel(LabelAt(_deviceLabels, DeviceTier, deviceCount++), tick, NextTickPosition(ticks, index), deviceTooltip);
+                        BindDeviceLabel(LabelAt(_deviceLabels, DeviceTier, deviceCount++), tick, NextTickPosition(ticks, index), deviceTooltip);
                         break;
                 }
             }
@@ -241,7 +249,7 @@ namespace DreamTech.LiveOps.Editor
             {
                 LiveOpsTimelineRulerTick tick = tierTicks[index];
                 if (tick.X < nextFreeX) continue;
-                float width = tick.Text.Length * LiveOpsTimelineGeometry.LabelCharacterWidth;
+                float width = tick.Text.Length * MonthTierLabelCharacterWidth;
                 float left = tick.X;
                 // (UX-17, V9) Cờ "08:47" nằm đè nhãn tháng là mất luôn NĂM — nhãn tháng là chỗ duy nhất nói năm. Nhãn dời sang
                 // phải cờ; hết chỗ trước mốc tháng kế thì bỏ nhãn như luật chồng nhãn sẵn có.
@@ -261,6 +269,17 @@ namespace DreamTech.LiveOps.Editor
                         if (dodgeLeft < 0f || dodgeLeft < nextFreeX) continue;
                         left = dodgeLeft;
                     }
+                }
+                // (UX-17) Nhãn tầng 1 KHÔNG bị ô của nó cắt (width auto), nên chỗ duy nhất cắt nó là mép phải của track. Mốc
+                // tháng nằm ngoài khoảng đang xem (thu nhỏ hết cỡ sinh cả tick tháng sau mép track) thì bỏ hẳn; nhãn ló một
+                // phần thì kéo vào trong mép, và chỉ kéo khi không đè nhãn đứng trước — "THÁNG 3 2027" bị mép cắt còn
+                // "THÁNG 3 20" là đọc ra một mốc KHÔNG có thật.
+                if (left >= _geometry.TrackWidth) continue;
+                if (left + width > _geometry.TrackWidth)
+                {
+                    float pulledLeft = _geometry.TrackWidth - width;
+                    if (pulledLeft < nextFreeX) continue;
+                    left = pulledLeft;
                 }
                 BindLabel(LabelAt(_monthLabels, MonthTier, visibleCount++), tick, float.NaN, string.Empty, left);
                 nextFreeX = left + width + MonthTierLabelGap;
@@ -314,6 +333,30 @@ namespace DreamTech.LiveOps.Editor
                 return;
             }
             BindLabelText(label, tick, nextPosition, tooltipText, text, float.NaN);
+        }
+
+        /// <summary>
+        /// (UX-17) Nhãn tầng giờ-máy: ô hẹp hơn chữ thì ẨN hẳn, không vẽ rồi để <c>overflow: hidden</c> cắt.
+        /// <para>
+        /// Vì sao cần luật riêng: tầng này đi đường <c>BindLabel</c> trần, không có bậc rút gọn nào như
+        /// <see cref="BindDayLabel"/>. Vạch cuối của thước lấy mép track làm mốc kế, nên ô của nó chỉ còn vài pixel —
+        /// "22:00" vẽ trong ô 2px đọc ra "2", tức MỘT GIỜ KHÁC. Đây đúng loại lỗi mà luật R-08 của tầng ngày đã diệt;
+        /// giờ đầy đủ vẫn còn trong tooltip của vạch.
+        /// </para>
+        /// </summary>
+        private static void BindDeviceLabel(Label label, LiveOpsTimelineRulerTick tick, float nextPosition, string tooltipText)
+        {
+            float room = float.IsNaN(nextPosition)
+                ? float.PositiveInfinity
+                : Math.Max(0f, nextPosition - tick.X);
+            if (!Fits(tick.Text, room))
+            {
+                label.text = string.Empty;
+                label.tooltip = tooltipText;
+                label.EnableInClassList(LiveOpsHubClassNames.TimelineHidden, true);
+                return;
+            }
+            BindLabel(label, tick, nextPosition, tooltipText);
         }
 
         /// <summary>Bậc rút gọn đầu tiên lọt ô; <c>null</c> khi không bậc nào lọt (nơi gọi ẩn nhãn — R-08).</summary>
