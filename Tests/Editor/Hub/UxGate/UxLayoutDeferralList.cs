@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using NUnit.Framework;
 
 namespace DreamTech.LiveOps.Editor.Tests
@@ -43,24 +44,34 @@ namespace DreamTech.LiveOps.Editor.Tests
         {
             get
             {
-                return DeferralId + " — màn '" + ScreenId + "' còn " + FindingCount.ToString() + " chỗ không dùng được. "
-                    + Reason;
+                // InvariantCulture vì đây là chuỗi MÁY đọc (người soát grep theo mã phiếu + con số), không phải chuỗi hiển
+                // thị: máy chạy cổng đổi ngôn ngữ hệ thống thì con số phải vẫn y nguyên. Cùng quy ước với UxLayoutAuditor.
+                return DeferralId + " — màn '" + ScreenId + "' còn " + FindingCount.ToString(CultureInfo.InvariantCulture)
+                    + " chỗ không dùng được. " + Reason;
             }
         }
     }
 
     /// <summary>
-    /// Danh sách HOÃN sang đợt W9 của cổng W8-UX. Đợt W8 chốt phạm vi là hành trình người dùng (gõ, kéo, hoàn tác, toast),
-    /// không phải bố cục; 15 màn dưới đây đỏ vì bố cục nên được hẹn sang W9 thay vì bị sửa vội hay bị xoá test.
+    /// Danh sách HOÃN sang đợt W9 của cổng W8-UX — ĐÚNG 5 màn NGOÀI phạm vi đợt mà USER đã chốt ngày 18/9/2026 (Xuất JSON,
+    /// Tổng quan, Loại event, Kiểm lịch, khung). Không màn nào khác được vào đây: màn TRONG đợt (Lịch, trục, Luật lặp) mà
+    /// đỏ thì phải sửa hoặc phải có câu trả lời của USER — hoãn nó là tự cấp phép cho chính mình, đúng loại "xanh giả" mà
+    /// cổng sinh ra để diệt.
     /// <para>
     /// Luật của danh sách: KHÔNG xoá test, KHÔNG nới <see cref="UxLayoutAllowList"/>, KHÔNG đổi ngưỡng. Test của màn có
     /// tên ở đây gọi <see cref="IgnoreWhenDeferred"/> ở đầu thân test nên NUnit báo "Ignored" kèm mã phiếu — cổng nhìn ra
-    /// ngay 15 màn đang nợ, chứ không thấy màu xanh giả. Gỡ một dòng ở đây là test đó chạy lại đầy đủ ngay lượt sau.
+    /// ngay 5 màn đang nợ, chứ không thấy màu xanh giả. Gỡ một dòng ở đây là test đó chạy lại đầy đủ ngay lượt sau.
+    /// </para>
+    /// <para>
+    /// Mã phiếu giữ nguyên số của bảng kế hoạch (<c>UX-PASS2-PLAN.md</c> mục 2(c)) nên dãy KHÔNG liền: W9-02 và
+    /// W9-07…W9-15 là các màn TRONG đợt, đã bị rút khỏi danh sách này ở lượt sửa 19/9/2026 và trả về cho một gói sửa bố
+    /// cục riêng. Đánh số lại sẽ làm mọi báo cáo cũ trỏ sai phiếu.
     /// </para>
     /// <para>
     /// Số chỗ ghi theo lượt EditMode 6000.6 toàn bộ của nhánh cổng (<c>full-6000-3.xml</c>, 18/9/2026) — gộp 6 cỡ cửa sổ ×
-    /// 2 ngôn ngữ, nên một lỗi bố cục thật thường được đếm nhiều lần; xem cột lý do để biết con số to là nhiều lỗi hay là
-    /// một lỗi bị nhân lên.
+    /// 2 ngôn ngữ, nên một lỗi bố cục thật thường được đếm nhiều lần. MẤT ĐỘ PHỦ: một mục hoãn dừng CẢ test, tức dừng luôn
+    /// những cặp cỡ × ngôn ngữ đang SẠCH của màn đó; mỗi lý do dưới đây khai đúng số cặp sạch bị mất để W9 biết mình đang
+    /// mù ở đâu (việc tách test theo cỡ nằm trong phạm vi W9).
     /// </para>
     /// </summary>
     internal static class UxLayoutDeferralList
@@ -68,50 +79,26 @@ namespace DreamTech.LiveOps.Editor.Tests
         private static readonly UxLayoutDeferralEntry[] Entries =
         {
             new UxLayoutDeferralEntry("W9-01", "export", 245,
-                "Màn Xuất JSON nằm NGOÀI phạm vi đợt W8 (đợt chỉ nhận màn Lịch, trục và Luật lặp). 245 chỗ là khối lượng "
-                + "của một đợt riêng, không phải việc kèm theo của một gói sửa hành trình."),
-            new UxLayoutDeferralEntry("W9-02", "recurring-default", 153,
-                "Đợt W8 nhận màn Luật lặp ở phần HÀNH TRÌNH (form nhận phím thật, toast nêu tên trường), không nhận phần "
-                + "bố cục. 153 chỗ của bố cục form là việc tách bạch, để nguyên cho W9 làm một lần."),
+                "Màn Xuất JSON nằm NGOÀI phạm vi đợt W8 (USER chốt 18/9/2026). 245 chỗ là khối lượng của một đợt riêng, "
+                + "không phải việc kèm theo của một gói sửa hành trình. MẤT ĐỘ PHỦ: hoãn cả test nên 3/12 cặp cỡ × ngôn "
+                + "ngữ đang SẠCH (1440x900 vi, 1920x1040 vi, 1920x1040 en) cũng ngừng được kiểm tới W9."),
             new UxLayoutDeferralEntry("W9-03", "overview", 126,
-                "Màn Tổng quan nằm NGOÀI phạm vi đợt W8 — đợt này chỉ nhận màn Lịch, trục và Luật lặp. 126 chỗ là bố cục "
-                + "của cả màn ở 6 cỡ × 2 ngôn ngữ, phải đo lại và chia việc ở đợt riêng."),
+                "Màn Tổng quan nằm NGOÀI phạm vi đợt W8 (USER chốt 18/9/2026). 126 chỗ là bố cục của cả màn ở 6 cỡ × 2 "
+                + "ngôn ngữ, phải đo lại và chia việc ở đợt riêng. MẤT ĐỘ PHỦ: 2/12 cặp đang SẠCH (1440x900 vi, "
+                + "1920x1040 vi) cũng ngừng được kiểm tới W9."),
             new UxLayoutDeferralEntry("W9-04", "shell-rail-status", 126,
-                "Khung chung (rail + status bar) nằm NGOÀI phạm vi đợt W8. Sửa khung đụng MỌI màn nên phải là đợt riêng, "
-                + "không ghép vào lượt đóng cổng."),
+                "Khung chung (rail + status bar) nằm NGOÀI phạm vi đợt W8 theo chốt của USER 18/9/2026, dù sửa khung "
+                + "đụng MỌI màn nên phải là đợt riêng. NGHIỆM THU CÒN NỢ: đây đúng là test 'L' của đầu việc UX-20 "
+                + "(UX-FIX-PLAN.md:56, tên cũ Shell_StatusBar_NoOverlap) — gói E coi UX-20 là xong nhưng tiêu chí chưa "
+                + "bao giờ xanh. MẤT ĐỘ PHỦ: 2/12 cặp đang SẠCH (1440x900 vi, 1920x1040 vi) ngừng được kiểm tới W9."),
             new UxLayoutDeferralEntry("W9-05", "event-types", 104,
-                "Màn Loại event nằm NGOÀI phạm vi đợt W8 — đợt này chỉ nhận màn Lịch, trục và Luật lặp. 104 chỗ là bố cục "
-                + "của cả màn ở 6 cỡ × 2 ngôn ngữ, phải đo lại và chia việc ở đợt riêng."),
+                "Màn Loại event nằm NGOÀI phạm vi đợt W8 (USER chốt 18/9/2026). 104 chỗ là bố cục của cả màn, phải đo "
+                + "lại và chia việc ở đợt riêng. MẤT ĐỘ PHỦ nặng nhất nhóm: lỗi chỉ ở ba cỡ hẹp, nên hoãn cả test làm "
+                + "6/12 cặp đang SẠCH (1280x760, 1440x900, 1920x1040 — cả vi lẫn en) ngừng được kiểm tới W9."),
             new UxLayoutDeferralEntry("W9-06", "validation", 76,
-                "Màn Kiểm lịch nằm NGOÀI phạm vi đợt W8 — đợt này chỉ nhận màn Lịch, trục và Luật lặp. 76 chỗ là bố cục "
-                + "của cả màn ở 6 cỡ × 2 ngôn ngữ, phải đo lại và chia việc ở đợt riêng."),
-            new UxLayoutDeferralEntry("W9-07", "calendar-selection", 54,
-                "Màn Lịch TRONG đợt nhưng đây là bố cục cả cửa sổ khi đã chọn đợt: phần lớn 54 chỗ trùng với các mục "
-                + "W9-09 (inspector) và W9-12 (chevron) — sửa hai mục đó trước rồi đo lại, đừng sửa theo con số này."),
-            new UxLayoutDeferralEntry("W9-08", "calendar-multi-selection", 42,
-                "Như W9-07 nhưng ở cảnh chọn nhiều đợt; phải đo lại SAU khi W9-07 xong vì hai màn dùng chung cây."),
-            new UxLayoutDeferralEntry("W9-09", "calendar-inspector", 30,
-                "Pane inspector của màn Lịch cắt chữ (ví dụ 'lava_quest_v2' bị TextInput cắt). Đây là lỗi thật trong phạm "
-                + "vi đợt, nhưng sửa bề rộng hàng trường đụng đúng file mà gói ô giờ UTC đang sửa — tách sang W9 để hai "
-                + "gói không giẫm chân nhau ở lượt đóng cổng."),
-            new UxLayoutDeferralEntry("W9-10", "calendar-toast", 12,
-                "Toast của màn Lịch: 12 chỗ = một nguyên nhân (.liveops-hub-toast có display None trong kịch bản toast) "
-                + "nhân 6 cỡ × 2 ngôn ngữ. Rẻ nhưng chạm đường dựng toast mà gói Luật lặp đang sửa — hẹn W9."),
-            new UxLayoutDeferralEntry("W9-11", "timeline-legend-contrast", 12,
-                "Mẫu màu chú giải trục đạt 1.0–1.6:1 so với nền, cần ≥ 3:1 (WCAG 2.1 cho thành phần đồ hoạ). Sửa là đổi "
-                + "bảng màu của skin — phải nghiệm thu bằng ảnh cửa sổ thật hai skin, việc của một đợt màu riêng."),
-            new UxLayoutDeferralEntry("W9-12", "calendar-no-selection", 8,
-                "8 chỗ = MỘT lỗi thật (chevron trái chồng chevron phải 2.1×7.1) nhân 4 cỡ × 2 ngôn ngữ. Nằm trong "
-                + "Editor/Hub/Controls/Timeline — đúng thư mục gói dựng lại cảnh kéo đang giữ, nên hẹn W9 để tránh gộp hỏng."),
-            new UxLayoutDeferralEntry("W9-13", "calendar-medium-drawer", 6,
-                "Drawer inspector ở 820 cắt chữ id đợt — cùng nguyên nhân hàng trường với W9-09, sửa chung một lần ở W9."),
-            new UxLayoutDeferralEntry("W9-14", "add-event-popover", 4,
-                "Popover Thêm đợt ở bản en: nhãn mono chồng nhãn tag. Popover rộng cố định 320px nên sửa là đổi thiết kế "
-                + "bề rộng popover, không phải chỉnh một khoảng cách — cần chốt thiết kế trước, hẹn W9."),
-            new UxLayoutDeferralEntry("W9-15", "timeline-ruler-labels-zoom-in", 2,
-                "2 chỗ = MỘT nhãn thước ('22:00') bị cắt ở 1024×700 khi phóng to. Cùng thư mục Timeline với W9-12. Lưu ý: "
-                + "test này chạy ba mức thu phóng trong một thân, nên hoãn nó cũng dừng hai mức đang xanh (mặc định và thu "
-                + "nhỏ) — W9 phải bật lại cả ba cùng lúc."),
+                "Màn Kiểm lịch nằm NGOÀI phạm vi đợt W8 (USER chốt 18/9/2026). 76 chỗ là bố cục của cả màn ở 6 cỡ × 2 "
+                + "ngôn ngữ, phải đo lại và chia việc ở đợt riêng. MẤT ĐỘ PHỦ: 0/12 cặp sạch — mọi cỡ đều đang đỏ nên "
+                + "hoãn không che mất cặp nào đang xanh."),
         };
 
         /// <summary>Mọi mục — dùng cho test gác danh sách và cho báo cáo của cổng người.</summary>
