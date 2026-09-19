@@ -870,5 +870,6 @@ file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Calendar/**	G-UX3-CALEND
 file	Packages/com.dreamtech.liveops/Editor/Hub/UI/liveops-hub-timeline.uss	G-UX3-TIMELINE	W8-UX3 — chip "Đợt tới"/tag "bị bỏ" tràn khỏi lane; dấu màu chú giải đổi sang token
 file	Packages/com.dreamtech.liveops/Editor/Hub/UI/liveops-hub-theme.uss	G-UX3-TIMELINE	W8-UX3 — token màu đạt WCAG ở CẢ HAI skin (quiet, json-string, json-literal, dấu chú giải)
 file	Packages/com.dreamtech.liveops/Editor/Hub/Controls/Timeline/LiveOpsTimelineLane.cs	G-UX3-TIMELINE	W8-UX3 — lane cắt chữ của chip/tag thay vì cho xuống hàng hoặc thu gọn
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Controls/ControlsSkinTokenTests.cs	G-UX3-TIMELINE	W8-UX3 — bản sao hằng màu của token: chép lại hai màu JSON skin Light sau khi chúng đạt bậc chữ 4,5:1 (không nới assert nào)
 file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/RecurringRules/**	G-UX3-RECURRING	W8-UX3 — bảng "đợt kế tiếp" và thanh cuộn ngang thừa của form
 file	tools/liveops-hub/ownership.tsv	G-UX3-AUDIT,G-UX3-CALENDAR,G-UX3-TIMELINE,G-UX3-RECURRING	W8-UX3 — G-UX3-AUDIT viết khối đăng ký lượt 3; ba gói còn lại chỉ nối tên vào dòng của chính mình
