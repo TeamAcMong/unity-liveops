@@ -115,11 +115,15 @@
 
 /* ---------------------------------------------------------------- Danh sách luật */
 
+/* (RC-06c) Hàng cao THEO NỘI DUNG chứ không chốt 22: hàng nào hết chỗ thì meta xuống dòng dưới và hàng đó cao gấp
+   đôi. min-height giữ nguyên nhịp 22 cho những hàng còn vừa một dòng; flex-wrap là thứ cho phép dòng thứ hai tồn tại
+   (USS không có grid). */
 .liveops-hub-recurring-list-row {
     flex-direction: row;
+    flex-wrap: wrap;
     align-items: center;
-    height: 22px;
-    padding: 0 8px;
+    min-height: 22px;
+    padding: 2px 8px;
     margin: 0;
     border-width: 0;
     border-radius: 0;
@@ -169,12 +173,24 @@
     text-overflow: ellipsis;
 }
 
-/* Meta là thứ ĐƯỢC PHÉP cắt khi pane hẹp: cắt nó thì dấu mức ở cuối hàng còn chỗ, chứ meta dài đẩy dấu ra ngoài
-   tầm nhìn thì người dùng mất đúng thứ nói "luật này có vấn đề". Mặc định của UI Toolkit là flex-shrink 0 nên phải ghi rõ. */
+/* (RC-06c) Meta XUỐNG DÒNG khi hàng hết chỗ, thay vì bị cắt tại chỗ. Số đo thật ở pane 240 (nội dung 223):
+   swatch 9 + lề 6 + tên 75 + dấu mức 5 chỉ chừa ~128, mà câu nhịp dài nhất "every 24 hours · runs 20 hours" cần 145 —
+   không hàng ngang nào chứa nổi, nên trước đây meta bị cắt ở MỌI cỡ cửa sổ (kể cả 1920).
+   Cách chữa nằm ở `flex-wrap: wrap` của hàng CỘNG VỚI việc luật này KHÔNG khai flex-basis và KHÔNG khai flex-grow:
+   để basis là `auto` thì Yoga lấy bề rộng NỘI DUNG làm mốc ngắt dòng — meta dài hơn chỗ thừa thì tụt xuống dòng dưới
+   (ở đó nó có 204, thừa cho 145), meta ngắn thì ở lại dòng trên và hàng vẫn cao 22 như cũ. Tự chữa theo từng hàng.
+   KHÔNG được thêm flex-grow hay flex-basis vào đây: đo bằng probe hình học ở 700, `flex-grow` đi kèm làm Yoga của
+   UI Toolkit đặt basis về 0 (cùng họ với ghi chú "Unity đặt flex: 1 0 0" ở liveops-hub-components.uss) — mốc ngắt
+   dòng biến mất, meta ở lại dòng trên và co còn 53px, hỏng im lặng. Phần trăm cũng vô dụng: `width: 100%` trong thân
+   ScrollView resolve ra 0 vì Yoga đo thân cuộn khi bề rộng cha chưa xác định.
+   margin-left 15 = swatch 9 + lề 6 của tên: dòng dưới thẳng cột với tên, không thụt về mép hàng.
+   flex-shrink GIỮ NGUYÊN > 0 (RecurringUxFixTests.ListRow_NameDoesNotShrink_MetaDoes khoá điều đó): ngắt dòng xảy ra
+   TRƯỚC khi co, nên giữ nó không làm meta bị cắt lại; nó chỉ là lối thoát cuối nếu một ngày câu nhịp dài hơn cả
+   dòng riêng — và khi đó meta vẫn là thứ co trước, không phải tên. */
 .liveops-hub-recurring-list-meta {
     font-size: 10px;
     opacity: 0.82;
-    margin: 0 4px 0 6px;
+    margin: 0 4px 0 15px;
     /* Meta là thứ DUY NHẤT co: tên đã flex-shrink 0 nên mọi thiếu chỗ dồn hết vào đây. */
     flex-shrink: 1;
     min-width: 0;
@@ -325,10 +341,13 @@
     margin-top: 6px;
 }
 
+/* (RC-06c) Tiêu đề ngắt dòng theo CÙNG LUẬT với hàng dữ liệu (flex-wrap + bề rộng nội dung), nên height chốt 20
+   phải thành min-height: khi nhãn "Lúc này" tụt xuống dòng dưới thì hàng tiêu đề cần gấp đôi chiều cao. */
 .liveops-hub-recurring-occurrences-head {
     flex-direction: row;
+    flex-wrap: wrap;
     align-items: center;
-    height: 20px;
+    min-height: 20px;
     padding: 0 6px;
     font-size: 10px;
     opacity: 0.82;
@@ -338,6 +357,8 @@
 
 .liveops-hub-recurring-occurrences-row {
     flex-direction: row;
+    /* (RC-06c) Cho phép dòng thứ hai của hàng tồn tại — cột "Lúc này" tụt xuống đó khi dòng trên hết chỗ. */
+    flex-wrap: wrap;
     align-items: center;
     min-height: 20px;
     padding: 0 6px;
@@ -358,8 +379,12 @@
     border-top-color: var(--unity-colors-window-border);
 }
 
+/* (RC-06c) flex-wrap là LƯỚI AN TOÀN: "cũ → mới" là ba nhãn mà bề rộng cột thì cố định, nên một id dài hơn dự tính
+   phải xuống dòng trong ô chứ không được thò ra ngoài cột bên cạnh. Ở mẫu hiện tại (166 trong 190 / 168) nó không
+   bao giờ kích hoạt. */
 .liveops-hub-recurring-cell-id {
     flex-direction: row;
+    flex-wrap: wrap;
     align-items: center;
     width: 190px;
     min-width: 190px;
@@ -386,10 +411,30 @@
     min-width: 70px;
 }
 
+/* (RC-06c) Cột "Lúc này" XUỐNG DÒNG RIÊNG khi hàng hết chỗ. Số học: bảng rộng tối đa 626 (form max-width 640), bốn
+   cột trước đã ăn 452, còn 174 — đủ cho câu trạng thái trần (dấu giai đoạn 10 + câu) nhưng KHÔNG đủ khi hàng còn
+   mang tag "id changes" (thêm 86, tổng 274). Ở 700 phần thừa chỉ còn 37 (đo bằng probe hình học). Trước đây ô có
+   flex-grow nên nó nhận đúng phần thừa rồi ép con co lại: câu bị cắt và tag thò ra ngoài ở MỌI cỡ.
+   Bỏ flex-grow là chỗ chữa: basis trở lại `auto` = bề rộng NỘI DUNG, nên `flex-wrap` của hàng ngắt dòng ĐÚNG những
+   hàng không đủ chỗ (hàng có tag, hoặc mọi hàng ở 700/820/1024) và để yên những hàng còn vừa — bảng chỉ cao thêm ở
+   đúng chỗ cần. Xuống dòng riêng thì ô có trọn 373 (700) tới 626 (cỡ rộng), thừa cho 274.
+   KHÔNG được thêm lại flex-grow, cũng không khai flex-basis bằng px hay phần trăm: đo lượt r2, flex-grow (và cả
+   `width: 100%`, vốn resolve ra 0 trong thân ScrollView) làm basis về 0 — ô tụt về 37px, câu trạng thái rơi xuống
+   bảy dòng và tag thò ra 92px, hỏng im lặng và không log gì.
+   flex-shrink 1 là lối thoát cuối: nếu một ngày cả dòng riêng cũng không đủ thì ô co và câu XUỐNG DÒNG (luật dưới),
+   chứ không cắt. */
 .liveops-hub-recurring-cell-now {
     flex-direction: row;
     align-items: center;
-    flex-grow: 1;
+    flex-shrink: 1;
+}
+
+/* Câu trạng thái trong dòng riêng: cho co và cho XUỐNG DÒNG thay vì tràn, phòng khi chuỗi tương lai dài hơn cả dòng.
+   Ở mẫu hiện tại câu dài nhất 178 nằm gọn một dòng nên luật này không đổi hình dáng bảng hôm nay. */
+.liveops-hub-recurring-cell-now > Label {
+    flex-shrink: 1;
+    min-width: 0;
+    white-space: normal;
 }
 
 /* (UX-32) "■Đang chạy": dấu chỉ có margin 1px của chính nó nên nó DÍNH chữ. Dấu là một từ riêng trong câu ngắn đó. */
@@ -480,9 +525,12 @@
     display: none;
 }
 
+/* (RC-06c) 132 không đủ cho "weekly-pass-35 → pass-35" (đo 166) nên nhãn id mới thò sang cột Bắt đầu. Ở cỡ hẹp cột
+   "Lúc này" luôn tụt xuống dòng riêng (không cỡ nào chừa nổi 274 cho nó), nên dòng trên còn chỗ để nới id:
+   168 + 84 + 84 = 336 trong 349 của pane 700. */
 .liveops-hub--narrow .liveops-hub-recurring-cell-id {
-    width: 132px;
-    min-width: 132px;
+    width: 168px;
+    min-width: 168px;
 }
 
 .liveops-hub--narrow .liveops-hub-recurring-cell-start,
@@ -497,9 +545,16 @@
     min-width: 84px;
 }
 
+/* (RC-06c) 150 chốt cứng làm câu preset "Hằng tuần thứ Hai 00:00 UTC" (cần 154) bị DropdownField cắt ở 700. Hàng còn
+   thừa chỗ (nhãn 84 + ô 220 = 304 trong 351) nên ô lấy nốt chỗ thừa thay vì chốt hẹp: flex-grow lấy, max-width 220
+   chặn không cho giãn quá bề rộng mà form 640 còn đọc được, min-width giữ sàn khi hàng có chữ phụ dài. Không có cửa
+   tràn hàng: flex-grow chỉ chia phần dư, nó không đẩy được anh em ra ngoài.
+   Ở đây flex-grow LÀ thứ muốn dùng, khác hai luật ngắt dòng bên trên: ô nhập không cần ngắt dòng, nó chỉ cần nuốt
+   chỗ thừa — nên chuyện flex-grow kéo flex-basis về 0 đúng là điều mong đợi, không phải cái bẫy. */
 .liveops-hub--compact .liveops-hub-recurring-field-input {
-    width: 150px;
-    max-width: 150px;
+    flex-grow: 1;
+    width: auto;
+    max-width: 220px;
     min-width: 96px;
 }
 
