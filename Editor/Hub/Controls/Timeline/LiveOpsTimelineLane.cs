@@ -41,6 +41,12 @@ namespace DreamTech.LiveOps.Editor
         internal const float DroppedTagTopOffset = 2f;
         internal const float NextChipTopOffset = 5f;
 
+        /// <summary>
+        /// (G-UX3-TIMELINE/RC-03) Phần khung của tag "bị bỏ" ngoài chữ: viền 1+1, padding 4+4, dấu trạng thái nhỏ và khe 3px
+        /// trước chữ — đo thật trên 6000.6 là 18px (tag 136px cho nhãn 118px, và 152px cho nhãn 134px).
+        /// </summary>
+        private const float DroppedTagChromeWidth = 18f;
+
         private const float LineWidth = 1f;
         private const float HalfPixel = 0.5f;
         private const int DaysPerWeek = 7;
@@ -274,19 +280,51 @@ namespace DreamTech.LiveOps.Editor
                 if (!droppedNow) continue;
                 VisualElement tag = DroppedTagAt(used++);
                 tag.EnableInClassList(LiveOpsHubClassNames.TimelineDroppedTagWillDrop, willDrop);
-                tag.Q<Label>().text = DroppedTagTextFor(bar, willDrop);
+                string tagText = DroppedTagTextFor(bar, willDrop);
+                tag.Q<Label>().text = tagText;
+                float barLeft = bar.Left;
                 float right = bar.Left + bar.Width;
                 if (previewGeometry != null && previewGeometry.TryGetValue(bar.Model.BarKey, out (float left, float width) preview))
                 {
+                    barLeft = preview.left;
                     right = preview.left + preview.width;
                 }
-                tag.style.left = right + DroppedTagGap; // style-inline-allowed: 6
+                tag.style.left = DroppedTagLeft(barLeft, right, tagText); // style-inline-allowed: 6
                 tag.style.top = bar.Top + DroppedTagTopOffset; // style-inline-allowed: 6
                 tag.EnableInClassList(LiveOpsHubClassNames.TimelineHidden, false);
                 tag.BringToFront();
                 _droppedTagByBarKey[bar.Model.BarKey] = tag;
             }
             for (int index = used; index < _droppedTags.Count; index++) _droppedTags[index].EnableInClassList(LiveOpsHubClassNames.TimelineHidden, true);
+        }
+
+        /// <summary>
+        /// (G-UX3-TIMELINE/RC-03) Chỗ đặt tag "bị bỏ" theo trục ngang. Mặc định là ngay sau mép phải thanh; thanh nằm sát mép
+        /// phải track thì chỗ đó không còn đủ và tag bị <c>overflow: hidden</c> của làn cắt mất cả id lẫn chữ trạng thái
+        /// (đo 700×560: tag 136px bắt đầu ở 126 trong track 216 ⇒ thò 46px). Lúc ấy LẬT sang trước mép trái thanh, hết đường
+        /// thì kẹp vào trong track — cùng luật mà readout lúc kéo đã dùng ở [SD1 §3.7] ("chạm mép phải thì lật sang trái").
+        /// Thanh bị đè là thanh HẸP tới mức không mang nổi nhãn (đó chính là lý do tag phải nói cả id, xem
+        /// <see cref="DroppedTagTextFor"/>), nên không chữ nào của thanh bị che.
+        /// </summary>
+        private float DroppedTagLeft(float barLeft, float barRight, string tagText)
+        {
+            float trackWidth = _geometry == null ? 0f : _geometry.TrackWidth;
+            float tagWidth = EstimatedDroppedTagWidth(tagText);
+            if (trackWidth <= 0f || tagWidth >= trackWidth) return barRight + DroppedTagGap;
+            float left = barRight + DroppedTagGap;
+            if (left + tagWidth > trackWidth) left = barLeft - DroppedTagGap - tagWidth;
+            return Math.Max(0f, Math.Min(left, trackWidth - tagWidth));
+        }
+
+        /// <summary>
+        /// Bề rộng tag trước khi layout chạy: bind xảy ra TRƯỚC layout nên <c>worldBound</c> của tag chưa có số thật — cùng
+        /// tình huống và cùng ước lượng <c>LabelCharacterWidth</c> mà thước và readout dùng. Ước lượng này CAO hơn số đo thật
+        /// (5,6 px/ký tự so với 5,13–5,36 đo được), tức là lật/kẹp sớm vài pixel chứ không bao giờ để tag thò ra ngoài.
+        /// </summary>
+        private static float EstimatedDroppedTagWidth(string tagText)
+        {
+            int length = tagText == null ? 0 : tagText.Length;
+            return length * LiveOpsTimelineGeometry.LabelCharacterWidth + DroppedTagChromeWidth;
         }
 
         /// <summary>
@@ -369,7 +407,9 @@ namespace DreamTech.LiveOps.Editor
                 format.ShortDateTime(next.StartUtc), remaining);
             _nextChip.tooltip = string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.TimelineNextOutsideChipTooltipFormat, next.EventId,
                 format.ShortDateTime(next.StartUtc));
-            _nextChip.style.top = PaddingTop + NextChipTopOffset; // style-inline-allowed: 3
+            // Chip chảy trong làn (xem liveops-hub-timeline.uss) nên khoảng cách với đỉnh làn là LỀ, không phải toạ độ tuyệt
+            // đối; nhờ vậy làn height: auto tự cao thêm khi chữ của chip xuống dòng ở cửa sổ hẹp.
+            _nextChip.style.marginTop = PaddingTop + NextChipTopOffset; // style-inline-allowed: 3
             _nextChip.BringToFront();
         }
 
