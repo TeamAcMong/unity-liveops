@@ -828,3 +828,24 @@ file	tools/liveops-hub/capture.sh	G-UX-GATE	W8-UX (mở đợt sửa UI/UX 17/9/
 file	tools/liveops-hub/README.md	G-UX-GATE	W8-UX (mở đợt sửa UI/UX 17/9/2026, plan/w8-ux/UX-FIX-PLAN.md mục 2.1)
 file	tools/liveops-hub/ux-layout-report.py	G-UX-GATE	W8-UX (mở đợt sửa UI/UX 17/9/2026, plan/w8-ux/UX-FIX-PLAN.md mục 2.1)
 directory	Packages/com.dreamtech.liveops/Tests/Editor/Hub/UxGate	G-UX-GATE	W8
+# (luợt 2 đợt W8-UX2, 19/9/2026 — plan/w8-ux/UX-PASS2-PLAN.md mục 3) Bốn gói chạy song song trên nhánh cổng wt/G-UX-WAVE.
+#   Cột đợt ghi "W8" chứ không "W8-UX2" vì check-ownership.py --wave-deps đọc số đợt bằng float; luợt 2 là luợt sửa tiếp của chính đợt W8.
+#   G-UX2-TIMEFIELD thêm khối này theo phát hiện F-06 của lượt soát (trước đó không gói UX2 nào có dòng đăng ký nên check-ownership.py báo "gói không có trong bảng").
+package	G-UX2-TIMEFIELD	W8	M	W7
+package	G-UX2-DRAG	W8	M	W7
+package	G-UX2-RECURRING	W8	M	W7
+package	G-UX2-DEFER	W8	S	W7
+file	Packages/com.dreamtech.liveops/Editor/Hub/Controls/LiveOpsUtcDateTimeField.cs	G-UX2-TIMEFIELD	W8-UX2 (luợt 2 đợt sửa UI/UX 19/9/2026, plan/w8-ux/UX-PASS2-PLAN.md mục 3)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Calendar/CalendarEventInspector.cs	G-UX2-TIMEFIELD	W8-UX2 (luợt 2 đợt sửa UI/UX 19/9/2026, plan/w8-ux/UX-PASS2-PLAN.md mục 3)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Calendar/CalendarInspectorModel.cs	G-UX2-TIMEFIELD	W8-UX2 (luợt 2 đợt sửa UI/UX 19/9/2026, plan/w8-ux/UX-PASS2-PLAN.md mục 3) — mở rộng danh sách file của gói: khoá hai mép giờ của đợt đã khép phải quyết ở model rồi view mới đọc được (phát hiện F-02); không gói UX2 nào khác chạm file này
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Calendar/CalendarSection.uss	G-UX2-TIMEFIELD	W8-UX2 (luợt 2 đợt sửa UI/UX 19/9/2026, plan/w8-ux/UX-PASS2-PLAN.md mục 3)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubStrings.Calendar.cs	G-UX2-TIMEFIELD	W8-UX2 (luợt 2 đợt sửa UI/UX 19/9/2026, plan/w8-ux/UX-PASS2-PLAN.md mục 3) — câu lý do khoá của đợt đã khép
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/Language/LiveOpsHubStringCatalog.Calendar.cs	G-UX2-TIMEFIELD	W8-UX2 (luợt 2 đợt sửa UI/UX 19/9/2026, plan/w8-ux/UX-PASS2-PLAN.md mục 3) — bản vi + en của câu lý do khoá
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Sections/CalendarInspectorModelTests.cs	G-UX2-TIMEFIELD	W8-UX2 (luợt 2 đợt sửa UI/UX 19/9/2026, plan/w8-ux/UX-PASS2-PLAN.md mục 3) — ca mới EndedEvent_BothEdgesLockedWithReason
+file	Packages/com.dreamtech.liveops/Editor/Hub/Controls/Timeline/**	G-UX2-DRAG	W8-UX2 (luợt 2 đợt sửa UI/UX 19/9/2026, plan/w8-ux/UX-PASS2-PLAN.md mục 3)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/RecurringRules/**	G-UX2-RECURRING	W8-UX2 (luợt 2 đợt sửa UI/UX 19/9/2026, plan/w8-ux/UX-PASS2-PLAN.md mục 3)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubClassNames.Recurring.cs	G-UX2-RECURRING	W8-UX2 (luợt 2 đợt sửa UI/UX 19/9/2026, plan/w8-ux/UX-PASS2-PLAN.md mục 3)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubStrings.Recurring.cs	G-UX2-RECURRING	W8-UX2 (luợt 2 đợt sửa UI/UX 19/9/2026, plan/w8-ux/UX-PASS2-PLAN.md mục 3)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/Language/LiveOpsHubStringCatalog.Recurring.cs	G-UX2-RECURRING	W8-UX2 (luợt 2 đợt sửa UI/UX 19/9/2026, plan/w8-ux/UX-PASS2-PLAN.md mục 3)
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/UxGate/**	G-UX2-DEFER,G-UX2-RECURRING,G-UX2-TIMEFIELD,G-UX2-DRAG	W8-UX2 (luợt 2 đợt sửa UI/UX 19/9/2026, plan/w8-ux/UX-PASS2-PLAN.md mục 3) — thứ tự gộp DEFER → RECURRING → TIMEFIELD → DRAG; UxCalendarJourneyTests.cs dùng chung: TIMEFIELD giữ hai ca UX-04 (ô giờ) + trợ giúp SelectedBar, DRAG giữ các ca kéo/tháng 10; bảng chia thanh ở plan/w8-ux/UX2-BAR-ASSIGNMENT.md
+file	tools/liveops-hub/ownership.tsv	G-UX2-TIMEFIELD	W8-UX2 (luợt 2 đợt sửa UI/UX 19/9/2026, plan/w8-ux/UX-PASS2-PLAN.md mục 3) — thêm khối đăng ký của bốn gói UX2 (F-06)

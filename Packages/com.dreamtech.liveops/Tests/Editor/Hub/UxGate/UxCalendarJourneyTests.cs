@@ -169,46 +169,83 @@ namespace DreamTech.LiveOps.Editor.Tests
         // ================================================================================================ UX-04 ô giờ
 
         /// <summary>
-        /// UX-04: gõ giờ mới rồi Enter phải GHI — thanh dời và tài liệu đổi. Trước đợt W8 ô giờ chỉ nghe sự kiện nội bộ nên gõ
-        /// xong Enter không có gì xảy ra.
+        /// Đợt dùng cho hai ca ô giờ: hunt-0914 (14/9 → 17/9) — CHƯA BẮT ĐẦU ở mốc thiết kế 13/9 01:47 nên sửa giờ được thật.
+        /// <para>
+        /// Vì sao KHÔNG dùng đợt mặc định lava-quest-2026-09a nữa: đợt đó ĐÃ KHÉP lúc 13/9 00:00, mà bảng 7.0 cấm đổi giờ
+        /// đợt đã khép (<c>LiveOpsConfirmationPolicy.DecideChangeFixedEventTimes</c> trả <c>NotAllowed</c>) — từ lượt W8-UX2 hai ô giờ của đợt
+        /// đã khép còn bị KHOÁ hẳn (<c>CalendarInspectorModel.IsStartLocked</c>/<c>IsEndLocked</c>), nên đứng trên đợt đó là đang kiểm bảng
+        /// 7.0 chứ không phải kiểm ô giờ. Trạng thái "đợt đã khép" có vùng phủ riêng ở
+        /// <c>UxCalendarTimeFieldJourneyTests.EndedEntry_TimeFieldsAndDuration_AreLockedWithReason</c>.
+        /// </para>
+        /// <para>
+        /// hunt-0914 cũng KHÁC đợt mà các ca kéo dùng (lava-quest-2026-09b) — bảng chia thanh ở
+        /// plan/w8-ux/UX2-BAR-ASSIGNMENT.md.
+        /// </para>
+        /// </summary>
+        private const string TimeFieldEntryKey = LiveOpsDesignSample.HuntEarlyEntryKey;
+
+        /// <summary>Ngày thiếu số 0 ở phần ngày: đọc chặt thì KHÔNG đọc được, dù <c>LiveEventUtcText.TryNormalize</c> hiểu được.</summary>
+        private const string MissingDigitsDateText = "2026-09-1";
+
+        /// <summary>
+        /// UX-04: gõ giờ mới rồi Enter phải GHI — thanh dời và tài liệu đổi.
+        /// <para>
+        /// Lỗi gốc mà ca này khoá (UJ-03, sửa ở abe485f): ô giờ bắn hai đường chốt khác nhau cho chuỗi đọc được và chuỗi hỏng,
+        /// còn inspector chỉ đăng ký MỘT đường — gõ đúng dạng rồi Enter là mất trắng lần ghi mà không có lỗi biên dịch nào. Đây là ca
+        /// duy nhất đi đường phím THẬT (SendEvent) cho lối chốt bằng Enter; lối rời ô nằm ở
+        /// <c>UxCalendarTimeFieldJourneyTests.TimeField_TypeThenClickAnotherField_Commits</c>.
+        /// </para>
         /// </summary>
         [UnityTest]
         public IEnumerator TimeField_TypeThenEnter_CommitsAndMovesBar()
         {
             foreach (LiveOpsHubLanguageId language in UxHubWindowFixture.AllLanguages)
             {
-                yield return OpenCalendarWithSelection(UxHubWindowFixture.AllSizes[4], language);
+                yield return OpenCalendarWithSelection(UxHubWindowFixture.AllSizes[4], language, TimeFieldEntryKey);
                 LiveOpsUtcDateTimeField field = FirstDateTimeField();
-                float barLeftBefore = SelectedBar().worldBound.xMin;
+                float barLeftBefore = SelectedBar(TimeFieldEntryKey).worldBound.xMin;
                 int revisionBefore = _fixture.Services.Session.DocumentRevision;
 
                 yield return UxEventSender.ReplaceText(_fixture.Window, field.TimeInput, "23:00");
                 yield return UxEventSender.PressEnter(_fixture.Window);
 
                 Assert.AreNotEqual(revisionBefore, _fixture.Services.Session.DocumentRevision,
-                    "gõ giờ rồi Enter không ghi gì vào tài liệu — ô giờ không nhận phím thật (UX-04)");
-                Assert.AreNotEqual(barLeftBefore, SelectedBar().worldBound.xMin,
+                    "gõ giờ rồi Enter mà tài liệu không đổi — chuỗi đã chốt của ô giờ không tới được lệnh ghi của inspector (UX-04)");
+                Assert.AreNotEqual(barLeftBefore, SelectedBar(TimeFieldEntryKey).worldBound.xMin,
                     "tài liệu đổi nhưng thanh trên trục không dời — trục không vẽ lại sau khi ghi (UX-04)");
                 DisposeFixture();
             }
         }
 
-        /// <summary>UX-04: gõ ngày thiếu số thì GIỮ nguyên giờ đang có và báo lỗi, không im lặng nuốt mất giá trị.</summary>
+        /// <summary>
+        /// UX-04: gõ ngày thiếu số thì GIỮ nguyên giờ đang có và báo lỗi, không im lặng nuốt mất giá trị. Đứng trên cùng đợt
+        /// <see cref="TimeFieldEntryKey"/> với ca trên: ô của đợt đã khép nay bị khoá nên không gõ vào đó được nữa.
+        /// </summary>
         [UnityTest]
         public IEnumerator DateField_MissingDigits_KeepsValueAndShowsError()
         {
             foreach (LiveOpsHubLanguageId language in UxHubWindowFixture.AllLanguages)
             {
-                yield return OpenCalendarWithSelection(UxHubWindowFixture.AllSizes[4], language);
+                yield return OpenCalendarWithSelection(UxHubWindowFixture.AllSizes[4], language, TimeFieldEntryKey);
                 LiveOpsUtcDateTimeField field = FirstDateTimeField();
                 DateTime valueBefore = field.value;
+                string timeTextBefore = field.RawTimeText;
 
-                yield return UxEventSender.ReplaceText(_fixture.Window, field.DateInput, "2026-09-1");
+                yield return UxEventSender.ReplaceText(_fixture.Window, field.DateInput, MissingDigitsDateText);
                 yield return UxEventSender.PressEnter(_fixture.Window);
 
                 Assert.IsTrue(field.HasParseError, "ngày thiếu số mà ô không báo lỗi (UX-04)");
                 Assert.AreEqual(valueBefore, field.value, "ngày gõ sai đã ghi đè giá trị đang có (UX-04)");
-                Assert.IsTrue(UxLayoutAuditor.IsShownOnScreen(field.ErrorLabel), "không có câu lỗi nào hiện cho người dùng (UX-04)");
+                // Chuỗi hỏng được ghi NGUYÊN VĂN vào asset (hợp đồng của ô: tài liệu phải chứa được đợt hỏng để bộ kiểm báo đúng chuỗi),
+                // nên inspector DỰNG LẠI và ô vừa gõ bị gỡ khỏi panel — đo câu lỗi trên ô cũ là đo một phần tử đã rời màn hình. Câu lỗi
+                // người dùng ĐANG THẤY nằm trên ô mới. (Trước lượt W8-UX2 ca này đứng trên đợt ĐÃ KHÉP nên lệnh ghi bị chính sách từ chối,
+                // không dựng lại, ô cũ còn trên màn — xanh vì cảnh KHÔNG ghi được chứ không vì màn báo lỗi đúng.)
+                LiveOpsUtcDateTimeField shownField = FirstDateTimeField();
+                Assert.IsTrue(UxLayoutAuditor.IsShownOnScreen(shownField.ErrorLabel), "không có câu lỗi nào hiện cho người dùng (UX-04)");
+                Assert.AreEqual(MissingDigitsDateText, shownField.RawDateText,
+                    "ô không giữ nguyên chữ người dùng gõ — chuỗi hỏng bị tự sửa hoặc bị nuốt (UX-04)");
+                Assert.AreEqual(timeTextBefore, shownField.RawTimeText,
+                    "nửa GIỜ đang có bị mất khi nửa NGÀY gõ sai (UX-04)");
                 DisposeFixture();
             }
         }
@@ -640,6 +677,11 @@ namespace DreamTech.LiveOps.Editor.Tests
             yield return _fixture.WaitForLayout();
         }
 
+        /// <summary>
+        /// Mở màn Lịch rồi BẤM chọn một thanh. Đợt mặc định lava-quest-2026-09a ĐÃ KHÉP ở mốc thiết kế: chỉ dùng mặc định cho
+        /// ca chỉ CẦN MỘT THANH ĐANG CHỌN (đo bố cục, đo chọn). Ca nào phải GHI được (đổi giờ, kéo, hoàn tác) thì PHẢI truyền đợt
+        /// chưa bắt đầu — bảng 7.0 cấm đổi giờ đợt đã khép và hai ô giờ của nó nay bị khoá.
+        /// </summary>
         private IEnumerator OpenCalendarWithSelection(UxWindowSize size, LiveOpsHubLanguageId language,
             string entryKey = LiveOpsDesignSample.LavaQuestEarlyEntryKey)
         {
@@ -667,9 +709,14 @@ namespace DreamTech.LiveOps.Editor.Tests
         /// <summary>Làn ẩn của lượt UX-12: loại "star-tournament" chỉ có một đợt nên ẩn nó không làm trục trống.</summary>
         private const string HiddenLaneTypeId = "star-tournament";
 
-        private LiveOpsTimelineBar SelectedBar()
+        /// <summary>
+        /// Thanh của đợt đang chọn. KHÔNG có giá trị mặc định: mỗi ca phải nói rõ đợt nào, vì đợt mặc định cũ
+        /// (lava-quest-2026-09a) đã khép ở mốc thiết kế và đã làm UX-04/UX-14/UX-18/UX-26 cùng đỏ một kiểu — để mặc định là mời ca
+        /// sau rơi lại đúng hố đó (UX-PASS2-PLAN mục 1).
+        /// </summary>
+        private LiveOpsTimelineBar SelectedBar(string entryKey)
         {
-            return _fixture.BarOf(LiveOpsDesignSample.LavaQuestEarlyEntryKey);
+            return _fixture.BarOf(entryKey);
         }
 
         private LiveOpsUtcDateTimeField FirstDateTimeField()

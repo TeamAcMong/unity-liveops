@@ -42,6 +42,7 @@ namespace DreamTech.LiveOps.Editor
             EventId = string.Empty;
             EventTypeId = string.Empty;
             StartLockReason = string.Empty;
+            EndLockReason = string.Empty;
             DeleteButtonText = string.Empty;
             DeleteButtonTooltip = string.Empty;
             SummaryText = string.Empty;
@@ -71,10 +72,18 @@ namespace DreamTech.LiveOps.Editor
         public LiveEventPhase Phase { get; private set; }
         public string PhaseTagText { get; private set; }
 
-        /// <summary>Đang chạy: mép đầu khoá vì người chơi đã vào theo giờ bắt đầu cũ (bảng 7.0).</summary>
+        /// <summary>Đang chạy: mép đầu khoá vì người chơi đã vào theo giờ bắt đầu cũ (bảng 7.0). Đã khép: khoá cả hai mép.</summary>
         public bool IsStartLocked { get; private set; }
 
         public string StartLockReason { get; private set; }
+
+        /// <summary>
+        /// Đã khép: mép cuối khoá. Chính sách xác nhận trả <c>NotAllowed</c> cho mọi lần đổi giờ của đợt đã khép
+        /// (<c>LiveOpsConfirmationPolicy.DecideChangeFixedEventTimes</c>), nên để ô mở là mời người dùng gõ một thứ sẽ bị bỏ.
+        /// </summary>
+        public bool IsEndLocked { get; private set; }
+
+        public string EndLockReason { get; private set; }
 
         /// <summary>"Xoá đợt" (xoá ngay) hoặc "Xoá đợt…" (sẽ hỏi) theo <see cref="CalendarDeleteFlow"/>.</summary>
         public string DeleteButtonText { get; private set; }
@@ -215,6 +224,19 @@ namespace DreamTech.LiveOps.Editor
                 model.IsStartLocked = true;
                 model.StartLockReason = string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.CalendarStartLockedTooltipFormat,
                     format.ShortDateTime(startUtc));
+            }
+            // Đợt ĐÃ KHÉP: khoá CẢ HAI mép. Chính sách xác nhận cấm đổi giờ của đợt đã khép, mà CalendarTimelinePresenter.ApplyEdit
+            // từ chối LẶNG LẼ (trả false, không toast, không lý do) — ô để mở thì người dùng gõ "23:00", thấy chữ đổi, Enter, rồi tin
+            // là đã sửa xong trong khi asset vẫn giữ giờ cũ. Khoá tại chỗ nhập + nói lý do ngay trên tooltip là đường duy nhất cho
+            // người dùng biết TRƯỚC khi gõ (W8-UX2, cùng khuôn với mép đầu của đợt đang chạy ở trên).
+            else if (model.Phase == LiveEventPhase.Ended && hasEnd)
+            {
+                string endedLockReason = string.Format(CultureInfo.InvariantCulture,
+                    LiveOpsHubStrings.CalendarEndedLockedTooltipFormat, format.ShortDateTime(endUtc));
+                model.IsStartLocked = true;
+                model.StartLockReason = endedLockReason;
+                model.IsEndLocked = true;
+                model.EndLockReason = endedLockReason;
             }
             if (hasStart && hasEnd && endUtc > startUtc)
             {
