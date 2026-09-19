@@ -56,6 +56,23 @@ namespace DreamTech.LiveOps.Editor.Tests
 
         private const int RulerZoomOutNotches = 6;
 
+        /// <summary>
+        /// Tập mã phiếu hoãn ĐƯỢC DUYỆT của cổng W8-UX. USER chốt ngày 18/9/2026: chỉ "chỗ không dùng được" của các màn
+        /// NGOÀI đợt (Xuất JSON, Tổng quan, Loại event, Kiểm lịch, khung) mới được đánh dấu hoãn — đúng năm phiếu này.
+        /// Dãy số không liền vì giữ nguyên mã của bảng kế hoạch: W9-02 và W9-07…W9-15 là màn TRONG đợt, đã bị rút khỏi
+        /// danh sách hoãn ngày 19/9/2026 và trả về cho một gói sửa bố cục riêng.
+        /// </summary>
+        private static readonly string[] ApprovedDeferralIds = { "W9-01", "W9-03", "W9-04", "W9-05", "W9-06" };
+
+        /// <summary>
+        /// Năm màn NGOÀI đợt đi kèm năm phiếu trên. Khoá cả MÀN chứ không chỉ mã phiếu: chặn đúng đường lách "thêm một
+        /// mã phiếu mới cho một màn TRONG đợt", thứ mà kiểm từng mục không nhìn ra.
+        /// </summary>
+        private static readonly string[] ApprovedDeferralScreens =
+        {
+            "export", "overview", "shell-rail-status", "event-types", "validation",
+        };
+
         private static readonly UxWindowSize Narrow700 = new UxWindowSize(700, 560);
         private static readonly UxWindowSize Medium820 = new UxWindowSize(820, 560);
         private static readonly UxWindowSize Wide1440 = new UxWindowSize(1440, 900);
@@ -102,40 +119,24 @@ namespace DreamTech.LiveOps.Editor.Tests
         [UnityTest]
         public IEnumerator Calendar_LayoutIsUsable_AtEverySize_NoSelection()
         {
-            // Hoãn sang W9: màn này đỏ vì BỐ CỤC, ngoài phạm vi hành trình của đợt W8. Mọi câu assert bên dưới
-            // giữ nguyên — gỡ dòng của màn khỏi UxLayoutDeferralList là test chạy lại đầy đủ ngay lượt sau.
-            UxLayoutDeferralList.IgnoreWhenDeferred("calendar-no-selection");
-
             yield return RunScreen(CalendarScreen("calendar-no-selection"));
         }
 
         [UnityTest]
         public IEnumerator Calendar_LayoutIsUsable_AtEverySize_WithSelection()
         {
-            // Hoãn sang W9: màn này đỏ vì BỐ CỤC, ngoài phạm vi hành trình của đợt W8. Mọi câu assert bên dưới
-            // giữ nguyên — gỡ dòng của màn khỏi UxLayoutDeferralList là test chạy lại đầy đủ ngay lượt sau.
-            UxLayoutDeferralList.IgnoreWhenDeferred("calendar-selection");
-
             yield return RunScreen(CalendarScreen("calendar-selection").WithAfterOpen(SelectFirstBar));
         }
 
         [UnityTest]
         public IEnumerator Calendar_LayoutIsUsable_AtEverySize_MultiSelection()
         {
-            // Hoãn sang W9: màn này đỏ vì BỐ CỤC, ngoài phạm vi hành trình của đợt W8. Mọi câu assert bên dưới
-            // giữ nguyên — gỡ dòng của màn khỏi UxLayoutDeferralList là test chạy lại đầy đủ ngay lượt sau.
-            UxLayoutDeferralList.IgnoreWhenDeferred("calendar-multi-selection");
-
             yield return RunScreen(CalendarScreen("calendar-multi-selection").WithAfterOpen(SelectTwoBars));
         }
 
         [UnityTest]
         public IEnumerator Recurring_LayoutIsUsable_AtEverySize()
         {
-            // Hoãn sang W9: màn này đỏ vì BỐ CỤC, ngoài phạm vi hành trình của đợt W8. Mọi câu assert bên dưới
-            // giữ nguyên — gỡ dòng của màn khỏi UxLayoutDeferralList là test chạy lại đầy đủ ngay lượt sau.
-            UxLayoutDeferralList.IgnoreWhenDeferred("recurring-default");
-
             yield return RunScreen(new UxLayoutScreen("recurring-default", LiveOpsHubSections.Ids.RecurringRules)
                 .WithRequiredElements(WithShell(RecurringRulesSection.BodyElementName, RecurringRulesSection.ListElementName,
                     RecurringRuleForm.SentenceElementName))
@@ -245,10 +246,6 @@ namespace DreamTech.LiveOps.Editor.Tests
         [UnityTest]
         public IEnumerator Calendar_Medium_DrawerOpen_AnchorsVisible()
         {
-            // Hoãn sang W9: màn này đỏ vì BỐ CỤC, ngoài phạm vi hành trình của đợt W8. Mọi câu assert bên dưới
-            // giữ nguyên — gỡ dòng của màn khỏi UxLayoutDeferralList là test chạy lại đầy đủ ngay lượt sau.
-            UxLayoutDeferralList.IgnoreWhenDeferred("calendar-medium-drawer");
-
             yield return RunScreen(new UxLayoutScreen("calendar-medium-drawer", LiveOpsHubSections.Ids.Calendar)
                 .WithSizes(Medium820)
                 .WithAfterOpen(SelectFirstBar, true)
@@ -265,10 +262,6 @@ namespace DreamTech.LiveOps.Editor.Tests
         [UnityTest]
         public IEnumerator Calendar_Inspector_NoCutText_ButtonsInsidePane_NotesWrap()
         {
-            // Hoãn sang W9: màn này đỏ vì BỐ CỤC, ngoài phạm vi hành trình của đợt W8. Mọi câu assert bên dưới
-            // giữ nguyên — gỡ dòng của màn khỏi UxLayoutDeferralList là test chạy lại đầy đủ ngay lượt sau.
-            UxLayoutDeferralList.IgnoreWhenDeferred("calendar-inspector");
-
             yield return RunScreen(CalendarScreen("calendar-inspector")
                 .WithAfterOpen(SelectFirstBar, true)
                 .WithScreenRulesOnly(LiveOpsHubPaths.CalendarElementNames.Inspector));
@@ -278,10 +271,6 @@ namespace DreamTech.LiveOps.Editor.Tests
         [UnityTest]
         public IEnumerator Calendar_Toast_DoesNotOverlapFooter()
         {
-            // Hoãn sang W9: màn này đỏ vì BỐ CỤC, ngoài phạm vi hành trình của đợt W8. Mọi câu assert bên dưới
-            // giữ nguyên — gỡ dòng của màn khỏi UxLayoutDeferralList là test chạy lại đầy đủ ngay lượt sau.
-            UxLayoutDeferralList.IgnoreWhenDeferred("calendar-toast");
-
             yield return RunScreen(new UxLayoutScreen("calendar-toast", LiveOpsHubSections.Ids.Calendar)
                 .WithAfterOpen(DragBarToRaiseToast, true)
                 .WithRequiredElements("." + LiveOpsHubClassNames.Toast, LiveOpsHubPaths.ShellElementNames.StatusBar)
@@ -314,10 +303,6 @@ namespace DreamTech.LiveOps.Editor.Tests
         [UnityTest]
         public IEnumerator Timeline_RulerLabels_NotCutNotOverlapped_AtEveryZoom()
         {
-            // Hoãn sang W9: màn này đỏ vì BỐ CỤC, ngoài phạm vi hành trình của đợt W8. Mọi câu assert bên dưới
-            // giữ nguyên — gỡ dòng của màn khỏi UxLayoutDeferralList là test chạy lại đầy đủ ngay lượt sau.
-            UxLayoutDeferralList.IgnoreWhenDeferred("timeline-ruler-labels-zoom-in");
-
             yield return RunScreen(RulerLabelScreen("timeline-ruler-labels-default", 0));
             yield return RunScreen(RulerLabelScreen("timeline-ruler-labels-zoom-in", RulerZoomInNotches));
             yield return RunScreen(RulerLabelScreen("timeline-ruler-labels-zoom-out", RulerZoomOutNotches));
@@ -327,10 +312,6 @@ namespace DreamTech.LiveOps.Editor.Tests
         [UnityTest]
         public IEnumerator Timeline_LegendSamplesContrast()
         {
-            // Hoãn sang W9: màn này đỏ vì BỐ CỤC, ngoài phạm vi hành trình của đợt W8. Mọi câu assert bên dưới
-            // giữ nguyên — gỡ dòng của màn khỏi UxLayoutDeferralList là test chạy lại đầy đủ ngay lượt sau.
-            UxLayoutDeferralList.IgnoreWhenDeferred("timeline-legend-contrast");
-
             yield return RunScreen(new UxLayoutScreen("timeline-legend-contrast", LiveOpsHubSections.Ids.Calendar)
                 .WithSizes(Wide1440)
                 .WithRequiredElements("." + LiveOpsHubClassNames.TimelineLegend)
@@ -347,10 +328,6 @@ namespace DreamTech.LiveOps.Editor.Tests
         [UnityTest]
         public IEnumerator AddEventPopover_ButtonsAndTagNotCut()
         {
-            // Hoãn sang W9: màn này đỏ vì BỐ CỤC, ngoài phạm vi hành trình của đợt W8. Mọi câu assert bên dưới
-            // giữ nguyên — gỡ dòng của màn khỏi UxLayoutDeferralList là test chạy lại đầy đủ ngay lượt sau.
-            UxLayoutDeferralList.IgnoreWhenDeferred("add-event-popover");
-
             yield return RunScreen(new UxLayoutScreen("add-event-popover", LiveOpsHubSections.Ids.Calendar)
                 .WithSizes(Narrow700, Wide1440)
                 .WithAfterOpen(OpenAddEventPopover, true)
@@ -392,6 +369,12 @@ namespace DreamTech.LiveOps.Editor.Tests
         /// <summary>
         /// Danh sách HOÃN phải luôn đọc ra được việc: mỗi mục đúng một mã phiếu W9 riêng, đúng một màn riêng, có số chỗ và
         /// có lý do. Không có gác này thì "thêm một dòng hoãn" là cách rẻ nhất để làm một màn đỏ biến mất mà không ai thấy.
+        /// <para>
+        /// Kiểm từng mục là chưa đủ: mục thứ sáu với một mã phiếu mới và một lý do dài quá 40 ký tự vẫn qua được, tức danh
+        /// sách phình âm thầm. Vì vậy test còn khoá CẢ TẬP mã phiếu và CẢ TẬP màn vào đúng phần USER đã duyệt — muốn thêm
+        /// một màn thì phải sửa <see cref="ApprovedDeferralIds"/>/<see cref="ApprovedDeferralScreens"/>, và chỗ sửa đó
+        /// buộc người sửa đọc câu chốt của USER ngay trên đầu hai mảng.
+        /// </para>
         /// </summary>
         [Test]
         [Category(LiveOpsHubTestCategories.Logic)]
@@ -399,6 +382,8 @@ namespace DreamTech.LiveOps.Editor.Tests
         {
             HashSet<string> seenDeferralIds = new HashSet<string>();
             HashSet<string> seenScreenIds = new HashSet<string>();
+            List<string> actualDeferralIds = new List<string>();
+            List<string> actualScreenIds = new List<string>();
             foreach (UxLayoutDeferralEntry entry in UxLayoutDeferralList.All)
             {
                 StringAssert.IsMatch("^W9-[0-9][0-9]$", entry.DeferralId,
@@ -412,7 +397,16 @@ namespace DreamTech.LiveOps.Editor.Tests
                     "mục hoãn '" + entry.DeferralId + "' khai 0 chỗ không dùng được — màn đã xanh thì bỏ hoãn, đừng giữ lại");
                 Assert.Greater(entry.Reason.Length, 40,
                     "mục hoãn '" + entry.DeferralId + "' có lý do quá ngắn — phải nói RÕ vì sao đợt này không sửa");
+                actualDeferralIds.Add(entry.DeferralId);
+                actualScreenIds.Add(entry.ScreenId);
             }
+
+            CollectionAssert.AreEquivalent(ApprovedDeferralIds, actualDeferralIds,
+                "tập mã phiếu hoãn lệch phần USER đã duyệt 18/9/2026 (đúng 5 màn NGOÀI đợt) — thêm hay bớt một phiếu là "
+                + "đổi phạm vi của cổng, phải có câu trả lời của USER rồi mới sửa ApprovedDeferralIds");
+            CollectionAssert.AreEquivalent(ApprovedDeferralScreens, actualScreenIds,
+                "tập MÀN được hoãn lệch phần USER đã duyệt 18/9/2026 — màn TRONG đợt (Lịch, trục, Luật lặp) đỏ thì phải "
+                + "sửa, hoãn nó là tự cấp phép cho chính mình");
         }
 
         // ================================================================================================ chạy một màn
