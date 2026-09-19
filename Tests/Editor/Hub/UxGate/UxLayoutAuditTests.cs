@@ -52,11 +52,19 @@ namespace DreamTech.LiveOps.Editor.Tests
         private const float LegendContrastRatio = 3f;
 
         /// <summary>
-        /// Chú giải trục có BỐN dấu: cố định, lặp, đã khép, chồng nhau (<c>LiveOpsTimelineLegend</c> dựng đúng bốn mục). Khai số
-        /// này vào luật để phép đo không lặng lẽ thu còn ba: dấu "chồng nhau" khai màu CÓ ALPHA, và trước bản vá hợp thành alpha
-        /// nó là dấu duy nhất lọt lưới — một dấu vô hình vẫn cho cổng màu xanh (RC-06/2.4 mục 1).
+        /// Chú giải trục có BỐN dấu: cố định, lặp, đã khép, chồng nhau (<c>LiveOpsTimelineLegend</c> dựng đúng bốn mục). Khai
+        /// TỪNG LOẠI vào luật — không khai một con số tổng — để phép đo không lặng lẽ thu còn ba: lượt đo thật thấy bảy element
+        /// khớp selector chung vì dấu "cố định" lặp lại, nên ngưỡng tổng 4 vẫn XANH ngay cả khi dấu "chồng nhau" rơi khỏi phép
+        /// đo. Mà "chồng nhau" chính là dấu khai màu CÓ ALPHA, dấu duy nhất từng lọt lưới trước bản vá hợp thành — một dấu vô
+        /// hình vẫn cho cổng màu xanh (RC-06/2.4 mục 1; phát hiện A-02).
         /// </summary>
-        private const int LegendSampleCount = 4;
+        private static readonly string[] LegendSampleVariantSelectors =
+        {
+            "." + LiveOpsHubClassNames.TimelineLegendSampleFixed,
+            "." + LiveOpsHubClassNames.TimelineLegendSampleRecurring,
+            "." + LiveOpsHubClassNames.TimelineLegendSampleEnded,
+            "." + LiveOpsHubClassNames.TimelineLegendSampleOverlap,
+        };
 
         /// <summary>Số nấc ⌘+lăn dựng hai mức thu phóng khác mặc định cho lượt kiểm nhãn thước (UX-17).</summary>
         private const int RulerZoomInNotches = -6;
@@ -323,7 +331,7 @@ namespace DreamTech.LiveOps.Editor.Tests
                 .WithSizes(Wide1440)
                 .WithRequiredElements("." + LiveOpsHubClassNames.TimelineLegend)
                 .WithContrastRules(new UxLayoutContrastRule("." + LiveOpsHubClassNames.TimelineLegendSample, LegendContrastRatio,
-                    LegendSampleCount))
+                    LegendSampleVariantSelectors))
                 .WithScreenRulesOnly());
         }
 

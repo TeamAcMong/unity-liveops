@@ -96,22 +96,24 @@ namespace DreamTech.LiveOps.Editor.Tests
     /// </summary>
     internal readonly struct UxLayoutContrastRule
     {
-        public UxLayoutContrastRule(string selector, float minimumRatio, int expectedTargetCount)
+        public UxLayoutContrastRule(string selector, float minimumRatio, IReadOnlyList<string> requiredVariantSelectors)
         {
             Selector = selector;
             MinimumRatio = minimumRatio;
-            ExpectedTargetCount = expectedTargetCount;
+            RequiredVariantSelectors = requiredVariantSelectors;
         }
 
         public string Selector { get; }
         public float MinimumRatio { get; }
 
         /// <summary>
-        /// Số element mà luật này PHẢI đo được. Vì sao khai thành số chứ không chỉ "phải có ít nhất một": chú giải trục có BỐN
-        /// dấu (cố định / lặp / đã khép / chồng nhau); khai "≥ 1" thì một lượt chỉ đo được ba dấu vẫn XANH, và dấu thứ tư mất
-        /// khỏi phép đo mà không ai biết — đúng hạng lỗi "cổng hỏng thành cổng xanh" mà W8-UX mở ra để diệt (RC-06/2.4).
+        /// Selector của TỪNG LOẠI dấu mà luật này phải đo được ít nhất một element (chú giải trục: cố định / lặp / đã khép /
+        /// chồng nhau). Vì sao khai danh sách selector chứ không khai một con số tổng rồi so "≥": đếm tổng không phân biệt nổi
+        /// "đủ bốn loại" với "một loại xuất hiện bốn lần". Lượt đo thật thấy BẢY element khớp selector chung (dấu "cố định" lặp
+        /// lại ở nhiều chỗ), nên ngưỡng tổng 4 vẫn cho màu XANH ngay cả khi dấu "chồng nhau" — dấu MỜ NHẤT, dấu duy nhất khai
+        /// màu có alpha, và đúng dấu vừa lộ ra lỗi hợp thành — biến mất khỏi phép đo (RC-06/2.4; phát hiện A-02).
         /// </summary>
-        public int ExpectedTargetCount { get; }
+        public IReadOnlyList<string> RequiredVariantSelectors { get; }
     }
 
     /// <summary>
@@ -304,6 +306,15 @@ namespace DreamTech.LiveOps.Editor.Tests
 
         /// <summary>Sai số layout cho phép (px) — UI Toolkit làm tròn theo pixelsPerPoint nên 1 px lệch là bình thường.</summary>
         private const float LayoutTolerance = 1.5f;
+
+        /// <summary>Dưới mức alpha này thì nền coi như trong suốt — không có gì để đo tương phản.</summary>
+        private const float MinimumMeasurableAlpha = 0.05f;
+
+        /// <summary>Kênh màu của nền cửa sổ Editor skin tối (#383838) — xem <see cref="WindowBackground"/>.</summary>
+        private const float DarkWindowBackgroundChannel = 56f / 255f;
+
+        /// <summary>Kênh màu của nền cửa sổ Editor skin sáng (#C8C8C8) — xem <see cref="WindowBackground"/>.</summary>
+        private const float LightWindowBackgroundChannel = 200f / 255f;
 
         /// <summary>
         /// Sai số RIÊNG cho nhánh đo chữ. <c>MeasureTextSize</c> làm tròn theo atlas font và theo pixelsPerPoint, nên nó lệch
@@ -593,7 +604,7 @@ namespace DreamTech.LiveOps.Editor.Tests
                 }
             }
             if (reason == null && IsElided(text)) reason = "isElided";
-            bool clipped = IsClippedByAncestor(text, bound, out string clipper);
+            bool clipped = IsClippedByAncestor(text, bound, result.RootBound, out string clipper);
             if (reason == null && !clipped) return;
             Add(result, result.TextCut, UxLayoutFindingKinds.TextCut, text,
                 Describe(text) + " " + (reason ?? string.Empty) + (clipped ? " | bị cha cắt: " + clipper : string.Empty)
@@ -756,13 +767,11 @@ namespace DreamTech.LiveOps.Editor.Tests
             foreach (UxLayoutContrastRule rule in rules)
             {
                 List<VisualElement> targets = FindAllBySelector(root, rule.Selector);
-                int measuredCount = 0;
                 foreach (VisualElement target in targets)
                 {
                     if (!IsShownOnScreen(target)) continue;
                     Color declared = target.resolvedStyle.backgroundColor;
-                    if (declared.a < 0.05f) continue;
-                    measuredCount++;
+                    if (declared.a < MinimumMeasurableAlpha) continue;
                     Color background = BackdropOf(target);
                     // Màu CÓ ALPHA không phải màu mắt người nhìn thấy. Dấu --overlap khai rgba(240,84,84,0.16): đo thẳng như màu
                     // đục ra 3,41:1 (ĐẠT) nhưng hợp thành thật trên nền #383838 ra #553C3C = 1,17:1 (TRƯỢT). Không hợp thành thì
@@ -775,10 +784,30 @@ namespace DreamTech.LiveOps.Editor.Tests
                         + Number(rule.MinimumRatio) + ":1) — dấu " + ColorText(declared) + " hợp thành ra " + ColorText(seen)
                         + " trên nền " + ColorText(background));
                 }
-                if (measuredCount >= rule.ExpectedTargetCount) continue;
+                CheckContrastVariantsMeasured(root, result, rule);
+            }
+        }
+
+        /// <summary>
+        /// Mỗi LOẠI dấu mà luật khai phải đo được ít nhất một element. Kiểm theo loại chứ không theo tổng vì một loại lặp lại
+        /// nhiều lần che được chỗ của một loại đã biến mất — xem <see cref="UxLayoutContrastRule.RequiredVariantSelectors"/>.
+        /// </summary>
+        private static void CheckContrastVariantsMeasured(VisualElement root, UxLayoutAuditResult result, UxLayoutContrastRule rule)
+        {
+            if (rule.RequiredVariantSelectors == null) return;
+            foreach (string variantSelector in rule.RequiredVariantSelectors)
+            {
+                int measuredCount = 0;
+                foreach (VisualElement target in FindAllBySelector(root, variantSelector))
+                {
+                    if (!IsShownOnScreen(target)) continue;
+                    if (target.resolvedStyle.backgroundColor.a < MinimumMeasurableAlpha) continue;
+                    measuredCount++;
+                }
+                if (measuredCount > 0) continue;
                 Add(result, result.LowContrast, UxLayoutFindingKinds.LowContrast, root,
-                    rule.Selector + ": chỉ đo được " + measuredCount + " dấu, luật khai " + rule.ExpectedTargetCount
-                    + " — dấu thiếu không được kiểm màu, luật của màn im lặng bỏ qua nó");
+                    variantSelector + ": không đo được dấu nào (luật " + rule.Selector
+                    + ") — loại dấu này rơi khỏi phép đo màu, luật của màn im lặng bỏ qua nó");
             }
         }
 
@@ -814,7 +843,23 @@ namespace DreamTech.LiveOps.Editor.Tests
                 Color color = ancestor.resolvedStyle.backgroundColor;
                 if (color.a > 0.95f) return color;
             }
-            return EditorGUIUtility.isProSkin ? new Color(0.22f, 0.22f, 0.22f, 1f) : new Color(0.8f, 0.8f, 0.8f, 1f);
+            return WindowBackground(EditorGUIUtility.isProSkin);
+        }
+
+        /// <summary>
+        /// Nền cửa sổ Editor theo skin: #383838 (tối) / #C8C8C8 (sáng) — đúng hai con số mà chú thích của
+        /// <c>liveops-hub-theme.uss</c> lấy làm nền quy chiếu khi chọn màu token.
+        /// <para>
+        /// Vì sao gom thành MỘT hàm dùng chung: bản cũ trả 0,8 (#CCCCCC) cho skin sáng trong khi bảng của
+        /// <c>UxContrastTokenTests</c> khai #C8C8C8. Lệch 4/255 ấy LẬT phán quyết của <c>--liveops-hub-color-quiet</c> ở skin
+        /// sáng (#555555 cho 4,46:1 trên #C8C8C8 — TRƯỢT, nhưng 4,64:1 trên #CCCCCC — ĐẠT) mà không ca nào bắt được, vì phép tự
+        /// kiểm hằng nền chỉ chạy được ở skin ĐANG CHẠY (phát hiện A-01). Một nguồn sự thật thì hai chỗ không lệch được nữa.
+        /// </para>
+        /// </summary>
+        internal static Color WindowBackground(bool proSkin)
+        {
+            float channel = proSkin ? DarkWindowBackgroundChannel : LightWindowBackgroundChannel;
+            return new Color(channel, channel, channel, 1f);
         }
 
         /// <summary>
@@ -854,7 +899,17 @@ namespace DreamTech.LiveOps.Editor.Tests
         private static string ColorText(Color color)
         {
             return "rgba(" + Number(color.r * 255f) + "," + Number(color.g * 255f) + "," + Number(color.b * 255f) + ","
-                + Number(color.a) + ")";
+                + AlphaText(color.a) + ")";
+        }
+
+        /// <summary>
+        /// Alpha in ĐỦ hai chữ số thập phân. Vì sao không dùng <see cref="Number"/>: nó làm tròn một chữ số, nên dấu khai alpha
+        /// 0,16 in ra "0.2" và câu chẩn đoán hợp thành tự nói sai đầu vào của chính nó — người đọc suy ngược từ 0,2 ra một màu
+        /// hợp thành khác và tưởng phép hợp thành hỏng (phát hiện A-09).
+        /// </summary>
+        private static string AlphaText(float alpha)
+        {
+            return float.IsNaN(alpha) || float.IsInfinity(alpha) ? "0" : alpha.ToString("0.00", CultureInfo.InvariantCulture);
         }
 
         private static void Add(UxLayoutAuditResult result, List<UxLayoutFinding> entries, string kind, VisualElement owner, string entry)
@@ -987,7 +1042,7 @@ namespace DreamTech.LiveOps.Editor.Tests
         /// nhìn thì con đó biến mất thật và không có cách nào kéo tới — đó vẫn là lỗi, không được miễn trừ.
         /// </para>
         /// </summary>
-        private static bool IsScrollableContentViewport(VisualElement ancestor)
+        private static bool IsScrollableContentViewport(VisualElement ancestor, Rect bound)
         {
             if (ancestor == null) return false;
             // Đi LÊN tìm ScrollView chứ không hỏi thẳng cha: đo thật trên 6000.6 thì cha của #unity-content-viewport là
@@ -1001,26 +1056,60 @@ namespace DreamTech.LiveOps.Editor.Tests
                 // Chỉ đúng KHUNG NHÌN của ScrollView gần nhất mới được miễn trừ: một element cắt con bất kỳ nằm lọt trong
                 // ScrollView vẫn cắt thật, không mượn được lý do "cuộn xuống là thấy".
                 if (scrollView.contentViewport != ancestor) return false;
-                return IsSelfShown(scrollView.verticalScroller);
+                if (!IsSelfShown(scrollView.verticalScroller)) return false;
+                return IsInsideScrollableContent(scrollView, bound);
             }
             return false;
         }
 
-        private static bool IsClippedByAncestor(VisualElement element, Rect bound, out string clipper)
+        /// <summary>
+        /// Element có nằm trong TẦM CUỘN không. Cuộn hết cỡ thì đáy hộp nội dung chạm đáy khung nhìn và đỉnh hộp chạm đỉnh, nên
+        /// thứ nằm ngoài hộp nội dung theo chiều dọc KHÔNG có nấc cuộn nào kéo vào được — vẫn là chữ bị cắt thật.
+        /// <para>
+        /// Vì sao không dừng ở "thanh cuộn dọc đang hiện": câu hỏi ấy là "có cuộn được không", không phải "cuộn tới có thấy
+        /// không". Hàng cuối của form Luật lặp nằm dưới đáy hộp nội dung đúng 9px ở cả tám ảnh chụp và ở cả hai bản Unity; luật
+        /// cũ không phân biệt được nó với một hàng nằm gọn trong tầm cuộn (phát hiện A-05).
+        /// </para>
+        /// </summary>
+        private static bool IsInsideScrollableContent(ScrollView scrollView, Rect bound)
+        {
+            Rect content = scrollView.contentContainer.worldBound;
+            return bound.yMax <= content.yMax + LayoutTolerance && bound.yMin >= content.yMin - LayoutTolerance;
+        }
+
+        /// <param name="rootBound">
+        /// Khung của root màn, để kẻ cắt in ra CÙNG hệ toạ độ với element trong câu chẩn đoán. Bản cũ in
+        /// <c>RectText(clip, clip)</c> nên mọi kẻ cắt đều ra "(0,0 rộngxcao)" — mất vị trí, và không người soát nào đối chiếu
+        /// được một miễn trừ từ JSON (phát hiện A-04).
+        /// </param>
+        private static bool IsClippedByAncestor(VisualElement element, Rect bound, Rect rootBound, out string clipper)
         {
             clipper = null;
+            // Đã đi qua một khung nhìn cuộn được: từ đây lên trên, vị trí DỌC của element không còn nói lên điều gì (cuộn một
+            // nấc là nó đổi chỗ), nhưng vị trí NGANG thì vẫn đo được — cuộn dọc không dời element theo chiều ngang. Bản cũ
+            // "return false" ngay tại chỗ miễn trừ nên không cha nào phía trên khung nhìn còn được kiểm cắt (phát hiện A-08).
+            bool scrolledOutOfViewport = false;
             for (VisualElement ancestor = element.hierarchy.parent; ancestor != null; ancestor = ancestor.hierarchy.parent)
             {
                 bool clips = ancestor is ScrollView || ClipsChildren(ancestor);
                 if (!clips) continue;
                 Rect clip = ancestor.worldBound;
-                bool outside = bound.xMax > clip.xMax + LayoutTolerance || bound.xMin < clip.xMin - LayoutTolerance
-                    || bound.yMax > clip.yMax + LayoutTolerance || bound.yMin < clip.yMin - LayoutTolerance;
-                if (!outside) return false;
-                // Chữ cuộn ra khỏi lằn cuộn theo chiều DỌC là bình thường khi ScrollView cuộn được; chỉ ngang mới là cắt.
                 bool insideHorizontally = bound.xMax <= clip.xMax + LayoutTolerance && bound.xMin >= clip.xMin - LayoutTolerance;
-                if (insideHorizontally && (ancestor is ScrollView || IsScrollableContentViewport(ancestor))) return false;
-                clipper = Describe(ancestor) + " " + RectText(clip, clip);
+                bool insideVertically = bound.yMax <= clip.yMax + LayoutTolerance && bound.yMin >= clip.yMin - LayoutTolerance;
+                if (scrolledOutOfViewport)
+                {
+                    if (insideHorizontally) continue;
+                    clipper = Describe(ancestor) + " " + RectText(clip, rootBound);
+                    return true;
+                }
+                if (insideHorizontally && insideVertically) return false;
+                // Chữ cuộn ra khỏi lằn cuộn theo chiều DỌC là bình thường khi ScrollView cuộn tới được; chỉ ngang mới là cắt.
+                if (insideHorizontally && (ancestor is ScrollView || IsScrollableContentViewport(ancestor, bound)))
+                {
+                    scrolledOutOfViewport = true;
+                    continue;
+                }
+                clipper = Describe(ancestor) + " " + RectText(clip, rootBound);
                 return true;
             }
             return false;
