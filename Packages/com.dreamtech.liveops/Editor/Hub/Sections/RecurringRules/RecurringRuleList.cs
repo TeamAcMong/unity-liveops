@@ -85,16 +85,22 @@ namespace DreamTech.LiveOps.Editor
                 name.AddToClassList(LiveOpsHubClassNames.RecurringListName);
                 button.Add(name);
 
-                Label meta = new Label(row.MetaText);
-                meta.AddToClassList(LiveOpsHubClassNames.RecurringListMeta);
-                button.Add(meta);
-
+                // (RC-06c) Dấu mức xếp TRƯỚC meta. Pane trái rộng cố định 240: tên luật (không được co) cộng meta
+                // "mỗi 24 giờ · chạy 20 giờ" (cần tới 145) không phải lúc nào cũng lọt MỘT hàng, nên USS cho meta
+                // xuống dòng dưới khi hết chỗ (flex-wrap ở .liveops-hub-recurring-list-row). Dấu mức phải đứng trước
+                // meta thì nó mới ở lại DÒNG TRÊN cùng tên — xếp sau meta là nó bị kéo xuống theo và cái hàng khoe
+                // "luật này có vấn đề" lại nằm chỗ mắt không quét tới.
+                // Thứ tự con là thứ quyết định dòng nào chứa gì, nên nó nằm ở đây chứ không nằm ở USS.
                 if (row.Severity.HasValue)
                 {
                     LiveOpsStateMark mark = new LiveOpsStateMark { Size = LiveOpsStateMark.MarkSize.Small };
                     mark.SetHealth(row.Severity.Value);
                     button.Add(mark);
                 }
+
+                Label meta = new Label(row.MetaText);
+                meta.AddToClassList(LiveOpsHubClassNames.RecurringListMeta);
+                button.Add(meta);
 
                 _scroll.contentContainer.Add(button);
                 _rowButtons.Add(button);
