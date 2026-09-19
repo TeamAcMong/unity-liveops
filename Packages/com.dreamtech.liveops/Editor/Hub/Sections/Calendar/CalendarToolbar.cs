@@ -38,7 +38,9 @@ namespace DreamTech.LiveOps.Editor
         private readonly ToolbarMenu _snapMenu;
         private readonly LiveOpsTabStrip _zoomTabs;
         private readonly ToolbarSearchField _search;
-        private readonly Label _hiddenLanesChip;
+        private readonly VisualElement _hiddenLanesChip;
+        private readonly Label _hiddenLanesLabel;
+        private readonly ToolbarButton _hiddenLanesShowButton;
         private readonly ToolbarToggle _listToggle;
         private readonly ToolbarToggle _compareToggle;
         private readonly Label _compareDisabledReason;
@@ -103,6 +105,8 @@ namespace DreamTech.LiveOps.Editor
             _host.Add(_zoomMenu);
 
             _snapMenu = new ToolbarMenu();
+            // (UX-29) Class riêng để luật --narrow đưa menu này vào ⋮: ở 820px nó chiếm chỗ của ô tìm.
+            _snapMenu.AddToClassList(LiveOpsHubClassNames.CalendarDepthSnapMenu);
             AppendSnapChoice(CalendarSnapMode.Automatic, LiveOpsHubStrings.CalendarSnapAuto);
             AppendSnapChoice(CalendarSnapMode.FifteenMinutes, LiveOpsHubStrings.CalendarSnapFifteenMinutes);
             AppendSnapChoice(CalendarSnapMode.Hour, LiveOpsHubStrings.CalendarSnapHour);
@@ -126,8 +130,20 @@ namespace DreamTech.LiveOps.Editor
             _compareDisabledReason.AddToClassList(LiveOpsHubClassNames.CalendarHidden);
             _host.Add(_compareDisabledReason);
 
-            _hiddenLanesChip = new Label();
+            // (UX-12, UJ-07) Chip "Đang ẩn n làn · Hiện" là NHÃN + NÚT, không phải một Label mang cả câu: chữ "Hiện" trong một
+            // Label trông y như một nút nhưng không nhận chuột, nên người dùng bấm mãi không có gì xảy ra.
+            _hiddenLanesChip = new VisualElement();
             _hiddenLanesChip.AddToClassList(LiveOpsHubClassNames.CalendarHiddenLanesChip);
+            _hiddenLanesLabel = new Label();
+            _hiddenLanesLabel.AddToClassList(LiveOpsHubClassNames.CalendarDepthHiddenLanesLabel);
+            _hiddenLanesChip.Add(_hiddenLanesLabel);
+            _hiddenLanesShowButton = new ToolbarButton(() => ShowHiddenLanesRequested?.Invoke())
+            {
+                text = LiveOpsHubStrings.CalendarDepthShowHiddenLanesButton,
+                tooltip = LiveOpsHubStrings.CalendarDepthShowHiddenLanesTooltip,
+            };
+            _hiddenLanesShowButton.AddToClassList(LiveOpsHubClassNames.CalendarDepthHiddenLanesShowButton);
+            _hiddenLanesChip.Add(_hiddenLanesShowButton);
             _host.Add(_hiddenLanesChip);
             _hiddenLanesChip.AddToClassList(LiveOpsHubClassNames.CalendarHidden);
 
@@ -155,6 +171,19 @@ namespace DreamTech.LiveOps.Editor
                 _ => _rangeContainsToday ? DropdownMenuAction.Status.Disabled : DropdownMenuAction.Status.Normal);
             _overflowMenu.menu.AppendAction(LiveOpsHubStrings.CalendarDepthLegendToggle, _ => SetLegendVisible(!_isLegendVisible),
                 _ => _isLegendVisible ? DropdownMenuAction.Status.Checked : DropdownMenuAction.Status.Normal);
+            // (UX-29) Hai mục vừa bị luật --narrow ẩn khỏi thanh phải có đường vào ở đây, không thì cửa sổ hẹp MẤT hẳn tính năng.
+            // Nhãn mục menu KHÔNG mang số: DropdownMenu chốt nhãn lúc append, nên in "(5)" ở đây là in một con số đóng băng từ
+            // lúc dựng toolbar. Số thay đổi vẫn đọc được ở chính nút khi cửa sổ đủ rộng.
+            _overflowMenu.menu.AppendAction(LiveOpsHubStrings.CalendarDepthCompareMenuItem,
+                _ => ComparePaneToggled?.Invoke(!_compareToggle.value),
+                _ => !_compareToggle.enabledSelf
+                    ? DropdownMenuAction.Status.Disabled
+                    : (_compareToggle.value ? DropdownMenuAction.Status.Checked : DropdownMenuAction.Status.Normal));
+            AppendSnapOverflowChoice(CalendarSnapMode.Automatic, LiveOpsHubStrings.CalendarSnapAuto);
+            AppendSnapOverflowChoice(CalendarSnapMode.FifteenMinutes, LiveOpsHubStrings.CalendarSnapFifteenMinutes);
+            AppendSnapOverflowChoice(CalendarSnapMode.Hour, LiveOpsHubStrings.CalendarSnapHour);
+            AppendSnapOverflowChoice(CalendarSnapMode.Day, LiveOpsHubStrings.CalendarSnapDay);
+            AppendSnapOverflowChoice(CalendarSnapMode.Off, LiveOpsHubStrings.CalendarSnapOff);
             _host.Add(_overflowMenu);
 
             SetSnapMode(CalendarSnapMode.Automatic);
@@ -182,6 +211,9 @@ namespace DreamTech.LiveOps.Editor
         /// <summary>Mục "Chú giải" của menu ⋮ — dải chú giải bị USS ẩn ở cửa sổ hẹp, mục này bật lại khi cần tra ký hiệu.</summary>
         public event Action<bool> LegendVisibilityChanged;
 
+        /// <summary>(UX-12) Nút "Hiện" của chip làn ẩn — màn trả lời bằng <c>ShowAllLanes</c>.</summary>
+        public event Action ShowHiddenLanesRequested;
+
         public CalendarSnapMode SnapMode { get; private set; } = CalendarSnapMode.Automatic;
 
         public LiveOpsTimelineZoom Zoom => ZoomOf(_zoomTabs.SelectedIndex);
@@ -191,7 +223,9 @@ namespace DreamTech.LiveOps.Editor
         internal ToolbarMenu RangeMenu => _rangeMenu;
         internal ToolbarMenu SnapMenu => _snapMenu;
         internal LiveOpsTabStrip ZoomTabs => _zoomTabs;
-        internal Label HiddenLanesChip => _hiddenLanesChip;
+        internal VisualElement HiddenLanesChip => _hiddenLanesChip;
+        internal Label HiddenLanesLabel => _hiddenLanesLabel;
+        internal ToolbarButton HiddenLanesShowButton => _hiddenLanesShowButton;
         internal ToolbarToggle ListToggle => _listToggle;
         internal ToolbarToggle CompareToggle => _compareToggle;
         internal Label CompareDisabledReason => _compareDisabledReason;
@@ -284,8 +318,8 @@ namespace DreamTech.LiveOps.Editor
         {
             _hiddenLanesChip.EnableInClassList(LiveOpsHubClassNames.CalendarHidden, hiddenLaneCount <= 0);
             if (hiddenLaneCount <= 0) return;
-            _hiddenLanesChip.text = LiveOpsHubStringCatalog.Format(nameof(LiveOpsHubStrings.CalendarHiddenLanesChipFormat),
-                hiddenLaneCount);
+            _hiddenLanesLabel.text = LiveOpsHubStringCatalog.Format(
+                nameof(LiveOpsHubStrings.CalendarDepthHiddenLanesLabelFormat), hiddenLaneCount);
         }
 
         /// <summary>
@@ -328,6 +362,17 @@ namespace DreamTech.LiveOps.Editor
                 SetSnapMode(mode);
                 SnapModeChanged?.Invoke(mode);
             });
+        }
+
+        /// <summary>(UX-29) Cùng năm lựa chọn bắt lưới trong menu ⋮ — cửa sổ hẹp giấu menu Bắt lưới khỏi thanh, không giấu lệnh.</summary>
+        private void AppendSnapOverflowChoice(CalendarSnapMode mode, string label)
+        {
+            _overflowMenu.menu.AppendAction(string.Format(CultureInfo.InvariantCulture,
+                LiveOpsHubStrings.CalendarDepthSnapMenuItemFormat, label), _ =>
+            {
+                SetSnapMode(mode);
+                SnapModeChanged?.Invoke(mode);
+            }, _ => SnapMode == mode ? DropdownMenuAction.Status.Checked : DropdownMenuAction.Status.Normal);
         }
 
         private static string LabelOf(CalendarSnapMode mode)

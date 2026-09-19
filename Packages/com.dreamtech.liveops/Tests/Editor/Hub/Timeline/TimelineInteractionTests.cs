@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Reflection;
 using DreamTech.LiveOps.Tests;
 using DreamTech.LiveOps.Unity;
@@ -27,6 +28,9 @@ namespace DreamTech.LiveOps.Editor.Tests
     {
         private static readonly DateTime HuntBonusStartUtc = new DateTime(2026, 9, 16, 12, 0, 0, DateTimeKind.Utc);
 
+        /// <summary>Bề ngang track của Hình 1 [SD1 §3.3] — cùng con số mà TimelineGeometryTests dựng model mẫu.</summary>
+        private const float DesignTrackWidth = 635f;
+
         private TimelineTestPanel _panel;
 
         [TearDown]
@@ -50,6 +54,38 @@ namespace DreamTech.LiveOps.Editor.Tests
         private LiveOpsTimelineElement Element => _panel.Harness.Element;
 
         // ------------------------------------------------------------------------------------------------ kéo (V-10, Hình 12 khung 5–7)
+
+        /// <summary>
+        /// Đợt ĐÃ KHÉP không bắt đầu kéo được — bất biến của <c>LiveOpsTimelineDragController.BeginBar</c> mà mọi ca kéo của
+        /// cổng W8-UX dựa vào khi CHỌN thanh đích (G-UX2-DRAG đổi năm ca sang lava-quest-2026-09b chính vì 09a đã khép).
+        /// <para>
+        /// Vì sao cần ca này (soát R5): hai chỗ gọi <c>BeginBar</c> còn lại trong test chỉ khẳng định chiều TRUE, và từ khi
+        /// các ca hành trình thôi chạm thanh đã khép thì bỏ hẳn điều kiện <c>IsEnded</c> đi vẫn không test nào đỏ — trong khi
+        /// màn sẽ cho người dùng kéo lại một đợt đã xong.
+        /// </para>
+        /// </summary>
+        [Test]
+        public void BeginBar_EndedBar_ReturnsFalse()
+        {
+            LiveOpsTimelineModel model = TimelineDesignSampleInput.ThreeWeeks(DesignTrackWidth).Build();
+            LiveOpsTimelineLaneModel lane = model.FindLane("lava-quest");
+            Assert.IsNotNull(lane, "mẫu thiết kế phải có làn lava-quest");
+            LiveOpsTimelineBarModel endedBar = TimelineTestQueries.Single(lane.Bars, bar => bar.EventId == "lava-quest-2026-09a");
+            LiveOpsTimelineBarModel upcomingBar = TimelineTestQueries.Single(lane.Bars, bar => bar.EventId == "lava-quest-2026-09b");
+            Assert.IsTrue(endedBar.IsEnded,
+                "điều kiện của ca này: lava-quest-2026-09a khép lúc 13/9 00:00, trước mốc bây giờ 13/9 08:47 của mẫu thiết kế");
+            Assert.IsFalse(upcomingBar.IsEnded, "điều kiện đối chứng: lava-quest-2026-09b (17/9 →) chưa khép");
+            LiveOpsTimelineGeometry geometry = model.Geometry;
+            LiveOpsTimelineDragController controller = new LiveOpsTimelineDragController();
+
+            Assert.IsFalse(controller.BeginBar(lane, geometry, endedBar, LiveOpsTimelineBarRegion.Body,
+                geometry.XOf(endedBar.StartUtc)), "đợt đã khép: kéo thân không được bắt đầu cử chỉ nào");
+            Assert.IsFalse(controller.BeginBar(lane, geometry, endedBar, LiveOpsTimelineBarRegion.EndEdge,
+                geometry.XOf(endedBar.EndUtc)), "đợt đã khép: kéo mép cuối cũng không được bắt đầu cử chỉ nào");
+            Assert.IsTrue(controller.BeginBar(lane, geometry, upcomingBar, LiveOpsTimelineBarRegion.Body,
+                geometry.XOf(upcomingBar.StartUtc)), "đối chứng: đợt chưa bắt đầu trong cùng làn thì kéo được");
+            LogAssert.NoUnexpectedReceived();
+        }
 
         [UnityTest]
         public IEnumerator Drag_BodyPreviewCommit_RaisesOneCommitIntent()
@@ -167,11 +203,17 @@ namespace DreamTech.LiveOps.Editor.Tests
             Assert.AreEqual(new DateTime(2026, 9, 17, 0, 0, 0, DateTimeKind.Utc), lane.DrawnOverlaps[0].startUtc);
             Assert.AreEqual(new DateTime(2026, 9, 17, 12, 0, 0, DateTimeKind.Utc), lane.DrawnOverlaps[0].endUtc);
             Assert.AreEqual("Kết thúc 17/9 12:00 UTC", Element.ReadoutText.text, "readout Hình 12 khung 7 (vế giờ)");
-            Assert.AreEqual(" · chồng 12 giờ với hunt-0916-bonus", Element.ReadoutOverlap.text, "vế chồng giờ chữ blocked");
+            // (UX-18, T2) Dấu ngăn dính vào chữ, khe trái do USS: khoảng trắng ĐẦU Label bị bỏ khi dựng chữ nên bản cũ
+            // (" · chồng…") vẽ ra "UTC· chồng 12 giờ".
+            Assert.AreEqual("· chồng 12 giờ với hunt-0916-bonus", Element.ReadoutOverlap.text, "vế chồng giờ chữ blocked");
             Assert.IsTrue(Element.ReadoutOverlap.ClassListContains(LiveOpsHubClassNames.TextBlocked));
             VisualElement willDropTag = TimelineTestQueries.Single(lane.Query<VisualElement>(className: LiveOpsHubClassNames.TimelineDroppedTagWillDrop).ToList(),
                 tag => !tag.ClassListContains(LiveOpsHubClassNames.TimelineHidden));
-            Assert.AreEqual(LiveOpsHubStrings.TimelineWillDropTag, willDropTag.Q<Label>().text, "tag \"sẽ bị bỏ\"");
+            // (UX-31, UJ-24) bonus hẹp nên nhãn id không nằm trong thân thanh — tag phải nói cả id lẫn trạng thái.
+            Assert.AreEqual(
+                string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.TimelineDroppedTagWithIdFormat,
+                    bonus.Model.EventId, LiveOpsHubStrings.TimelineWillDropTag),
+                willDropTag.Q<Label>().text, "tag \"sẽ bị bỏ\" của thanh hẹp");
 
             _panel.SendMouse(EventType.MouseUp, endEdge + new Vector2(twelveHours, 0f));
             MoveBarIntent commit = TimelineTestQueries.Single(Harness.IntentsOf<MoveBarIntent>(), move => move.IsCommit);

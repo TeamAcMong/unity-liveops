@@ -31,6 +31,7 @@ namespace DreamTech.LiveOps.Editor.Tests
             RegisterShellPolish(scenarios);
             RegisterOptTimeline(scenarios);
             RegisterShortcutHelp(scenarios);
+            RegisterUxSizes(scenarios);
 
             HashSet<string> ids = new HashSet<string>(StringComparer.Ordinal);
             foreach (LiveOpsHubCaptureScenario scenario in scenarios)
@@ -70,5 +71,8 @@ namespace DreamTech.LiveOps.Editor.Tests
         static partial void RegisterShellPolish(List<LiveOpsHubCaptureScenario> scenarios);
         static partial void RegisterOptTimeline(List<LiveOpsHubCaptureScenario> scenarios);
         static partial void RegisterShortcutHelp(List<LiveOpsHubCaptureScenario> scenarios);
+
+        /// <summary>Ma trận cỡ cửa sổ của đợt W8-UX (§3.4) — bí danh <c>capture.sh --scenarios ux-sizes</c>.</summary>
+        static partial void RegisterUxSizes(List<LiveOpsHubCaptureScenario> scenarios);
     }
 }

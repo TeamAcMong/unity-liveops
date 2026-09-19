@@ -28,10 +28,11 @@ Kế hoạch gốc: `IMPLEMENTATION_PLAN.md` mục 9.4–9.6 (kiểm chứng), 1
 | `unity-slot.sh [--timeout S] [--label …] -- <lệnh>` | khoá `~/.cache/unity-liveops/slots/slot-{1..N}` + `projects/<băm project>` (một lệnh mỗi `-projectPath`, giữ suốt lệnh) bằng `mkdir`; khoá ghi pid wrapper **và** pid lệnh con (sống khi một trong hai sống — wrapper bị SIGKILL không làm mất khoá); dọn mồ côi bằng dấu `reaping` + `mv` nguyên tử; INT/TERM dừng lệnh con trước khi trả khoá; bọc `perl alarm` | `--status`, `--clean`, `--self-test`; `LIVEOPS_UNITY_SLOTS` 1–3; hết hạn giờ thoát 142 |
 | `make-worktree.sh <gói>` | `git worktree add ../unity-liveops-wt/<gói> -b wt/<gói> feature/liveops-hub-p1` + `cp -c -R Library` | `--remove <gói>` từ chối khi còn thay đổi/commit chưa merge (trừ `--force`) |
 | `make-temp-project-2022.sh [--bootstrap]` | project 2022.3 tạm `~/.cache/unity-liveops/temp-2022/<gói>` trỏ `file:` vào package của worktree | `--bootstrap` import một lần + chép `nunit.framework.dll`, `UnityEngine/UnityEditor.TestRunner.dll` vào cache |
-| `run-editmode.sh --unity 6000\|2022 [--category Logic\|UI\|all] [--filter regex]` | chạy test qua slot, đọc XML, in `N passed / M failed / K skipped` | thoát ≠ 0 khi fail, thiếu XML, total = 0 (trừ `--allow-empty`), hoặc log có `error CS`. `--category-mode fixture` là dự phòng SP-15 |
+| `run-editmode.sh --unity 6000\|2022 [--category Logic\|UI\|UxGate\|all] [--filter regex]` | chạy test qua slot, đọc XML, in `N passed / M failed / K skipped` | thoát ≠ 0 khi fail, thiếu XML, total = 0 (trừ `--allow-empty`), hoặc log có `error CS`. `--category-mode fixture` là dự phòng SP-15. `--category UxGate` = cổng W8-UX (luôn có đồ hoạ); script export `LIVEOPS_UX_GATE_LABEL` theo tên gói để JSON chẩn đoán của hai lượt không đè nhau |
 | `run-playmode.sh` | PlayMode demo trên 6000.6 | dùng chung phần đọc XML của `run-editmode.sh` |
-| `capture.sh --unity … --scenarios id,…\|registered --label …` | chụp `LiveOpsHubCaptureCommand.CaptureFromCommandLine` × skin × bản, rồi `measure-capture.py`; mỗi skin một lượt Unity, EditorPrefs `UserSkin` đặt trước lượt dưới khoá `slots/skin-preference/` và trả lại sau lượt/trong trap (SP-4: không đổi skin giữa phiên) | `--dry-run` in lệnh; ra `~/.cache/unity-liveops/captures/<nhãn>/<bản>/` |
+| `capture.sh --unity … --scenarios id,…\|registered\|ux-sizes --label …` | chụp `LiveOpsHubCaptureCommand.CaptureFromCommandLine` × skin × bản, rồi `measure-capture.py`; mỗi skin một lượt Unity, EditorPrefs `UserSkin` đặt trước lượt dưới khoá `slots/skin-preference/` và trả lại sau lượt/trong trap (SP-4: không đổi skin giữa phiên) | `--dry-run` in lệnh; ra `~/.cache/unity-liveops/captures/<nhãn>/<bản>/`; bí danh `ux-sizes` = 18 ảnh ma trận cỡ cửa sổ W8-UX |
 | `measure-capture.py <thư mục>` | đo PNG gốc: khung (rail 196, header 26, section header 36, status 20, nội dung 1084) bằng dò cạnh ≥ 2 đường mẫu (khung có viền 1 px: lấy mép ngoài viền của chính khung, đường viền của khung kề thì lấy cạnh sát khung — phân xử bằng mép worldBound, CC-FEEDBACK-1), ΔE màu điểm neo, tương phản WCAG (ngưỡng thiết kế − 0,3) | Python 3 thư viện chuẩn; `--self-test` |
+| `ux-layout-report.py <thư mục lượt> [--before <lượt trước>] [--html f] [--details]` | gom JSON chẩn đoán của `UxLayoutAuditTests` (hơn hai trăm file mỗi lượt) thành bảng màn × cỡ × ngôn ngữ × bản Unity, kèm cột chênh lệch TRƯỚC/SAU theo màn | công cụ BÁO CÁO, không phải cổng — cổng là chính các test `--category UxGate` |
 | `contact-sheet.py <thư mục nhãn>` | `contact-sheet.html`: lưới 2022.3 \| 6000.6 × dark \| light, hình thiết kế + gói + đợt theo ma trận 9.5, bảng đạt/lệch, link ảnh gốc | không kết luận bằng ảnh thu nhỏ |
 | `code-lint.py <file…>` | lint luật package, biết nhánh `#if` | `--self-test` chạy `lint-samples/`; `rule-id-literal` bắt chuỗi CHỨA id luật theo biên từ, chỉ cho phép ở `LiveOpsFindingText.cs`/`LiveOpsHubStrings.Findings.cs` + hai file hằng core (6.1); `--report-only` cho file 0.1.0 cũ ở cổng đợt; ngoại lệ ở `lint-allow.tsv` |
 | `uss-lint.py <file…>` | chặn `gap`, `box-shadow`, `:last-child`, `:nth-child`, `@media`, `!important`, `*`, `text-transform`, `var(--unity-icons-`, `-unity-font:`, `z-index`, grid, màu trần ngoài theme | `--self-test` |
@@ -115,3 +116,30 @@ theo `rootVisualElement.layout` (SP-16). Toạ độ theo point; pixel = point �
 | `~/.cache/unity-liveops/test-results/<gói>/` | XML + log của run-editmode/run-playmode |
 | `~/.cache/unity-liveops/captures/<nhãn>/<bản>/` | ảnh chụp + số đo + contact sheet |
 | `~/.cache/unity-liveops/review/<đợt>/` | báo cáo cổng user duyệt ảnh |
+| `~/.cache/unity-liveops/ux-gate/<nhãn>/<bản>/` | JSON chẩn đoán kiểm bố cục W8-UX (`<màn>-<cỡ>-<ngôn ngữ>.json`); nhãn đặt bằng `LIVEOPS_UX_GATE_LABEL` |
+
+## Cổng máy W8-UX (`--category UxGate`)
+
+Đợt W8-UX thêm một tầng cổng mà ma trận ảnh 9.5 không bắt được: 37 lỗi của `SCHEDULE-UI-AUDIT.md` và 26 lỗi hành trình
+(`USER-JOURNEY-FINDINGS.md`) đều lọt qua 900 test xanh, vì test cũ **gọi thẳng hàm model/presenter** và chỉ đo khung tuyệt đối ở
+**một** cỡ cửa sổ. Hai loại test mới, cùng sống ở `Tests/Editor/Hub/UxGate/`:
+
+| Loại | Test | Nói gì |
+|---|---|---|
+| Sự kiện THẬT | `UxCalendarJourneyTests`, `UxRecurringJourneyTests` | mọi thao tác qua `EditorWindow.SendEvent` (`UxEventSender`): Move → Down → ≥ 4 MouseDrag → Up, `ScrollWheel` kèm ⌘/Shift, gõ từng ký tự rồi Enter/Tab/bấm ra ngoài. Test chỉ ĐỌC trạng thái để assert — không gọi hàm đích |
+| Bố cục tự động | `UxLayoutAuditTests` + `UxLayoutAuditor` | mỗi màn × 6 cỡ (700×560, 820×560, 1024×700, 1280×760, 1440×900, 1920×1040) × vi/en: phần tử quan trọng cao/rộng 0, chữ bị cắt, con tràn khỏi cha, nội dung vượt khung mà không cuộn được, vùng vẽ không giãn theo cửa sổ |
+
+```bash
+T=tools/liveops-hub
+$T/run-editmode.sh --unity 6000 --category UxGate          # rồi 2022, TUẦN TỰ (mỗi lượt một slot Unity)
+$T/run-editmode.sh --unity 2022 --category UxGate
+$T/ux-layout-report.py ~/.cache/unity-liveops/ux-gate/G-UX-GATE --details
+$T/capture.sh --unity 6000 --scenarios ux-sizes --label w8-truoc   # ảnh TRƯỚC trên gốc đợt
+```
+
+Hai luật của tầng cổng này:
+
+- **Không chạy được `-nographics`.** `EditorWindow.SendEvent` cần cửa sổ có đồ hoạ; `--category UxGate` luôn bỏ cờ đó, nên lượt
+  chạy lâu hơn lượt Logic.
+- **Chỗ cắt chữ CÓ CHỦ ĐÍCH khai ở `UxLayoutAllowList` kèm lý do — không sửa ngưỡng trong `UxLayoutAuditor`.** Lỗi thật thì mở
+  gói sửa; allow-list là nơi duy nhất cổng được phép im lặng, và mỗi dòng thêm vào là một lỗi cổng sẽ không bao giờ thấy nữa.

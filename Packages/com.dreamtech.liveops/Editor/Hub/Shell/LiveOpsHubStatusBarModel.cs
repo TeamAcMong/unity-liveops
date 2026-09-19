@@ -5,6 +5,23 @@ using System.Text;
 namespace DreamTech.LiveOps.Editor
 {
     /// <summary>
+    /// Chỗ đứng của thao tác gần nhất trong stack Undo chung của Editor — quyết câu status bar mời phím nào (UX-26).
+    /// Một bool "còn trên đỉnh" không đủ: đỉnh ngăn ĐÃ LÀM và đỉnh ngăn LÀM LẠI là hai chuyện ngược nhau, gộp lại thì sau
+    /// khi Hoàn tác câu vẫn mời ⌘Z — bấm tiếp sẽ gỡ thao tác của người khác.
+    /// </summary>
+    internal enum LiveOpsHubRecentActionStep
+    {
+        /// <summary>Không còn là bước kế tiếp ở chiều nào (có thao tác mới hơn, hoặc đã Hoàn tác/Làm lại bước khác).</summary>
+        NotOnTop = 0,
+
+        /// <summary>Hoàn tác lúc này gỡ đúng bước đó.</summary>
+        NextUndo = 1,
+
+        /// <summary>Bước đó vừa bị Hoàn tác; Làm lại lúc này trả đúng nó.</summary>
+        NextRedo = 2,
+    }
+
+    /// <summary>
     /// Chữ của status bar 20 px (8.3, [FD §3.4]) — model thuần, không đụng Editor, nên mọi câu (kể cả câu "cũ" vì mốc thời gian)
     /// test được bằng đồng hồ tay ở category Logic. View <see cref="LiveOpsHubStatusBar"/> chỉ đổ chữ.
     /// <para>
@@ -14,8 +31,9 @@ namespace DreamTech.LiveOps.Editor
     /// </para>
     /// <para>
     /// Phần " · Vừa làm: … (⌘Z)" nối vào câu trái để thao tác cuối không mất khi toast tắt sau 6 giây. Nhãn "(⌘Z)" chỉ còn khi bước
-    /// Undo đó vẫn trên đỉnh stack chung của Editor (<paramref name="isLastActionOnTop"/>) — bấm ⌘Z lúc không còn trên đỉnh sẽ gỡ
-    /// thao tác của người khác, nên câu không được mời làm việc đó.
+    /// Undo đó vẫn là bước Hoàn tác kế tiếp của Editor (<paramref name="recentActionStep"/>) — bấm ⌘Z lúc không còn trên đỉnh sẽ gỡ
+    /// thao tác của người khác, nên câu không được mời làm việc đó. Sau khi người dùng Hoàn tác chính bước đó, câu đổi hẳn thể sang
+    /// "Vừa hoàn tác: … (⌘⇧Z để làm lại)" [SD1 §3.8 khung 14]: nói đúng chuyện vừa xảy ra và mời đúng phím lấy lại (UX-26 / UJ-10).
     /// </para>
     /// </summary>
     internal sealed class LiveOpsHubStatusBarModel
@@ -34,21 +52,42 @@ namespace DreamTech.LiveOps.Editor
         /// chạy được lần kiểm nào và mục "Kiểm lại tất cả (F5)" của menu ⋮ đã disabled (7.0).
         /// </param>
         /// <param name="lastActionText">Câu của thao tác Undo được gần nhất ("" = chưa làm gì trong phiên).</param>
-        /// <param name="isLastActionOnTop">Bước Undo của thao tác đó còn là bước kế tiếp của ⌘Z.</param>
+        /// <param name="recentActionStep">Chỗ đứng của bước đó trong stack Undo — xem <see cref="LiveOpsHubRecentActionStep"/>.</param>
         /// <param name="activeStamp">Dấu đã đăng đang chọn; null = chưa từng ghi dấu (phần "đã đăng …· sha …" biến mất).</param>
         /// <param name="undoKeyLabel">Nhãn phím Undo thật của người dùng ("⌘Z", "Ctrl Z"); "" = không gán phím → bỏ luôn ngoặc.</param>
+        /// <param name="redoKeyLabel">Nhãn phím Redo thật ("⌘⇧Z"); "" = không gán phím → câu "vừa hoàn tác" bỏ luôn ngoặc.</param>
         public static LiveOpsHubStatusBarModel Build(LiveOpsHubCheckState check, bool hasCalendarAsset, string lastActionText,
-            bool isLastActionOnTop, DateTime nowUtc, PublishedCalendarStamp activeStamp, LiveOpsHubFormat format, string undoKeyLabel)
+            LiveOpsHubRecentActionStep recentActionStep, DateTime nowUtc, PublishedCalendarStamp activeStamp, LiveOpsHubFormat format,
+            string undoKeyLabel, string redoKeyLabel)
         {
             if (format == null) throw new ArgumentNullException(nameof(format));
             DateTime utcNow = DateTime.SpecifyKind(nowUtc, DateTimeKind.Utc);
 
             HealthState? leftMark;
             string leftText = BuildCheckSentence(check, hasCalendarAsset, out leftMark);
-            leftText = AppendRecentAction(leftText, lastActionText, isLastActionOnTop, undoKeyLabel);
+            leftText = AppendRecentAction(leftText, lastActionText, recentActionStep, undoKeyLabel, redoKeyLabel);
 
             return new LiveOpsHubStatusBarModel(leftMark, leftText, BuildRightText(utcNow, activeStamp, format),
                 BuildRightTooltip(utcNow, format));
+        }
+
+        /// <summary>
+        /// Bản gọn cho nơi chỉ biết "bước đó còn là bước Hoàn tác kế tiếp hay không" và không có nhãn phím Làm lại. true →
+        /// <see cref="LiveOpsHubRecentActionStep.NextUndo"/>, false → <see cref="LiveOpsHubRecentActionStep.NotOnTop"/>:
+        /// cả hai đều KHÔNG phải ca "vừa hoàn tác", nên câu ra đúng như trước khi có UX-26.
+        /// <para>
+        /// CẢNH BÁO (soát W8-UX R11): đường production DUY NHẤT (<c>LiveOpsHubWindow</c>) gọi bản đầy đủ ở trên. Bản này chỉ
+        /// còn đúng MỘT nơi gọi là <c>HubHostIntegrationTests</c> — mà test đó dựng câu mong đợi bằng chính nó, nên nó không
+        /// bao giờ thấy được nhánh "vừa hoàn tác". Phải bỏ hẳn bản này khi sửa được chỗ gọi đó; file test nằm ngoài quyền ghi
+        /// của gói G-UX-SHELL nên việc để lại cho cổng đợt (contract-changes-G-UX-SHELL.md mục 3).
+        /// </para>
+        /// </summary>
+        public static LiveOpsHubStatusBarModel Build(LiveOpsHubCheckState check, bool hasCalendarAsset, string lastActionText,
+            bool isLastActionOnTop, DateTime nowUtc, PublishedCalendarStamp activeStamp, LiveOpsHubFormat format, string undoKeyLabel)
+        {
+            return Build(check, hasCalendarAsset, lastActionText,
+                isLastActionOnTop ? LiveOpsHubRecentActionStep.NextUndo : LiveOpsHubRecentActionStep.NotOnTop,
+                nowUtc, activeStamp, format, undoKeyLabel, string.Empty);
         }
 
         /// <summary>null = vòng rỗng (chưa kiểm hoặc kết quả đã cũ) — xem tóm tắt lớp.</summary>
@@ -116,18 +155,37 @@ namespace DreamTech.LiveOps.Editor
             return DayMonth(milestone) + " " + milestone.ToString("HH:mm", CultureInfo.InvariantCulture) + " " + LiveOpsHubStrings.UtcLabel;
         }
 
-        private static string AppendRecentAction(string sentence, string lastActionText, bool isLastActionOnTop, string undoKeyLabel)
+        private static string AppendRecentAction(string sentence, string lastActionText, LiveOpsHubRecentActionStep recentActionStep,
+            string undoKeyLabel, string redoKeyLabel)
         {
             if (string.IsNullOrEmpty(lastActionText)) return sentence;
 
-            string action = isLastActionOnTop && !string.IsNullOrEmpty(undoKeyLabel)
-                ? string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.ShellStatusRecentActionWithKeyFormat, lastActionText, undoKeyLabel)
-                : string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.ShellStatusRecentActionFormat, lastActionText);
+            string action = BuildRecentAction(lastActionText, recentActionStep, undoKeyLabel, redoKeyLabel);
 
             if (sentence.Length == 0) return action;
             StringBuilder builder = new StringBuilder(sentence.Length + action.Length + 3);
             builder.Append(sentence).Append(LiveOpsHubStrings.ShellRailPartSeparator).Append(action);
             return builder.ToString();
+        }
+
+        /// <summary>
+        /// Ba thể của câu thao tác gần nhất (UX-26). Bước đã bị Hoàn tác KHÔNG được in thể "Vừa làm" nữa: người dùng vừa bỏ nó,
+        /// và phím duy nhất đúng lúc này là Làm lại. Không có nhãn phím thì bỏ ngoặc chứ không in cặp ngoặc rỗng.
+        /// </summary>
+        private static string BuildRecentAction(string lastActionText, LiveOpsHubRecentActionStep recentActionStep,
+            string undoKeyLabel, string redoKeyLabel)
+        {
+            if (recentActionStep == LiveOpsHubRecentActionStep.NextRedo)
+            {
+                return string.IsNullOrEmpty(redoKeyLabel)
+                    ? string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.ShellStatusUndoneActionFormat, lastActionText)
+                    : string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.ShellStatusUndoneActionWithKeyFormat, lastActionText, redoKeyLabel);
+            }
+            if (recentActionStep == LiveOpsHubRecentActionStep.NextUndo && !string.IsNullOrEmpty(undoKeyLabel))
+            {
+                return string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.ShellStatusRecentActionWithKeyFormat, lastActionText, undoKeyLabel);
+            }
+            return string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.ShellStatusRecentActionFormat, lastActionText);
         }
 
         // ------------------------------------------------------------------------------------------------------------ phải

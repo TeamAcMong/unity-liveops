@@ -87,9 +87,7 @@ namespace DreamTech.LiveOps.Editor.Tests
             LiveOpsHubServices services = CreateServices();
             _clock.Set(WhileMidQuestRunningUtc);
             CalendarTimelinePresenter presenter = CreatePresenter(services, LiveOpsTimelineZoom.ThreeWeeks);
-            int undoCount = 0;
             List<Action> deferred = new List<Action>();
-            presenter.UndoLastStep = () => undoCount++;
             presenter.DeferConfirmation = action => deferred.Add(action);
             _confirmation.Enqueue(LiveOpsConfirmResult.Safe);
 
@@ -102,9 +100,10 @@ namespace DreamTech.LiveOps.Editor.Tests
 
             Assert.AreEqual(1, deferred.Count, "hộp chỉ mở SAU khi chuột đã nhả, không bao giờ giữa lúc kéo (SP-2 (a))");
             Assert.AreEqual(0, _confirmation.Requests.Count, "chưa chạy phần hoãn thì chưa hỏi");
-            Assert.IsTrue(services.Session.Document.TryGetFixedEvent(LiveOpsDesignSample.LavaQuestMidEntryKey,
-                out FixedLiveEventEntry afterCommit));
-            Assert.AreEqual("2026-09-19T00:00:00Z", afterCommit.EndUtcText, "bước Undo đã ghi TRƯỚC khi hỏi (SP-2 (b))");
+            // (W8-UX UX-06, UJ-11) Đổi hợp đồng của SP-2 (b): nháp KHÔNG được gộp thành bước Undo trước khi hỏi nữa — toast và
+            // status bar báo "Đã dời" trong lúc hộp còn đang hỏi là thứ làm hộp mất hết ý nghĩa. Tài liệu vẫn mang bản xem
+            // trước vì đó chính là nháp người dùng đang nhìn.
+            Assert.IsTrue(services.Session.IsContinuousEditOpen, "chưa trả lời hộp thì nháp còn mở, chưa có bước Undo nào");
 
             deferred[0]();
             Assert.AreEqual(1, _confirmation.Requests.Count);
@@ -112,7 +111,9 @@ namespace DreamTech.LiveOps.Editor.Tests
             Assert.AreEqual(LiveOpsConfirmLevel.Level1, request.Level, "rút ngắn đợt đang chạy là hộp cấp 1");
             StringAssert.Contains("lava-quest-2026-09b", request.Title);
             StringAssert.Contains(LiveOpsHubStrings.CalendarUnknownPlayerCountSentence, request.Body);
-            Assert.AreEqual(1, undoCount, "chọn nút an toàn thì gọi Undo đúng bước vừa ghi, không dựng lại bằng tay");
+            Assert.IsTrue(services.Session.Document.TryGetFixedEvent(LiveOpsDesignSample.LavaQuestMidEntryKey,
+                out FixedLiveEventEntry afterKeep));
+            Assert.AreEqual("2026-09-20T00:00:00Z", afterKeep.EndUtcText, "chọn Giữ thì giờ kết thúc trở về giá trị cũ");
         }
 
         [Test]

@@ -100,7 +100,12 @@ namespace DreamTech.LiveOps.Editor
             _emptyReason.text = emptyReasonText ?? string.Empty;
             bool hasEmptyReason = _emptyReason.text.Length > 0;
             _emptyReason.EnableInClassList(LiveOpsHubClassNames.RecurringHidden, !hasEmptyReason);
-            _addMore.SetEnabled(!atLimit && !hasEmptyReason);
+            // (UX-22) 0 đợt thì "Thêm 5" biến mất hẳn, không chỉ xám: một nút xám vẫn là một lời mời, và thêm 5 lần nữa
+            // của một luật game sẽ bỏ vẫn ra 0 đợt. Còn chạm trần 50 thì nút Ở LẠI (xám) vì câu "đã hiện tối đa 50" ngay
+            // cạnh chỉ đọc được khi còn thấy nút nó nói về.
+            bool hasRows = rows != null && rows.Count > 0;
+            _addMore.EnableInClassList(LiveOpsHubClassNames.RecurringHidden, !hasRows);
+            _addMore.SetEnabled(hasRows && !atLimit && !hasEmptyReason);
             _limitNote.text = atLimit
                 ? LiveOpsHubStringCatalog.Format(nameof(LiveOpsHubStrings.RecurringOccurrenceLimitNoteFormat),
                     RecurringRuleModel.MaximumOccurrenceCount)

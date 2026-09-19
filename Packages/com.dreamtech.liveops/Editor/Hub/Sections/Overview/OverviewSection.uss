@@ -74,6 +74,24 @@
     align-items: center;
 }
 
+/*
+ * (UX-30 / UJ-25) Nút chỉ có icon (⋮). Nút chữ giữ min-width 54px để hai nút cạnh nhau không so le; một icon 12px trong
+ * ô đó thành "nút rộng rỗng có dấu ⋮ nhỏ ở trái". Ô vuông theo chiều cao nút 18px, icon căn giữa.
+ * Số 18 viết thẳng chứ không qua token khoảng cách vì đây là BỀ RỘNG phải bằng đúng chiều cao của .liveops-hub-button
+ * (18px, liveops-hub-components.uss) — vuông là điều kiện, không phải một bậc khoảng cách. Bảng UX-30 của kế hoạch ghi
+ * 22px; 22 sẽ CAO HƠN nút chữ cạnh nó và hai nút so le, nên lấy 18 (lệch tự duyệt, ghi ở §V-39 của kế hoạch).
+ * Luật nằm ở sheet của màn (không phải liveops-hub-components.uss) vì file đó ngoài quyền ghi của gói: thiếu sheet thì nút
+ * quay về min-width 54px — fail-open giống hệt mọi luật khác của chính section này, xem OverviewSection.cs.
+ */
+.liveops-hub-overview-icon-button {
+    min-width: 18px;
+    width: 18px;
+    padding: 0;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+}
+
 .liveops-hub-overview-recheck-all-label {
     margin-left: var(--liveops-hub-space-4);
 }
@@ -181,13 +199,20 @@
 
 /* ---------------------------------------------------------------- 7 ngày tới */
 
+/*
+ * (UX-30 / UJ-25) flex-shrink: 0 trên bảng và từng hàng: thân màn cao hơn cửa sổ thì flexbox co con xuống dưới chiều cao
+ * nội dung — hàng bảng bị ép thấp hơn min-height, chữ hai dòng đè lên nhau và đáy bảng cụt. Việc cuộn là của ScrollView
+ * thân màn (Q-W5-1), không phải của hàng bảng.
+ */
 .liveops-hub-overview-upcoming-table {
     flex-direction: column;
+    flex-shrink: 0;
 }
 
 .liveops-hub-overview-upcoming-head-row {
     flex-direction: row;
     align-items: center;
+    flex-shrink: 0;
     min-height: 20px;
     padding-left: var(--liveops-hub-space-8);
     padding-right: var(--liveops-hub-space-8);
@@ -198,6 +223,7 @@
 .liveops-hub-overview-upcoming-row {
     flex-direction: row;
     align-items: center;
+    flex-shrink: 0;
     min-height: 26px;
     padding-left: var(--liveops-hub-space-8);
     padding-right: var(--liveops-hub-space-8);

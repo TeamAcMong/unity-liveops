@@ -31,6 +31,18 @@ namespace DreamTech.LiveOps.Editor
         internal const string CalendarFieldSubline = "liveops-hub-calendar-field-subline";
         internal const string CalendarFieldError = "liveops-hub-calendar-field-error";
 
+        // W8-UX (C3, C4, C5, C6, T10): luật bố cục RIÊNG của inspector trong pane 280px. Luật nằm ở liveops-hub-components.uss
+        // vì CalendarSection.uss thuộc gói khác của cùng đợt; gắn từ C# nên không đụng UXML của màn.
+        internal const string CalendarInspectorRow = "liveops-hub-calendar-inspector-row";
+        internal const string CalendarInspectorField = "liveops-hub-calendar-inspector-field";
+        internal const string CalendarInspectorFieldNumber = "liveops-hub-calendar-inspector-field--number";
+        internal const string CalendarInspectorFieldText = "liveops-hub-calendar-inspector-field--text";
+        internal const string CalendarInspectorLabel = "liveops-hub-calendar-inspector-label";
+        internal const string CalendarInspectorValue = "liveops-hub-calendar-inspector-value";
+        internal const string CalendarWrapText = "liveops-hub-calendar-wrap-text";
+        internal const string CalendarFindingCardStacked = "liveops-hub-calendar-finding-card--stacked";
+        internal const string CalendarFieldNoteInline = "liveops-hub-calendar-field-note-inline";
+
         // Popover Thêm đợt [SD1 §3.11]: header có step-dot, danh sách loại, hàng nút có gợi ý phím bên trái.
         internal const string CalendarFlowHeader = "liveops-hub-calendar-flow-header";
         internal const string CalendarFlowStep = "liveops-hub-calendar-flow-step";
@@ -41,6 +53,16 @@ namespace DreamTech.LiveOps.Editor
         internal const string CalendarTypeRowDisabled = "liveops-hub-calendar-type-row--disabled";
         internal const string CalendarTypeRowTag = "liveops-hub-calendar-type-row-tag";
         internal const string CalendarFlowButtons = "liveops-hub-calendar-flow-buttons";
+        // HẾT chỗ dùng từ W8-UX (gợi ý phím đổi sang CalendarFlowKeyLine) nhưng CHƯA xoá được: luật
+        // .liveops-hub-calendar-flow-key-hint còn ở CalendarSection.uss (quyền ghi của gói màn Lịch) và
+        // check-class-names.py --strict đòi mỗi selector phải có hằng. Xoá CẶP (luật + hằng) khi gộp, kẻo hằng
+        // thừa ở lại rồi có người dựng lại lối cũ trong im lặng.
         internal const string CalendarFlowKeyHint = "liveops-hub-calendar-flow-key-hint";
+
+        // W8-UX (C7, V17): gợi ý phím thành dòng riêng, hàng nút wrap, nút xuống dòng thay vì bị cắt, chữ dẫn nghiêng cỡ nhỏ.
+        internal const string CalendarFlowKeyLine = "liveops-hub-calendar-flow-key-line";
+        internal const string CalendarFlowButtonsWrap = "liveops-hub-calendar-flow-buttons--wrap";
+        internal const string CalendarFlowButton = "liveops-hub-calendar-flow-button";
+        internal const string CalendarFlowHint = "liveops-hub-calendar-flow-hint";
     }
 }

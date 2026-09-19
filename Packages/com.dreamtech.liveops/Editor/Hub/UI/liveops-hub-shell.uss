@@ -44,7 +44,7 @@
     flex-direction: row;
     align-items: center;
     height: 18px;
-    margin-left: 12px;
+    margin-left: var(--liveops-hub-space-12);
     padding: 0 6px;
     border-width: 1px;
     border-color: var(--unity-colors-window-border);
@@ -373,6 +373,15 @@
     background-color: var(--unity-colors-highlight-background-hover);
 }
 
+/* Hai mũi tên của nút ‹› phải cách nhau. Vì sao không để sát: chevron là ô 5x5 XOAY 45 độ, nên khung bao thật của nó rộng
+   7,1px chứ không phải 5px — hai ô layout kề nhau làm hai khung bao chồng 2,1px và cổng bố cục đọc ra "hai khối đè lên
+   nhau" (RC-04, đỏ ở 700 và 820 cả hai ngôn ngữ). 2px mỗi bên đẩy tâm hai mũi cách nhau 9px > 7,1px nên hết chồng, và
+   khe hở cũng làm cặp mũi đọc rõ là "mở rộng / thu lại" thay vì một khối nhoè. */
+.liveops-hub-rail-pin > .liveops-hub-chevron {
+    margin-left: 2px;
+    margin-right: 2px;
+}
+
 .liveops-hub-rail-narrow {
     display: none;
     flex-grow: 1;
@@ -574,12 +583,18 @@
     align-items: center;
     min-width: 0;
     opacity: 0.82;
+    /* (UX-20) Chốt chặn cuối: con nào quên khai co vẫn bị cắt ở mép vế trái thay vì vẽ đè lên giờ UTC bên phải. */
+    overflow: hidden;
 }
 
 .liveops-hub-status-text {
     margin: 0;
     padding: 0;
     font-size: 10px;
+    /* (UX-20) Khai co TƯỜNG MINH: text-overflow chỉ có việc khi element đã bị ép hẹp hơn chữ. Vế phải khai lại
+       flex-shrink: 0 ngay dưới nên giờ UTC vẫn không bao giờ bị cắt. */
+    flex-shrink: 1;
+    min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -594,9 +609,14 @@
     visibility: hidden;
 }
 
+/*
+ * (UX-20 / UJ-19) Khoảng cách 6 px cũ làm câu trái đã cắt "…" dính luôn vào giờ UTC và đọc thành một câu
+ * ("…Move hunt-091…13/9 08:47 UTC"). 12 px là mức đọc ra hai vế mà vẫn không lấy thêm chỗ đáng kể của vế trái — dùng
+ * token space-12 chứ không viết số, như mọi luật khoảng cách khác của khung (soát W8-UX R14).
+ */
 .liveops-hub-status-right {
     flex-shrink: 0;
-    margin-left: 6px;
+    margin-left: 12px;
     opacity: 0.7;
 }
 

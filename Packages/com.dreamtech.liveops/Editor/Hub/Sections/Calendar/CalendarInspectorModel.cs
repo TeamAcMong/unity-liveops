@@ -42,6 +42,7 @@ namespace DreamTech.LiveOps.Editor
             EventId = string.Empty;
             EventTypeId = string.Empty;
             StartLockReason = string.Empty;
+            EndLockReason = string.Empty;
             DeleteButtonText = string.Empty;
             DeleteButtonTooltip = string.Empty;
             SummaryText = string.Empty;
@@ -71,10 +72,18 @@ namespace DreamTech.LiveOps.Editor
         public LiveEventPhase Phase { get; private set; }
         public string PhaseTagText { get; private set; }
 
-        /// <summary>Đang chạy: mép đầu khoá vì người chơi đã vào theo giờ bắt đầu cũ (bảng 7.0).</summary>
+        /// <summary>Đang chạy: mép đầu khoá vì người chơi đã vào theo giờ bắt đầu cũ (bảng 7.0). Đã khép: khoá cả hai mép.</summary>
         public bool IsStartLocked { get; private set; }
 
         public string StartLockReason { get; private set; }
+
+        /// <summary>
+        /// Đã khép: mép cuối khoá. Chính sách xác nhận trả <c>NotAllowed</c> cho mọi lần đổi giờ của đợt đã khép
+        /// (<c>LiveOpsConfirmationPolicy.DecideChangeFixedEventTimes</c>), nên để ô mở là mời người dùng gõ một thứ sẽ bị bỏ.
+        /// </summary>
+        public bool IsEndLocked { get; private set; }
+
+        public string EndLockReason { get; private set; }
 
         /// <summary>"Xoá đợt" (xoá ngay) hoặc "Xoá đợt…" (sẽ hỏi) theo <see cref="CalendarDeleteFlow"/>.</summary>
         public string DeleteButtonText { get; private set; }
@@ -216,6 +225,19 @@ namespace DreamTech.LiveOps.Editor
                 model.StartLockReason = string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.CalendarStartLockedTooltipFormat,
                     format.ShortDateTime(startUtc));
             }
+            // Đợt ĐÃ KHÉP: khoá CẢ HAI mép. Chính sách xác nhận cấm đổi giờ của đợt đã khép, mà CalendarTimelinePresenter.ApplyEdit
+            // từ chối LẶNG LẼ (trả false, không toast, không lý do) — ô để mở thì người dùng gõ "23:00", thấy chữ đổi, Enter, rồi tin
+            // là đã sửa xong trong khi asset vẫn giữ giờ cũ. Khoá tại chỗ nhập + nói lý do ngay trên tooltip là đường duy nhất cho
+            // người dùng biết TRƯỚC khi gõ (W8-UX2, cùng khuôn với mép đầu của đợt đang chạy ở trên).
+            else if (model.Phase == LiveEventPhase.Ended && hasEnd)
+            {
+                string endedLockReason = string.Format(CultureInfo.InvariantCulture,
+                    LiveOpsHubStrings.CalendarEndedLockedTooltipFormat, format.ShortDateTime(endUtc));
+                model.IsStartLocked = true;
+                model.StartLockReason = endedLockReason;
+                model.IsEndLocked = true;
+                model.EndLockReason = endedLockReason;
+            }
             if (hasStart && hasEnd && endUtc > startUtc)
             {
                 model.DurationHours = (int)(endUtc - startUtc).TotalHours;
@@ -282,12 +304,18 @@ namespace DreamTech.LiveOps.Editor
         {
             model.IsUnreadableEnd = hasStart && !hasEnd;
             string rawText = model.IsUnreadableEnd ? entry.EndUtcText : entry.StartUtcText;
-            string dateText = DatePartOf(rawText);
-            string timeText = TimePartOf(rawText);
+            // Cùng bộ tách với ô giờ (nhận cả "T" lẫn dấu cách): tách kiểu khác là câu lỗi và nút "Sửa thành …" nói về một
+            // chuỗi khác với thứ đang nằm trong hai ô.
+            LiveOpsUtcDateTimeField.SplitRawText(rawText, out string dateText, out string timeText);
             model.UnreadableFieldErrorText = LiveOpsUtcDateTimeField.DescribeParseError(dateText, timeText);
             if (!TryRepairDate(dateText, out DateTime repairedDate)) return;
             // Chỉ đề nghị giá trị khi ĐOÁN ĐƯỢC ngày: nút "Sửa thành …" mà đoán sai còn tệ hơn không có nút.
             DateTime repaired = DateTime.SpecifyKind(repairedDate, DateTimeKind.Utc);
+            // Giữ phần giờ người dùng KHÔNG đụng tới: chỉ ngày hỏng thì "Sửa thành …" không được lặng lẽ đưa giờ về 00:00.
+            if (LiveOpsUtcDateTimeField.TryParseTimeOfDay(timeText, out TimeSpan keptTimeOfDay))
+            {
+                repaired = DateTime.SpecifyKind(repaired.Date + keptTimeOfDay, DateTimeKind.Utc);
+            }
             if (model.IsUnreadableEnd && hasStart && repaired <= startUtc) repaired = startUtc.AddHours(1);
             model.UnreadableFixValueText = LiveEventUtcText.Format(repaired);
             model.UnreadableFixButtonText = string.Format(CultureInfo.InvariantCulture,
@@ -308,24 +336,9 @@ namespace DreamTech.LiveOps.Editor
 
         private static bool TryRepairDate(string dateText, out DateTime repairedDate)
         {
-            return DateTime.TryParseExact(dateText == null ? string.Empty : dateText.Trim(), RepairableDateFormats,
-                CultureInfo.InvariantCulture, DateTimeStyles.AdjustToUniversal | DateTimeStyles.AssumeUniversal, out repairedDate);
-        }
-
-        private static string DatePartOf(string rawText)
-        {
-            if (string.IsNullOrEmpty(rawText)) return string.Empty;
-            int timeIndex = rawText.IndexOf('T');
-            return timeIndex < 0 ? rawText : rawText.Substring(0, timeIndex);
-        }
-
-        private static string TimePartOf(string rawText)
-        {
-            if (string.IsNullOrEmpty(rawText)) return string.Empty;
-            int timeIndex = rawText.IndexOf('T');
-            if (timeIndex < 0 || timeIndex + 1 >= rawText.Length) return string.Empty;
-            string time = rawText.Substring(timeIndex + 1).TrimEnd('Z');
-            return time.Length > 5 ? time.Substring(0, 5) : time;
+            // CultureInfo.InvariantCulture cùng dòng với TryParseExact để code-lint (quét theo dòng) nhận ra — tách dòng làm nó báo nhầm thiếu.
+            string trimmedText = dateText == null ? string.Empty : dateText.Trim();
+            return DateTime.TryParseExact(trimmedText, RepairableDateFormats, CultureInfo.InvariantCulture, DateTimeStyles.AdjustToUniversal | DateTimeStyles.AssumeUniversal, out repairedDate);
         }
 
         private static string RequiresOptInTextOf(LiveEventTypeDefinition typeDefinition, string typeId)

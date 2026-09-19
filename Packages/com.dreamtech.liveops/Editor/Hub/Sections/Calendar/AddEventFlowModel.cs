@@ -238,6 +238,30 @@ namespace DreamTech.LiveOps.Editor
                 DurationHours, EventId, ConfigKey);
         }
 
+        /// <summary>
+        /// Loại đang trỏ sau khi lọc. Giữ nguyên khi loại đang trỏ vẫn còn trong danh sách đã lọc và bật được; ngược lại trỏ hàng
+        /// ĐẦU bật được; lọc không còn hàng nào bật thì bỏ trỏ (nút "Tiếp" tắt đúng lý do).
+        /// <para>
+        /// Vì sao cần: bản trước mở popover không trỏ hàng nào, và gõ "hunt" lọc còn đúng một loại vẫn không trỏ — người dùng đọc
+        /// dòng "Enter: tiếp" rồi bấm Enter, popover đứng im vì <see cref="CanAdvance"/> false (UJ-17). Trỏ hàng khớp KHÔNG phải
+        /// là đi tiếp: bước vẫn là bước 1 và người dùng vẫn thấy hàng đang trỏ trước khi Enter.
+        /// </para>
+        /// </summary>
+        public AddEventFlowModel PointingAtFilteredType(string filterText)
+        {
+            if (Step != StepChooseType) return this;
+            IReadOnlyList<AddEventTypeChoice> choices = TypeChoices(filterText);
+            for (int index = 0; index < choices.Count; index++)
+            {
+                if (choices[index].IsEnabled && string.Equals(choices[index].TypeId, EventType, StringComparison.Ordinal)) return this;
+            }
+            for (int index = 0; index < choices.Count; index++)
+            {
+                if (choices[index].IsEnabled) return WithType(choices[index].TypeId);
+            }
+            return EventType.Length == 0 ? this : WithType(string.Empty);
+        }
+
         /// <summary>Đặt giờ — cũng giữ nguyên bước, vì gõ vào ô ngày không phải là bấm "Tiếp".</summary>
         public AddEventFlowModel WithTimes(string startDateText, string startTimeText, int durationHours)
         {

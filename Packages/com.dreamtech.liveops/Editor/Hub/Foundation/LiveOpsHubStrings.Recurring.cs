@@ -50,6 +50,12 @@ namespace DreamTech.LiveOps.Editor
         internal static string RecurringPeriodHoursLabel => LiveOpsHubStringCatalog.Text(nameof(RecurringPeriodHoursLabel));
         internal static string RecurringActiveHoursLabel => LiveOpsHubStringCatalog.Text(nameof(RecurringActiveHoursLabel));
 
+        /// <summary>
+        /// (UX-32) "24 giờ" — nhánh GIỜ của nhịp, dùng khi chu kỳ không chẵn ngày hoặc đúng bằng một ngày. Chu kỳ chẵn
+        /// ngày và dài hơn một ngày đọc theo NGÀY, y như header làn của màn Lịch cho cùng luật đó.
+        /// </summary>
+        internal static string RecurringHoursFormat => LiveOpsHubStringCatalog.Text(nameof(RecurringHoursFormat));
+
         /// <summary>Chữ phụ đổi giờ sang đơn vị người đọc được: "168" → "= 7 ngày".</summary>
         internal static string RecurringEqualsFormat => LiveOpsHubStringCatalog.Text(nameof(RecurringEqualsFormat));
         internal static string RecurringAnchorDeviceLineFormat => LiveOpsHubStringCatalog.Text(nameof(RecurringAnchorDeviceLineFormat));
@@ -146,8 +152,13 @@ namespace DreamTech.LiveOps.Editor
 
         // Toast = tên Undo group của lệnh sửa (8.5).
         internal static string RecurringWriteToastFormat => LiveOpsHubStringCatalog.Text(nameof(RecurringWriteToastFormat));
+
+        /// <summary>
+        /// (UX-26) Toast/bước Hoàn tác phải nêu TRƯỜNG và giá trị trước → sau. "Đổi luật lặp sky-race" đứng trong status
+        /// bar vài phút sau không nói được ⌘Z sẽ trả lại cái gì — đó là lúc người dùng cần nó nhất.
+        /// </summary>
+        internal static string RecurringFieldWriteToastFormat => LiveOpsHubStringCatalog.Text(nameof(RecurringFieldWriteToastFormat));
         internal static string RecurringAddToastFormat => LiveOpsHubStringCatalog.Text(nameof(RecurringAddToastFormat));
-        internal static string RecurringPrefixToastFormat => LiveOpsHubStringCatalog.Text(nameof(RecurringPrefixToastFormat));
 
         // Popover "Thêm luật": chọn loại chưa có luật + mẫu rồi mới ghi.
         internal static string RecurringAddTypeLabel => LiveOpsHubStringCatalog.Text(nameof(RecurringAddTypeLabel));
@@ -203,6 +214,13 @@ namespace DreamTech.LiveOps.Editor
         /// không phải tooltip (SPIKE-B SP-3); <c>{0}</c> là nhãn của chính ô đang giữ nháp để người đọc biết đi sửa ở đâu.
         /// </summary>
         internal static string RecurringFieldLockedByDraftFormat => LiveOpsHubStringCatalog.Text(nameof(RecurringFieldLockedByDraftFormat));
+
+        /// <summary>
+        /// (UX-23) Câu khoá CHUNG in một lần cho cả nhóm ô, khác câu ngắn ở trên (câu ngắn vẫn dùng cho nút "Áp" của
+        /// foldout JSON, nơi chỉ có một chỗ để in). Câu này nói thêm lối đi tiếp: bấm vào ô khoá mà không biết làm gì
+        /// tiếp là đúng thứ người dùng giả gặp ở UJ-21.
+        /// </summary>
+        internal static string RecurringFieldsLockedByDraftFormat => LiveOpsHubStringCatalog.Text(nameof(RecurringFieldsLockedByDraftFormat));
 
         // Tên mẫu dựng sẵn (LiveOpsRulePresets.BuiltIn) — người dùng đọc trong dropdown Mẫu.
         internal static string RecurringPresetWeeklyMonday => LiveOpsHubStringCatalog.Text(nameof(RecurringPresetWeeklyMonday));

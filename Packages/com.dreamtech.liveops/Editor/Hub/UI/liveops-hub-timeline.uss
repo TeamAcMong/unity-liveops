@@ -31,6 +31,7 @@
 .liveops-hub-timeline-body {
     flex-grow: 1;
     flex-shrink: 1;
+    min-height: 36px;
 }
 
 /* Lớp phủ nằm thẳng track (bỏ 168px header), phủ cả thước lẫn thân — vạch bây giờ chạy từ tầng 2 xuống hết các làn, trên thanh. */
@@ -263,20 +264,25 @@
 
 .liveops-hub-timeline-lane-meta-row {
     flex-direction: row;
+    flex-wrap: wrap;
     align-items: center;
     margin-top: 2px;
     padding-left: 14px;
 }
 
+/* (R-04, UJ-19) Vế nhịp xuống dòng thay vì bị cắt: header rộng cố định 168px, mà "repeats every 24 hours · runs 20 hours"
+   (~200px) lẫn "lặp mỗi 24 giờ · chạy 20 giờ" (~157px) đều dài hơn 142px chỗ trống — nowrap + ellipsis nghĩa là CẢ HAI ngôn
+   ngữ đều đọc cụt. Làn nền giãn theo hàng (R-01) nên header cao thêm một dòng không còn để lại dải không vẽ. */
 .liveops-hub-timeline-lane-meta {
     flex-shrink: 1;
+    min-width: 96px;
     padding: 0;
     margin: 0;
     font-size: 10px;
     opacity: 0.82;
     overflow: hidden;
     text-overflow: ellipsis;
-    white-space: nowrap;
+    white-space: normal;
 }
 
 .liveops-hub-timeline-lane-meta--secondary {
@@ -290,6 +296,7 @@
     height: 14px;
     padding: 0 4px;
     margin-left: 6px;
+    margin-top: 1px;
     border-radius: 3px;
     background-color: var(--unity-colors-default-background);
     flex-shrink: 0;
@@ -347,17 +354,36 @@
     border-color: var(--liveops-hub-color-blocked-fill);
 }
 
-/* Chip "Đợt tới": Tag ở mép phải track (right 8, top padTop + 5), nền cửa sổ, kèm chevron phải. */
+/* Chip "Đợt tới": Tag ở mép phải track (lề 8, marginTop padTop + 5), nền cửa sổ, kèm chevron phải.
+ *
+ * (G-UX3-TIMELINE/RC-03) Chip KHÔNG còn position: absolute. Khi còn absolute, chip chỉ neo mép phải và tự nở theo chữ:
+ * câu "Đợt tới: <id> · <giờ> · còn <thời gian>" cần 340–395px trong làn chỉ rộng 216–380px, nên phần đầu câu (đúng chỗ
+ * chứa id) thò khỏi mép trái làn và bị overflow: hidden của làn cắt mất. Cho chip chảy trong làn (align-self: flex-end)
+ * thì Yoga đo chữ trong đúng bề rộng còn lại và cho XUỐNG DÒNG thay vì cắt; làn đã là height: auto + min-height nên nó
+ * tự cao thêm theo số dòng của chip. Làn có chip luôn là làn KHÔNG có thanh nào (BindNextChip), nên chip cao thêm không
+ * đẩy thanh nào đi đâu cả. Không dùng ellipsis: id của đợt là thứ người dùng cần đọc, rút gọn nó là mất thông tin.
+ */
 .liveops-hub-timeline-next-chip {
-    position: absolute;
-    right: 8px;
+    margin-left: 8px;
+    margin-right: 8px;
     background-color: var(--unity-colors-window-background);
+}
+
+/* Đè hai luật của .liveops-hub-tag: height 18px cố định (chip hai/ba dòng phải cao theo nội dung) và
+   align-self: flex-start (chip neo mép PHẢI track). Selector hai class để thắng dù thứ tự nạp sheet có đổi. */
+.liveops-hub-tag.liveops-hub-timeline-next-chip {
+    height: auto;
+    min-height: 18px;
+    align-self: flex-end;
+    align-items: center;
 }
 
 .liveops-hub-timeline-next-chip > .unity-label {
     font-size: 10px;
     padding: 0 6px 0 0;
     margin: 0;
+    flex-shrink: 1;
+    white-space: normal;
 }
 
 /* ---------------------------------------------------------------- Thanh [SD1 §3.5]: cao 20, bo 2, 10px, padding 0 4 2, dải đáy 3px */
@@ -615,6 +641,11 @@
     opacity: 0.82;
 }
 
+/* (UX-18, T2) Khe trước dấu ngăn "·" của vế chồng giờ: chữ không giữ được khoảng trắng ĐẦU Label nên khe phải là margin. */
+.liveops-hub-timeline-readout-overlap {
+    margin-left: 4px;
+}
+
 /* ---------------------------------------------------------------- Minimap 20px · chú giải · dòng gợi ý 18px */
 
 .liveops-hub-timeline-minimap {
@@ -632,6 +663,7 @@
     --liveops-hub-minimap-text: var(--unity-colors-default-text);
     height: 20px;
     flex-shrink: 0;
+    margin-top: 6px;
     margin-left: 168px;
     overflow: hidden;
     border-top-width: 1px;
@@ -655,6 +687,10 @@
     margin: 0 14px 3px 0;
 }
 
+/* (UX-19, G-UX3-TIMELINE/RC-07) Dấu chú giải là bản ÂM của thanh, không phải bản sao màu của thanh. Lấy đúng màu nền của
+   thanh thì ba dấu đo ra 1,65 / 1,06 / 1,00:1 so với nền cửa sổ — dấu "đã khép" trùng khít nền nên VÔ HÌNH, và ở skin tối
+   không màu tối nào đạt nổi bậc 3:1 (trần với màu đen là 1,79:1). Ba token thang trung tính ở liveops-hub-theme.uss giữ
+   nguyên thứ hạng sáng → tối của thanh thật và đo 6,72 / 4,93 / 3,49:1 (Dark), 6,59 / 4,39 / 3,05:1 (Light). */
 .liveops-hub-timeline-legend-sample {
     width: 18px;
     height: 10px;
@@ -662,22 +698,43 @@
     border-width: 1px;
     border-radius: 2px;
     border-color: var(--unity-colors-button-border);
-    background-color: var(--unity-colors-button-background);
+    background-color: var(--liveops-hub-legend-fixed);
 }
 
 .liveops-hub-timeline-legend-sample--recurring {
     border-color: var(--unity-colors-window-border);
-    background-color: var(--unity-colors-toolbar_button-background);
+    background-color: var(--liveops-hub-legend-recurring);
 }
 
 .liveops-hub-timeline-legend-sample--ended {
+    background-color: var(--liveops-hub-legend-ended);
+}
+
+.liveops-hub-timeline-legend-sample--ended > .liveops-hub-timeline-bar__stripe {
     opacity: 0.5;
+}
+
+/* Dấu "vùng chồng giờ" phải ĐỤC: nền tint là blocked-fill × 0,16, hợp thành lên nền cửa sổ chỉ còn 1,17:1 (Dark) và
+   1,32:1 (Light) — đo như màu đục thì ra 3,41:1 và người soát tưởng đạt. Mảng chồng THẬT trên trục vẫn giữ tint + gạch
+   chéo vì nó nằm dưới thanh; dấu chú giải là hình 18×10 đứng một mình nên phải tự đạt bậc 3:1. */
+.liveops-hub-timeline-legend-sample--overlap {
+    border-color: var(--liveops-hub-color-blocked-fill);
+    background-color: var(--liveops-hub-color-blocked-fill);
+}
+
+/* Nét vẽ TRÊN dấu (vuông "khác bản đã đăng", gạch "bị bỏ", dấu cắt mép) lấy màu nền cửa sổ: dấu đã là bản âm nên nền cửa
+   sổ chính là màu mực đọc được ở cả hai skin (6,72:1 trên dấu sáng nhất, 3,49:1 trên dấu tối nhất). Giữ màu gốc của thanh
+   thì vuông trắng đo 1,15:1 và gạch đỏ 1,39:1 trên dấu mới — tức là mất hẳn. Gạch "bị bỏ" mất sắc đỏ ở chú giải là đánh
+   đổi CÓ CHỦ ĐÍCH: không màu nào vừa đọc được trên dấu sáng vừa nhận ra là đỏ blocked (hai ràng buộc loại trừ nhau về số),
+   nghĩa "bị bỏ" vẫn do nhãn chữ ngay cạnh và do thanh thật trên trục mang. */
+.liveops-hub-timeline-legend-sample > .liveops-hub-timeline-bar__changed,
+.liveops-hub-timeline-legend-sample > .liveops-hub-timeline-bar__strike,
+.liveops-hub-timeline-legend-sample > .liveops-hub-timeline-bar__clip-start > .liveops-hub-timeline-bar__clip-shape {
     background-color: var(--unity-colors-window-background);
 }
 
-.liveops-hub-timeline-legend-sample--overlap {
-    border-color: var(--liveops-hub-color-blocked-fill);
-    background-color: var(--liveops-hub-color-blocked-tint);
+.liveops-hub-timeline-legend-sample > .liveops-hub-timeline-bar__stripe {
+    height: 3px;
 }
 
 .liveops-hub-timeline-legend-sample > .liveops-hub-timeline-bar__strike {
@@ -774,8 +831,15 @@
 .liveops-hub-timeline-bar--collapsed {
     height: 6px;
     padding: 0;
+    border-width: 0;
     border-radius: 1px;
     opacity: 0.85;
+}
+
+/* Dải màu lấp hết 6px: ở làn thu gọn màu loại LÀ nội dung, không còn nhãn hay icon nào khác để đọc. */
+.liveops-hub-timeline-bar--collapsed > .liveops-hub-timeline-bar__stripe {
+    top: 0;
+    height: auto;
 }
 
 .liveops-hub-timeline-bar--collapsed > .liveops-hub-timeline-bar__label {
@@ -797,13 +861,14 @@
 /* Chevron gập ở dòng tên làn (khung 12): 9×8, opacity 0,8. Hình là một ô vuông 5×5 chỉ có hai cạnh, xoay 45° — cùng cách
    dựng với dấu cắt mép của thanh, vì font của Editor không chắc có glyph chevron. */
 .liveops-hub-timeline-lane-chevron {
-    width: 9px;
-    height: 8px;
+    width: 16px;
+    height: 14px;
     flex-shrink: 0;
-    margin-right: 5px;
+    margin-right: 0;
     align-items: center;
     justify-content: center;
     opacity: 0.8;
+    cursor: link;
 }
 
 .liveops-hub-timeline-lane-chevron-shape {

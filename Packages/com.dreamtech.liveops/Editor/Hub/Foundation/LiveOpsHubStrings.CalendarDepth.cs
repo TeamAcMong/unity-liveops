@@ -151,5 +151,53 @@ namespace DreamTech.LiveOps.Editor
         internal static string CalendarDepthMoveLaneUndoStepFormat => LiveOpsHubStringCatalog.Text(nameof(CalendarDepthMoveLaneUndoStepFormat));
         internal static string CalendarDepthRevertUndoStepFormat => LiveOpsHubStringCatalog.Text(nameof(CalendarDepthRevertUndoStepFormat));
         internal static string CalendarDepthTakeFromDiskUndoStepFormat => LiveOpsHubStringCatalog.Text(nameof(CalendarDepthTakeFromDiskUndoStepFormat));
+
+        // ----- Đợt W8-UX: chữ mới của gói A -----
+
+        /// <summary>
+        /// (UX-04, UJ-04) Giờ trong chuỗi thô không đọc được. Câu toast cũ in mốc mặc định "1/1 00:00" — một giờ mà người dùng
+        /// chưa bao giờ gõ, nói ngược lại đúng cái lỗi hub vừa báo ở ô. Nói thẳng "chưa đọc được" là câu duy nhất luôn đúng.
+        /// </summary>
+        internal static string CalendarDepthUnreadableTimeText => LiveOpsHubStringCatalog.Text(nameof(CalendarDepthUnreadableTimeText));
+
+        /// <summary>
+        /// (UX-26, UJ-10) Tên bước kéo MỘT MÉP. Câu chung "Đổi {0}" làm status bar ("Vừa làm: Đổi hunt-0914") và toast ("Đã dời
+        /// kết thúc…") đọc như hai thao tác khác nhau; hai khuôn dưới nói đúng mép nào đã đổi.
+        /// </summary>
+        internal static string CalendarDepthMoveStartEdgeUndoStepFormat => LiveOpsHubStringCatalog.Text(nameof(CalendarDepthMoveStartEdgeUndoStepFormat));
+        internal static string CalendarDepthMoveEndEdgeUndoStepFormat => LiveOpsHubStringCatalog.Text(nameof(CalendarDepthMoveEndEdgeUndoStepFormat));
+
+        /// <summary>
+        /// (UX-15, UJ-18) Có dấu đã đăng rồi nhưng đợt này chưa nằm trong bản đó. Lý do cũ "Chưa có dấu đã đăng" nói sai sự
+        /// thật — người dùng vừa đăng xong vẫn đọc câu đó và tưởng lần đăng không ăn.
+        /// </summary>
+        internal static string CalendarDepthMenuNotInPublishedReason => LiveOpsHubStringCatalog.Text(nameof(CalendarDepthMenuNotInPublishedReason));
+
+        /// <summary>(UX-15, UJ-18) Làn lặp sinh đợt từ luật nên không nhận đợt cố định; mục vẫn ở lại và tự nói lý do.</summary>
+        internal static string CalendarDepthMenuRecurringLaneReason => LiveOpsHubStringCatalog.Text(nameof(CalendarDepthMenuRecurringLaneReason));
+
+        /// <summary>(UX-15, UJ-18) "Hiện tất cả làn" khi không làn nào ẩn là một lời hứa suông — khoá kèm lý do.</summary>
+        internal static string CalendarDepthMenuNoHiddenLaneReason => LiveOpsHubStringCatalog.Text(nameof(CalendarDepthMenuNoHiddenLaneReason));
+
+        /// <summary>
+        /// (UX-12, UJ-07) Nút "Hiện" trong chip "Đang ẩn n làn". Trước đây cả chip chỉ là một Label nên bấm vào chữ "Hiện"
+        /// không có gì xảy ra — người dùng bấm ba lần rồi bỏ cuộc.
+        /// </summary>
+        internal static string CalendarDepthShowHiddenLanesButton => LiveOpsHubStringCatalog.Text(nameof(CalendarDepthShowHiddenLanesButton));
+
+        /// <summary>
+        /// (UX-12) Nhãn của chip, KHÔNG còn đuôi "· Hiện": đuôi đó giờ là một nút thật đứng cạnh. Khuôn cũ
+        /// <c>CalendarHiddenLanesChipFormat</c> giữ nguyên cho vùng Calendar, không đổi ở đợt này.
+        /// </summary>
+        internal static string CalendarDepthHiddenLanesLabelFormat => LiveOpsHubStringCatalog.Text(nameof(CalendarDepthHiddenLanesLabelFormat));
+
+        internal static string CalendarDepthShowHiddenLanesTooltip => LiveOpsHubStringCatalog.Text(nameof(CalendarDepthShowHiddenLanesTooltip));
+
+        /// <summary>(UX-29) Mục menu ⋮ thay cho nút "So với đã đăng (n)" khi cửa sổ hẹp — nhãn không mang số vì DropdownMenu
+        /// chốt nhãn lúc dựng menu.</summary>
+        internal static string CalendarDepthCompareMenuItem => LiveOpsHubStringCatalog.Text(nameof(CalendarDepthCompareMenuItem));
+
+        /// <summary>(UX-29) Mục menu ⋮ của một lựa chọn bắt lưới: "Bắt lưới: Tự động".</summary>
+        internal static string CalendarDepthSnapMenuItemFormat => LiveOpsHubStringCatalog.Text(nameof(CalendarDepthSnapMenuItemFormat));
     }
 }
