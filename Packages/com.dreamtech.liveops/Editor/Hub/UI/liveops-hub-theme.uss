@@ -23,8 +23,9 @@
     --liveops-hub-color-blocked-fill: #F05454;
     --liveops-hub-color-warning-text: #F4BC02;
     --liveops-hub-color-warning-fill: #F4BC02;
-    /* Quiet = chữ × 0,6 quy ra màu đặc trên cửa sổ #383838 (vòng rỗng 3,87:1). */
-    --liveops-hub-color-quiet: #949494;
+    /* Quiet là màu CHỮ phụ (không phải vòng rỗng): dùng khắp hub, kể cả tag lý do của popover Thêm đợt, nên phải theo bậc
+       chữ thường 4,5:1 của WCAG. #949494 cũ chỉ 3,87:1 trên cửa sổ #383838; #A3A3A3 đo ra 4,65:1 (G-UX3-TIMELINE §2.1). */
+    --liveops-hub-color-quiet: #A3A3A3;
     --liveops-hub-color-focus: #7BAEFA;
     /* Link không dùng --unity-colors-link-text (#4C7EFF chỉ 3,20:1 trên #383838). */
     --liveops-hub-color-link: #7BAEFA;
@@ -45,6 +46,18 @@
     --liveops-hub-event-color-5: #D06BB8;
     --liveops-hub-event-color-6: #7F9BB3;
     --liveops-hub-event-color-7: #B88A9E;
+
+    /* Dấu màu chú giải trục [SD1 §3.6] — thang ba bậc TRUNG TÍNH riêng (G-UX3-TIMELINE, phương án B của UX-PASS3 §2.3).
+       Vì sao không dùng lại màu của chính thanh: ở skin tối thanh vẽ bằng --unity-colors-button-background #585858 (1,65:1),
+       thanh lặp #3C3C3C (1,06:1) và thanh đã khép #383838 (1,00:1 — ĐÚNG BẰNG nền, dấu vô hình). Viền 1px
+       --unity-colors-button-border #303030 chỉ 1,13:1 nên viền không cứu được bậc 3:1 của hình khối, phải chốt về phía NỀN
+       của dấu. Ở skin tối mọi màu tối hơn nền đều không thể đạt 3:1 (trần với màu đen là 1,79:1), nên dấu buộc phải SÁNG hơn
+       nền — dấu là bản ÂM của thanh, và mọi nét vẽ trên dấu lấy màu nền cửa sổ (xem liveops-hub-timeline.uss).
+       Giữ nguyên thứ hạng sáng → tối của thanh thật (thường > lặp > đã khép), ba bậc cách nhau 1,36–1,50 lần nên vẫn
+       phân biệt được, và mỗi mục còn có vạch/gạch riêng cùng nhãn chữ bên cạnh. */
+    --liveops-hub-legend-fixed: #C4C4C4;
+    --liveops-hub-legend-recurring: #A8A8A8;
+    --liveops-hub-legend-ended: #8C8C8C;
 
     /* Cú pháp JSON ([FD §2.6]); dấu câu dùng màu chữ nên không có token. */
     --liveops-hub-json-key: #8FB8E8;
@@ -73,8 +86,9 @@
     --liveops-hub-color-blocked-fill: #A80000;
     --liveops-hub-color-warning-text: #4F3600;
     --liveops-hub-color-warning-fill: #6E4E00;
-    /* Quiet Light trên cửa sổ #C8C8C8; trên rail #A5A5A5 shell dùng --unity-colors-default-text × 0,6 riêng nếu cần. */
-    --liveops-hub-color-quiet: #555555;
+    /* Quiet Light trên cửa sổ #C8C8C8; trên rail #A5A5A5 shell dùng --unity-colors-default-text × 0,6 riêng nếu cần.
+       #555555 cũ 4,46:1 — thiếu bậc chữ thường; #4F4F4F đo ra 4,90:1. */
+    --liveops-hub-color-quiet: #4F4F4F;
     --liveops-hub-color-focus: #1D5087;
     --liveops-hub-color-link: #1D5087;
     --liveops-hub-color-now: #1A1A1A;
@@ -92,10 +106,17 @@
     --liveops-hub-event-color-6: #4F6A82;
     --liveops-hub-event-color-7: #8A5A70;
 
+    /* Dấu chú giải Light: dấu là bản âm của cửa sổ #C8C8C8 nên ở đây dấu TỐI hơn nền; đo 6,59 / 4,39 / 3,05:1. */
+    --liveops-hub-legend-fixed: #3C3C3C;
+    --liveops-hub-legend-recurring: #565656;
+    --liveops-hub-legend-ended: #6E6E6E;
+
+    /* Chuỗi và literal Light cũ (#3F6B28 3,75:1 · #1E6B6B 3,72:1) thiếu bậc chữ thường 4,5:1 trên cửa sổ #C8C8C8;
+       hai màu dưới đây đo ra 5,13:1 và 5,23:1, vẫn giữ đúng sắc lục/lam-lục để mắt phân biệt được bốn nhóm cú pháp. */
     --liveops-hub-json-key: #1F4E8C;
-    --liveops-hub-json-string: #3F6B28;
+    --liveops-hub-json-string: #31551E;
     --liveops-hub-json-number: #6A3D9A;
-    --liveops-hub-json-literal: #1E6B6B;
+    --liveops-hub-json-literal: #175353;
 
     --liveops-hub-timeline-weekend: rgba(0, 0, 0, 0.05);
     --liveops-hub-timeline-today: rgba(58, 114, 176, 0.12);

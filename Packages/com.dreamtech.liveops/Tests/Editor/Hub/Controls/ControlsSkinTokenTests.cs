@@ -21,11 +21,14 @@ namespace DreamTech.LiveOps.Editor.Tests
         private const string DarkJsonKey = "#8FB8E8";
         private const string LightJsonKey = "#1F4E8C";
         private const string DarkJsonString = "#B5CEA8";
-        private const string LightJsonString = "#3F6B28";
+        // (G-UX3-TIMELINE) Hai hằng Light đổi theo token: #3F6B28 chỉ 3,75:1 và #1E6B6B chỉ 3,72:1 trên nền cửa sổ #C8C8C8,
+        // dưới bậc chữ thường 4,5:1 của WCAG. Bản mới đo 5,13:1 và 5,23:1. Đây là bản SAO của liveops-hub-theme.uss —
+        // sửa token mà quên hai dòng này là test đỏ, đúng ý của nó.
+        private const string LightJsonString = "#31551E";
         private const string DarkJsonNumber = "#C8A2E0";
         private const string LightJsonNumber = "#6A3D9A";
         private const string DarkJsonLiteral = "#7FC4C4";
-        private const string LightJsonLiteral = "#1E6B6B";
+        private const string LightJsonLiteral = "#175353";
         private const string DarkNow = "#E6E6E6";
         private const string LightNow = "#1A1A1A";
         private const float ColorTolerance = 1.5f / 255f;
