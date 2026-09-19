@@ -356,8 +356,9 @@ namespace DreamTech.LiveOps.Editor.Tests
             {
                 // "Đang chạy" phải ĐÚNG NGHĨA: ở "bây giờ" của thiết kế (13/9 01:47) KHÔNG đợt nào đang chạy — lava-quest-2026-09a
                 // kết thúc lúc 13/9 00:00 — nên bản đầu tiên của test kéo một đợt ĐÃ XONG rồi trách màn "không hỏi gì", trong khi
-                // màn im lặng là ĐÚNG. Lượt này lấy "bây giờ" nằm giữa hunt-0914 (14/9 → 17/9) và khẳng định điều kiện đó trước
-                // khi kéo, để test không lặng lẽ trôi thành ca khác khi dữ liệu mẫu đổi (G-FIX-UX-5).
+                // màn im lặng là ĐÚNG. Lượt này lấy "bây giờ" là RunningNowUtc = 18/9 12:00, nằm giữa lava-quest-2026-09b
+                // (17/9 → 20/9) — ĐÚNG đợt mà ca này kéo — và khẳng định điều kiện đó trước khi kéo, để test không lặng lẽ trôi
+                // thành ca khác khi dữ liệu mẫu đổi (G-FIX-UX-5; comment cũ nêu nhầm hunt-0914, sửa ở G-UX2-DRAG soát R6).
                 yield return OpenCalendar(UxHubWindowFixture.AllSizes[4], language, LiveOpsConfirmResult.Safe, RunningNowUtc);
                 Assert.IsTrue(_fixture.Services.Session.Document.TryGetFixedEvent(LiveOpsDesignSample.LavaQuestMidEntryKey,
                     out FixedLiveEventEntry running), "mẫu thiết kế phải còn đợt lava-quest-2026-09b để kéo");
@@ -441,13 +442,17 @@ namespace DreamTech.LiveOps.Editor.Tests
 
                 Assert.AreEqual(LiveOpsDesignSample.LavaQuestLateEntryKey, _fixture.Calendar.Presenter.SelectedBarKey,
                     "bấm chip \"Không đặt được\" không chọn đợt hỏng nào (UX-09)");
-                VisualElement issues = _fixture.Root.Q(className: LiveOpsHubClassNames.CalendarInspectorIssues);
+                // Chờ HẾT một lượt layout trước khi đo: cú bấm chip vừa đổi pane phải sang Danh sách vừa dựng lại cả inspector,
+                // nên các nút trong card Vấn đề là element MỚI và worldBound của chúng chưa có thật ngay sau Settle ngắn của Click.
+                yield return _fixture.WaitForLayout();
+                Foldout issues = _fixture.Root.Q<Foldout>(className: LiveOpsHubClassNames.CalendarInspectorIssues);
                 Assert.IsNotNull(issues, "inspector không có card Vấn đề để bấm (UX-09)");
-                Button fix = ApplyRepairButtonIn(issues);
+                yield return OpenIssuesCard(issues);
+                // MỌI nút trong card đều phải hiện ra và chạm được bằng chuột, không riêng nút áp được: đợt lava-quest-2026-10
+                // còn mang nút Đề xuất của hàng phát hiện, và chính hàng ngang đó là chỗ C4 từng đẩy nút ra ngoài pane 280px.
+                // Kiểm cả hai ngay trong hàm tìm nút, nếu không độ phủ của UX-09 với nút Đề xuất tụt về 0 (soát R2).
+                Button fix = ApplyRepairButtonIn(issues, _fixture.Window);
                 Assert.IsNotNull(fix, "card Vấn đề không có nút nào ÁP được cách sửa (UX-09)");
-                Assert.IsTrue(UxLayoutAuditor.IsShownOnScreen(fix), "nút sửa của card Vấn đề không hiện ra (UX-09)");
-                Assert.IsTrue(UxEventSender.PickReaches(_fixture.Window, fix),
-                    "nút sửa có trong cây nhưng con trỏ không chạm được — bị lớp khác đè hoặc cha PickingMode.Ignore (UX-09)");
                 int revisionBefore = _fixture.Services.Session.DocumentRevision;
 
                 yield return UxEventSender.Click(_fixture.Window, fix);
@@ -465,21 +470,95 @@ namespace DreamTech.LiveOps.Editor.Tests
         }
 
         /// <summary>
+        /// Mở card Vấn đề BẰNG CHUỘT khi nó đang gập — đúng cử chỉ người dùng làm, và là bước bắt buộc để ca UX-09 đo được các
+        /// nút bên trong.
+        /// <para>
+        /// Vì sao card có thể đang gập dù đợt đang chọn CÓ vấn đề: <c>CalendarEventInspector.BuildIssuesFoldout</c> đặt
+        /// <c>value = Findings.Count &gt; 0</c> nhưng cũng đặt <c>viewDataKey</c>, mà viewData của Unity khôi phục trạng thái
+        /// gập/mở SAU khi element gắn vào panel và ghi đè giá trị khởi tạo. Khoá viewData lại dùng CHUNG cho mọi đợt, nên chỉ
+        /// cần trước đó xem một đợt SẠCH (card gập đúng) là đợt hỏng kế tiếp cũng mở ra ở trạng thái gập.
+        /// </para>
+        /// <para>
+        /// NỢ W9-UX09-FOLDOUT (mở phiếu, KHÔNG sửa ở gói này): <c>CalendarEventInspector.cs</c> nằm ngoài quyền ghi của
+        /// G-UX2-DRAG (ownership.tsv: G-CALENDAR, G-CALENDAR-DEPTH, G-OPT-TIMELINE). Ý định "có vấn đề thì mở sẵn" đang bị
+        /// viewData nuốt im lặng — phiếu W9 phải quyết: bỏ viewDataKey, hay đổi sang khoá theo từng đợt.
+        /// </para>
+        /// </summary>
+        private IEnumerator OpenIssuesCard(Foldout issues)
+        {
+            if (issues.value) yield break;
+            Toggle header = issues.Q<Toggle>();
+            Assert.IsNotNull(header, "card Vấn đề đang gập mà không có tiêu đề nào để bấm mở (UX-09)");
+            Assert.IsTrue(UxLayoutAuditor.IsShownOnScreen(header), "tiêu đề card Vấn đề không hiện ra (UX-09)");
+            Assert.IsTrue(UxEventSender.PickReaches(_fixture.Window, header),
+                "con trỏ không chạm được tiêu đề card Vấn đề — card gập rồi thì không còn đường nào tới nút sửa (UX-09)");
+
+            yield return UxEventSender.Click(_fixture.Window, header);
+
+            yield return _fixture.WaitForLayout();
+            Assert.IsTrue(issues.value, "bấm tiêu đề card Vấn đề không mở được card (UX-09)");
+        }
+
+        /// <summary>
         /// Nút trong card Vấn đề thực sự ÁP cách sửa. Nút của một phát hiện (Proposal) nằm TRONG card phát hiện
         /// (<see cref="LiveOpsHubClassNames.FindingRow"/>) và CỐ Ý không áp gì — nó mở popover Đề xuất của màn Kiểm lịch
         /// (mục 12 I-4, <c>CalendarEventInspector.BuildRepairButton</c>). Nút áp được đặt thẳng trong foldout
         /// (<c>CalendarEventInspector.BuildUnreadableFixButton</c>). Phân biệt bằng CHA chứ không bằng thứ tự: thêm một phát
         /// hiện nữa cho đợt đó là thứ tự đổi ngay.
+        /// <para>
+        /// Vừa duyệt vừa KHẲNG ĐỊNH: mọi nút gặp trên đường phải hiện ra và con trỏ phải chạm tới — lời hứa "bấm được BẰNG
+        /// CHUỘT" của UX-09 nói về cả nút Đề xuất lẫn nút áp được. Bản trước chỉ <c>continue</c> qua nút Đề xuất nên nó không
+        /// còn được kiểm ở đâu nữa (soát R2).
+        /// </para>
+        /// <para>
+        /// Leo CHA tới gốc chứ không hỏi mỗi cha trực tiếp: nút Đề xuất hôm nay là con thẳng của card, nhưng chỉ cần bọc thêm
+        /// một hàng nút là câu hỏi "cha có phải FindingRow không" trả lời sai và test đi bấm nhầm nút không áp gì.
+        /// </para>
         /// </summary>
-        private static Button ApplyRepairButtonIn(VisualElement issues)
+        private static Button ApplyRepairButtonIn(VisualElement issues, EditorWindow window)
         {
+            Button applyButton = null;
             foreach (Button candidate in issues.Query<Button>().ToList())
             {
-                VisualElement parent = candidate.parent;
-                if (parent != null && parent.ClassListContains(LiveOpsHubClassNames.FindingRow)) continue;
-                return candidate;
+                Assert.IsTrue(UxLayoutAuditor.IsShownOnScreen(candidate),
+                    "nút \"" + candidate.text + "\" trong card Vấn đề không hiện ra (UX-09) — "
+                    + AncestryDiagnostic(candidate));
+                Assert.IsTrue(UxEventSender.PickReaches(window, candidate),
+                    "nút \"" + candidate.text + "\" của card Vấn đề có trong cây nhưng con trỏ không chạm được — bị lớp khác"
+                    + " đè hoặc cha PickingMode.Ignore (UX-09)");
+                if (applyButton == null && !IsInsideFindingRow(candidate, issues)) applyButton = candidate;
             }
-            return null;
+            return applyButton;
+        }
+
+        /// <summary>
+        /// Chuỗi chẩn đoán "vì sao không hiện": kích thước + display/visibility/opacity của element và MỌI cha của nó. Không có
+        /// nó thì câu đỏ chỉ nói "không hiện ra" và người đọc phải mở lại Unity bằng tay mới biết tầng nào tắt.
+        /// </summary>
+        private static string AncestryDiagnostic(VisualElement element)
+        {
+            StringBuilder builder = new StringBuilder();
+            for (VisualElement current = element; current != null; current = current.hierarchy.parent)
+            {
+                Rect bound = current.worldBound;
+                builder.Append(UxLayoutAuditor.Describe(current)).Append(" [")
+                    .Append(UxLayoutAuditor.Number(bound.width)).Append('x').Append(UxLayoutAuditor.Number(bound.height))
+                    .Append(" display=").Append(current.resolvedStyle.display)
+                    .Append(" visibility=").Append(current.resolvedStyle.visibility)
+                    .Append(" opacity=").Append(UxLayoutAuditor.Number(current.resolvedStyle.opacity))
+                    .Append("] < ");
+            }
+            return builder.ToString();
+        }
+
+        /// <summary>Element có nằm trong một card phát hiện nào không — leo cha tới <paramref name="root"/> rồi dừng.</summary>
+        private static bool IsInsideFindingRow(VisualElement element, VisualElement root)
+        {
+            for (VisualElement ancestor = element.parent; ancestor != null && ancestor != root; ancestor = ancestor.parent)
+            {
+                if (ancestor.ClassListContains(LiveOpsHubClassNames.FindingRow)) return true;
+            }
+            return false;
         }
 
         /// <summary>
@@ -643,21 +722,33 @@ namespace DreamTech.LiveOps.Editor.Tests
         /// chỗ", chứ không phải "nhãn thân thanh khác rỗng" — ở 700 thanh hunt-0916-bonus chỉ rộng ~34px, nhãn thân rỗng là
         /// ĐÚNG thiết kế.
         /// </para>
+        /// <para>
+        /// GHIM thanh hunt-0916-bonus và khẳng định nó thật sự HẸP trước khi đo (soát R3). Bản trước lấy "thanh bị bỏ đầu tiên
+        /// gặp được" nên ca này trôi theo dữ liệu mẫu: thanh rộng ≥ <c>LabelFullIdMinimumBarWidth</c> (64px) thì nhãn thân đã
+        /// mang id đầy đủ và nhánh tag không bao giờ chạy — ca xanh mà chẳng kiểm gì.
+        /// </para>
+        /// <para>
+        /// NỢ W9-UX31-NUMERIC (mở phiếu, KHÔNG sửa ở đợt này): dải 24px ≤ rộng &lt; 64px với id có hậu tố SỐ
+        /// (<c>LiveOpsTimelineGeometry.BarLabel</c> trả "0916", "pass-38" → "38") thì nhãn thân KHÁC RỖNG nên
+        /// <c>DroppedTagTextFor</c> bỏ id khỏi tag — người dùng chỉ đọc được con số, không đọc được id. Mẫu thiết kế hiện
+        /// không có thanh bị bỏ nào rơi vào dải đó nên ca này không dựng được cảnh; ghi phiếu thay vì nới assert.
+        /// </para>
         /// </summary>
         [UnityTest]
         public IEnumerator NarrowDroppedBar_HasReadableIdLabel()
         {
             yield return OpenCalendar(new UxWindowSize(700, 560), LiveOpsHubLanguageId.Vietnamese);
-            LiveOpsTimelineBar droppedBar = null;
-            foreach (LiveOpsTimelineBar bar in _fixture.Root.Query<LiveOpsTimelineBar>().ToList())
-            {
-                if (bar.Model == null || !bar.Model.IsDropped || !UxLayoutAuditor.IsShownOnScreen(bar)) continue;
-                droppedBar = bar;
-                break;
-            }
-            Assert.IsNotNull(droppedBar,
-                "ở 700 không có thanh nào bị bỏ — mẫu thiết kế có hunt-0916-bonus chồng giờ với hunt-0914 nên đợt đó bị bỏ, và"
-                + " thanh của nó phải vẽ ra thì người dùng mới sửa được (UX-31)");
+            LiveOpsTimelineBar droppedBar = _fixture.BarOf(LiveOpsDesignSample.HuntBonusEntryKey);
+            Assert.IsNotNull(droppedBar.Model, "thanh hunt-0916-bonus chưa gắn model (UX-31)");
+            Assert.IsTrue(droppedBar.Model.IsDropped,
+                "điều kiện của ca này: hunt-0916-bonus chồng 12 giờ với hunt-0914 nên biên dịch phải xếp nó vào nhóm bị bỏ"
+                + " (UX-31)");
+            Assert.IsTrue(UxLayoutAuditor.IsShownOnScreen(droppedBar),
+                "ở 700 thanh của đợt bị bỏ không vẽ ra — người dùng không sửa được thứ mình không thấy (UX-31)");
+            Assert.Less(droppedBar.Width, LiveOpsTimelineGeometry.LabelFullIdMinimumBarWidth,
+                "điều kiện của ca này: thanh phải HẸP (< " + UxLayoutAuditor.Number(LiveOpsTimelineGeometry.LabelFullIdMinimumBarWidth)
+                + "px) thì nhãn thân mới không mang id và tag mới phải nói thay — thanh đang rộng "
+                + UxLayoutAuditor.Number(droppedBar.Width) + "px (UX-31)");
             string eventId = droppedBar.Model.EventId;
             Assert.IsNotEmpty(eventId, "thanh bị bỏ không mang id nào để đọc (UX-31)");
 
@@ -697,6 +788,13 @@ namespace DreamTech.LiveOps.Editor.Tests
         /// nên chữ đổi cả khi lời mời làm lại không bao giờ hiện. Hai mốc so là phần chữ cố định của chính hai chuỗi định dạng
         /// trong catalog, nên ca này chạy đúng ở cả vi lẫn en.
         /// </para>
+        /// <para>
+        /// Riêng tiền tố "Vừa hoàn tác: " KHÔNG đủ (soát R1): hai chuỗi <c>ShellStatusUndoneActionFormat</c> và
+        /// <c>ShellStatusUndoneActionWithKeyFormat</c> mở đầu GIỐNG HỆT nhau, mà <c>LiveOpsHubStatusBarModel.BuildRecentAction</c>
+        /// rơi về bản KHÔNG phím khi nhãn phím Làm lại rỗng. Mất hẳn "(⌘⇧Z để làm lại)" mà ca vẫn xanh — đúng thứ UX-26 hứa.
+        /// Nên đo thêm phần chữ cố định ĐUÔI của bản có phím và chính nhãn phím mà cửa sổ truyền vào
+        /// (<c>LiveOpsHubKeyLabels.Redo</c>).
+        /// </para>
         /// </summary>
         [UnityTest]
         public IEnumerator DragThenUndo_StatusBarOffersRedo()
@@ -725,7 +823,17 @@ namespace DreamTech.LiveOps.Editor.Tests
                 Assert.AreNotEqual(statusBefore, statusAfter,
                     "hoàn tác xong status bar không đổi câu — người dùng không được mời làm lại (UX-26)");
                 Assert.IsTrue(statusAfter.IndexOf(undonePrefix, StringComparison.Ordinal) >= 0,
-                    "hoàn tác xong status bar vẫn không mời làm lại: \"" + statusAfter + "\" (UX-26)");
+                    "hoàn tác xong status bar vẫn không nói vừa hoàn tác: \"" + statusAfter + "\" (UX-26)");
+                string redoKeyLabel = LiveOpsHubKeyLabels.Redo;
+                Assert.IsNotEmpty(redoKeyLabel,
+                    "Unity này không gán phím nào cho Làm lại nên không có lời mời nào để kiểm — ca UX-26 mất nghĩa, xem lại"
+                    + " môi trường chứ đừng nới assert");
+                Assert.IsTrue(statusAfter.IndexOf(redoKeyLabel, StringComparison.Ordinal) >= 0,
+                    "hoàn tác xong status bar không nêu phím Làm lại \"" + redoKeyLabel + "\": \"" + statusAfter + "\" (UX-26)");
+                string redoInvitationTail = FixedTailOf(LiveOpsHubStrings.ShellStatusUndoneActionWithKeyFormat);
+                Assert.IsTrue(statusAfter.IndexOf(redoInvitationTail, StringComparison.Ordinal) >= 0,
+                    "hoàn tác xong status bar vẫn không MỜI làm lại (thiếu \"" + redoInvitationTail + "\"): \"" + statusAfter
+                    + "\" (UX-26)");
                 DisposeFixture();
             }
         }
@@ -738,6 +846,16 @@ namespace DreamTech.LiveOps.Editor.Tests
         {
             int placeholderIndex = format.IndexOf("{0}", StringComparison.Ordinal);
             return placeholderIndex <= 0 ? format : format.Substring(0, placeholderIndex);
+        }
+
+        /// <summary>
+        /// Phần chữ cố định đứng SAU chỗ điền cuối cùng của một chuỗi định dạng (" để làm lại)" / " to redo)") — thứ phân biệt
+        /// bản CÓ nhãn phím với bản không, mà tiền tố thì không phân biệt được vì hai bản mở đầu giống hệt nhau.
+        /// </summary>
+        private static string FixedTailOf(string format)
+        {
+            int closingIndex = format.LastIndexOf('}');
+            return closingIndex < 0 || closingIndex + 1 >= format.Length ? format : format.Substring(closingIndex + 1);
         }
 
         // ================================================================================================ trợ giúp
