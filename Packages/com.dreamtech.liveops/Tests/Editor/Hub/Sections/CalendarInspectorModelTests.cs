@@ -63,6 +63,24 @@ namespace DreamTech.LiveOps.Editor.Tests
             Assert.AreEqual(LiveOpsHubStrings.CalendarDeleteButtonWithDialog, model.DeleteButtonText, "xoá đợt đang chạy sẽ hỏi");
         }
 
+        /// <summary>
+        /// Đợt ĐÃ KHÉP: khoá CẢ HAI mép. Bảng 7.0 cấm đổi giờ đợt đã khép (<c>LiveOpsConfirmationPolicy</c> trả <c>NotAllowed</c>)
+        /// và <c>CalendarTimelinePresenter.ApplyEdit</c> bỏ lệnh KHÔNG một lời nào — nên chỗ duy nhất nói được cho người dùng là chính ô nhập.
+        /// Trước lượt W8-UX2 hai ô giờ của đợt này vẫn bật và nuốt thao tác im lặng.
+        /// </summary>
+        [Test]
+        public void EndedEvent_BothEdgesLockedWithReason()
+        {
+            LiveOpsHubServices services = LiveOpsHubTestServices.FromDesignSample();
+            CalendarInspectorModel model = CalendarInspectorModel.Build(services.Session, LiveOpsDesignSample.LavaQuestEarlyEntryKey,
+                services.Clock.UtcNow, services.Format);
+            Assert.AreEqual(LiveEventPhase.Ended, model.Phase, "lava-quest-2026-09a khép lúc 13/9 00:00, mốc mẫu là 13/9 01:47");
+            Assert.IsTrue(model.IsStartLocked, "đã khép: mép đầu khoá");
+            Assert.IsTrue(model.IsEndLocked, "đã khép: mép cuối khoá — không còn lôi dài hay rút ngắn được nữa");
+            Assert.IsNotEmpty(model.StartLockReason, "khoá thì phải nói vì sao");
+            Assert.IsNotEmpty(model.EndLockReason, "khoá thì phải nói vì sao");
+        }
+
         [Test]
         public void RecurringBarKey_MapsToRule()
         {

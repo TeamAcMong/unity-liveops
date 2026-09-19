@@ -427,10 +427,14 @@ namespace DreamTech.LiveOps.Editor
                 field.SetRawTextWithoutNotify(rawDateText, rawTimeText);
             }
 
-            if (!isEnd && _model.IsStartLocked)
+            // Mép nào bị khoá thì khoá ô ĐÓ và nói lý do ngay trên ô: đợt đang chạy khoá mép đầu (người chơi đã vào theo giờ cũ),
+            // đợt đã khép khoá cả hai. Không có nhánh này thì ô vẫn nhận chữ + Enter rồi ApplyEdit bỏ lệnh không một lời nào —
+            // người dùng đọc "23:00" trong ô mà asset còn giờ cũ (W8-UX2).
+            bool isEdgeLocked = isEnd ? _model.IsEndLocked : _model.IsStartLocked;
+            if (isEdgeLocked)
             {
                 field.SetEnabled(false);
-                field.tooltip = _model.StartLockReason;
+                field.tooltip = isEnd ? _model.EndLockReason : _model.StartLockReason;
                 return field;
             }
             // Ô giờ chốt bằng ĐÚNG MỘT đường (TextCommitted), đọc được hay không cũng vậy: bản trước có hai đường (ChangeEvent cho
@@ -475,15 +479,25 @@ namespace DreamTech.LiveOps.Editor
             };
             field.AddToClassList(LiveOpsHubClassNames.CalendarInspectorField);
             field.AddToClassList(LiveOpsHubClassNames.CalendarInspectorFieldNumber);
-            field.RegisterValueChangedCallback(change =>
+            // "Dài" ghi vào MÉP CUỐI (giữ nguyên giờ bắt đầu), nên nó khoá theo đúng cái khoá của mép cuối — cùng lý do với ô giờ:
+            // đợt đã khép thì lệnh ghi bị chính sách từ chối lặng lẽ, để ô mở là mời người dùng gõ một thứ không bao giờ ăn.
+            if (_model.IsEndLocked)
             {
-                if (change.newValue <= 0 || !entry.TryGetStartUtc(out DateTime startUtc)) return;
-                FixedLiveEventEntry next = entry.WithTimes(entry.StartUtcText,
-                    LiveEventUtcText.Format(startUtc.AddHours(change.newValue)));
-                string message = _presenter.DragToastMessage(entry, next);
-                _presenter.ApplyEdit(new ReplaceFixedEventEdit(next), LiveOpsEditOperation.ChangeFixedEventTimes, entry.EntryKey,
-                    message, string.Empty, _presenter.DragUndoStepName(entry, next));
-            });
+                field.SetEnabled(false);
+                field.tooltip = _model.EndLockReason;
+            }
+            else
+            {
+                field.RegisterValueChangedCallback(change =>
+                {
+                    if (change.newValue <= 0 || !entry.TryGetStartUtc(out DateTime startUtc)) return;
+                    FixedLiveEventEntry next = entry.WithTimes(entry.StartUtcText,
+                        LiveEventUtcText.Format(startUtc.AddHours(change.newValue)));
+                    string message = _presenter.DragToastMessage(entry, next);
+                    _presenter.ApplyEdit(new ReplaceFixedEventEdit(next), LiveOpsEditOperation.ChangeFixedEventTimes, entry.EntryKey,
+                        message, string.Empty, _presenter.DragUndoStepName(entry, next));
+                });
+            }
             row.Add(field);
             row.Add(new Label(LiveOpsHubStrings.CalendarDurationUnitLabel));
             row.Add(AddEventPopover.BuildDurationNote(_model.DurationHours, _services.Format));
