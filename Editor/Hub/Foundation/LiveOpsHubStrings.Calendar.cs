@@ -76,6 +76,10 @@ namespace DreamTech.LiveOps.Editor
         // Mép đầu đợt đang chạy khoá: người chơi đã vào theo giờ cũ nên tooltip nói thẳng "đã chạy từ".
         internal static string CalendarStartLockedTooltipFormat => LiveOpsHubStringCatalog.Text(nameof(CalendarStartLockedTooltipFormat));
 
+        // Hai mép của đợt ĐÃ KHÉP khoá: chính sách cấm đổi giờ đợt đã khép, nên tooltip phải nói lý do TRƯỚC khi người dùng gõ —
+        // trước đợt W8-UX2 ô vẫn mở, nhận chữ, rồi lệnh ghi bị bỏ lặng lẽ.
+        internal static string CalendarEndedLockedTooltipFormat => LiveOpsHubStringCatalog.Text(nameof(CalendarEndedLockedTooltipFormat));
+
         // (b) đợt sinh từ luật: field disabled thì phải chỉ đúng chỗ sửa được, không để người dùng bấm vào ô chết.
         internal static string CalendarRecurringNoteFormat => LiveOpsHubStringCatalog.Text(nameof(CalendarRecurringNoteFormat));
         internal static string CalendarOpenRuleButton => LiveOpsHubStringCatalog.Text(nameof(CalendarOpenRuleButton));
