@@ -51,6 +51,13 @@ namespace DreamTech.LiveOps.Editor.Tests
         /// <summary>Dấu màu của chú giải phải đạt 3:1 so với nền (WCAG 2.1 cho thành phần đồ hoạ) — đúng ngưỡng kế hoạch UX-19.</summary>
         private const float LegendContrastRatio = 3f;
 
+        /// <summary>
+        /// Chú giải trục có BỐN dấu: cố định, lặp, đã khép, chồng nhau (<c>LiveOpsTimelineLegend</c> dựng đúng bốn mục). Khai số
+        /// này vào luật để phép đo không lặng lẽ thu còn ba: dấu "chồng nhau" khai màu CÓ ALPHA, và trước bản vá hợp thành alpha
+        /// nó là dấu duy nhất lọt lưới — một dấu vô hình vẫn cho cổng màu xanh (RC-06/2.4 mục 1).
+        /// </summary>
+        private const int LegendSampleCount = 4;
+
         /// <summary>Số nấc ⌘+lăn dựng hai mức thu phóng khác mặc định cho lượt kiểm nhãn thước (UX-17).</summary>
         private const int RulerZoomInNotches = -6;
 
@@ -315,7 +322,8 @@ namespace DreamTech.LiveOps.Editor.Tests
             yield return RunScreen(new UxLayoutScreen("timeline-legend-contrast", LiveOpsHubSections.Ids.Calendar)
                 .WithSizes(Wide1440)
                 .WithRequiredElements("." + LiveOpsHubClassNames.TimelineLegend)
-                .WithContrastRules(new UxLayoutContrastRule("." + LiveOpsHubClassNames.TimelineLegendSample, LegendContrastRatio))
+                .WithContrastRules(new UxLayoutContrastRule("." + LiveOpsHubClassNames.TimelineLegendSample, LegendContrastRatio,
+                    LegendSampleCount))
                 .WithScreenRulesOnly());
         }
 
