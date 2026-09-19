@@ -63,6 +63,23 @@ namespace DreamTech.LiveOps.Editor.Tests
         private const string HuntEarlyEventId = "hunt-0914";
         private const string HuntBonusEventId = "hunt-0916-bonus";
 
+        /// <summary>
+        /// Đợt dùng cho MỌI ca kéo của màn Lịch — phải là đợt KÉO ĐƯỢC ở mốc <see cref="DesignNowUtc"/>.
+        /// <para>
+        /// Sản phẩm CỐ Ý khoá kéo với đợt đã khép, ở ba chỗ độc lập: <c>LiveOpsTimelineBar.IsDraggable</c> (dòng 80),
+        /// <c>LiveOpsTimelineDragController.BeginBar</c> (dòng 104 trả <c>false</c> khi <c>bar.IsEnded</c>) và
+        /// <c>CalendarTimelinePresenter.PreviewDrag</c> (dòng 356, "Đợt đã khép không dời được (bảng 7.0)").
+        /// lava-quest-2026-09a khép lúc 13/9 00:00 mà "bây giờ" của test là 13/9 01:47, nên mọi ca kéo dùng nó đều kéo một thanh
+        /// mà màn không cho kéo: không có cử chỉ, không readout, không bước Undo — MÀN ĐÚNG, test trách nhầm (G-UX2-DRAG).
+        /// </para>
+        /// <para>
+        /// lava-quest-2026-09b (17/9 → 20/9) chưa bắt đầu ở mốc đó nên kéo được, và nó giữ nguyên sức nặng của ca UX-14: làn
+        /// lava-quest CÓ SẴN một phát hiện Bị bỏ ghi cho đợt KHÁC (lava-quest-2026-10 sai định dạng giờ kết thúc) — đúng cái bẫy
+        /// mà readout kiểm nhanh không được đọc lại.
+        /// </para>
+        /// </summary>
+        private const string DraggableEntryKey = LiveOpsDesignSample.LavaQuestMidEntryKey;
+
         /// <summary>Mọi EventId của mẫu thiết kế — readout khi kéo chỉ được nhắc tới đợt ĐANG kéo trong danh sách này.</summary>
         private static readonly string[] AllDesignEventIds =
         {
@@ -222,15 +239,21 @@ namespace DreamTech.LiveOps.Editor.Tests
             foreach (LiveOpsHubLanguageId language in UxHubWindowFixture.AllLanguages)
             {
                 yield return OpenCalendar(UxHubWindowFixture.AllSizes[4], language);
-                LiveOpsTimelineBar bar = _fixture.BarOf(LiveOpsDesignSample.LavaQuestEarlyEntryKey);
+                LiveOpsTimelineBar bar = _fixture.BarOf(DraggableEntryKey);
                 Vector2 from = bar.worldBound.center;
                 Vector2 to = from + new Vector2(60f, 0f);
                 bool hoverCardSeenDuringDrag = false;
+                bool dragWasRealDuringHold = false;
 
                 yield return UxEventSender.Drag(_fixture.Window, from, to, DragSteps, EventModifiers.None, () => HoldStep());
                 // Chờ hết hẹn giờ hiện card SAU khi nhả: lỗi UX-05 gồm cả "vừa thả ra là card bật lên ngay chỗ vừa kéo".
                 yield return UxEventSender.Settle(UxEventSender.SettleFrames, HoverCardWaitMilliseconds);
 
+                // Khẳng định CÓ cử chỉ kéo trước khi kết luận "không có hover card": kéo một thanh màn không cho kéo thì hai câu
+                // dưới đúng một cách rỗng tuếch — đúng loại xanh giả mà cổng sinh ra để diệt (G-UX2-DRAG).
+                Assert.IsTrue(dragWasRealDuringHold,
+                    "giữ chuột giữa cú kéo mà trục không bật readout — chưa có cú kéo nào thì câu \"không có hover card\" không"
+                    + " kiểm được gì (UX-05)");
                 Assert.IsFalse(hoverCardSeenDuringDrag, "hover card hiện TRONG lúc kéo (UX-05)");
                 Assert.IsFalse(_fixture.Calendar.HoverCardHost.IsVisible, "hover card bật lên ngay sau khi thả chuột (UX-05)");
                 DisposeFixture();
@@ -239,6 +262,7 @@ namespace DreamTech.LiveOps.Editor.Tests
                 {
                     yield return UxEventSender.Settle(UxEventSender.SettleFrames, HoverCardWaitMilliseconds);
                     hoverCardSeenDuringDrag = _fixture.Calendar.HoverCardHost.IsVisible;
+                    dragWasRealDuringHold = UxLayoutAuditor.IsShownOnScreen(_fixture.Calendar.Timeline.Readout);
                 }
             }
         }
@@ -253,7 +277,7 @@ namespace DreamTech.LiveOps.Editor.Tests
             foreach (LiveOpsHubLanguageId language in UxHubWindowFixture.AllLanguages)
             {
                 yield return OpenCalendar(UxHubWindowFixture.AllSizes[4], language);
-                LiveOpsTimelineBar bar = _fixture.BarOf(LiveOpsDesignSample.LavaQuestEarlyEntryKey);
+                LiveOpsTimelineBar bar = _fixture.BarOf(DraggableEntryKey);
                 string quickCheckText = null;
                 bool quickCheckShown = false;
 
@@ -267,9 +291,9 @@ namespace DreamTech.LiveOps.Editor.Tests
                     "readout kiểm nhanh hiện ra nhưng không có chữ nào — người dùng không đọc được kết quả kiểm khi kéo (UX-14)");
                 foreach (string eventId in AllDesignEventIds)
                 {
-                    if (string.Equals(eventId, LavaQuestEarlyEventId, StringComparison.Ordinal)) continue;
+                    if (string.Equals(eventId, LavaQuestMidEventId, StringComparison.Ordinal)) continue;
                     Assert.IsFalse(quickCheckText.IndexOf(eventId, StringComparison.Ordinal) >= 0,
-                        "kiểm nhanh khi kéo '" + LavaQuestEarlyEventId + "' lại nhắc tới đợt '" + eventId + "': \""
+                        "kiểm nhanh khi kéo '" + LavaQuestMidEventId + "' lại nhắc tới đợt '" + eventId + "': \""
                         + quickCheckText + "\" (UX-14)");
                 }
                 DisposeFixture();
@@ -294,7 +318,7 @@ namespace DreamTech.LiveOps.Editor.Tests
             foreach (LiveOpsHubLanguageId language in UxHubWindowFixture.AllLanguages)
             {
                 yield return OpenCalendar(UxHubWindowFixture.AllSizes[4], language);
-                LiveOpsTimelineBar bar = _fixture.BarOf(LiveOpsDesignSample.LavaQuestEarlyEntryKey);
+                LiveOpsTimelineBar bar = _fixture.BarOf(DraggableEntryKey);
                 Rect readoutBound = Rect.zero;
                 bool readoutSeen = false;
 
@@ -388,23 +412,39 @@ namespace DreamTech.LiveOps.Editor.Tests
         /// <summary>
         /// UX-09: nút sửa trong card Vấn đề của inspector phải bấm được BẰNG CHUỘT và bấm xong phải ÁP được cách sửa — "bấm
         /// được" mà tài liệu không đổi thì người dùng vẫn đứng nguyên chỗ cũ.
+        /// <para>
+        /// Cảnh dựng lại ở G-UX2-DRAG. Đợt duy nhất của mẫu thiết kế có cách sửa ÁP ĐƯỢC ngay trong inspector là
+        /// lava-quest-2026-10 (<c>endUtc "2026-10-3"</c>: <c>LiveEventUtcText.TryParse</c> đòi có chữ T và phần giờ nên chuỗi đó
+        /// KHÔNG đọc được). Vì đọc không ra giờ, <c>LiveOpsTimelineModel.BuildLane</c> (dòng 367) đếm nó vào "không đặt được" rồi
+        /// bỏ qua, KHÔNG vẽ thanh nào — ở BẤT KỲ khoảng xem hay mức thu phóng nào. Nên bản trước (đổi mức thu phóng rồi
+        /// <c>BarOf("entry-lava-quest-2026-10")</c>) đòi một thanh mà sản phẩm không bao giờ vẽ; đó không phải lỗi khung nhìn.
+        /// Đường vào THẬT của người dùng là chip "Không đặt được (n)" ở header làn:
+        /// <c>CalendarSection.OnUnplaceableRequested</c> mở pane Danh sách và chọn đúng đợt đó.
+        /// </para>
         /// </summary>
         [UnityTest]
         public IEnumerator InspectorIssueCard_FixButton_AppliesRepair()
         {
             foreach (LiveOpsHubLanguageId language in UxHubWindowFixture.AllLanguages)
             {
-                // Card "Vấn đề" chỉ có nút khi phát hiện của đợt ĐANG CHỌN có cách sửa. lava-quest-2026-09a sạch, nên bản đầu
-                // của test trách "không có nút sửa nào" trong khi màn đúng. Đợt có cách sửa trong mẫu thiết kế là
-                // lava-quest-2026-10 (endUtc "2026-10-3" hỏng) — chọn đúng đợt đó (G-FIX-UX-6).
                 yield return OpenCalendar(UxHubWindowFixture.AllSizes[4], language);
-                yield return ZoomOutToShowOctober();
-                LiveOpsTimelineBar repairable = _fixture.BarOf(LiveOpsDesignSample.LavaQuestLateEntryKey);
-                yield return UxEventSender.Click(_fixture.Window, repairable);
+                VisualElement unplaceableChip = _fixture.Root.Q(className: LiveOpsHubClassNames.TimelineUnplaceableChip);
+                Assert.IsNotNull(unplaceableChip,
+                    "trục không có chip \"Không đặt được\" — mẫu thiết kế có lava-quest-2026-10 giờ kết thúc không đọc được, nên"
+                    + " làn lava-quest phải mang chip đó (UX-09)");
+                Assert.IsTrue(UxLayoutAuditor.IsShownOnScreen(unplaceableChip),
+                    "chip \"Không đặt được\" không hiện ra — mất đường vào duy nhất tới đợt hỏng (UX-09)");
+                Assert.IsTrue(UxEventSender.PickReaches(_fixture.Window, unplaceableChip),
+                    "con trỏ không chạm được chip \"Không đặt được\" — bị lớp khác đè hoặc cha PickingMode.Ignore (UX-09)");
+
+                yield return UxEventSender.Click(_fixture.Window, unplaceableChip);
+
+                Assert.AreEqual(LiveOpsDesignSample.LavaQuestLateEntryKey, _fixture.Calendar.Presenter.SelectedBarKey,
+                    "bấm chip \"Không đặt được\" không chọn đợt hỏng nào (UX-09)");
                 VisualElement issues = _fixture.Root.Q(className: LiveOpsHubClassNames.CalendarInspectorIssues);
                 Assert.IsNotNull(issues, "inspector không có card Vấn đề để bấm (UX-09)");
-                Button fix = issues.Q<Button>();
-                Assert.IsNotNull(fix, "card Vấn đề không có nút sửa nào (UX-09)");
+                Button fix = ApplyRepairButtonIn(issues);
+                Assert.IsNotNull(fix, "card Vấn đề không có nút nào ÁP được cách sửa (UX-09)");
                 Assert.IsTrue(UxLayoutAuditor.IsShownOnScreen(fix), "nút sửa của card Vấn đề không hiện ra (UX-09)");
                 Assert.IsTrue(UxEventSender.PickReaches(_fixture.Window, fix),
                     "nút sửa có trong cây nhưng con trỏ không chạm được — bị lớp khác đè hoặc cha PickingMode.Ignore (UX-09)");
@@ -414,8 +454,32 @@ namespace DreamTech.LiveOps.Editor.Tests
 
                 Assert.AreNotEqual(revisionBefore, _fixture.Services.Session.DocumentRevision,
                     "bấm nút sửa của card Vấn đề không đổi gì trong tài liệu — cách sửa không được áp (UX-09)");
+                // Đo thứ NGƯỜI DÙNG cần — giờ kết thúc đọc được — chứ không chỉ đo số hiệu bản sửa: một cú ghi bất kỳ cũng làm
+                // bộ đếm nhúc nhích mà đợt vẫn hỏng y nguyên.
+                Assert.IsTrue(_fixture.Services.Session.Document.TryGetFixedEvent(LiveOpsDesignSample.LavaQuestLateEntryKey,
+                    out FixedLiveEventEntry repaired), "đợt vừa sửa phải còn trong tài liệu (UX-09)");
+                Assert.IsTrue(repaired.TryGetEndUtc(out DateTime _),
+                    "tài liệu đổi nhưng giờ kết thúc vẫn không đọc được — nút sửa ghi sai chỗ (UX-09)");
                 DisposeFixture();
             }
+        }
+
+        /// <summary>
+        /// Nút trong card Vấn đề thực sự ÁP cách sửa. Nút của một phát hiện (Proposal) nằm TRONG card phát hiện
+        /// (<see cref="LiveOpsHubClassNames.FindingRow"/>) và CỐ Ý không áp gì — nó mở popover Đề xuất của màn Kiểm lịch
+        /// (mục 12 I-4, <c>CalendarEventInspector.BuildRepairButton</c>). Nút áp được đặt thẳng trong foldout
+        /// (<c>CalendarEventInspector.BuildUnreadableFixButton</c>). Phân biệt bằng CHA chứ không bằng thứ tự: thêm một phát
+        /// hiện nữa cho đợt đó là thứ tự đổi ngay.
+        /// </summary>
+        private static Button ApplyRepairButtonIn(VisualElement issues)
+        {
+            foreach (Button candidate in issues.Query<Button>().ToList())
+            {
+                VisualElement parent = candidate.parent;
+                if (parent != null && parent.ClassListContains(LiveOpsHubClassNames.FindingRow)) continue;
+                return candidate;
+            }
+            return null;
         }
 
         /// <summary>
@@ -564,50 +628,116 @@ namespace DreamTech.LiveOps.Editor.Tests
         // ================================================================================================ UX-31 thanh bị bỏ
 
         /// <summary>
-        /// UX-31: ở cỡ hẹp, thanh của đợt SẼ BỊ BỎ vẫn phải đọc được id của nó — người dùng không sửa được thứ mình không đọc
-        /// được tên.
+        /// UX-31: ở cỡ hẹp, đợt SẼ BỊ BỎ vẫn phải ĐỌC ĐƯỢC id của nó — người dùng không sửa được thứ mình không đọc được tên.
+        /// <para>
+        /// Cảnh dựng lại ở G-UX2-DRAG, vì bản trước sai hai chỗ độc lập. (1) Nó tìm lava-quest-2026-10, mà đợt đó giờ kết thúc
+        /// không đọc được nên <c>LiveOpsTimelineModel.BuildLane</c> xếp vào "không đặt được" và KHÔNG vẽ thanh; đợt "bị bỏ" CÓ
+        /// thanh của mẫu thiết kế là hunt-0916-bonus (chồng 12 giờ với hunt-0914 nên biên dịch trả <c>IsKept == false</c>).
+        /// (2) Nó hỏi tag qua <c>droppedBar.Q(TimelineDroppedTag)</c>, nhưng tag là con của LÀN
+        /// (<c>LiveOpsTimelineLane.DroppedTagAt</c> gọi <c>Add(tag)</c> trên chính làn), không phải con của thanh — câu hỏi đó
+        /// không bao giờ tìm thấy gì.
+        /// </para>
+        /// <para>
+        /// Hợp đồng THẬT nằm ở <c>LiveOpsTimelineLane.DroppedTagTextFor</c>: thanh đủ rộng thì tự mang nhãn id và tag chỉ nói
+        /// trạng thái; thanh hẹp (nhãn thân rỗng) thì TAG phải nói luôn id. Nên assert đúng là "id đọc được ở MỘT trong hai
+        /// chỗ", chứ không phải "nhãn thân thanh khác rỗng" — ở 700 thanh hunt-0916-bonus chỉ rộng ~34px, nhãn thân rỗng là
+        /// ĐÚNG thiết kế.
+        /// </para>
         /// </summary>
         [UnityTest]
         public IEnumerator NarrowDroppedBar_HasReadableIdLabel()
         {
             yield return OpenCalendar(new UxWindowSize(700, 560), LiveOpsHubLanguageId.Vietnamese);
-            yield return ZoomOutToShowOctober();
             LiveOpsTimelineBar droppedBar = null;
             foreach (LiveOpsTimelineBar bar in _fixture.Root.Query<LiveOpsTimelineBar>().ToList())
             {
-                if (bar.Q(className: LiveOpsHubClassNames.TimelineDroppedTag) == null) continue;
+                if (bar.Model == null || !bar.Model.IsDropped || !UxLayoutAuditor.IsShownOnScreen(bar)) continue;
                 droppedBar = bar;
                 break;
             }
             Assert.IsNotNull(droppedBar,
-                "ở 700 không có thanh nào mang dấu \"sẽ bị bỏ\" — mẫu thiết kế có lava-quest-2026-10 endUtc hỏng, nên thanh đó"
-                + " phải vẽ ra thì người dùng mới sửa được (UX-31)");
-            Label label = droppedBar.Q<Label>(className: LiveOpsHubClassNames.TimelineBarLabel);
-            Assert.IsNotNull(label, "thanh bị bỏ không có nhãn id nào (UX-31)");
-            Assert.IsTrue(UxLayoutAuditor.IsShownOnScreen(label), "nhãn id của thanh bị bỏ không hiện ở cỡ hẹp (UX-31)");
-            Assert.IsNotEmpty(label.text, "nhãn id của thanh bị bỏ rỗng (UX-31)");
+                "ở 700 không có thanh nào bị bỏ — mẫu thiết kế có hunt-0916-bonus chồng giờ với hunt-0914 nên đợt đó bị bỏ, và"
+                + " thanh của nó phải vẽ ra thì người dùng mới sửa được (UX-31)");
+            string eventId = droppedBar.Model.EventId;
+            Assert.IsNotEmpty(eventId, "thanh bị bỏ không mang id nào để đọc (UX-31)");
+
+            Label barLabel = droppedBar.Q<Label>(className: LiveOpsHubClassNames.TimelineBarLabel);
+            bool idReadableInBar = barLabel != null && UxLayoutAuditor.IsShownOnScreen(barLabel)
+                && barLabel.text.IndexOf(eventId, StringComparison.Ordinal) >= 0;
+            LiveOpsTimelineLane lane = droppedBar.GetFirstAncestorOfType<LiveOpsTimelineLane>();
+            Assert.IsNotNull(lane, "thanh bị bỏ không nằm trong làn nào (UX-31)");
+            bool idReadableInTag = false;
+            StringBuilder shownTagTexts = new StringBuilder();
+            foreach (VisualElement tag in lane.Query(className: LiveOpsHubClassNames.TimelineDroppedTag).ToList())
+            {
+                if (!UxLayoutAuditor.IsShownOnScreen(tag)) continue;
+                Label tagLabel = tag.Q<Label>();
+                string tagText = tagLabel == null ? string.Empty : tagLabel.text;
+                shownTagTexts.Append('"').Append(tagText).Append("\" ");
+                if (tagText.IndexOf(eventId, StringComparison.Ordinal) >= 0) idReadableInTag = true;
+            }
+            Assert.IsTrue(idReadableInBar || idReadableInTag,
+                "ở 700 id \"" + eventId + "\" của đợt bị bỏ không đọc được ở đâu cả — nhãn thân thanh đang là \""
+                + (barLabel == null ? string.Empty : barLabel.text) + "\", tag bị bỏ đang hiện: "
+                + (shownTagTexts.Length == 0 ? "(không có)" : shownTagTexts.ToString()) + "(UX-31)");
         }
 
         // ================================================================================================ UX-26 Undo
 
-        /// <summary>UX-26: kéo xong rồi ⌘Z thì status bar phải MỜI làm lại (⌘⇧Z), không im lặng.</summary>
+        /// <summary>
+        /// UX-26: kéo xong rồi ⌘Z thì status bar phải MỜI làm lại (⌘⇧Z), không im lặng.
+        /// <para>
+        /// Câu thao tác gần nhất nằm ở vế TRÁI của status bar, không phải vế phải: <c>LiveOpsHubStatusBarModel.Build</c> nối nó
+        /// vào <c>leftText</c> qua <c>AppendRecentAction</c>, còn <c>BuildRightText</c> chỉ dựng "giờ UTC · đã đăng … · sha …"
+        /// và không đọc thao tác nào. Bản trước của test đọc <c>StatusBar.RightLabel</c> nên nó đo một ô KHÔNG BAO GIỜ đổi theo
+        /// Undo — chữ nó in ra khi đỏ ("13/9 01:47 UTC · đã đăng 11/9 16:20 · sha 5eecb8") đúng là vế phải (G-UX2-DRAG).
+        /// </para>
+        /// <para>
+        /// Và đo THỂ CÂU chứ không chỉ đo "chữ có đổi": vế trái còn mang câu về lần kiểm, mà lần kiểm chạy lại sau mỗi lần sửa
+        /// nên chữ đổi cả khi lời mời làm lại không bao giờ hiện. Hai mốc so là phần chữ cố định của chính hai chuỗi định dạng
+        /// trong catalog, nên ca này chạy đúng ở cả vi lẫn en.
+        /// </para>
+        /// </summary>
         [UnityTest]
         public IEnumerator DragThenUndo_StatusBarOffersRedo()
         {
             foreach (LiveOpsHubLanguageId language in UxHubWindowFixture.AllLanguages)
             {
                 yield return OpenCalendar(UxHubWindowFixture.AllSizes[4], language);
-                LiveOpsTimelineBar bar = _fixture.BarOf(LiveOpsDesignSample.LavaQuestEarlyEntryKey);
+                LiveOpsTimelineBar bar = _fixture.BarOf(DraggableEntryKey);
+                int revisionBeforeDrag = _fixture.Services.Session.DocumentRevision;
                 yield return UxEventSender.Drag(_fixture.Window, bar.worldBound.center,
                     bar.worldBound.center + new Vector2(80f, 0f), DragSteps, EventModifiers.None);
-                string statusBefore = _fixture.Window.StatusBar.RightLabel.text;
+                // Có GHI thì ⌘Z mới có việc để làm: kéo một thanh màn không cho kéo thì mọi câu dưới đây trách status bar vì một
+                // bước Undo chưa từng tồn tại (G-UX2-DRAG).
+                Assert.AreNotEqual(revisionBeforeDrag, _fixture.Services.Session.DocumentRevision,
+                    "kéo xong mà tài liệu không đổi — chưa có gì để hoàn tác thì ca này không kiểm được lời mời làm lại (UX-26)");
+                Label statusLeft = _fixture.Window.StatusBar.LeftLabel;
+                string statusBefore = statusLeft.text;
+                string justDidPrefix = FixedPrefixOf(LiveOpsHubStrings.ShellStatusRecentActionFormat);
+                string undonePrefix = FixedPrefixOf(LiveOpsHubStrings.ShellStatusUndoneActionFormat);
+                Assert.IsTrue(statusBefore.IndexOf(justDidPrefix, StringComparison.Ordinal) >= 0,
+                    "kéo xong status bar không nói vừa làm gì: \"" + statusBefore + "\" (UX-26)");
 
                 yield return UxEventSender.PerformUndo(_fixture.Window);
 
-                Assert.AreNotEqual(statusBefore, _fixture.Window.StatusBar.RightLabel.text,
+                string statusAfter = statusLeft.text;
+                Assert.AreNotEqual(statusBefore, statusAfter,
                     "hoàn tác xong status bar không đổi câu — người dùng không được mời làm lại (UX-26)");
+                Assert.IsTrue(statusAfter.IndexOf(undonePrefix, StringComparison.Ordinal) >= 0,
+                    "hoàn tác xong status bar vẫn không mời làm lại: \"" + statusAfter + "\" (UX-26)");
                 DisposeFixture();
             }
+        }
+
+        /// <summary>
+        /// Phần chữ cố định đứng trước <c>{0}</c> của một chuỗi định dạng — dùng để nhận ra THỂ CÂU (vừa làm / vừa hoàn tác) mà
+        /// không cần dựng lại cả câu và không phụ thuộc ngôn ngữ đang chạy.
+        /// </summary>
+        private static string FixedPrefixOf(string format)
+        {
+            int placeholderIndex = format.IndexOf("{0}", StringComparison.Ordinal);
+            return placeholderIndex <= 0 ? format : format.Substring(0, placeholderIndex);
         }
 
         // ================================================================================================ trợ giúp
@@ -626,17 +756,6 @@ namespace DreamTech.LiveOps.Editor.Tests
                 : new ScriptedLiveOpsHubConfirmationPresenter();
             LiveOpsHubServices services = UxHubWindowFixture.DesignServices(_confirmation, nowUtc ?? DesignNowUtc);
             _fixture = UxHubWindowFixture.Open(LiveOpsHubSections.Ids.Calendar, size, language, services);
-            yield return _fixture.WaitForLayout();
-        }
-
-        /// <summary>
-        /// Kéo khoảng đang xem ra mức "Tháng" để các đợt tháng 10 của mẫu thiết kế (lava-quest-2026-10, star-tournament-2026-10)
-        /// được VẼ. Khoảng mặc định quanh 13/9 ở mức Ba tuần không chạm tới 1/10, nên ca nào cần đúng những đợt đó mà không đổi
-        /// mức thu phóng thì đang trách màn vì một thanh màn không có lý do gì phải vẽ (G-FIX-UX-7).
-        /// </summary>
-        private IEnumerator ZoomOutToShowOctober()
-        {
-            _fixture.Calendar.Toolbar.ZoomTabs.SelectedIndex = (int)LiveOpsTimelineZoom.Month;
             yield return _fixture.WaitForLayout();
         }
 
