@@ -127,6 +127,14 @@ namespace DreamTech.LiveOps.Editor
             if (listHost != null) listHost.Add(_list);
             VisualElement formHost = _root.Q(FormHostElementName);
             if (formHost != null) formHost.Add(_form);
+            // (RC-06b) ScrollView của pane form mọc THANH CUỘN NGANG trong khi nội dung rộng ĐÚNG BẰNG viewport
+            // (387/387, 551/551, 564/564): thanh thừa ăn mất chiều cao và nói dối rằng "còn nội dung bên phải".
+            // Form đã có max-width 640 + min-width 0 nên nó không bao giờ cần cuộn ngang — tắt hẳn thanh đó, cùng
+            // cách pane danh sách đã làm trong RecurringRuleList. Đặt từ C# chứ không đặt bằng thuộc tính UXML vì
+            // setter `mode` của ScrollView ghi đè lại hai thuộc tính scroller, mà thứ tự áp thuộc tính UXML là
+            // chuyện nội bộ của UI Toolkit — đặt sau khi cây đã dựng thì không có cửa cho thứ tự đó phá.
+            ScrollView formScroll = _root.Q<ScrollView>(className: LiveOpsHubClassNames.RecurringFormScroll);
+            if (formScroll != null) formScroll.horizontalScrollerVisibility = ScrollerVisibility.Hidden;
 
             _empty = _root.Q(EmptyElementName);
             _emptyTitle = _root.Q<Label>(EmptyTitleElementName);
