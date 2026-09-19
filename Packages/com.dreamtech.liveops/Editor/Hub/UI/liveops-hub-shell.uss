@@ -373,6 +373,15 @@
     background-color: var(--unity-colors-highlight-background-hover);
 }
 
+/* Hai mũi tên của nút ‹› phải cách nhau. Vì sao không để sát: chevron là ô 5x5 XOAY 45 độ, nên khung bao thật của nó rộng
+   7,1px chứ không phải 5px — hai ô layout kề nhau làm hai khung bao chồng 2,1px và cổng bố cục đọc ra "hai khối đè lên
+   nhau" (RC-04, đỏ ở 700 và 820 cả hai ngôn ngữ). 2px mỗi bên đẩy tâm hai mũi cách nhau 9px > 7,1px nên hết chồng, và
+   khe hở cũng làm cặp mũi đọc rõ là "mở rộng / thu lại" thay vì một khối nhoè. */
+.liveops-hub-rail-pin > .liveops-hub-chevron {
+    margin-left: 2px;
+    margin-right: 2px;
+}
+
 .liveops-hub-rail-narrow {
     display: none;
     flex-grow: 1;

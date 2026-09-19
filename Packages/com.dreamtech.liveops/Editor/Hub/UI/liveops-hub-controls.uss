@@ -41,9 +41,15 @@
     margin-left: var(--liveops-hub-space-4);
 }
 
+/* Ô ngày/giờ khoá cứng 76 và 44px [SD1 §3.1] nên phần đệm trong ô là chỗ DUY NHẤT còn nhường được. Vì sao phải nhường: chữ
+   mono "2026-09-10" đo được 75px ở 2022.3 (rộng hơn 6000.6 vài phần mười px mỗi glyph), cộng 3px đệm trái là 78 > 76 nên
+   TextInput cắt mất mép phải của chữ số cuối — đỏ ở CẢ SÁU cỡ, cả hai ngôn ngữ, chỉ trên 2022.3 (RC-02). Bỏ đệm ngang trả
+   lại 4px, chữ vừa khít trong ô mà bề rộng ô — con số hai test đang khoá — không đổi. Đệm DỌC giữ nguyên. */
 .liveops-hub-utc-field__date > .unity-text-field__input,
 .liveops-hub-utc-field__time > .unity-text-field__input {
     margin: 0;
+    padding-left: 0;
+    padding-right: 0;
 }
 
 /* Lỗi: viền blocked-fill trên đúng ô không đọc được — chữ gõ giữ nguyên ([FD §2.16] hàng Field). */
@@ -97,8 +103,11 @@
     flex-shrink: 0;
 }
 
+/* margin-left: 0 là bắt buộc, không phải trang trí: 2022.3 cho ToolbarToggle lề trái ÂM 2px (mẹo cho nút toolbar dính viền
+   nhau), nên tab thò 2px ra ngoài __slot ở mọi cỡ rộng (RC-10). 6000.6 vốn đã 0 nên luật này không đổi gì ở đó. */
 .liveops-hub-tab-strip__tab {
     flex-shrink: 0;
+    margin-left: 0;
 }
 
 /* Lý do tab bị khoá in thành chữ ngay bên trái tab (SPIKE-B SP-3) — cùng số đo với .liveops-hub-button-reason của nút bị chặn.
