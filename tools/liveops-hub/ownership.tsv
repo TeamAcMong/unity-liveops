@@ -983,3 +983,15 @@ file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/UxGate/UxLayoutAuditor.cs	G
 file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Sections/EventTypesSectionTests.cs	G-FIX-W10-1	đổi TextFillWarningRatio → TextFillLimitRatio; hai bản chép tay đọc thẳng hằng của auditor (trả nợ F7)
 file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Sections/OverviewSectionTests.cs	G-FIX-W10-1	như trên, một bản chép tay
 file	tools/liveops-hub/ownership.tsv	G-FIX-W10-1	khối đăng ký của chính gói sửa ở cổng đợt
+
+# (W10 tiếp theo, 21/9/2026) G-W10-CAL2 — lỗi THẬT mà chính lưới W10 bày ra: chọn NHIỀU thanh không mở được drawer inspector
+#   ở cửa sổ hẹp hơn 1100px (CalendarSection không nghe SelectionSetChanged nên ApplyInspectorDrawerLayout không chạy lại),
+#   kèm hai hằng "medium" của repo lệch nhau 100px. Gói này nền trên NHÁNH CỔNG wt/G-W10-WAVE chứ không trên
+#   feature/liveops-hub-p1: ca ghi nhận hiện trạng sai (MultiSelectDrawer_AtMediumWidth_StaysHidden_KnownGap) và hằng
+#   MediumBreakpointWidth chỉ tồn tại SAU khi ba gói W10 đã gộp — nền d797065 không có gì để đảo.
+#   Ba file dưới đây từng thuộc G-W10-FIELD / G-W10-MATRIX; hai gói ấy đã gộp xong nên không còn ai ghi song song.
+package	G-W10-CAL2	W10-CAL2	M	G-W10-FIELD,G-W10-MATRIX,G-W10-HINT
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Calendar/CalendarSection.cs	G-W10-CAL2	nghe SelectionSetChanged → chạy lại ApplyInspectorDrawerLayout (drawer chọn nhiều ở bậc --medium)
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Sections/CalendarInspectorUxFixTests.cs	G-W10-CAL2	đảo ca ghi nhận hiện trạng sai thành ca khoá hành vi ĐÚNG ở bốn cỡ --medium
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/UxGate/UxHubWindowFixture.cs	G-W10-CAL2	MediumBreakpointWidth thôi chép tay 1000, đọc thẳng LiveOpsHubBreakpoints.MediumBelowWidth
+file	tools/liveops-hub/ownership.tsv	G-W10-CAL2	chính khối đăng ký này
