@@ -5,11 +5,18 @@ using UnityEngine.UIElements;
 namespace DreamTech.LiveOps.Editor
 {
     /// <summary>
-    /// Dòng gợi ý 18px ở đáy timeline [SD1 §3.6]: đổi theo ngữ cảnh nghỉ / đang chọn / chọn nhiều / đang kéo để phím và cử chỉ có
-    /// đường tìm ra ngay tại chỗ. Chỉ nhắc thứ đã có ở bản này — W5 bỏ vế "Shift kéo theo" và "chọn dải" vì chưa làm (I-5);
-    /// G-OPT-TIMELINE làm xong cả hai nên hai vế đó trở lại đúng [SD1 §3.8 khung 5 và khung 9]. Id đợt đang chọn mono đậm, phần
-    /// mô tả mờ 0,82 + ellipsis. Nhãn phím Edit (⌘D, ⌘⌫) đọc binding thật qua <see cref="LiveOpsHubKeyLabels"/>; không có binding
-    /// thì bỏ vế đó.
+    /// Dòng gợi ý ở đáy timeline [SD1 §3.6]: đổi theo ngữ cảnh nghỉ / đang chọn / chọn nhiều / đang kéo / làn trống để phím và
+    /// cử chỉ có đường tìm ra ngay tại chỗ. Chỉ nhắc thứ đã có ở bản này — W5 bỏ vế "Shift kéo theo" và "chọn dải" vì chưa làm
+    /// (I-5); G-OPT-TIMELINE làm xong cả hai nên hai vế đó trở lại đúng [SD1 §3.8 khung 5 và khung 9]. Id đợt đang chọn mono
+    /// đậm, phần mô tả mờ 0,82.
+    /// <para>
+    /// (W9-29) Dòng CAO THEO NỘI DUNG, không còn khoá 18px và KHÔNG còn ellipsis: cửa sổ rộng thì vẫn đúng một hàng 18px như
+    /// thiết kế cũ, cửa sổ hẹp thì chữ gập xuống (sàn 18px, trần 56px đặt trong <c>liveops-hub-timeline.uss</c>). Vì sao bỏ
+    /// ellipsis: ellipsis cắt từ CUỐI câu mà vế phím tắt luôn đứng CUỐI, nên ở bốn cỡ cửa sổ thứ mất đầu tiên đúng là thứ
+    /// quan trọng nhất — và đây là chỗ DUY NHẤT trong hub nói ra hai phím ấy.
+    /// </para>
+    /// Nhãn phím Edit (⌘D nhân bản, ⌘⌦ xoá — glyph xoá do Editor sinh là ⌦ U+2326) đọc binding thật qua
+    /// <see cref="LiveOpsHubKeyLabels"/>; không có binding thì bỏ vế đó.
     /// </summary>
     internal sealed class LiveOpsTimelineHintLine : VisualElement
     {
