@@ -17,6 +17,11 @@
 #   capture.sh --unity 6000|2022|all --scenarios "<id,id,…>|registered|ux-sizes|ux-sizes-en|ux-sizes-all" --label <nhãn>
 #              [--project <đường dẫn>] [--repository <worktree>] [--skins dark,light] [--output <thư mục gốc>]
 #              [--timeout GIÂY] [--no-measure] [--dry-run]
+#   capture.sh --contrast --unity 6000|2022|all --label <nhãn> [--skins light] [các tham số chung ở trên]
+# --contrast: KHÔNG chụp ảnh. Chạy lệnh ĐO tương phản màu đã hợp thành (LiveOpsHubContrastCommand) một lượt Unity cho mỗi
+#   skin, ghi bằng chứng ra ~/.cache/unity-liveops/ux-contrast/<bản Unity>/composed-<skin>.json để test EditMode của cổng
+#   đọc lại (phiếu W9-27: cửa sổ hub vẽ theo skin ĐANG CHẠY, mà chỉ script này được đặt EditorPrefs UserSkin — SP-4).
+#   Không cần --scenarios; --no-measure và đo ảnh không áp dụng.
 # Bí danh: --scenarios ux-sizes = 18 ảnh ma trận cỡ cửa sổ của đợt W8-UX (§3.4) bản TIẾNG VIỆT: Lịch chưa chọn + Lịch đã chọn
 #   + Luật lặp, mỗi màn 6 cỡ (700x560, 820x560, 1024x700, 1280x760, 1440x900, 1920x1040). ux-sizes-en = đúng 18 ảnh đó bản
 #   TIẾNG ANH; ux-sizes-all = cả 36. Chụp TRƯỚC trên gốc đợt, SAU trên nhánh đã gộp.
@@ -30,6 +35,7 @@ readonly UNITY_2022=/Applications/Unity/Hub/Editor/2022.3.62f2/Unity.app/Content
 readonly UNITY_6000=/Applications/Unity/Hub/Editor/6000.6.0f1/Unity.app/Contents/MacOS/Unity
 readonly PACKAGE_RELATIVE_PATH=Packages/com.dreamtech.liveops
 readonly CAPTURE_METHOD=DreamTech.LiveOps.Editor.Tests.LiveOpsHubCaptureCommand.CaptureFromCommandLine
+readonly CONTRAST_METHOD=DreamTech.LiveOps.Editor.Tests.LiveOpsHubContrastCommand.MeasureFromCommandLine
 readonly DEFAULT_CAPTURE_TIMEOUT_SECONDS=900
 readonly MINIMUM_FREE_GIGABYTES=5
 readonly SKIN_LOCK_POLL_SECONDS=2
@@ -48,6 +54,7 @@ output_root=$HOME/.cache/unity-liveops/captures
 timeout_seconds=$DEFAULT_CAPTURE_TIMEOUT_SECONDS
 measure=1
 dry_run=0
+contrast=0
 
 fail_usage() { echo "capture.sh: $1" >&2; exit 2; }
 
@@ -61,14 +68,21 @@ while [ "$#" -gt 0 ]; do
     --skins) [ "$#" -ge 2 ] || fail_usage "--skins cần dark,light"; skins=$2; shift 2;;
     --output) [ "$#" -ge 2 ] || fail_usage "--output cần đường dẫn"; output_root=$2; shift 2;;
     --timeout) [ "$#" -ge 2 ] || fail_usage "--timeout cần số giây"; timeout_seconds=$2; shift 2;;
+    --contrast) contrast=1; shift;;
     --no-measure) measure=0; shift;;
     --dry-run) dry_run=1; shift;;
-    --help|-h) sed -n '2,18p' "$0" | sed 's/^# \{0,1\}//'; exit 0;;
+    --help|-h) sed -n '2,24p' "$0" | sed 's/^# \{0,1\}//'; exit 0;;
     *) fail_usage "tham số lạ '$1'";;
   esac
 done
 
 [ -n "$unity_selection" ] || fail_usage "thiếu --unity"
+# Lượt đo tương phản không chụp ảnh nên không có kịch bản nào; giữ một giá trị giả để phần kiểm tham số chung dùng lại được.
+if [ "$contrast" = 1 ]; then
+  [ -z "$scenarios" ] || fail_usage "--contrast không chụp ảnh nên không nhận --scenarios"
+  scenarios=contrast
+  measure=0
+fi
 [ -n "$scenarios" ] || fail_usage "thiếu --scenarios"
 # Bí danh ux-sizes mở ra đúng danh sách id; giữ ở đây (không ở phía C#) để lệnh in ra log vẫn là id thật, soát lại được từng ảnh.
 readonly UX_SIZES_SCENARIOS=\
@@ -216,7 +230,11 @@ for version in $versions; do
     mkdir -p "$output_directory"
     # Dọn ảnh/đo/log cũ trước khi chụp — nhãn = tên gói (9.6) nên chạy lại sau khi sửa dùng cùng thư mục; nếu không dọn,
     # ảnh cũ của lần chụp trước vẫn đủ để qua bước kiểm "đủ ảnh" dù lần chụp này thật ra lỗi (F8).
-    rm -f "$output_directory"/*.png "$output_directory"/*.json "$output_directory"/capture*.log
+    if [ "$contrast" = 1 ]; then
+      rm -f "$output_directory"/contrast-*.log
+    else
+      rm -f "$output_directory"/*.png "$output_directory"/*.json "$output_directory"/capture*.log
+    fi
   else
     echo "# capture $unity_label → $output_directory"
     echo "mkdir -p $(printf '%q' "$output_directory")"
@@ -225,11 +243,17 @@ for version in $versions; do
   version_failed=0
   for skin in "${skin_list[@]}"; do
     if [ "$skin" = dark ]; then skin_value=1; else skin_value=0; fi
-    log_file=$output_directory/capture-$skin.log
-    capture_command=("$unity_binary" -batchmode -projectPath "$project"
-      -executeMethod "$CAPTURE_METHOD"
-      -liveopsCaptureOut "$output_directory" -liveopsCaptureScenarios "$scenarios" -liveopsCaptureSkins "$skin"
-      -logFile "$log_file")
+    if [ "$contrast" = 1 ]; then
+      log_file=$output_directory/contrast-$skin.log
+      capture_command=("$unity_binary" -batchmode -projectPath "$project"
+        -executeMethod "$CONTRAST_METHOD" -liveopsContrastSkin "$skin" -logFile "$log_file")
+    else
+      log_file=$output_directory/capture-$skin.log
+      capture_command=("$unity_binary" -batchmode -projectPath "$project"
+        -executeMethod "$CAPTURE_METHOD"
+        -liveopsCaptureOut "$output_directory" -liveopsCaptureScenarios "$scenarios" -liveopsCaptureSkins "$skin"
+        -logFile "$log_file")
+    fi
     slot_command=("$script_directory/unity-slot.sh" --timeout "$timeout_seconds" --label "capture $label $unity_label $skin" -- "${capture_command[@]}")
 
     if [ "$dry_run" = 1 ]; then
@@ -246,7 +270,7 @@ for version in $versions; do
     release_skin_lock
     if [ "$unity_status" != 0 ]; then
       echo "LỖI: chụp $unity_label skin $skin thoát $unity_status — xem $log_file"
-      grep -n "LIVEOPS CAPTURE\|error CS\|Exception" "$log_file" 2>/dev/null | head -n 20 | sed 's/^/   /'
+      grep -n "LIVEOPS CAPTURE\|LIVEOPS CONTRAST\|error CS\|Exception" "$log_file" 2>/dev/null | head -n 20 | sed 's/^/   /'
       version_failed=1
     fi
   done
@@ -259,6 +283,13 @@ for version in $versions; do
   fi
   if [ "$version_failed" = 1 ]; then
     overall_status=1
+    continue
+  fi
+  if [ "$contrast" = 1 ]; then
+    if [ "$version_failed" = 0 ]; then
+      echo "đo tương phản $unity_label: xong ($(printf '%s' "$skins")) → ~/.cache/unity-liveops/ux-contrast/"
+      grep -h "LIVEOPS CONTRAST: đã ghi" "$output_directory"/contrast-*.log 2>/dev/null | sed 's/^/   /'
+    fi
     continue
   fi
   if [ "$scenarios" != registered ]; then

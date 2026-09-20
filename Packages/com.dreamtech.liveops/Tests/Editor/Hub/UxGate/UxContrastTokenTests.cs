@@ -76,7 +76,7 @@ namespace DreamTech.LiveOps.Editor.Tests
     public sealed class UxContrastTokenTests
     {
         /// <summary>Bậc WCAG 2.1 AA cho chữ thường.</summary>
-        private const float TextContrastRatio = 4.5f;
+        private const float TextContrastRatio = UxComposedContrast.TextContrastRatio;
 
         /// <summary>Bậc WCAG 2.1 AA cho chữ to và cho thành phần đồ hoạ / thành phần giao diện.</summary>
         private const float ShapeContrastRatio = 3f;
@@ -526,56 +526,74 @@ namespace DreamTech.LiveOps.Editor.Tests
             }
         }
 
+        /// <summary>
+        /// (W9-27) Tương phản của màu ĐÃ HỢP THÀNH ở skin SÁNG, đọc từ BẰNG CHỨNG mà <c>capture.sh --contrast</c> ghi ra.
+        /// <para>
+        /// Vì sao không đo tại chỗ: cửa sổ hub thật vẽ theo skin ĐANG CHẠY của Editor và mọi lượt cổng chạy skin TỐI — đổi
+        /// <c>EditorPrefs UserSkin</c> là việc riêng của <c>capture.sh</c> (SP-4). Không được suy sang skin sáng từ bảng
+        /// token: bảng token đo TRƯỚC khi nhân opacity, đúng thứ ca màu-đã-hợp-thành chứng minh là không đủ, và hai skin
+        /// khai token khác hẳn nhau (<c>--liveops-hub-color-quiet</c> #A3A3A3 tối / #4F4F4F sáng).
+        /// </para>
+        /// <para>
+        /// Ca này ĐỎ khi: thiếu file bằng chứng · khuôn JSON khác đời · bằng chứng của bản Unity khác · bằng chứng của skin
+        /// khác · dấu cây nguồn lệch (ai đó sửa <c>Editor/Hub/**</c> sau lượt đo) · đo được 0 đoạn chữ · thiếu cảnh · có bất
+        /// kỳ dòng trượt nào. Thiếu câu nào trong số đó thì cổng tự lừa mình bằng một file cũ.
+        /// </para>
+        /// <para>
+        /// Cách lấy bằng chứng: <c>tools/liveops-hub/capture.sh --contrast --unity 6000|2022 --skins light --label &lt;nhãn&gt;</c>.
+        /// </para>
+        /// </summary>
+        [Test]
+        [Category(LiveOpsHubTestCategories.Logic)]
+        public void ComposedTextColor_MeetsWcagContrast_InLightSkin_FromCaptureEvidence()
+        {
+            string path = UxContrastEvidence.PathFor(UxContrastEvidence.LightSkin);
+            UxContrastEvidenceData evidence = UxContrastEvidence.Read(path);
+            Assert.IsNotNull(evidence,
+                "không đọc được bằng chứng đo tương phản skin SÁNG ở " + path + " — chạy "
+                + "tools/liveops-hub/capture.sh --contrast --unity <bản> --skins light --label <nhãn> rồi chạy lại. Skin sáng "
+                + "là nửa giao diện mà mọi lượt cổng (chạy skin tối) chưa bao giờ đo (W9-27)");
+            Assert.AreEqual(UxContrastEvidence.SchemaVersion, evidence.schema,
+                "bằng chứng ở " + path + " theo khuôn đời " + evidence.schema + ", cổng đọc khuôn đời "
+                + UxContrastEvidence.SchemaVersion + " — đo lại, đừng đọc file cũ bằng luật mới");
+            Assert.AreEqual(UxContrastEvidence.LightSkin, evidence.skin,
+                "bằng chứng ở " + path + " là của skin '" + evidence.skin + "', không phải skin sáng");
+            Assert.AreEqual(Application.unityVersion, evidence.unityVersion,
+                "bằng chứng ở " + path + " đo trên Unity " + evidence.unityVersion + ", lượt này chạy "
+                + Application.unityVersion + " — hai bản dựng cây element khác nhau nên số đo không dùng chung được");
+            Assert.IsFalse(evidence.proSkin,
+                "bằng chứng khai skin sáng nhưng Editor lúc đo vẫn báo proSkin = true — lượt đo chạy sai skin");
+
+            string digest = UxContrastEvidence.ComputeSourceDigest();
+            Assert.IsNotEmpty(digest,
+                "không băm được cây nguồn Editor/Hub — không có dấu thì bằng chứng cũ tới mấy cũng qua được cổng");
+            Assert.AreEqual(digest, evidence.sourceDigest,
+                "bằng chứng ở " + path + " đo trên một cây nguồn KHÁC cây đang chạy (dấu " + evidence.sourceDigest
+                + " ≠ " + digest + ") — Editor/Hub đã đổi sau lượt đo, đo lại bằng capture.sh --contrast");
+            Assert.AreEqual(LightSkinEvidenceSceneCount, evidence.sceneCount,
+                "bằng chứng chỉ đo " + evidence.sceneCount + " cảnh, phải đủ " + LightSkinEvidenceSceneCount
+                + " (sáu màn + hai nhánh inspector Lịch) — thiếu cảnh là thiếu đúng nửa màn mà W9-21 nói tới");
+            Assert.Greater(evidence.measuredCount, 0,
+                "bằng chứng đo được 0 đoạn chữ — phép lọc hỏng thì ca này thành lời khai suông");
+            Assert.IsEmpty(evidence.failures,
+                "màu chữ ĐÃ HỢP THÀNH (nhân opacity của tổ tiên) không đạt " + Number(evidence.minimumRatio) + ":1 ở "
+                + LightSkinName + " (" + evidence.measuredCount + " đoạn chữ đo trên " + evidence.sceneCount + " cảnh):"
+                + Environment.NewLine + string.Join(Environment.NewLine, evidence.failures));
+        }
+
+        /// <summary>Số cảnh mà lệnh đo phải đi qua — sáu màn của hub cộng hai nhánh của inspector Lịch.</summary>
+        private const int LightSkinEvidenceSceneCount = 8;
+
         // ------------------------------------------------------------------------------------------------- trợ giúp
 
         /// <summary>
-        /// Mọi chữ ĐANG HIỆN trong <paramref name="root"/> phải đạt bậc chữ sau khi nhân opacity của tổ tiên. Phần tử không
-        /// hoạt động được bỏ qua theo WCAG 2.1 §1.4.3 — ca gọi hàm này có trách nhiệm khẳng định riêng rằng thứ nó quan tâm
-        /// KHÔNG nằm trong diện miễn trừ đó.
+        /// Phép đo màu ĐÃ HỢP THÀNH dùng chung với lệnh đo batchmode — xem <see cref="UxComposedContrast"/>. Giữ một bản
+        /// DUY NHẤT của công thức vì từ W9-27 nó chạy ở hai chỗ (lượt EditMode ở skin đang chạy, lượt chụp ở skin sáng), và
+        /// hai bản sao là hai con số khác nhau về cùng một cửa sổ.
         /// </summary>
-        /// <returns>Số đoạn chữ THẬT SỰ được đo — ca gọi dùng nó để không kết luận từ một vòng lặp rỗng.</returns>
         private static int CollectComposedTextFailures(VisualElement root, string place, List<string> failures)
         {
-            if (root == null) return 0;
-            int measuredCount = 0;
-            List<TextElement> texts = new List<TextElement>();
-            root.Query<TextElement>().ToList(texts);
-            for (int index = 0; index < texts.Count; index++)
-            {
-                TextElement text = texts[index];
-                if (string.IsNullOrEmpty(text.text)) continue;
-                if (!UxLayoutAuditor.IsShownOnScreen(text)) continue;
-                if (!text.enabledInHierarchy) continue;
-                measuredCount++;
-
-                Color declared = text.resolvedStyle.color;
-                float opacity = EffectiveOpacity(text);
-                Color faded = new Color(declared.r, declared.g, declared.b, declared.a * opacity);
-                Color background = UxLayoutAuditor.BackdropOf(text);
-                Color seen = UxLayoutAuditor.CompositeOver(faded, background);
-                float ratio = UxLayoutAuditor.ContrastRatio(seen, background);
-                if (ratio >= TextContrastRatio) continue;
-                failures.Add(place + " · \"" + text.text + "\": " + Number(ratio) + ":1 — màu " + HexText(declared)
-                    + " nhân opacity " + Number(opacity) + " hợp thành ra " + HexText(seen) + " trên nền "
-                    + HexText(background) + " (cần ≥ " + Number(TextContrastRatio) + ":1)");
-            }
-
-            return measuredCount;
-        }
-
-        /// <summary>
-        /// Opacity mà mắt người thật sự thấy trên một phần tử: tích opacity của chính nó và của MỌI tổ tiên. UI Toolkit nhân
-        /// opacity theo từng lớp lúc vẽ, nên đọc mỗi <c>resolvedStyle.opacity</c> của element là đọc thiếu đúng phần mà
-        /// <c>:disabled</c> của Unity đặt lên khối cha.
-        /// </summary>
-        private static float EffectiveOpacity(VisualElement element)
-        {
-            float opacity = 1f;
-            for (VisualElement current = element; current != null; current = current.hierarchy.parent)
-            {
-                opacity *= Mathf.Clamp01(current.resolvedStyle.opacity);
-            }
-            return opacity;
+            return UxComposedContrast.CollectFailures(root, place, failures);
         }
 
         private static void CollectFailures(VisualElement root, string skinName, bool proSkin, List<string> failures)
