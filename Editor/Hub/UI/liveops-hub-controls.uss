@@ -7,7 +7,7 @@
  * element chỉ thấy thuộc tính khai trên rule khớp chính nó ([API §12.2]; test ControlsSkinTokenTests).
  */
 
-/* ---------------------------------------------------------------- Ô ngày giờ UTC — ô ngày 76 · ô giờ 44 · "UTC" 10px 0,7 */
+/* ---------------------------------------------------------------- Ô ngày giờ UTC — ô ngày 88 · ô giờ 44 · "UTC" 10px 0,7 */
 
 .liveops-hub-utc-field {
     flex-shrink: 0;
@@ -32,8 +32,17 @@
     margin: 0;
 }
 
+/* (W9-19) 76 → 88px. Vì sao nới: chữ mono "2026-09-10" đo 75px ở 2022.3 (73px ở 6000.6), nên ô 76px chỉ dư 0,5px mỗi bên SAU
+   KHI lượt trước đã nhường hết đệm ngang — một đổi metric font (bản Unity khác, DPI khác, cỡ chữ Editor khác) là cắt lại mà
+   không ai thấy.
+   Con số 88 đo ra chứ không ước: vùng NỘI DUNG của TextInput = bề rộng ô − 8px đệm ([SD1] pin "padding 0 4") − 2px viền của
+   chính TextInput. 88 ⇒ 78px nội dung cho chữ 75px, dư 1,5px mỗi bên ở bản Unity chật hơn trong hai bản. Phiếu W9-19 đề nghị
+   dải 80–84 khi chưa trừ 2px viền ấy: 84 cho đúng 74px nội dung, tức CHẬT HƠN chữ của 2022.3 — đo được ở lượt 6000.6 ngày
+   20/9 (test UtcField_DateInput_KeepsSlackForTheLongestDateText báo "cần 73px, chỗ có 74px").
+   Hàng Bắt đầu/Kết thúc trong pane 280px vẫn đủ chỗ: nhãn 96 + ô 88 + 4 + ô giờ 44 + 4 + "UTC". Hai test khoá con số này đổi
+   theo trong cùng lượt. */
 .liveops-hub-utc-field__date {
-    width: 76px;
+    width: 88px;
 }
 
 .liveops-hub-utc-field__time {
@@ -41,11 +50,17 @@
     margin-left: var(--liveops-hub-space-4);
 }
 
-/* Ô ngày/giờ khoá cứng 76 và 44px [SD1 §3.1] nên phần đệm trong ô là chỗ DUY NHẤT còn nhường được. Vì sao phải nhường: chữ
-   mono "2026-09-10" đo được 75px ở 2022.3 (rộng hơn 6000.6 vài phần mười px mỗi glyph), cộng 3px đệm trái là 78 > 76 nên
-   TextInput cắt mất mép phải của chữ số cuối — đỏ ở CẢ SÁU cỡ, cả hai ngôn ngữ, chỉ trên 2022.3 (RC-02). Bỏ đệm ngang trả
-   lại 4px, chữ vừa khít trong ô mà bề rộng ô — con số hai test đang khoá — không đổi. Đệm DỌC giữ nguyên. */
-.liveops-hub-utc-field__date > .unity-text-field__input,
+/* (W9-19) Đệm ngang của ô NGÀY trở lại đúng "padding 0 4" mà [SD1 §3.1] pin cho ô nhập: lượt trước phải bỏ nó để chữ 75px vừa
+   trong ô 76px (RC-02), nay ô rộng 84 nên đệm về lại được mà chữ vẫn không chạm mép.
+   Ô GIỜ giữ đệm ngang 0: "12:00" cũng là chữ mono và ô pin 44px, nên 4+4 đệm chỉ còn 36px cho chữ — trả đệm ở đó là dựng lại
+   đúng chỗ cắt mà lượt trước vừa dẹp. Nới ô giờ là đổi một con số [SD1] khác, ngoài phạm vi W9-19: khai thành nợ, không tự
+   nới. Đệm DỌC của cả hai ô giữ nguyên. */
+.liveops-hub-utc-field__date > .unity-text-field__input {
+    margin: 0;
+    padding-left: 4px;
+    padding-right: 4px;
+}
+
 .liveops-hub-utc-field__time > .unity-text-field__input {
     margin: 0;
     padding-left: 0;

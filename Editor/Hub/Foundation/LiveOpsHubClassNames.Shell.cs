@@ -7,6 +7,14 @@ namespace DreamTech.LiveOps.Editor
     /// </summary>
     internal static partial class LiveOpsHubClassNames
     {
+        /// <summary>
+        /// Bậc cửa sổ hẹp THỨ TƯ, dưới 1000px (W9-20). Vì sao thêm: bậc <c>--medium</c> trải từ 900 tới 1099 nên mọi thứ nhường
+        /// ở đó nhường CHO CẢ dải; thanh công cụ màn Lịch ở 950 còn chật thêm một control nữa mà không có bậc nào nói được
+        /// điều đó. Khai ở file vùng Shell chứ không ở bảng 8.10 vì bảng ấy do G-SKELETON đóng từ W0 (V-5) — cùng chỗ với
+        /// <see cref="RailPinnedOpen"/>, cũng là một class trên root.
+        /// </summary>
+        internal const string Snug = "liveops-hub--snug";
+
         // Bố cục khung — "liveops-hub-content" là tên measure-capture.py đo bề rộng cột nội dung 1084.
         internal const string Main = "liveops-hub-main";
         internal const string Content = "liveops-hub-content";
