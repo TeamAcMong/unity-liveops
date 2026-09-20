@@ -874,3 +874,38 @@ file	Packages/com.dreamtech.liveops/Editor/Hub/Controls/Timeline/LiveOpsTimeline
 file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Controls/ControlsSkinTokenTests.cs	G-UX3-TIMELINE	W8-UX3 — bản sao hằng màu của token: chép lại hai màu JSON skin Light sau khi chúng đạt bậc chữ 4,5:1 (không nới assert nào)
 file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/RecurringRules/**	G-UX3-RECURRING	W8-UX3 — bảng "đợt kế tiếp" và thanh cuộn ngang thừa của form
 file	tools/liveops-hub/ownership.tsv	G-UX3-AUDIT,G-UX3-CALENDAR,G-UX3-TIMELINE,G-UX3-RECURRING,G-FIX-UX3-1	W8-UX3 — G-UX3-AUDIT viết khối đăng ký lượt 3; ba gói còn lại chỉ nối tên vào dòng của chính mình
+# ---------------------------------------------------------------------------------------------- đợt W9 (bố cục 5 màn còn lại + phiếu treo)
+# Đợt lẻ W9.5 / W9.7 để bảng diễn tả được thứ tự BÊN TRONG một đợt: check-ownership.py --wave-deps đòi đợt của
+# cái mình phụ thuộc phải NHỎ HƠN HẲN, nên hai gói cùng ghi "W9" thì không xếp lớp được (cùng cơ chế W3.5 của G-I18N).
+package	G-W9-LABEL	W9	M	W8
+package	G-W9-CALENDAR	W9	M	W8
+package	G-W9-GATE	W9.5	L	G-W9-LABEL,G-W9-CALENDAR
+package	G-W9-EXPORT	W9.7	L	G-W9-GATE
+package	G-W9-SCREENS	W9.7	L	G-W9-GATE
+file	Packages/com.dreamtech.liveops/Editor/Hub/Controls/Timeline/LiveOpsTimelineGeometry.cs	G-W9-LABEL	W9-23 + W9-UX31 — nhãn thanh rút tại dấu phân cách thay vì giữa hai chữ cái
+file	Packages/com.dreamtech.liveops/Editor/Hub/Controls/Timeline/LiveOpsTimelineModel.cs	G-W9-LABEL	W9-24 — chuỗi đơn vị số ít cho khoảng thời gian
+file	Packages/com.dreamtech.liveops/Editor/Hub/Controls/Timeline/LiveOpsTimelineDragController.cs	G-W9-LABEL	W9-24 — readout khi kéo in "shift +1 days"
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubFormat.cs	G-W9-LABEL	W9-24 — chọn dạng số ít hay số nhiều theo giá trị
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubStrings.Foundation.cs	G-W9-LABEL	W9-24 — ba khoá mới DurationDay/Hour/MinuteUnitSingular
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/Language/LiveOpsHubStringCatalog.Foundation.cs	G-W9-LABEL	W9-24 — bảng chuỗi vi + en của ba khoá số ít
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Controls/LiveOpsTimelineGeometryTests.cs	G-W9-LABEL	W9-23 phần kiểm — mẩu còn lại phải là tiền tố hoặc hậu tố THẬT của id
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Calendar/CalendarSection.uss	G-W9-CALENDAR	W9-19 trả lại đệm ô ngày + W9-20 bậc breakpoint ~1000px + W9-21 pane chỉ-đọc
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Calendar/CalendarEventInspector.cs	G-W9-CALENDAR	W9-21 pane chỉ-đọc thôi dùng SetEnabled(false) + W9-UX09 viewDataKey riêng theo đợt
+file	Packages/com.dreamtech.liveops/Editor/Hub/UI/liveops-hub-controls.uss	G-W9-CALENDAR	W9-19 — bề rộng ô ngày 76 → 80-84px
+file	Packages/com.dreamtech.liveops/Editor/Hub/Shell/LiveOpsHubBreakpoints.cs	G-W9-CALENDAR	W9-20 — bậc breakpoint mới trong khoảng mù 900-1099px
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Controls/UtcDateTimeFieldTests.cs	G-W9-CALENDAR	W9-19 — assert bề rộng ô ngày (dòng 65) đi theo số đo mới
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Sections/CalendarInspectorUxFixTests.cs	G-W9-CALENDAR	W9-19 — assert bề rộng ô ngày (dòng 290) + W9-UX09 trạng thái gập
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/UxGate/UxContrastTokenTests.cs	G-W9-CALENDAR	W9-21 — cổng đo màu ĐÃ HỢP THÀNH (nhân opacity của tổ tiên), hai skin
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/UxGate/UxEventSender.cs	G-W9-GATE	W9-16 — chờ theo ĐIỀU KIỆN + hạn giờ thật, thôi đếm khung hình
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/UxGate/UxHubWindowFixture.cs	G-W9-GATE	W9-20 — thêm cỡ 950x700 vào AllSizes
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/UxGate/UxLayoutAuditor.cs	G-W9-GATE	W9-25 cảnh báo khi chữ chiếm > 95% bề rộng ô + W9-23 phần kiểm ở tầng auditor
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/UxGate/UxLayoutAuditTests.cs	G-W9-GATE	W9-18 tách theo từng cỡ + W9-26 test khung phải soi ĐÚNG rail/status bar
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/UxGate/UxLayoutDeferralList.cs	G-W9-GATE,G-W9-EXPORT,G-W9-SCREENS	W9-18 mục hoãn theo cỡ (G-W9-GATE); hai gói màn chỉ GỠ dòng màn của mình khi đã xanh
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Capture/**	G-W9-GATE	W9-17 bỏ chiều cao cố định của confirm-root + W9-22 ba kịch bản chụp còn thiếu
+file	tools/liveops-hub/check-ownership.py	G-W9-GATE	W9-02 — đọc được nhãn đợt có hậu tố (W8-UX2) thay vì vỡ ở float()
+file	tools/liveops-hub/ownership.tsv	G-W9-GATE	W9-02 cột đợt W8-UX2 cho năm dòng G-UX2-*/G-FIX-UX2-1; G-W9-GATE viết khối đăng ký đợt W9
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Export/**	G-W9-EXPORT	W9-01 — 241 chỗ không dùng được của màn Xuất JSON
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Overview/**	G-W9-SCREENS	W9-03 + W9-04 — 118 chỗ, bảng "đợt tới" đẩy cột ra ngoài cửa sổ
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/EventTypes/**	G-W9-SCREENS	W9-05 — 100 chỗ, ô bảng rộng cố định 27-35px
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Validation/**	G-W9-SCREENS	W9-06 — 40 chỗ, chip tổng kết và nút "Kiểm lại"
+file	Packages/com.dreamtech.liveops/Editor/Hub/UI/liveops-hub-shell.uss	G-W9-SCREENS	W9-04 — rail + status bar ở cỡ hẹp (phần khung của test Shell)
