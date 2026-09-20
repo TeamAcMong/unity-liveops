@@ -34,14 +34,12 @@ namespace DreamTech.LiveOps.Editor.Tests
             scenarios.Add(new LiveOpsHubCaptureScenario(LiveOpsHubCaptureScenarioIds.HfConfirmLevel1Layout, (int)LiveOpsConfirmWindow.Width,
                     (int)LiveOpsConfirmWindow.Level1Height, () => OpenConfirm(ConfirmLevel1SampleRequest(), string.Empty),
                     window => ((LiveOpsConfirmWindow)window).Content)
-                .WithExpectedFrames(new LiveOpsHubCaptureExpectedFrame(LiveOpsConfirmContent.RootElementName, LiveOpsConfirmWindow.Width,
-                    LiveOpsConfirmWindow.Level1Height)));
+                .WithExpectedFrames(ConfirmRootExpectedFrame()));
 
             scenarios.Add(new LiveOpsHubCaptureScenario(LiveOpsHubCaptureScenarioIds.HfConfirmLevel2Layout, (int)LiveOpsConfirmWindow.Width,
                     (int)LiveOpsConfirmWindow.TypeToConfirmHeight, () => OpenConfirm(ConfirmLevel2SampleRequest(), "weekly-pass-3"),
                     window => ((LiveOpsConfirmWindow)window).Content)
-                .WithExpectedFrames(new LiveOpsHubCaptureExpectedFrame(LiveOpsConfirmContent.RootElementName, LiveOpsConfirmWindow.Width,
-                    LiveOpsConfirmWindow.TypeToConfirmHeight)));
+                .WithExpectedFrames(ConfirmRootExpectedFrame()));
         }
 
         /// <summary>Hộp 2 của Hình 8 (cấp 1 — xoá đợt đã đăng chưa bắt đầu), chữ nguyên văn [FD §3.10].</summary>

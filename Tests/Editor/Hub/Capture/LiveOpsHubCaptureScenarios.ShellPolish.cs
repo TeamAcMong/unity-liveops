@@ -50,8 +50,7 @@ namespace DreamTech.LiveOps.Editor.Tests
             scenarios.Add(new LiveOpsHubCaptureScenario(LiveOpsHubCaptureScenarioIds.H28eConfirmOverwriteDisk, (int)LiveOpsConfirmWindow.Width,
                     (int)LiveOpsConfirmWindow.Level1Height, () => OpenConfirm(ConfirmOverwriteDiskSampleRequest(), string.Empty),
                     window => ((LiveOpsConfirmWindow)window).Content)
-                .WithExpectedFrames(new LiveOpsHubCaptureExpectedFrame(LiveOpsConfirmContent.RootElementName, LiveOpsConfirmWindow.Width,
-                    LiveOpsConfirmWindow.Level1Height)));
+                .WithExpectedFrames(ConfirmRootExpectedFrame()));
 
             // Hình 13 chụp ở 820: rail phải là 36 px (I-8), không phải 196 — đó là toàn bộ lý do G-CALENDAR-DEPTH đợi gói này.
             scenarios.Add(new LiveOpsHubCaptureScenario(LiveOpsHubCaptureScenarioIds.HsShellNarrow820, NarrowCaptureWidth, NarrowCaptureHeight,
