@@ -464,12 +464,12 @@ namespace DreamTech.LiveOps.Editor.Tests
         /// lượt đòi ĐO ĐƯỢC ít nhất một đoạn chữ, kẻo một đổi tên class biến phép đo thành vòng lặp rỗng.
         /// </para>
         /// <para>
-        /// GIỚI HẠN ĐÃ BIẾT — skin SÁNG CHƯA ĐO (phiếu W9-27). Cửa sổ hub thật chạy ở skin ĐANG CHẠY của Editor, mà mọi lượt
-        /// cổng của đợt này chạy ở skin TỐI (đổi <c>EditorPrefs UserSkin</c> là việc riêng của <c>capture.sh</c>, SP-4), nên
-        /// luật màu-đã-hợp-thành mới chỉ có số đo ở skin tối. KHÔNG được suy sang skin sáng từ bảng token: token
-        /// <c>--liveops-hub-color-quiet</c> khác hẳn hai bên (#A3A3A3 tối / #4F4F4F sáng), và bảng token đo TRƯỚC khi nhân
-        /// opacity — đúng thứ ca này chứng minh là không đủ. Lời khai cũ ("lượt cổng ở skin còn lại phủ nửa kia") là sai: lượt
-        /// đó chưa tồn tại.
+        /// PHẠM VI của riêng ca này (cập nhật 20/9/2026, soát W10 R-03): nó đo ở skin ĐANG CHẠY của lượt cổng — tức skin
+        /// TỐI — và chỉ trên HAI nhánh inspector Lịch. Tám cảnh của cả hub, ở CẢ HAI skin, do hai ca đọc bằng chứng bên dưới
+        /// phủ (<see cref="ComposedTextColor_MeetsWcagContrast_InLightSkin_FromCaptureEvidence"/> và
+        /// <see cref="ComposedTextColor_MeetsWcagContrast_InDarkSkin_FromCaptureEvidence"/>). Giữ ca tại-chỗ này bên cạnh hai
+        /// ca kia vì nó là chỗ DUY NHẤT đo trên cây element của chính lượt cổng, không qua file — mất nó thì luật hợp thành
+        /// không còn một phép đo nào chạy cùng lúc với phần còn lại của cổng.
         /// </para>
         /// </summary>
         [UnityTest]
@@ -536,53 +536,106 @@ namespace DreamTech.LiveOps.Editor.Tests
         /// </para>
         /// <para>
         /// Ca này ĐỎ khi: thiếu file bằng chứng · khuôn JSON khác đời · bằng chứng của bản Unity khác · bằng chứng của skin
-        /// khác · dấu cây nguồn lệch (ai đó sửa <c>Editor/Hub/**</c> sau lượt đo) · đo được 0 đoạn chữ · thiếu cảnh · có bất
-        /// kỳ dòng trượt nào. Thiếu câu nào trong số đó thì cổng tự lừa mình bằng một file cũ.
+        /// khác · dấu nguồn lệch (ai đó sửa <c>Editor/Hub/**</c> hoặc sửa chính cái thước sau lượt đo) · đo được 0 đoạn chữ ·
+        /// DANH SÁCH CẢNH lệch · có bất kỳ dòng trượt nào — xem <see cref="AssertComposedContrastEvidence"/>.
         /// </para>
         /// <para>
         /// Cách lấy bằng chứng: <c>tools/liveops-hub/capture.sh --contrast --unity 6000|2022 --skins light --label &lt;nhãn&gt;</c>.
         /// </para>
         /// </summary>
+        // KHÔNG gắn [Category(Logic)] (soát W10 R-07): fixture này mang [Category(UI)] + [Category(UxGate)], mà lượt Logic
+        // lọc bằng `!LiveOpsHub.UI` — nhãn Logic trên một ca của fixture UI là nhãn CHẾT, ca không bao giờ chạy ở lượt Logic
+        // và vẫn chạy ở lượt UI/UxGate. Ca này không mở cửa sổ nào, nhưng chỗ đứng của nó là cạnh phép đo tại chỗ ở trên.
         [Test]
-        [Category(LiveOpsHubTestCategories.Logic)]
         public void ComposedTextColor_MeetsWcagContrast_InLightSkin_FromCaptureEvidence()
         {
-            string path = UxContrastEvidence.PathFor(UxContrastEvidence.LightSkin);
+            AssertComposedContrastEvidence(UxContrastEvidence.LightSkin, LightSkinName, false);
+        }
+
+        /// <summary>
+        /// (W9-27, soát W10 R-03) Cùng phép đo ấy ở skin TỐI, cũng đọc từ bằng chứng của <c>capture.sh --contrast</c>.
+        /// <para>
+        /// Vì sao cần dù lượt cổng vốn chạy skin tối: ca đo TẠI CHỖ ở trên chỉ đi qua hai nhánh inspector Lịch của MỘT cỡ và
+        /// MỘT ngôn ngữ. Tám cảnh của cả hub ở skin tối — Tổng quan, Loại event, Luật lặp, Kiểm lịch, Xuất JSON — chưa lượt
+        /// nào đo. Bằng chứng của hai skin sinh cùng một cách, đọc bằng cùng một câu, nên không skin nào là "nửa được tin".
+        /// </para>
+        /// <para>
+        /// Cách lấy bằng chứng: <c>tools/liveops-hub/capture.sh --contrast --unity 6000|2022 --skins dark --label &lt;nhãn&gt;</c>.
+        /// </para>
+        /// </summary>
+        [Test]
+        public void ComposedTextColor_MeetsWcagContrast_InDarkSkin_FromCaptureEvidence()
+        {
+            AssertComposedContrastEvidence(UxContrastEvidence.DarkSkin, DarkSkinName, true);
+        }
+
+        /// <summary>
+        /// Đọc một file bằng chứng đo tương phản và ĐỎ khi: thiếu file · khuôn JSON khác đời · bằng chứng của bản Unity khác ·
+        /// bằng chứng của skin khác · cờ proSkin lúc đo không khớp skin khai · dấu nguồn lệch (ai đó sửa <c>Editor/Hub/**</c>
+        /// hoặc sửa chính cái thước sau lượt đo) · đo được 0 đoạn chữ · DANH SÁCH CẢNH lệch · có bất kỳ dòng trượt nào.
+        /// Thiếu câu nào trong số đó thì cổng tự lừa mình bằng một file cũ.
+        /// </summary>
+        private static void AssertComposedContrastEvidence(string skin, string skinName, bool expectedProSkin)
+        {
+            string path = UxContrastEvidence.PathFor(skin);
             UxContrastEvidenceData evidence = UxContrastEvidence.Read(path);
             Assert.IsNotNull(evidence,
-                "không đọc được bằng chứng đo tương phản skin SÁNG ở " + path + " — chạy "
-                + "tools/liveops-hub/capture.sh --contrast --unity <bản> --skins light --label <nhãn> rồi chạy lại. Skin sáng "
-                + "là nửa giao diện mà mọi lượt cổng (chạy skin tối) chưa bao giờ đo (W9-27)");
+                "không đọc được bằng chứng đo tương phản skin " + skinName + " ở " + path + " — chạy "
+                + "tools/liveops-hub/capture.sh --contrast --unity <bản> --skins " + skin + " --label <nhãn> rồi chạy lại. "
+                + "Mỗi skin là một nửa giao diện, và một nửa chưa đo là một nửa chưa ai nhìn (W9-27)");
             Assert.AreEqual(UxContrastEvidence.SchemaVersion, evidence.schema,
                 "bằng chứng ở " + path + " theo khuôn đời " + evidence.schema + ", cổng đọc khuôn đời "
                 + UxContrastEvidence.SchemaVersion + " — đo lại, đừng đọc file cũ bằng luật mới");
-            Assert.AreEqual(UxContrastEvidence.LightSkin, evidence.skin,
-                "bằng chứng ở " + path + " là của skin '" + evidence.skin + "', không phải skin sáng");
+            Assert.AreEqual(skin, evidence.skin,
+                "bằng chứng ở " + path + " là của skin '" + evidence.skin + "', không phải skin " + skinName);
             Assert.AreEqual(Application.unityVersion, evidence.unityVersion,
                 "bằng chứng ở " + path + " đo trên Unity " + evidence.unityVersion + ", lượt này chạy "
                 + Application.unityVersion + " — hai bản dựng cây element khác nhau nên số đo không dùng chung được");
-            Assert.IsFalse(evidence.proSkin,
-                "bằng chứng khai skin sáng nhưng Editor lúc đo vẫn báo proSkin = true — lượt đo chạy sai skin");
+            Assert.AreEqual(expectedProSkin, evidence.proSkin,
+                "bằng chứng khai skin " + skinName + " nhưng Editor lúc đo báo proSkin = " + evidence.proSkin
+                + " — lượt đo chạy sai skin");
 
             string digest = UxContrastEvidence.ComputeSourceDigest();
             Assert.IsNotEmpty(digest,
-                "không băm được cây nguồn Editor/Hub — không có dấu thì bằng chứng cũ tới mấy cũng qua được cổng");
+                "không băm được cây nguồn Editor/Hub + mã đo — không có dấu thì bằng chứng cũ tới mấy cũng qua được cổng");
             Assert.AreEqual(digest, evidence.sourceDigest,
                 "bằng chứng ở " + path + " đo trên một cây nguồn KHÁC cây đang chạy (dấu " + evidence.sourceDigest
-                + " ≠ " + digest + ") — Editor/Hub đã đổi sau lượt đo, đo lại bằng capture.sh --contrast");
-            Assert.AreEqual(LightSkinEvidenceSceneCount, evidence.sceneCount,
-                "bằng chứng chỉ đo " + evidence.sceneCount + " cảnh, phải đủ " + LightSkinEvidenceSceneCount
-                + " (sáu màn + hai nhánh inspector Lịch) — thiếu cảnh là thiếu đúng nửa màn mà W9-21 nói tới");
+                + " ≠ " + digest + ") — Editor/Hub hoặc chính mã đo đã đổi sau lượt đo, đo lại bằng capture.sh --contrast");
+            CollectionAssert.AreEqual(EvidenceSceneNames, evidence.scenes,
+                "bằng chứng ở " + path + " đi qua một DANH SÁCH CẢNH khác cổng đang đòi. Cổng đối chiếu tên từng cảnh chứ "
+                + "không đối chiếu phép đếm: bỏ một màn rồi thêm một màn khác vẫn giữ nguyên con số, và đúng màn bị bỏ là "
+                + "màn không ai đo nữa. Cổng đòi: " + string.Join(" · ", EvidenceSceneNames) + ". Bằng chứng khai: "
+                + (evidence.scenes == null ? "(không khai)" : string.Join(" · ", evidence.scenes)));
+            Assert.AreEqual(EvidenceSceneNames.Length, evidence.sceneCount,
+                "bằng chứng ở " + path + " khai sceneCount = " + evidence.sceneCount + " nhưng liệt kê "
+                + (evidence.scenes == null ? 0 : evidence.scenes.Length) + " cảnh — file tự mâu thuẫn");
             Assert.Greater(evidence.measuredCount, 0,
                 "bằng chứng đo được 0 đoạn chữ — phép lọc hỏng thì ca này thành lời khai suông");
             Assert.IsEmpty(evidence.failures,
                 "màu chữ ĐÃ HỢP THÀNH (nhân opacity của tổ tiên) không đạt " + Number(evidence.minimumRatio) + ":1 ở "
-                + LightSkinName + " (" + evidence.measuredCount + " đoạn chữ đo trên " + evidence.sceneCount + " cảnh):"
+                + skinName + " (" + evidence.measuredCount + " đoạn chữ đo trên " + evidence.sceneCount + " cảnh):"
                 + Environment.NewLine + string.Join(Environment.NewLine, evidence.failures));
         }
 
-        /// <summary>Số cảnh mà lệnh đo phải đi qua — sáu màn của hub cộng hai nhánh của inspector Lịch.</summary>
-        private const int LightSkinEvidenceSceneCount = 8;
+        /// <summary>
+        /// Tên TỪNG cảnh mà lệnh đo phải đi qua, đúng thứ tự — sáu màn của hub cộng hai nhánh của inspector Lịch.
+        /// <para>
+        /// Khai bằng TÊN chứ không bằng con số 8 (soát W10 R-02): một phép đếm khớp vẫn có thể là tám cảnh khác, nên bỏ đúng
+        /// màn khó rồi thêm một màn dễ vẫn qua cổng. Danh sách này phải khớp từng chữ với <c>LiveOpsHubContrastCommand</c>;
+        /// thêm cảnh ở đó thì thêm dòng ở đây, và lúc ấy bằng chứng cũ lệch — đúng như mong muốn.
+        /// </para>
+        /// </summary>
+        private static readonly string[] EvidenceSceneNames =
+        {
+            "màn Tổng quan",
+            "màn Loại event",
+            "màn Lịch, chưa chọn đợt",
+            "màn Lịch, đợt sinh từ luật",
+            "màn Lịch, đợt cố định",
+            "màn Luật lặp",
+            "màn Kiểm lịch",
+            "màn Xuất JSON",
+        };
 
         // ------------------------------------------------------------------------------------------------- trợ giúp
 

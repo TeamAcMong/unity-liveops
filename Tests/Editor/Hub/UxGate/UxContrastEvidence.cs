@@ -20,9 +20,19 @@ namespace DreamTech.LiveOps.Editor.Tests
     /// </para>
     /// <para>
     /// Giá phải trả, khai thẳng: cổng phụ thuộc vào một FILE sinh ngoài lượt EditMode. Vì vậy dấu của file phải chặt —
-    /// <see cref="UxContrastEvidenceData.sourceDigest"/> băm TOÀN BỘ mã nguồn của hub (<c>Editor/Hub/**</c> .cs + .uss), nên
-    /// bất kỳ sửa đổi nào ở thứ đang được đo đều làm bằng chứng cũ LỆCH và test đỏ. Bằng chứng cũ mà cổng vẫn xanh thì đó là
-    /// cổng tự lừa mình.
+    /// <see cref="UxContrastEvidenceData.sourceDigest"/> băm TOÀN BỘ mã nguồn của hub (<c>Editor/Hub/**</c> .cs + .uss)
+    /// CỘNG mã làm phép ĐO (xem <see cref="MeasurementSourceRelativePaths"/>), nên bất kỳ sửa đổi nào ở thứ đang được đo
+    /// HOẶC ở chính cái thước đều làm bằng chứng cũ LỆCH và test đỏ. Bằng chứng cũ mà cổng vẫn xanh thì đó là cổng tự lừa
+    /// mình.
+    /// </para>
+    /// <para>
+    /// Vì sao dấu phải phủ cả cái THƯỚC (soát W10 R-02): bản đầu chỉ băm <c>Editor/Hub/**</c>, nên làm YẾU phép đo — bỏ một
+    /// cảnh, nới ngưỡng trong <see cref="UxComposedContrast"/>, hay đổi phép lọc đoạn chữ — KHÔNG làm dấu lệch, và bằng
+    /// chứng đo bằng thước cũ vẫn qua cổng. Dấu phải trả lời được đúng một câu: "file này đo cây nguồn nào, bằng thước nào".
+    /// </para>
+    /// <para>
+    /// Bằng chứng còn khai TÊN TỪNG CẢNH (<see cref="UxContrastEvidenceData.scenes"/>) chứ không chỉ số cảnh: một con số
+    /// khớp vẫn có thể là tám cảnh KHÁC, nên cổng đối chiếu danh sách tên, không đối chiếu phép đếm.
     /// </para>
     /// </summary>
     internal static class UxContrastEvidence
@@ -31,12 +41,25 @@ namespace DreamTech.LiveOps.Editor.Tests
         internal const string DarkSkin = "dark";
 
         /// <summary>Phiên bản khuôn JSON — đổi phép đo thì tăng số này để bằng chứng cũ không còn đọc được.</summary>
-        internal const int SchemaVersion = 1;
+        /// <remarks>Đời 2 (soát W10 R-02): thêm <see cref="UxContrastEvidenceData.scenes"/> và mở rộng phạm vi băm sang mã đo.</remarks>
+        internal const int SchemaVersion = 2;
 
         private const string EvidenceRelativeDirectory = ".cache/unity-liveops/ux-contrast";
 
         /// <summary>Thư mục của hub được băm vào dấu — đúng thứ phép đo nói về.</summary>
         private const string HubSourceRelativeDirectory = "Editor/Hub";
+
+        /// <summary>
+        /// Mã làm phép ĐO, băm vào cùng một dấu: công thức hợp thành, lệnh đo batchmode, khuôn bằng chứng này, và mẫu dữ
+        /// liệu mà các cảnh đứng trên. Sửa bất kỳ file nào trong đây là đổi ý nghĩa của con số, nên bằng chứng cũ phải lệch.
+        /// </summary>
+        private static readonly string[] MeasurementSourceRelativePaths =
+        {
+            "Tests/Editor/Hub/UxGate/UxComposedContrast.cs",
+            "Tests/Editor/Hub/UxGate/UxContrastEvidence.cs",
+            "Tests/Editor/Hub/Capture/LiveOpsHubContrastCommand.cs",
+            "Tests/Editor/Support/LiveOpsDesignSample.cs",
+        };
 
         /// <summary>
         /// Đường dẫn bằng chứng của một skin trên bản Unity ĐANG CHẠY:
@@ -63,8 +86,8 @@ namespace DreamTech.LiveOps.Editor.Tests
         }
 
         /// <summary>
-        /// Dấu của mã nguồn hub: SHA-256 của (đường dẫn tương đối + nội dung) mọi file <c>.cs</c> và <c>.uss</c> dưới
-        /// <c>Editor/Hub</c>, sắp theo đường dẫn.
+        /// Dấu của mã nguồn hub CỘNG mã đo: SHA-256 của (đường dẫn tương đối + nội dung) mọi file <c>.cs</c> và <c>.uss</c>
+        /// dưới <c>Editor/Hub</c> cộng các file khai ở <see cref="MeasurementSourceRelativePaths"/>, sắp theo đường dẫn.
         /// <para>
         /// Vì sao băm CÂY NGUỒN chứ không ghi sha commit: bước đo chạy trên cây LÀM VIỆC, thường còn chưa commit. Một sha
         /// commit vì thế nói về một cây khác với cây vừa đo, và bằng chứng "đúng commit" vẫn có thể là bằng chứng của mã cũ.
@@ -82,6 +105,15 @@ namespace DreamTech.LiveOps.Editor.Tests
             List<string> paths = new List<string>();
             paths.AddRange(Directory.GetFiles(hubDirectory, "*.cs", SearchOption.AllDirectories));
             paths.AddRange(Directory.GetFiles(hubDirectory, "*.uss", SearchOption.AllDirectories));
+            for (int index = 0; index < MeasurementSourceRelativePaths.Length; index++)
+            {
+                string measurementPath = Path.Combine(packageDirectory, MeasurementSourceRelativePaths[index]);
+                // Thiếu một file của thước thì KHÔNG băm được — trả rỗng để câu assert của cổng nói "không có dấu" thay vì
+                // lặng lẽ băm một tập hẹp hơn rồi khớp với một bằng chứng đo bằng thước khác.
+                if (!File.Exists(measurementPath)) return string.Empty;
+                paths.Add(Path.GetFullPath(measurementPath));
+            }
+
             paths.Sort(StringComparer.Ordinal);
 
             StringBuilder seed = new StringBuilder();
@@ -130,6 +162,9 @@ namespace DreamTech.LiveOps.Editor.Tests
         public string sourceDigest;
         public int measuredCount;
         public int sceneCount;
+
+        /// <summary>Tên đọc được của từng cảnh đã đo, đúng thứ tự lệnh đo đi qua — cổng đối chiếu DANH SÁCH này, không chỉ số cảnh.</summary>
+        public string[] scenes;
         public float minimumRatio;
         public string[] failures;
     }

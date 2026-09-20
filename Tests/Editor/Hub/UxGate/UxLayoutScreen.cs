@@ -47,6 +47,12 @@ namespace DreamTech.LiveOps.Editor.Tests
         /// quãng giữa lúc dựng và lúc đo dài hơn quãng đó, trạng thái biến mất, và màn đỏ vì một lý do KHÔNG phải lỗi bố cục.
         /// Có điều kiện thì lượt kiểm chờ theo ĐIỀU KIỆN + hạn giờ rồi dựng lại một lần, thay vì tin là nó còn sống (W9-28).
         /// </para>
+        /// <para>
+        /// Khai đúng mức (soát W10 R-08): đây là HÀNG RÀO PHÒNG XA, chưa phải một gốc đã đo được. Trong mọi lượt đã chạy của
+        /// đợt W10, đường dựng-lại-vì-hết-hạn CHƯA một lần nào kích hoạt (không log nào mang câu "dựng trạng thái hai lần vẫn
+        /// không đạt điều kiện đo") — mỗi lượt đo cách lúc dựng khoảng nửa giây, ngắn hơn sáu giây cả chục lần. Gốc ĐÃ chứng
+        /// minh của W9-28 là cú kéo cộng dồn, chữa bằng <see cref="RebuildPerSize"/>.
+        /// </para>
         /// </summary>
         public Func<UxHubWindowFixture, bool> ReadyCondition { get; private set; }
 
