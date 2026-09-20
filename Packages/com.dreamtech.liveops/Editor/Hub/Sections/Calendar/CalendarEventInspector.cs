@@ -226,19 +226,28 @@ namespace DreamTech.LiveOps.Editor
         }
 
         /// <summary>
-        /// (b) đợt sinh từ luật [SD1 §3.10]: vẽ ĐỦ field như đợt cố định rồi <c>SetEnabled(false)</c>. Bỏ hẳn field thì pane (b)
-        /// trông như một màn khác và người dùng không đối chiếu được giờ của lần lặp; hiện field xám nói đúng "xem được, sửa ở
-        /// Luật lặp".
+        /// (b) đợt sinh từ luật [SD1 §3.10]: vẽ ĐỦ field như đợt cố định. Bỏ hẳn field thì pane (b) trông như một màn khác và
+        /// người dùng không đối chiếu được giờ của lần lặp.
+        /// <para>
+        /// (W9-21) Pane này KHÔNG còn <c>SetEnabled(false)</c>. Vì sao: <c>:disabled</c> của Unity nhân opacity vào MÀU ĐÃ HỢP
+        /// THÀNH, nên 12 đoạn chữ của pane đo được 2,28–3,54:1 trên nền cửa sổ — dưới xa 4,5:1 mà user chốt 19/9, và không token màu nào
+        /// cứu được vì opacity nhân SAU token. WCAG 2.1 §1.4.3 miễn tương phản cho "thành phần giao diện KHÔNG hoạt động", mà
+        /// pane này không phải thứ không hoạt động: nó là chỗ DUY NHẤT đọc được giờ của lần lặp đang chọn. Không sửa được vẫn
+        /// giữ nguyên bằng thứ khoá thật — mọi field ở đây đều <c>isReadOnly</c>, tức không nhận chữ — còn dấu hiệu "không sửa
+        /// ở đây" do viền trái + ghi chú "Sửa ở Luật lặp" ngay dưới mang, là CHỮ chứ không phải độ mờ (SPIKE-B SP-3).
+        /// Đổi này KHÔNG đụng quy ước disabled của hub: nút bị chặn và hai mép giờ bị khoá vẫn mờ bằng cơ chế cũ, vì chúng đúng
+        /// là thành phần không hoạt động.
+        /// </para>
         /// </summary>
         private void BuildRecurring()
         {
             VisualElement fields = new VisualElement();
+            fields.AddToClassList(LiveOpsHubClassNames.CalendarInspectorReadOnlyPane);
             fields.Add(ReadOnlyTextField(LiveOpsHubStrings.CalendarFieldIdLabel, _model.EventId, true));
             fields.Add(ReadOnlyTextField(LiveOpsHubStrings.CalendarFieldTypeLabel, _model.EventTypeId, true));
             fields.Add(ReadOnlyTextField(LiveOpsHubStrings.CalendarFieldStartLabel, OccurrenceText(_model.OccurrenceStartUtc), false));
             fields.Add(ReadOnlyTextField(LiveOpsHubStrings.CalendarFieldEndLabel, OccurrenceText(_model.OccurrenceEndUtc), false));
             fields.Add(BuildReadOnlyDurationRow());
-            fields.SetEnabled(false);
             _bodyHost.Add(fields);
 
             _bodyHost.Add(BuildNote(_model.RecurringNoteText));
@@ -559,13 +568,20 @@ namespace DreamTech.LiveOps.Editor
             return BuildReadOnlyRow(LiveOpsHubStrings.CalendarFieldSourceLabel, _model.SourceText);
         }
 
+        /// <summary>
+        /// (W9-UX09-FOLDOUT) Card "Vấn đề" KHÔNG còn <c>viewDataKey</c>. Vì sao: khoá ấy dùng CHUNG cho mọi đợt, mà viewData
+        /// khôi phục trạng thái gập SAU khi element gắn vào panel — tức nó ghi đè <c>value</c> vừa đặt theo dữ liệu. Hệ quả:
+        /// xem một đợt sạch (card gập vì không có vấn đề) rồi chọn đợt HỎNG thì card cũng mở ra gập, và người dùng không thấy
+        /// vấn đề nào trừ khi tự bấm. Khoá theo từng đợt chỉ dời lỗi đi một bước (đợt mới vẫn thừa kế khoá rỗng và vẫn đua với
+        /// lượt gắn panel); trạng thái đúng của card suy được từ dữ liệu — CÓ vấn đề thì mở — nên không cần nhớ gì cả, và
+        /// inspector dựng lại toàn bộ mỗi lần đổi lựa chọn.
+        /// </summary>
         private VisualElement BuildIssuesFoldout()
         {
             Foldout foldout = new Foldout
             {
                 text = _model.IssuesFoldoutText,
                 value = _model.Findings.Count > 0,
-                viewDataKey = LiveOpsHubClassNames.CalendarInspectorIssues,
             };
             foldout.AddToClassList(LiveOpsHubClassNames.CalendarInspectorIssues);
             for (int index = 0; index < _model.Findings.Count; index++) foldout.Add(BuildFindingCard(_model.Findings[index]));
