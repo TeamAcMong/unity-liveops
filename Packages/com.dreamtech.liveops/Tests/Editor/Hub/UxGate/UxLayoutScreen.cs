@@ -32,10 +32,54 @@ namespace DreamTech.LiveOps.Editor.Tests
         public Func<UxHubWindowFixture, IEnumerator> AfterOpen { get; private set; }
 
         /// <summary>
+        /// Services của màn; null = mẫu thiết kế (<c>LiveOpsHubTestServices.DesignSampleScenario</c>). Đây là đường DUY NHẤT
+        /// để ma trận bố cục dựng được dữ liệu XẤU NHẤT (chuỗi dài nhất, giờ không đọc được, danh sách rỗng, số lớn): ba lỗi
+        /// W9-29/30/31 lọt lưới vì mọi màn của ma trận đều đứng trên cùng một tài liệu ĐẸP, nên trạng thái xấu nhất của từng
+        /// màn chưa bao giờ được bày ra để đo.
+        /// </summary>
+        public Func<LiveOpsHubServices> Services { get; private set; }
+
+        /// <summary>
+        /// Điều kiện "trạng thái của màn đã dựng xong" đọc ngay TRƯỚC lượt đo; null = không kiểm.
+        /// <para>
+        /// Vì sao cần bên cạnh <see cref="AfterOpen"/>: có trạng thái TỰ TẮT theo đồng hồ THẬT (toast sống đúng 6 giây kể từ
+        /// lúc hiện — <c>LiveOpsToast.VisibleSeconds</c>, đếm theo <c>EditorApplication.timeSinceStartup</c>). Máy bận thì
+        /// quãng giữa lúc dựng và lúc đo dài hơn quãng đó, trạng thái biến mất, và màn đỏ vì một lý do KHÔNG phải lỗi bố cục.
+        /// Có điều kiện thì lượt kiểm chờ theo ĐIỀU KIỆN + hạn giờ rồi dựng lại một lần, thay vì tin là nó còn sống (W9-28).
+        /// </para>
+        /// <para>
+        /// Khai đúng mức (soát W10 R-08): đây là HÀNG RÀO PHÒNG XA, chưa phải một gốc đã đo được. Trong mọi lượt đã chạy của
+        /// đợt W10, đường dựng-lại-vì-hết-hạn CHƯA một lần nào kích hoạt (không log nào mang câu "dựng trạng thái hai lần vẫn
+        /// không đạt điều kiện đo") — mỗi lượt đo cách lúc dựng khoảng nửa giây, ngắn hơn sáu giây cả chục lần. Gốc ĐÃ chứng
+        /// minh của W9-28 là cú kéo cộng dồn, chữa bằng <see cref="RebuildPerSize"/>.
+        /// </para>
+        /// </summary>
+        public Func<UxHubWindowFixture, bool> ReadyCondition { get; private set; }
+
+        /// <summary>Hạn giờ chờ <see cref="ReadyCondition"/> sau mỗi lần dựng trạng thái (ms).</summary>
+        public int ReadyTimeoutMilliseconds { get; private set; }
+
+        /// <summary>
         /// true = chạy lại <see cref="AfterOpen"/> sau MỖI lần đổi cỡ. Cần cho trạng thái mà đổi cỡ làm mất (popover là cửa sổ
         /// riêng, đóng ngay khi cửa sổ chủ đổi khung).
         /// </summary>
         public bool ReapplyAfterResize { get; private set; }
+
+        /// <summary>
+        /// true = mở cửa sổ MỚI cho từng cỡ thay vì kéo mép một cửa sổ đang mở.
+        /// <para>
+        /// Vì sao cần: <see cref="ReapplyAfterResize"/> chạy lại thao tác trên CÙNG một phiên, nên thao tác nào để lại dấu
+        /// trong tài liệu sẽ CỘNG DỒN. Màn <c>calendar-toast</c> kéo một thanh thêm 60px mỗi cỡ; bảy cỡ là bảy lần dời trên
+        /// cùng một đợt và đợt trôi dần khỏi khoảng ngày trục đang vẽ — đúng mẫu đỏ "trục không vẽ thanh 'entry-hunt-0914'"
+        /// từng thấy ở lượt TOÀN BỘ của cổng W9 (phiếu W9-28). Dựng lại phiên cho mỗi cỡ là chữa đúng gốc đó: mỗi cỡ đo trên
+        /// một tài liệu nguyên vẹn, không có cỡ nào chịu hậu quả của cỡ trước.
+        /// </para>
+        /// <para>
+        /// Giá phải trả là mở/đóng cửa sổ nhiều hơn (mỗi cỡ một lượt), nên chỉ bật cho màn có thao tác GHI vào tài liệu —
+        /// chọn thanh hay mở popover không đổi tài liệu và không cần.
+        /// </para>
+        /// </summary>
+        public bool RebuildPerSize { get; private set; }
 
         /// <summary>Cửa sổ được kiểm; null = chính cửa sổ hub. Dùng cho popover Thêm đợt và hộp xác nhận (cửa sổ RIÊNG).</summary>
         public Func<UxHubWindowFixture, EditorWindow> WindowPicker { get; private set; }
@@ -54,6 +98,28 @@ namespace DreamTech.LiveOps.Editor.Tests
         {
             AfterOpen = afterOpen;
             ReapplyAfterResize = reapplyAfterResize;
+            return this;
+        }
+
+        /// <summary>Dựng lại phiên cho MỖI cỡ — xem <see cref="RebuildPerSize"/>.</summary>
+        public UxLayoutScreen WithRebuildPerSize()
+        {
+            RebuildPerSize = true;
+            return this;
+        }
+
+        /// <summary>Services riêng của màn (dữ liệu xấu nhất) — xem <see cref="Services"/>.</summary>
+        public UxLayoutScreen WithServices(Func<LiveOpsHubServices> services)
+        {
+            Services = services;
+            return this;
+        }
+
+        /// <summary>Điều kiện "trạng thái đã dựng xong" cùng hạn giờ chờ — xem <see cref="ReadyCondition"/>.</summary>
+        public UxLayoutScreen WithReadyCondition(Func<UxHubWindowFixture, bool> readyCondition, int timeoutMilliseconds)
+        {
+            ReadyCondition = readyCondition;
+            ReadyTimeoutMilliseconds = timeoutMilliseconds;
             return this;
         }
 

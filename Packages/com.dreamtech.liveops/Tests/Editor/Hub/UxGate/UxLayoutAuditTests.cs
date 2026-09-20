@@ -198,13 +198,171 @@ namespace DreamTech.LiveOps.Editor.Tests
         [UnityTest]
         public IEnumerator Shell_RailAndStatusBar_AreUsable_AtEverySize()
         {
-            yield return RunScreen(new UxLayoutScreen("shell-rail-status", LiveOpsHubSections.Ids.Overview)
-                .WithRequiredElements(LiveOpsHubPaths.ShellElementNames.Rail, LiveOpsHubPaths.ShellElementNames.Content,
-                    LiveOpsHubPaths.ShellElementNames.SectionBody, LiveOpsHubPaths.ShellElementNames.StatusBar,
-                    LiveOpsHubPaths.ShellElementNames.StatusLeftText, LiveOpsHubPaths.ShellElementNames.StatusRight)
-                .WithNoOverlapRules(new UxLayoutNoOverlapRule(LiveOpsHubPaths.ShellElementNames.Rail,
-                    LiveOpsHubPaths.ShellElementNames.StatusBar))
-                .WithScreenRulesOnly(LiveOpsHubPaths.ShellElementNames.Rail, LiveOpsHubPaths.ShellElementNames.StatusBar));
+            yield return RunScreen(ShellRailStatusScreen("shell-rail-status"));
+        }
+
+        // ================================================================================================ màn DỮ LIỆU XẤU NHẤT
+
+        // Vì sao cả khối này tồn tại (vá LỖ HỔNG MA TRẬN, 20/9/2026): 24 màn của bản W9 đều đứng trên
+        // LiveOpsDesignSample.Document ở trạng thái ĐẸP — không đợt nào bị bỏ, không giờ nào hỏng, không loại nào chưa khai,
+        // không danh sách nào rỗng, không chuỗi nào dài. Ba lỗi W9-29 / W9-30 / W9-31 lọt lưới đúng vì thế: cả ba chỉ vẽ ra
+        // khi dữ liệu XẤU, mà không màn nào của ma trận từng dựng dữ liệu xấu. Hai trong ba lỗi ấy còn có sẵn dữ liệu trong
+        // mẫu (đợt BỊ BỎ, đợt có giờ KHÔNG ĐỌC ĐƯỢC) — chỉ là chưa màn nào CHỌN tới nó.
+        // Luật từ đây: mỗi màn phải có ít nhất một biến thể "ngày tồi tệ nhất" (chuỗi dài nhất, giờ không đọc được, id dài,
+        // số lớn, danh sách rỗng) trong ma trận BỐ CỤC, không chỉ trong test hành vi.
+        // Và luật ấy KHÔNG nằm trong khối chú thích này nữa (soát W10 R-04): UxLayoutScreenCatalog kê từng màn cùng cách nó
+        // chạm dữ liệu xấu, RunScreen đối chiếu mọi màn đang chạy với bảng kê, còn UxLayoutScreenCatalogTests khoá "mỗi
+        // section phải có ít nhất một màn dữ liệu xấu nhất" và khoá TẬP màn còn nợ. Chú thích không chặn được màn thứ 39.
+
+        /// <summary>
+        /// (W9-29) Chọn đợt BỊ BỎ — biến thể DÀI NHẤT của dòng gợi ý đáy trục, vì nó cộng thêm câu phát hiện
+        /// ("bị bỏ vì … — F8 xem lỗi") vào trước cụm phím. Đây là câu bị ellipsis nuốt mất "⌘⌫ xoá" ở 700 · 820 · 950.
+        /// <para>
+        /// Giới hạn phát hiện vào đúng nhánh dòng gợi ý: câu đỏ phải nói về MỘT chỗ — dòng gợi ý — chứ không gom cả cửa sổ.
+        /// </para>
+        /// </summary>
+        [UnityTest]
+        public IEnumerator Calendar_TimelineHint_NotCut_WithDroppedEntrySelected()
+        {
+            yield return RunScreen(new UxLayoutScreen("calendar-selection-dropped", LiveOpsHubSections.Ids.Calendar)
+                .WithAfterOpen(SelectDroppedBar, true)
+                .WithRequiredElements("." + LiveOpsHubClassNames.TimelineHint, "." + LiveOpsHubClassNames.TimelineHintText)
+                .WithScreenRulesOnly("." + LiveOpsHubClassNames.TimelineHint));
+        }
+
+        /// <summary>
+        /// (W9-30) Chọn đợt có giờ kết thúc KHÔNG ĐỌC ĐƯỢC: chỉ ở trạng thái này hàng ô ngày giờ UTC mới dựng biểu tượng lỗi,
+        /// và đó là phần tử bị đẩy khỏi hàng rồi mép cửa sổ cắt đôi ở 1280x760.
+        /// <para>
+        /// Dựng trạng thái bằng <c>SetSelectedBarKey</c> chứ không bằng cú bấm thanh: đợt có giờ hỏng KHÔNG đặt được lên trục
+        /// (trục treo nó vào chip "Không đặt được"), nên không có thanh nào để bấm. Đường bấm chip là việc của test HÀNH VI
+        /// UX-09; ở đây thứ đang kiểm là BỐ CỤC của pane sau khi đã chọn.
+        /// </para>
+        /// </summary>
+        [UnityTest]
+        public IEnumerator Calendar_Inspector_FieldError_NotCutAtWindowEdge()
+        {
+            yield return RunScreen(new UxLayoutScreen("calendar-inspector-fielderror", LiveOpsHubSections.Ids.Calendar)
+                .WithAfterOpen(SelectUnreadableEndEntry, true)
+                .WithRequiredElements(LiveOpsHubPaths.CalendarElementNames.Inspector,
+                    LiveOpsHubPaths.CalendarElementNames.InspectorBody)
+                .WithScreenRulesOnly(LiveOpsHubPaths.CalendarElementNames.Inspector));
+        }
+
+        /// <summary>Màn Lịch trên tài liệu xấu nhất: id đợt dài nhất, tên loại dài nhất, một loại chưa khai, một giờ hỏng.</summary>
+        [UnityTest]
+        public IEnumerator Calendar_LayoutIsUsable_WithWorstCaseData()
+        {
+            yield return RunScreen(CalendarScreen("calendar-worst-data")
+                .WithServices(WorstCaseServices)
+                .WithAfterOpen(SelectLongestBar, true));
+        }
+
+        /// <summary>Màn Lịch khi lịch RỖNG: không đợt, không luật — câu "chưa có gì" cũng phải dùng được ở mọi cỡ.</summary>
+        [UnityTest]
+        public IEnumerator Calendar_LayoutIsUsable_WhenEmpty()
+        {
+            yield return RunScreen(EmptyScreen("calendar-empty", LiveOpsHubSections.Ids.Calendar));
+        }
+
+        /// <summary>Màn Luật lặp trên dữ liệu xấu nhất: tiền tố id dài nhất, chu kỳ 8760 giờ, một lần chạy 999 giờ.</summary>
+        [UnityTest]
+        public IEnumerator Recurring_LayoutIsUsable_WithWorstCaseData()
+        {
+            yield return RunScreen(new UxLayoutScreen("recurring-worst-data", LiveOpsHubSections.Ids.RecurringRules)
+                .WithServices(WorstCaseServices)
+                .WithRequiredElements(WithShell(RecurringRulesSection.BodyElementName, RecurringRulesSection.ListElementName,
+                    RecurringRuleForm.SentenceElementName))
+                .WithStretchRules(SectionStretchRules(RecurringRulesSection.BodyElementName))
+                .WithNoOverlapRules(StatusBarNoOverlapRules()));
+        }
+
+        /// <summary>Màn Luật lặp khi danh sách luật RỖNG.</summary>
+        [UnityTest]
+        public IEnumerator Recurring_LayoutIsUsable_WhenEmpty()
+        {
+            yield return RunScreen(EmptyScreen("recurring-empty", LiveOpsHubSections.Ids.RecurringRules));
+        }
+
+        /// <summary>Màn Tổng quan trên dữ liệu xấu nhất: id dài, việc cần làm nhiều, số đếm lớn.</summary>
+        [UnityTest]
+        public IEnumerator Overview_LayoutIsUsable_WithWorstCaseData()
+        {
+            yield return RunScreen(new UxLayoutScreen("overview-worst-data", LiveOpsHubSections.Ids.Overview)
+                .WithServices(WorstCaseServices)
+                .WithRequiredElements(WithShell(OverviewSection.BodyElementName))
+                .WithStretchRules(SectionStretchRules(OverviewSection.BodyElementName))
+                .WithNoOverlapRules(StatusBarNoOverlapRules()));
+        }
+
+        /// <summary>Màn Tổng quan khi không có đợt nào sắp diễn ra và không có việc cần làm.</summary>
+        [UnityTest]
+        public IEnumerator Overview_LayoutIsUsable_WhenEmpty()
+        {
+            yield return RunScreen(EmptyScreen("overview-empty", LiveOpsHubSections.Ids.Overview));
+        }
+
+        /// <summary>
+        /// (W9-31) Màn Loại event khi có loại CHƯA KHAI. Bảng chỉ vẽ dấu trạng thái ở đúng trạng thái này
+        /// (<c>EventTypeTable.BindStateCell</c> đặt <c>visible = !row.IsDeclared</c>), nên mẫu đẹp để cột ấy trống ở mọi cỡ.
+        /// </summary>
+        [UnityTest]
+        public IEnumerator EventTypes_LayoutIsUsable_WithUndeclaredType()
+        {
+            yield return RunScreen(new UxLayoutScreen("event-types-worst-data", LiveOpsHubSections.Ids.EventTypes)
+                .WithServices(WorstCaseServices)
+                .WithRequiredElements(WithShell(LiveOpsHubPaths.EventTypesElementNames.Body,
+                    LiveOpsHubPaths.EventTypesElementNames.Content))
+                .WithStretchRules(SectionStretchRules(LiveOpsHubPaths.EventTypesElementNames.Body))
+                .WithNoOverlapRules(StatusBarNoOverlapRules()));
+        }
+
+        /// <summary>Màn Loại event khi bảng RỖNG.</summary>
+        [UnityTest]
+        public IEnumerator EventTypes_LayoutIsUsable_WhenEmpty()
+        {
+            yield return RunScreen(EmptyScreen("event-types-empty", LiveOpsHubSections.Ids.EventTypes));
+        }
+
+        /// <summary>Màn Kiểm lịch khi có phát hiện với câu dài nhất (loại chưa khai + giờ không đọc được + id dài).</summary>
+        [UnityTest]
+        public IEnumerator Validation_LayoutIsUsable_WithWorstCaseFindings()
+        {
+            yield return RunScreen(new UxLayoutScreen("validation-worst-data", LiveOpsHubSections.Ids.Validation)
+                .WithServices(WorstCaseServices)
+                .WithRequiredElements(WithShell(LiveOpsHubPaths.ValidationElementNames.Body,
+                    LiveOpsHubPaths.ValidationElementNames.Toolbar, LiveOpsHubPaths.ValidationElementNames.Content))
+                .WithStretchRules(SectionStretchRules(LiveOpsHubPaths.ValidationElementNames.Body))
+                .WithNoOverlapRules(StatusBarNoOverlapRules()));
+        }
+
+        /// <summary>Màn Kiểm lịch khi lịch rỗng — 0 phát hiện, "mọi thứ ổn".</summary>
+        [UnityTest]
+        public IEnumerator Validation_LayoutIsUsable_WhenEmpty()
+        {
+            yield return RunScreen(EmptyScreen("validation-empty", LiveOpsHubSections.Ids.Validation));
+        }
+
+        /// <summary>Màn Xuất JSON trên dữ liệu xấu nhất: số byte bảy chữ số, tên người đăng dài, ghi chú dài, sha 64 ký tự.</summary>
+        [UnityTest]
+        public IEnumerator Export_LayoutIsUsable_WithWorstCaseData()
+        {
+            yield return RunScreen(new UxLayoutScreen("export-worst-data", LiveOpsHubSections.Ids.Export)
+                .WithServices(WorstCaseServices)
+                .WithRequiredElements(WithShell(ExportSection.BodyElementName))
+                .WithStretchRules(SectionStretchRules(ExportSection.BodyElementName))
+                .WithNoOverlapRules(StatusBarNoOverlapRules()));
+        }
+
+        /// <summary>Màn Xuất JSON khi CHƯA có bản đã đăng — không có bản so, khác biệt rỗng.</summary>
+        [UnityTest]
+        public IEnumerator Export_LayoutIsUsable_WithoutPublishedStamp()
+        {
+            yield return RunScreen(new UxLayoutScreen("export-no-baseline", LiveOpsHubSections.Ids.Export)
+                .WithServices(WithoutPublishedStampServices)
+                .WithRequiredElements(WithShell(ExportSection.BodyElementName))
+                .WithStretchRules(SectionStretchRules(ExportSection.BodyElementName))
+                .WithNoOverlapRules(StatusBarNoOverlapRules()));
         }
 
         // ================================================================================================ tách một nguyên nhân
@@ -229,11 +387,7 @@ namespace DreamTech.LiveOps.Editor.Tests
         [UnityTest]
         public IEnumerator Calendar_LaneViewportHasHeight_NoSelection()
         {
-            yield return RunScreen(new UxLayoutScreen("calendar-lane-viewport", LiveOpsHubSections.Ids.Calendar)
-                .WithRequiredElements("." + LiveOpsHubClassNames.TimelineBody, "." + LiveOpsHubClassNames.TimelineLaneRow)
-                .WithStretchRules(new UxLayoutStretchRule("." + LiveOpsHubClassNames.TimelineBody,
-                    "." + LiveOpsHubClassNames.TimelineMain, true, TimelineBodyRatio))
-                .WithScreenRulesOnly());
+            yield return RunScreen(LaneViewportScreen("calendar-lane-viewport"));
         }
 
         /// <summary>
@@ -243,10 +397,7 @@ namespace DreamTech.LiveOps.Editor.Tests
         [UnityTest]
         public IEnumerator Timeline_RulerTrackFillsColumn_AtEverySize()
         {
-            yield return RunScreen(new UxLayoutScreen("timeline-ruler-track", LiveOpsHubSections.Ids.Calendar)
-                .WithRequiredElements("." + LiveOpsHubClassNames.TimelineRulerTrack)
-                .WithStretchRules(RulerTrackStretchRule())
-                .WithScreenRulesOnly());
+            yield return RunScreen(RulerTrackScreen("timeline-ruler-track"));
         }
 
         // ================================================================================================ lỗi theo nhánh cây
@@ -267,13 +418,7 @@ namespace DreamTech.LiveOps.Editor.Tests
         [UnityTest]
         public IEnumerator Calendar_Medium_DrawerOpen_AnchorsVisible()
         {
-            yield return RunScreen(new UxLayoutScreen("calendar-medium-drawer", LiveOpsHubSections.Ids.Calendar)
-                .WithSizes(Medium820)
-                .WithAfterOpen(SelectFirstBar, true)
-                .WithRequiredElements(LiveOpsHubPaths.CalendarElementNames.Inspector,
-                    LiveOpsHubPaths.CalendarElementNames.InspectorBody,
-                    LiveOpsHubPaths.CalendarDepthElementNames.InspectorDrawerClose)
-                .WithScreenRulesOnly(LiveOpsHubPaths.CalendarElementNames.Inspector));
+            yield return RunScreen(MediumDrawerScreen("calendar-medium-drawer").WithAfterOpen(SelectFirstBar, true));
         }
 
         /// <summary>
@@ -288,23 +433,30 @@ namespace DreamTech.LiveOps.Editor.Tests
                 .WithScreenRulesOnly(LiveOpsHubPaths.CalendarElementNames.Inspector));
         }
 
-        /// <summary>UX-11: toast không được đè lên chân trang (status bar) ở bất kỳ cỡ nào.</summary>
+        /// <summary>
+        /// UX-11: toast không được đè lên chân trang (status bar) ở bất kỳ cỡ nào.
+        /// <para>
+        /// (W9-28, 20/9/2026) Bản cũ chạy SÁU cỡ thiết kế và bỏ 950x700 của W9-20, vì nó khai <c>ReapplyAfterResize</c>: cú
+        /// kéo chạy lại sau mỗi lần đổi cỡ TRÊN CÙNG MỘT phiên, nên đợt bị dời thêm 60px mỗi lượt và trôi dần khỏi khoảng
+        /// ngày trục đang vẽ — bảy lượt thì đợt rơi khỏi trục ("trục không vẽ thanh 'entry-hunt-0914'") và màn đỏ vì một lý
+        /// do KHÔNG liên quan tới UX-11. Đó cũng đúng là mẫu đỏ chập chờn duy nhất từng thấy của màn này (cổng W9, lượt
+        /// TOÀN BỘ).
+        /// </para>
+        /// <para>
+        /// Nay là MỘT nguyên nhân đã chứng minh cộng MỘT hàng rào phòng xa — khai đúng như thế, không nói quá (soát W10
+        /// R-08). Nguyên nhân đã chứng minh: cú kéo CỘNG DỒN trên cùng một phiên, chữa bằng
+        /// <see cref="UxLayoutScreen.WithRebuildPerSize"/> (mỗi cỡ kéo đúng MỘT lần trên tài liệu nguyên vẹn) — đây là thứ
+        /// khớp với mẫu đỏ duy nhất từng thấy. Hàng rào phòng xa: <see cref="UxLayoutScreen.WithReadyCondition"/> chờ TOAST
+        /// THẬT theo điều kiện + hạn giờ, vì toast tự tắt sau <c>LiveOpsToast.VisibleSeconds</c> giây đồng hồ THẬT. Hàng rào
+        /// ấy CHƯA một lần nào kích hoạt trong các lượt đã chạy (không log nào có câu "dựng trạng thái hai lần vẫn không đạt
+        /// điều kiện đo"), nên nó là phòng xa cho máy bận, chưa phải một gốc đã đo được. Với nguyên nhân thứ nhất đã hết,
+        /// màn trở lại ĐỦ BẢY cỡ của ma trận (gồm 950x700): cổng rộng hơn bản W9 chứ không hẹp đi.
+        /// </para>
+        /// </summary>
         [UnityTest]
         public IEnumerator Calendar_Toast_DoesNotOverlapFooter()
         {
-            yield return RunScreen(new UxLayoutScreen("calendar-toast", LiveOpsHubSections.Ids.Calendar)
-                // SÁU cỡ thiết kế, KHÔNG có 950x700 của W9-20 — phiếu W9-28, khai ở G-W9-GATE-build.md mục 5.4.
-                // Màn này khai ReapplyAfterResize nên cú kéo chạy lại sau MỖI lần đổi cỡ TRÊN CÙNG MỘT phiên: đợt bị dời
-                // thêm 60px mỗi lượt và trôi dần khỏi khoảng ngày trục đang vẽ. Sáu lượt còn trong tầm, bảy lượt thì đợt
-                // rơi khỏi trục ("trục không vẽ thanh 'entry-hunt-0914'") và test đỏ vì lý do KHÔNG liên quan tới UX-11.
-                // Chữa đúng gốc là dựng lại phiên cho mỗi cỡ, tức thêm một lựa chọn vào UxLayoutScreen — file ngoài quyền
-                // ghi của gói này. Giữ sáu cỡ là giữ nguyên độ phủ của đường nền W8, không bớt một cỡ nào đang được kiểm.
-                .WithSizes(UxHubWindowFixture.AllSizes)
-                .WithAfterOpen(DragBarToRaiseToast, true)
-                .WithRequiredElements("." + LiveOpsHubClassNames.Toast, LiveOpsHubPaths.ShellElementNames.StatusBar)
-                .WithNoOverlapRules(new UxLayoutNoOverlapRule("." + LiveOpsHubClassNames.Toast,
-                    LiveOpsHubPaths.ShellElementNames.StatusBar))
-                .WithScreenRulesOnly("." + LiveOpsHubClassNames.Toast));
+            yield return RunScreen(ToastScreen("calendar-toast").WithAfterOpen(DragBarToRaiseToast, true));
         }
 
         /// <summary>UX-16: dòng thông tin của làn (tên loại, số đợt) không được cắt ở cỡ nào, tiếng nào.</summary>
@@ -340,12 +492,7 @@ namespace DreamTech.LiveOps.Editor.Tests
         [UnityTest]
         public IEnumerator Timeline_LegendSamplesContrast()
         {
-            yield return RunScreen(new UxLayoutScreen("timeline-legend-contrast", LiveOpsHubSections.Ids.Calendar)
-                .WithSizes(Wide1440)
-                .WithRequiredElements("." + LiveOpsHubClassNames.TimelineLegend)
-                .WithContrastRules(new UxLayoutContrastRule("." + LiveOpsHubClassNames.TimelineLegendSample, LegendContrastRatio,
-                    LegendSampleVariantSelectors))
-                .WithScreenRulesOnly());
+            yield return RunScreen(LegendContrastScreen("timeline-legend-contrast"));
         }
 
         // ================================================================================================ cửa sổ PHỤ
@@ -357,13 +504,7 @@ namespace DreamTech.LiveOps.Editor.Tests
         [UnityTest]
         public IEnumerator AddEventPopover_ButtonsAndTagNotCut()
         {
-            yield return RunScreen(new UxLayoutScreen("add-event-popover", LiveOpsHubSections.Ids.Calendar)
-                .WithSizes(Narrow700, Wide1440)
-                .WithAfterOpen(OpenAddEventPopover, true)
-                .WithWindowPicker(PopoverWindow)
-                .WithRequiredElements(LiveOpsHubPaths.AddEventPopoverElementNames.Root,
-                    LiveOpsHubPaths.AddEventPopoverElementNames.Buttons,
-                    LiveOpsHubPaths.AddEventPopoverElementNames.TypeFilter));
+            yield return RunScreen(AddEventPopoverScreen("add-event-popover"));
         }
 
         /// <summary>
@@ -376,6 +517,144 @@ namespace DreamTech.LiveOps.Editor.Tests
             yield return RunScreen(new UxLayoutScreen("confirm-window", LiveOpsHubSections.Ids.Calendar)
                 .WithSizes(Wide1440)
                 .WithAfterOpen(OpenConfirmWindow, true)
+                .WithWindowPicker(fixture => _confirmWindow));
+        }
+
+        // ============================================================== W10-07: biến thể DỮ LIỆU XẤU NHẤT của 12 màn còn nợ
+
+        // Vì sao khối này tồn tại: đợt W10 đã vá lỗ hổng ma trận cho SÁU section nhưng để lại 12 màn "tách một nguyên nhân"
+        // và hai cửa sổ phụ đứng trên mẫu ĐẸP — chúng bị khoá trong UxLayoutScreenCatalog.ScreensWithoutWorstCaseVariant như
+        // một món nợ công khai (phiếu W10-07). Mười hai màn dưới đây trả món nợ ấy: mỗi màn giữ NGUYÊN luật đo của bản đẹp
+        // (cùng RequiredElements, cùng StretchRules, cùng ScreenRulesOnly) và chỉ đổi DỮ LIỆU, nên chênh lệch đỏ giữa hai
+        // bản đọc được thẳng thành "chỗ này chỉ vỡ khi dữ liệu xấu".
+
+        /// <summary>
+        /// (W10-07) Khung (rail + chân trang) khi tài liệu XẤU NHẤT: tên tài liệu dài, số phát hiện lớn, nên câu trạng thái
+        /// bên trái chân trang dài nhất mà hub sinh ra được.
+        /// </summary>
+        [UnityTest]
+        public IEnumerator Shell_RailAndStatusBar_AreUsable_WithWorstCaseData()
+        {
+            yield return RunScreen(ShellRailStatusScreen("shell-rail-status-worst-data")
+                .WithServices(WorstCaseServices));
+        }
+
+        /// <summary>
+        /// (W10-07) Chọn NHIỀU thanh trên tài liệu xấu nhất. Inspector ở trạng thái (c) in dòng GỘP của cả tập, nên tập có
+        /// một id dài nhất là câu dài nhất mà pane ấy vẽ.
+        /// </summary>
+        [UnityTest]
+        public IEnumerator Calendar_MultiSelection_LayoutIsUsable_WithWorstCaseData()
+        {
+            yield return RunScreen(CalendarScreen("calendar-multi-selection-worst-data")
+                .WithServices(WorstCaseServices)
+                .WithAfterOpen(SelectTwoWorstCaseBars));
+        }
+
+        /// <summary>
+        /// (W10-07) Chuỗi <c>calendar-root → calendar-main</c> khi lịch RỖNG. Trạng thái rỗng dựng một template KHÁC, và
+        /// đúng chỗ ấy chuỗi giãn dễ đứt nhất — tài liệu xấu nhất không đổi kết quả vì luật đang đo là luật GIÃN.
+        /// </summary>
+        [UnityTest]
+        public IEnumerator Calendar_BodyFillsSection_WhenEmpty()
+        {
+            yield return RunScreen(new UxLayoutScreen("calendar-body-fills-empty", LiveOpsHubSections.Ids.Calendar)
+                .WithServices(EmptyServices)
+                .WithRequiredElements(LiveOpsHubPaths.CalendarElementNames.Root, LiveOpsHubPaths.CalendarElementNames.Main)
+                .WithStretchRules(CalendarStretchRules())
+                .WithScreenRulesOnly());
+        }
+
+        /// <summary>
+        /// (W10-07) Vùng làn khi số làn LỚN NHẤT. Tài liệu xấu nhất có cả loại CHƯA KHAI, nên nó sinh thêm một làn mà mẫu
+        /// đẹp không bao giờ có — và số làn là thứ quyết định chiều cao vùng làn.
+        /// </summary>
+        [UnityTest]
+        public IEnumerator Calendar_LaneViewportHasHeight_WithWorstCaseData()
+        {
+            yield return RunScreen(LaneViewportScreen("calendar-lane-viewport-worst-data")
+                .WithServices(WorstCaseServices));
+        }
+
+        /// <summary>(W10-07) Track thước trên tài liệu xấu nhất — bề rộng track bám cột timeline, và cột đổi theo số làn.</summary>
+        [UnityTest]
+        public IEnumerator Timeline_RulerTrackFillsColumn_WithWorstCaseData()
+        {
+            yield return RunScreen(RulerTrackScreen("timeline-ruler-track-worst-data")
+                .WithServices(WorstCaseServices));
+        }
+
+        /// <summary>
+        /// (W10-07) Ngăn kéo inspector ở 820 khi đợt đang chọn có id DÀI NHẤT. Ngăn kéo hẹp hơn pane thường, nên đúng chỗ ấy
+        /// chữ dài mới chạm mép.
+        /// </summary>
+        [UnityTest]
+        public IEnumerator Calendar_Medium_DrawerOpen_WithWorstCaseData()
+        {
+            yield return RunScreen(MediumDrawerScreen("calendar-medium-drawer-worst-data")
+                .WithServices(WorstCaseServices)
+                .WithAfterOpen(SelectLongestBar, true));
+        }
+
+        /// <summary>
+        /// (W10-07) Toast trên tài liệu xấu nhất. Kéo đợt <c>ShortEntryKey</c> (14/9 → 15/9, CHƯA bắt đầu ở mốc 13/9) chứ
+        /// không kéo đợt id dài: đợt id dài đang CHẠY, và luật chia thanh cấm ca phải GHI đứng trên một thanh đang chạy —
+        /// hub sẽ hỏi xác nhận thay vì bật toast.
+        /// </summary>
+        [UnityTest]
+        public IEnumerator Calendar_Toast_DoesNotOverlapFooter_WithWorstCaseData()
+        {
+            yield return RunScreen(ToastScreen("calendar-toast-worst-data")
+                .WithServices(WorstCaseServices)
+                .WithAfterOpen(DragWorstCaseBarToRaiseToast, true));
+        }
+
+        /// <summary>
+        /// (W10-07) Nhãn thước ở hai mức thu phóng trên tài liệu xấu nhất — mức phóng to sinh nhãn DÀY nhất, mức thu nhỏ
+        /// sinh nhãn THÁNG (chuỗi dài nhất của thước).
+        /// </summary>
+        [UnityTest]
+        public IEnumerator Timeline_RulerLabels_NotCutNotOverlapped_WithWorstCaseData()
+        {
+            yield return RunScreen(RulerLabelScreen("timeline-ruler-labels-zoom-in-worst-data", RulerZoomInNotches)
+                .WithServices(WorstCaseServices));
+            yield return RunScreen(RulerLabelScreen("timeline-ruler-labels-zoom-out-worst-data", RulerZoomOutNotches)
+                .WithServices(WorstCaseServices));
+        }
+
+        /// <summary>
+        /// (W10-07) Chú giải khi có loại CHƯA KHAI: dấu màu của loại chưa khai là dấu DUY NHẤT khai màu có alpha, đúng loại
+        /// dấu từng lọt lưới tương phản trước bản vá màu đã hợp thành.
+        /// </summary>
+        [UnityTest]
+        public IEnumerator Timeline_LegendSamplesContrast_WithWorstCaseData()
+        {
+            yield return RunScreen(LegendContrastScreen("timeline-legend-contrast-worst-data")
+                .WithServices(WorstCaseServices));
+        }
+
+        /// <summary>
+        /// (W10-07) Popover Thêm đợt khi dropdown tên loại mang TÊN DÀI NHẤT. Popover rộng cố định 320px nên tên loại dài là
+        /// chỗ duy nhất nó có thể vỡ.
+        /// </summary>
+        [UnityTest]
+        public IEnumerator AddEventPopover_ButtonsAndTagNotCut_WithWorstCaseData()
+        {
+            yield return RunScreen(AddEventPopoverScreen("add-event-popover-worst-data")
+                .WithServices(WorstCaseServices));
+        }
+
+        /// <summary>
+        /// (W10-07) Hộp xác nhận khi câu hỏi IN ID ĐỢT dài nhất. Hộp rộng cố định, nên id dài là chỗ duy nhất chữ của nó
+        /// chạm mép.
+        /// </summary>
+        [UnityTest]
+        public IEnumerator ConfirmWindow_TextNotCut_WithWorstCaseData()
+        {
+            yield return RunScreen(new UxLayoutScreen("confirm-window-worst-data", LiveOpsHubSections.Ids.Calendar)
+                .WithSizes(Wide1440)
+                .WithServices(WorstCaseServices)
+                .WithAfterOpen(OpenWorstCaseConfirmWindow, true)
                 .WithWindowPicker(fixture => _confirmWindow));
         }
 
@@ -476,10 +755,10 @@ namespace DreamTech.LiveOps.Editor.Tests
 
         private IEnumerator RunScreen(UxLayoutScreen screen)
         {
+            AssertScreenIsRegistered(screen);
             List<string> problems = new List<string>();
             List<string> jsonPaths = new List<string>();
             List<string> clampedSizes = new List<string>();
-            List<string> warnings = new List<string>();
             Dictionary<string, int> problemsPerSize = new Dictionary<string, int>();
             UxLayoutDeferralEntry deferral = UxLayoutDeferralList.Find(screen.Id);
             IReadOnlyList<UxWindowSize> declaredSizes = screen.Sizes ?? UxHubWindowFixture.AllLayoutSizes;
@@ -496,13 +775,32 @@ namespace DreamTech.LiveOps.Editor.Tests
             if (sizes.Count == 0) Assert.Ignore(deferral.IgnoreMessage);
             foreach (LiveOpsHubLanguageId language in UxHubWindowFixture.AllLanguages)
             {
-                _fixture = UxHubWindowFixture.Open(screen.SectionId, sizes[0], language);
-                yield return _fixture.WaitForLayout();
-                if (screen.AfterOpen != null && !screen.ReapplyAfterResize) yield return screen.AfterOpen(_fixture);
+                if (!screen.RebuildPerSize)
+                {
+                    _fixture = OpenFixture(screen, sizes[0], language);
+                    yield return _fixture.WaitForLayout();
+                    if (screen.AfterOpen != null && !screen.ReapplyAfterResize) yield return ApplyAfterOpen(screen, problems);
+                }
+
                 foreach (UxWindowSize size in sizes)
                 {
-                    yield return _fixture.Resize(size);
-                    if (screen.AfterOpen != null && screen.ReapplyAfterResize) yield return screen.AfterOpen(_fixture);
+                    if (screen.RebuildPerSize)
+                    {
+                        // Mỗi cỡ một phiên MỚI: thao tác ghi của cỡ trước không được cộng dồn sang cỡ sau (W9-28).
+                        if (_fixture != null) _fixture.Dispose();
+                        UxHubWindowFixture.CloseStrayWindows();
+                        _fixture = OpenFixture(screen, size, language);
+                        yield return _fixture.WaitForLayout();
+                    }
+                    else
+                    {
+                        yield return _fixture.Resize(size);
+                    }
+
+                    if (screen.AfterOpen != null && (screen.ReapplyAfterResize || screen.RebuildPerSize))
+                    {
+                        yield return ApplyAfterOpen(screen, problems);
+                    }
                     if (_fixture.ClampNote.Length > 0 && !clampedSizes.Contains(_fixture.ClampNote)) clampedSizes.Add(_fixture.ClampNote);
                     EditorWindow audited = screen.WindowPicker == null ? _fixture.Window : screen.WindowPicker(_fixture);
                     Assert.IsNotNull(audited, "màn '" + screen.Id + "' không có cửa sổ nào để kiểm ở cỡ " + size);
@@ -519,11 +817,6 @@ namespace DreamTech.LiveOps.Editor.Tests
                         problemsPerSize.TryGetValue(sizeKey, out int already);
                         problemsPerSize[sizeKey] = already + 1;
                     }
-                    foreach (string warning in result.Warnings(subtreeRoots))
-                    {
-                        warnings.Add(screen.Id + " " + size + " " + LanguageTag(language) + " — " + warning);
-                    }
-
                     foreach (KeyValuePair<string, int> truncated in result.TruncatedCounts)
                     {
                         problems.Add(screen.Id + " " + size + " " + LanguageTag(language) + " — loại '" + truncated.Key
@@ -532,23 +825,20 @@ namespace DreamTech.LiveOps.Editor.Tests
                     }
                     CloseSecondaryWindows(screen);
                 }
-                _fixture.Dispose();
+                if (_fixture != null) _fixture.Dispose();
                 _fixture = null;
                 UxHubWindowFixture.CloseStrayWindows();
             }
+            // GIỚI HẠN ĐÃ BIẾT, không phải lỗi của gói này (soát W10 R-10): trên máy đang chạy, hai cỡ rộng nhất bị hệ điều
+            // hành kẹp chiều cao (1440x900 → 1440x895, 1920x1040 → 1920x895), nên biến thể dữ liệu xấu nhất ở cỡ RỘNG NHẤT
+            // chưa thật sự được đo. Đây là CẢNH BÁO chứ không phải lỗi vì làm đỏ ở đây là làm đỏ theo máy chạy, không theo mã
+            // — nhưng nó cũng có nghĩa là một phần ma trận đang khai 7 cỡ mà chỉ đo đúng 5. Muốn đóng thì cần một máy/chế độ
+            // đo đủ chiều cao, hoặc một cách đo khác cho hai cỡ đó; phiếu ghi ở báo cáo đợt W10.
             if (clampedSizes.Count > 0)
             {
                 Debug.LogWarning("UxLayoutAuditTests '" + screen.Id + "': máy chạy không đủ chỗ cho "
                     + string.Join("; ", clampedSizes.ToArray()) + " — lượt kiểm vẫn chạy nhưng cỡ đó chưa được đo đúng.");
             }
-            if (warnings.Count > 0)
-            {
-                // W9-25: in ra để người soát đọc được nợ "ô sắp hết chỗ", nhưng KHÔNG làm test đỏ — xem UxLayoutAuditResult.Warnings.
-                Debug.LogWarning("UxLayoutAuditTests '" + screen.Id + "': " + warnings.Count
-                    + " chỗ chữ chiếm > 95% bề rộng ô (cảnh báo W9-25, không tính là lỗi):\n - "
-                    + string.Join("\n - ", warnings.ToArray()));
-            }
-
             if (deferredSizeLabels.Count > 0)
             {
                 Debug.LogWarning("UxLayoutAuditTests '" + screen.Id + "': " + deferral.DeferralId + " còn hoãn "
@@ -562,6 +852,69 @@ namespace DreamTech.LiveOps.Editor.Tests
                     + string.Join(", ", deferredSizeLabels.ToArray()) : string.Empty)
                 + (clampedSizes.Count > 0 ? "\nCỡ chưa đo đúng trên máy này: " + string.Join("; ", clampedSizes.ToArray()) : string.Empty)
                 + "\n - " + string.Join("\n - ", problems.ToArray()));
+        }
+
+        /// <summary>
+        /// Mọi màn đang chạy phải có một dòng trong <see cref="UxLayoutScreenCatalog"/>, và dòng ấy phải nói ĐÚNG về màn.
+        /// <para>
+        /// Vì sao ở đây chứ không chỉ trong ca tự kiểm bảng kê (soát W10 R-04): bảng kê một mình chỉ chứng minh những dòng
+        /// ĐÃ KHAI là hợp lệ — nó không biết có màn nào chạy mà không khai. Câu này đóng nốt chiều còn lại: thêm một màn vào
+        /// ma trận mà quên trả lời "màn này nhìn thấy dữ liệu xấu ở đâu" là ĐỎ ngay lượt đầu, chứ không im lặng thành một lỗ
+        /// hổng mới của ma trận.
+        /// </para>
+        /// <para>
+        /// Đối chiếu HAI CHIỀU với <c>WithServices</c>: khai "đứng trên services xấu nhất" mà màn không dựng services (hoặc
+        /// ngược lại) cũng đỏ, kẻo lời khai trôi khỏi mã và bảng kê thành một tờ giấy nói về một ma trận khác.
+        /// </para>
+        /// </summary>
+        private static void AssertScreenIsRegistered(UxLayoutScreen screen)
+        {
+            UxLayoutScreenRegistration registration = UxLayoutScreenCatalog.Find(screen.Id);
+            Assert.IsNotNull(registration,
+                "màn '" + screen.Id + "' chưa có dòng nào trong UxLayoutScreenCatalog — mỗi màn của ma trận phải trả lời "
+                + "được 'nó nhìn thấy dữ liệu XẤU NHẤT ở đâu' (tự dựng services, chọn tới phần xấu của mẫu, được màn khác "
+                + "phủ hộ, hay còn nợ một phiếu). Đây là luật vá lỗ hổng ma trận của đợt W10, không phải thủ tục giấy tờ: "
+                + "ba lỗi W9-29/30/31 lọt lưới đúng vì màn nào cũng đứng trên tài liệu đẹp");
+            Assert.AreEqual(registration.SectionId, screen.SectionId,
+                "màn '" + screen.Id + "' chạy ở section '" + screen.SectionId + "' nhưng bảng kê khai '"
+                + registration.SectionId + "' — một trong hai chỗ nói sai về màn này");
+            Assert.AreEqual(registration.Coverage == UxWorstCaseCoverage.Services, screen.Services != null,
+                "màn '" + screen.Id + "' và bảng kê không đồng ý về services: bảng kê khai '" + registration.Coverage
+                + "', mã " + (screen.Services != null ? "CÓ" : "KHÔNG") + " dựng services riêng. Lời khai phủ dữ liệu xấu "
+                + "chỉ có giá trị khi nó nói về đúng thứ mã đang làm");
+        }
+
+        /// <summary>Mở hub với services của màn; màn không khai services thì dùng mẫu thiết kế như trước.</summary>
+        private static UxHubWindowFixture OpenFixture(UxLayoutScreen screen, UxWindowSize size, LiveOpsHubLanguageId language)
+        {
+            LiveOpsHubServices services = screen.Services == null ? null : screen.Services();
+            return UxHubWindowFixture.Open(screen.SectionId, size, language, services);
+        }
+
+        /// <summary>
+        /// Dựng trạng thái của màn rồi CHỜ THEO ĐIỀU KIỆN nếu màn khai điều kiện, và dựng lại ĐÚNG MỘT LẦN khi hết hạn giờ
+        /// (W9-28).
+        /// <para>
+        /// Vì sao không chờ suông thêm vài khung: trạng thái mà điều kiện nói tới có thứ TỰ TẮT theo đồng hồ thật (toast sống
+        /// 6 giây), nên "chờ thêm" làm hỏng đúng thứ đang chờ. Chờ theo điều kiện thì máy nhanh đi tiếp ngay, máy bận vẫn
+        /// đúng; hết hạn thì dựng lại một lần rồi mới bỏ cuộc — và lúc bỏ cuộc phải GHI THÀNH LỖI, vì một lượt đo trên trạng
+        /// thái không có thật là một lượt xanh giả.
+        /// </para>
+        /// </summary>
+        private IEnumerator ApplyAfterOpen(UxLayoutScreen screen, List<string> problems)
+        {
+            yield return screen.AfterOpen(_fixture);
+            if (screen.ReadyCondition == null) yield break;
+            UxHubWindowFixture fixtureForCondition = _fixture;
+            Func<bool> condition = () => screen.ReadyCondition(fixtureForCondition);
+            yield return UxEventSender.WaitUntilOrTimeout(condition, screen.ReadyTimeoutMilliseconds);
+            if (condition()) yield break;
+            yield return screen.AfterOpen(_fixture);
+            yield return UxEventSender.WaitUntilOrTimeout(condition, screen.ReadyTimeoutMilliseconds);
+            if (condition()) yield break;
+            problems.Add(screen.Id + " " + _fixture.Size + " " + LanguageTag(_fixture.Language)
+                + " — dựng trạng thái hai lần vẫn không đạt điều kiện đo trong " + screen.ReadyTimeoutMilliseconds
+                + "ms; lượt đo sau đây sẽ nói về một trạng thái KHÔNG có thật");
         }
 
         /// <summary>
@@ -599,6 +952,82 @@ namespace DreamTech.LiveOps.Editor.Tests
 
         // ================================================================================================ bảng màn
 
+        // ------------------------------------------------------------------ khuôn màn dùng chung cho bản ĐẸP và bản XẤU NHẤT
+
+        // Mỗi khuôn dưới đây sinh ra ĐÚNG một bộ luật đo. Bản dữ liệu đẹp và bản dữ liệu xấu nhất của cùng một màn phải
+        // dùng chung khuôn, nếu không thì chênh lệch đỏ giữa hai bản có thể là do LUẬT khác nhau chứ không do dữ liệu —
+        // và cả phép so ấy mất nghĩa (W10-07).
+
+        private static UxLayoutScreen ShellRailStatusScreen(string screenId)
+        {
+            return new UxLayoutScreen(screenId, LiveOpsHubSections.Ids.Overview)
+                .WithRequiredElements(LiveOpsHubPaths.ShellElementNames.Rail, LiveOpsHubPaths.ShellElementNames.Content,
+                    LiveOpsHubPaths.ShellElementNames.SectionBody, LiveOpsHubPaths.ShellElementNames.StatusBar,
+                    LiveOpsHubPaths.ShellElementNames.StatusLeftText, LiveOpsHubPaths.ShellElementNames.StatusRight)
+                .WithNoOverlapRules(new UxLayoutNoOverlapRule(LiveOpsHubPaths.ShellElementNames.Rail,
+                    LiveOpsHubPaths.ShellElementNames.StatusBar))
+                .WithScreenRulesOnly(LiveOpsHubPaths.ShellElementNames.Rail, LiveOpsHubPaths.ShellElementNames.StatusBar);
+        }
+
+        private static UxLayoutScreen LaneViewportScreen(string screenId)
+        {
+            return new UxLayoutScreen(screenId, LiveOpsHubSections.Ids.Calendar)
+                .WithRequiredElements("." + LiveOpsHubClassNames.TimelineBody, "." + LiveOpsHubClassNames.TimelineLaneRow)
+                .WithStretchRules(new UxLayoutStretchRule("." + LiveOpsHubClassNames.TimelineBody,
+                    "." + LiveOpsHubClassNames.TimelineMain, true, TimelineBodyRatio))
+                .WithScreenRulesOnly();
+        }
+
+        private static UxLayoutScreen RulerTrackScreen(string screenId)
+        {
+            return new UxLayoutScreen(screenId, LiveOpsHubSections.Ids.Calendar)
+                .WithRequiredElements("." + LiveOpsHubClassNames.TimelineRulerTrack)
+                .WithStretchRules(RulerTrackStretchRule())
+                .WithScreenRulesOnly();
+        }
+
+        private static UxLayoutScreen MediumDrawerScreen(string screenId)
+        {
+            return new UxLayoutScreen(screenId, LiveOpsHubSections.Ids.Calendar)
+                .WithSizes(Medium820)
+                .WithRequiredElements(LiveOpsHubPaths.CalendarElementNames.Inspector,
+                    LiveOpsHubPaths.CalendarElementNames.InspectorBody,
+                    LiveOpsHubPaths.CalendarDepthElementNames.InspectorDrawerClose)
+                .WithScreenRulesOnly(LiveOpsHubPaths.CalendarElementNames.Inspector);
+        }
+
+        private static UxLayoutScreen ToastScreen(string screenId)
+        {
+            return new UxLayoutScreen(screenId, LiveOpsHubSections.Ids.Calendar)
+                .WithRebuildPerSize()
+                .WithReadyCondition(IsToastShown, ToastReadyTimeoutMilliseconds)
+                .WithRequiredElements("." + LiveOpsHubClassNames.Toast, LiveOpsHubPaths.ShellElementNames.StatusBar)
+                .WithNoOverlapRules(new UxLayoutNoOverlapRule("." + LiveOpsHubClassNames.Toast,
+                    LiveOpsHubPaths.ShellElementNames.StatusBar))
+                .WithScreenRulesOnly("." + LiveOpsHubClassNames.Toast);
+        }
+
+        private static UxLayoutScreen LegendContrastScreen(string screenId)
+        {
+            return new UxLayoutScreen(screenId, LiveOpsHubSections.Ids.Calendar)
+                .WithSizes(Wide1440)
+                .WithRequiredElements("." + LiveOpsHubClassNames.TimelineLegend)
+                .WithContrastRules(new UxLayoutContrastRule("." + LiveOpsHubClassNames.TimelineLegendSample, LegendContrastRatio,
+                    LegendSampleVariantSelectors))
+                .WithScreenRulesOnly();
+        }
+
+        private static UxLayoutScreen AddEventPopoverScreen(string screenId)
+        {
+            return new UxLayoutScreen(screenId, LiveOpsHubSections.Ids.Calendar)
+                .WithSizes(Narrow700, Wide1440)
+                .WithAfterOpen(OpenAddEventPopover, true)
+                .WithWindowPicker(PopoverWindow)
+                .WithRequiredElements(LiveOpsHubPaths.AddEventPopoverElementNames.Root,
+                    LiveOpsHubPaths.AddEventPopoverElementNames.Buttons,
+                    LiveOpsHubPaths.AddEventPopoverElementNames.TypeFilter);
+        }
+
         private static UxLayoutScreen CalendarScreen(string screenId)
         {
             return new UxLayoutScreen(screenId, LiveOpsHubSections.Ids.Calendar)
@@ -607,6 +1036,50 @@ namespace DreamTech.LiveOps.Editor.Tests
                     LiveOpsHubPaths.CalendarElementNames.TimelineColumn, LiveOpsHubPaths.CalendarElementNames.Timeline))
                 .WithStretchRules(CalendarStretchRules())
                 .WithNoOverlapRules(StatusBarNoOverlapRules());
+        }
+
+        /// <summary>
+        /// Màn "danh sách RỖNG" của một section: lịch không loại, không luật, không đợt.
+        /// <para>
+        /// Chỉ đòi phần tử của KHUNG chứ không đòi thân riêng của section: trạng thái rỗng dựng một template KHÁC (màn Tổng
+        /// quan đổi sang <c>overview-empty-body</c>), nên khai tên element của trạng thái đầy vào đây là đỏ vì lời khai sai
+        /// chứ không vì bố cục. Phát hiện CHUNG vẫn quét cả cửa sổ, tức vẫn bắt được khung trống cao 0, chữ cắt và con tràn —
+        /// đúng thứ trạng thái rỗng hay làm hỏng.
+        /// </para>
+        /// </summary>
+        private static UxLayoutScreen EmptyScreen(string screenId, string sectionId)
+        {
+            return new UxLayoutScreen(screenId, sectionId)
+                .WithServices(EmptyServices)
+                .WithRequiredElements(WithShell())
+                .WithNoOverlapRules(StatusBarNoOverlapRules());
+        }
+
+        /// <summary>Services trên tài liệu XẤU NHẤT, đã chạy xong một lượt kiểm để màn Kiểm lịch có phát hiện thật để vẽ.</summary>
+        private static LiveOpsHubServices WorstCaseServices()
+        {
+            return BuildServices(LiveOpsWorstCaseSample.Document);
+        }
+
+        /// <summary>Services trên lịch RỖNG.</summary>
+        private static LiveOpsHubServices EmptyServices()
+        {
+            return BuildServices(LiveOpsWorstCaseSample.EmptyDocument);
+        }
+
+        /// <summary>Services trên mẫu thiết kế nhưng CHƯA có bản đã đăng — màn Xuất JSON không có bản nào để so.</summary>
+        private static LiveOpsHubServices WithoutPublishedStampServices()
+        {
+            return BuildServices(LiveOpsDesignSample.DocumentWithoutPublishedStamp());
+        }
+
+        private static LiveOpsHubServices BuildServices(LiveEventCalendarDocument document)
+        {
+            LiveOpsHubServices services = LiveOpsHubTestServices.Build(
+                LiveOpsHubTestServices.CreateBuilder(LiveOpsHubTestServices.CreateClock())
+                    .WithCalendarAsset(LiveOpsHubTestServices.CreateMemoryAsset(document)));
+            services.Session.RunCheckToCompletion();
+            return services;
         }
 
         private static UxLayoutScreen RulerLabelScreen(string screenId, int zoomNotches)
@@ -681,6 +1154,78 @@ namespace DreamTech.LiveOps.Editor.Tests
         {
             LiveOpsTimelineBar bar = fixture.BarOf(LiveOpsDesignSample.LavaQuestEarlyEntryKey);
             yield return UxEventSender.Click(fixture.Window, bar);
+            yield return MovePointerOffTimeline(fixture);
+        }
+
+        /// <summary>
+        /// Đưa con trỏ RA KHỎI trục sau một cú bấm chọn. Đo được ở lượt W10 khi máy chạy ba Unity song song: con trỏ ảo nằm
+        /// lại trên thanh vừa bấm, hẹn giờ hover card (500 ms) chạy hết trước lúc lượt kiểm đọc cây, và HOVER CARD lọt vào
+        /// số đo — màn <c>calendar-worst-data</c> nhảy từ 178 lên 190 chỗ, sáu dòng của thẻ hover chỉ có ở bản tiếng Anh,
+        /// tức con số của màn phụ thuộc MÁY CHẠY NHANH HAY CHẬM.
+        /// <para>
+        /// Vì sao đây là chữa đúng chỗ chứ không phải giấu phát hiện: chủ ngữ của những màn này là TRẠNG THÁI CHỌN, không
+        /// phải thẻ hover. Thẻ hover là một màn khác và cần luật riêng của nó (chỗ nợ đã ghi ở báo cáo gói) — để nó lọt vào
+        /// đây thì cả hai màn đều đo sai: màn chọn đếm thêm thứ không phải của mình, còn thẻ hover thì không ai đo nó một
+        /// cách có chủ đích.
+        /// </para>
+        /// </summary>
+        private static IEnumerator MovePointerOffTimeline(UxHubWindowFixture fixture)
+        {
+            VisualElement header = fixture.Root.Q(LiveOpsHubPaths.ShellElementNames.SectionHeader);
+            if (header == null) yield break;
+            UxEventSender.MouseMove(fixture.Window, header.worldBound.center, EventModifiers.None);
+            yield return UxEventSender.Settle(UxEventSender.SettleFrames, UxEventSender.SettleMilliseconds);
+        }
+
+        /// <summary>Chọn đợt BỊ BỎ (hunt-0916-bonus) — biến thể dài nhất của dòng gợi ý đáy trục (W9-29).</summary>
+        private static IEnumerator SelectDroppedBar(UxHubWindowFixture fixture)
+        {
+            LiveOpsTimelineBar bar = fixture.BarOf(LiveOpsDesignSample.HuntBonusEntryKey);
+            yield return UxEventSender.Click(fixture.Window, bar);
+            yield return MovePointerOffTimeline(fixture);
+        }
+
+        /// <summary>Chọn đợt có id DÀI NHẤT của tài liệu xấu nhất.</summary>
+        private static IEnumerator SelectLongestBar(UxHubWindowFixture fixture)
+        {
+            LiveOpsTimelineBar bar = fixture.BarOf(LiveOpsWorstCaseSample.LongEntryKey);
+            yield return UxEventSender.Click(fixture.Window, bar);
+            yield return MovePointerOffTimeline(fixture);
+        }
+
+        /// <summary>
+        /// Chọn đợt có giờ kết thúc KHÔNG ĐỌC ĐƯỢC (W9-30). Không bấm thanh vì đợt ấy không đặt được lên trục — xem chú
+        /// thích của <see cref="Calendar_Inspector_FieldError_NotCutAtWindowEdge"/>.
+        /// </summary>
+        private static IEnumerator SelectUnreadableEndEntry(UxHubWindowFixture fixture)
+        {
+            fixture.Calendar.Presenter.SetSelectedBarKey(LiveOpsDesignSample.LavaQuestLateEntryKey);
+            yield return fixture.WaitForLayout();
+        }
+
+        /// <summary>
+        /// Chọn HAI thanh của tài liệu xấu nhất: thanh id dài nhất làm mốc, cộng một thanh ngắn. Tập trộn dài + ngắn là tập
+        /// bắt được cả câu gộp dài nhất lẫn chỗ hai dòng khác chiều dài xếp cạnh nhau.
+        /// </summary>
+        private static IEnumerator SelectTwoWorstCaseBars(UxHubWindowFixture fixture)
+        {
+            yield return SelectLongestBar(fixture);
+            LiveOpsTimelineBar second = fixture.BarOf(LiveOpsWorstCaseSample.ShortEntryKey);
+            yield return UxEventSender.Click(fixture.Window, second, UxEventSender.ActionModifier);
+            yield return MovePointerOffTimeline(fixture);
+        }
+
+        /// <summary>
+        /// Kéo một thanh của tài liệu xấu nhất để bật toast. Dùng <c>ShortEntryKey</c> (14/9 → 15/9, CHƯA bắt đầu ở mốc
+        /// 13/9 08:47) chứ không dùng thanh id dài: thanh ấy ĐANG CHẠY, mà kéo thanh đang chạy đi qua đường hỏi xác nhận
+        /// chứ không qua đường toast — cùng luật chia thanh mà <see cref="DragBarToRaiseToast"/> đã ghi.
+        /// </summary>
+        private static IEnumerator DragWorstCaseBarToRaiseToast(UxHubWindowFixture fixture)
+        {
+            LiveOpsTimelineBar bar = fixture.BarOf(LiveOpsWorstCaseSample.ShortEntryKey);
+            Vector2 from = bar.worldBound.center;
+            yield return UxEventSender.Drag(fixture.Window, from, from + new Vector2(ToastDragDistance, 0f),
+                UxEventSender.MinimumDragSteps, EventModifiers.None);
         }
 
         private static IEnumerator SelectTwoBars(UxHubWindowFixture fixture)
@@ -688,6 +1233,7 @@ namespace DreamTech.LiveOps.Editor.Tests
             yield return SelectFirstBar(fixture);
             LiveOpsTimelineBar second = fixture.BarOf(LiveOpsDesignSample.HuntEarlyEntryKey);
             yield return UxEventSender.Click(fixture.Window, second, UxEventSender.ActionModifier);
+            yield return MovePointerOffTimeline(fixture);
         }
 
         /// <summary>Kéo một thanh để hub bật toast "đã dời" — trạng thái mà UX-11 nói tới (toast đè chân trang).</summary>
@@ -709,12 +1255,29 @@ namespace DreamTech.LiveOps.Editor.Tests
         /// <summary>Bề ngang một cú kéo dựng toast (px) — giá trị gốc của cổng W8, giữ nguyên.</summary>
         private const float ToastDragDistance = 60f;
 
+        /// <summary>
+        /// Hạn giờ chờ toast hiện ra sau cú kéo. Chọn 1.500ms vì nó ngắn hơn hẳn <c>LiveOpsToast.VisibleSeconds</c> (6 giây):
+        /// hết hạn nghĩa là cú kéo KHÔNG ghi được gì, không phải toast đã sống rồi tắt — hai chuyện ấy cần hai câu khác nhau.
+        /// </summary>
+        private const int ToastReadyTimeoutMilliseconds = 1500;
+
         private static IEnumerator DragBarToRaiseToast(UxHubWindowFixture fixture)
         {
             LiveOpsTimelineBar bar = fixture.BarOf(LiveOpsDesignSample.HuntEarlyEntryKey);
             Vector2 from = bar.worldBound.center;
             yield return UxEventSender.Drag(fixture.Window, from, from + new Vector2(ToastDragDistance, 0f),
                 UxEventSender.MinimumDragSteps, EventModifiers.None);
+        }
+
+        /// <summary>
+        /// Toast ĐANG hiện thật trên màn: vừa còn trong vòng đời của chính nó (<c>IsVisible</c>), vừa còn được vẽ ra
+        /// (<c>IsShownOnScreen</c>). Hỏi cả hai vì toast ẩn bằng class rồi mới rời layout sau một nhịp mờ dần, nên một mình
+        /// <c>IsVisible</c> có lúc nói "còn" trong khi <c>display</c> đã tắt.
+        /// </summary>
+        private static bool IsToastShown(UxHubWindowFixture fixture)
+        {
+            LiveOpsToast toast = fixture.Window == null ? null : fixture.Window.Toast;
+            return toast != null && toast.IsVisible && UxLayoutAuditor.IsShownOnScreen(toast);
         }
 
         private static IEnumerator ZoomTimeline(UxHubWindowFixture fixture, int notches)
@@ -756,14 +1319,28 @@ namespace DreamTech.LiveOps.Editor.Tests
             return LiveOpsPopoverContent.Current == null ? null : LiveOpsPopoverContent.Current.editorWindow;
         }
 
+        /// <summary>
+        /// (W10-07) Hộp xác nhận in ID ĐỢT dài nhất của tài liệu xấu nhất. Hộp rộng cố định nên id dài là chỗ duy nhất chữ
+        /// của nó chạm mép — bản mẫu đẹp dùng id ngắn nên chỗ ấy chưa lần nào bị thử.
+        /// </summary>
+        private IEnumerator OpenWorstCaseConfirmWindow(UxHubWindowFixture fixture)
+        {
+            yield return OpenConfirmWindowWithEntryKey(LiveOpsWorstCaseSample.LongEntryKey);
+        }
+
         private IEnumerator OpenConfirmWindow(UxHubWindowFixture fixture)
+        {
+            yield return OpenConfirmWindowWithEntryKey(LiveOpsDesignSample.LavaQuestEarlyEntryKey);
+        }
+
+        private IEnumerator OpenConfirmWindowWithEntryKey(string entryKey)
         {
             if (_confirmWindow != null) _confirmWindow.Close();
             // Dựng đúng hộp mà đường kéo rút ngắn đợt đang chạy sinh ra (CalendarTimelinePresenter): cùng tiêu đề, cùng
             // thân cảnh báo, cùng cặp nhãn nút — để lượt kiểm nói về hộp THẬT chứ không về một hộp rỗng.
             _confirmWindow = LiveOpsConfirmWindow.OpenForTest(new LiveOpsConfirmRequest.Builder()
                 .WithTitle(string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.CalendarShortenConfirmTitleFormat,
-                    LiveOpsDesignSample.LavaQuestEarlyEntryKey))
+                    entryKey))
                 .WithBody(LiveOpsHubStrings.CalendarUnknownPlayerCountSentence)
                 .WithHelpBoxWarning()
                 .WithButtons(LiveOpsHubStrings.CalendarShortenDestructiveLabel, LiveOpsHubStrings.KitConfirmKeepLabel)

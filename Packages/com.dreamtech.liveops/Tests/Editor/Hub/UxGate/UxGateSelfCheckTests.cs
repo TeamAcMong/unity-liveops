@@ -62,5 +62,31 @@ namespace DreamTech.LiveOps.Editor.Tests
             Assert.Greater(measured, 0f,
                 "MeasureTextSize tra được nhưng đo ra 0 — phép đo chữ của cổng không nói gì về bề rộng thật");
         }
+
+        /// <summary>
+        /// Lưới "cột bảng không tên" (W9-31) phải còn NHÌN THẤY bảng thật trên bản Unity đang chạy.
+        /// <para>
+        /// Vì sao cần (soát W10 R-01): lưới ấy nhận đầu cột theo TÊN KIỂU nội bộ của UI Toolkit
+        /// (<c>MultiColumnHeaderColumn</c>) — không có kiểu nào công khai để bám. Unity đổi tên kiểu là phép đếm về 0, lưới
+        /// im lặng biến mất, và một bảng vỡ cột lại qua cổng mà không dòng nào đỏ. Đúng hạng lỗi "cổng hỏng thành cổng
+        /// XANH" mà fixture tự kiểm này sinh ra để chặn.
+        /// </para>
+        /// <para>
+        /// Mở màn Loại event vì đó là bảng nhiều cột nhất của hub; đòi &gt; 1 cột chứ không đòi đúng một con số, để lần đổi
+        /// số cột phụ theo bề rộng cửa sổ không làm ca tự kiểm đỏ vì một lý do không liên quan.
+        /// </para>
+        /// </summary>
+        [UnityTest]
+        public IEnumerator TableColumnNet_StillSeesRealColumns_OnEventTypesSection()
+        {
+            _fixture = UxHubWindowFixture.Open(LiveOpsHubSections.Ids.EventTypes, UxHubWindowFixture.AllSizes[4],
+                LiveOpsHubLanguageId.Vietnamese);
+            yield return _fixture.WaitForLayout();
+
+            int columnHeaderCount = UxLayoutAuditor.CountTableColumnHeaders(_fixture.Root);
+            Assert.Greater(columnHeaderCount, 1,
+                "không đếm được đầu cột nào của bảng Loại event (" + columnHeaderCount + ") — lưới 'cột bảng không tên' của "
+                + "W9-31 không còn nhận ra MultiColumnListView trên bản Unity này, tức nó đang im lặng không kiểm gì");
+        }
     }
 }

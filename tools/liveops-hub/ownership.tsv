@@ -940,3 +940,110 @@ file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/EventTypes/EventTypeTabl
 file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Sections/EventTypesSectionTests.cs	G-FIX-W9-1	W9-16 — ca thu hẹp cửa sổ thôi đếm ba khung hình; câu fail in kèm bề rộng bảng đo được
 file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Capture/**	G-FIX-W9-1	W9-01 — khung số đo header màn biết luật theo bề rộng cửa sổ (36 từ 1100px, 61 dưới mức đó)
 file	tools/liveops-hub/measure-capture.py	G-FIX-W9-1	W9-01 — khoá whenWindowNarrowerThan cho bảng khung mặc định + hai ca tự kiểm
+
+# (W10, ĐỢT VÉT CUỐI TRƯỚC PHÁT HÀNH 0.2.0-preview.1, 20/9/2026) Ba gói RỜI NHAU VỀ FILE. Vì sao chia đúng ba mảng này:
+#   W9-29 nằm hết trong vùng Timeline (dòng gợi ý + nhãn thước), W9-30/W9-31 nằm ở control ô giờ + bảng Loại event và đi kèm
+#   phần dọn "chữ chiếm > 95% bề rộng ô" của bốn màn còn lại, còn W9-25/27/28 + lỗ hổng ma trận chỉ đụng cây test và harness
+#   chụp. Không file nào có mặt ở hai gói, nên ba nhánh gộp được theo thứ tự nào cũng không va chạm văn bản.
+#   PHỤ THUỘC CÙNG ĐỢT CÓ THẬT: G-W10-MATRIX nâng "textTight" thành LỖI, mà chỗ vi phạm do G-W10-HINT và G-W10-FIELD dọn —
+#   nên bằng chứng xanh của việc nâng ngưỡng phải lấy trên bản đã gộp cả ba (cổng đợt), khai thẳng chứ không giấu.
+package	G-W10-MATRIX	W10	L	W9
+package	G-W10-HINT	W10	M	W9
+package	G-W10-FIELD	W10	M	W9
+
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/UxGate/**	G-W10-MATRIX	W9-25 nâng thành lỗi + W9-27 đo tương phản hợp thành ở theme SÁNG + W9-28 chữa test chập chờn + vá lỗ hổng ma trận (biến thể dữ liệu xấu nhất cho cả sáu màn)
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Capture/**	G-W10-MATRIX	W9-27 — lệnh đo trong Unity chạy dưới lượt chụp của capture.sh rồi ghi JSON số đo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Support/LiveOpsWorstCaseSample.cs	G-W10-MATRIX	FILE MỚI — tài liệu mẫu "dữ liệu xấu nhất" (id dài, chuỗi dài nhất, số lớn, danh sách rỗng, loại chưa khai). KHÔNG sửa LiveOpsDesignSample.cs: 1.601 byte của ExpectedFormat2Json ghim theo mẫu cũ
+file	tools/liveops-hub/capture.sh	G-W10-MATRIX	W9-27 — thêm lượt đo tương phản theo skin, dùng lại đúng khoá skin sẵn có (capture.sh vẫn là chỗ DUY NHẤT đặt EditorPrefs UserSkin)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Controls/Timeline/**	G-W10-HINT	W9-29 — dòng gợi ý đáy trục rút gọn theo BẬC CỠ, không bao giờ mất cụm phím; W9-25 dọn nhãn thước 'THÁNG 11 2026'
+file	Packages/com.dreamtech.liveops/Editor/Hub/UI/liveops-hub-timeline.uss	G-W10-HINT	W9-29 — bậc cỡ của dòng gợi ý (hai hàng hoặc bỏ vế giải thích) + khoảng dư của nhãn thước
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubClassNames.Timeline.cs	G-W10-HINT	W9-29 — hằng class của bậc cỡ dòng gợi ý (nếu cần)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubStrings.Timeline.cs	G-W10-HINT	W9-29 — khoá chuỗi biến thể NGẮN của dòng gợi ý (chỉ khi user duyệt chuỗi mới)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/Language/LiveOpsHubStringCatalog.Timeline.cs	G-W10-HINT	W9-29 — bản vi + en của biến thể ngắn (chỉ khi user duyệt chuỗi mới)
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Timeline/**	G-W10-HINT	W9-29 — test đơn vị: mọi biến thể dòng gợi ý giữ đủ cụm phím ở mọi bậc cỡ
+file	Packages/com.dreamtech.liveops/Editor/Hub/Controls/LiveOpsUtcDateTimeField.cs	G-W10-FIELD	W9-30 — biểu tượng lỗi 12px không còn bị đẩy ra ngoài mép phải hàng field
+file	Packages/com.dreamtech.liveops/Editor/Hub/UI/liveops-hub-controls.uss	G-W10-FIELD	W9-30 — chỗ của biểu tượng lỗi trong hàng ô ngày/giờ/UTC
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/EventTypes/**	G-W10-FIELD	W9-31 — cột 36px KHÔNG TÊN của bảng Loại event (cột "state", title rỗng) thôi đọc thành bảng vỡ cột
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Calendar/CalendarEventInspector.cs	G-W10-FIELD	W9-25 — nhãn "Dời cả hai (giờ)" / "Shift both (hours)" chiếm 98,9% ô ở cả bảy cỡ bản tiếng Anh
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Calendar/CalendarSection.uss	G-W10-FIELD	W9-25 — khoảng dư của hàng "Dời cả hai (giờ)" trong inspector chọn nhiều
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Overview/OverviewUpcomingTable.cs	G-W10-FIELD	W9-25 — ô giờ mono '14/9 00:00 → 20/9 00:00' chiếm 97,5% ô (2022.3)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Overview/OverviewSection.uss	G-W10-FIELD	W9-25 — bề rộng cột giờ của bảng "Sắp diễn ra"
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/RecurringRules/RecurringRuleSentence.cs	G-W10-FIELD	W9-25 — ba mảnh câu luật (', mỗi đợt chạy ', ', anchored at ', ', each occurrence runs ') chiếm 95,8-97,6% ô
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/RecurringRules/RecurringRulesSection.uss	G-W10-FIELD	W9-25 — khoảng dư của mảnh chữ trong câu luật
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Controls/**	G-W10-FIELD	W9-30 — test đơn vị của ô giờ UTC ở trạng thái gõ hỏng
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Sections/**	G-W10-FIELD	W9-31 + W9-25 — test đơn vị của bảng Loại event, inspector chọn nhiều, bảng "Sắp diễn ra", câu luật
+file	tools/liveops-hub/ownership.tsv	G-W10-MATRIX	W10 — chính khối đăng ký này (ghi ở bước kế hoạch, ba gói KHÔNG đụng lại file này)
+
+# (W10, BỔ SUNG 21/9/2026) G-W10-THEME — đóng W10-03 + W10-06: màu ĐÃ HỢP THÀNH (token × opacity của tổ tiên × nền đục)
+#   trượt bậc WCAG ở 37 chỗ skin tối và 8 chỗ skin sáng. USER chốt 19/9 (tương phản theo WCAG cho CẢ MÀU ĐÃ HỢP THÀNH) là
+#   luật đã có, nên đây là THI HÀNH luật chứ không phải quyết định thiết kế mới; USER mở quyền ghi liveops-hub-theme.uss cho
+#   gói này (vốn thuộc G-HUBBASE) ở chốt 21/9.
+#   Vì sao chạm được cả liveops-hub-shell.uss: token --liveops-hub-color-text chỉ có tác dụng khi .liveops-hub-root thôi khai
+#   `color: var(--unity-colors-default-text)` — một dòng, cùng lúc với token, kẻo token khai ra mà không ai đọc.
+#   (LƯỢT SỬA 2, 21/9) Thêm quyền ghi liveops-hub-components.uss: soát hoài nghi tìm ra .liveops-hub-text--ok vẫn đặt màu
+#   CHỮ bằng var(--unity-colors-default-text) — cùng cái sai mà chính gói này kết tội, chỉ khác chỗ. Sửa ĐÚNG MỘT luật
+#   color trong file ấy, cộng một ca cổng quét mọi sheet hub để lối ấy không mở lại.
+#   VA CHẠM VĂN BẢN ĐÃ BIẾT với G-W10-MATRIX: cả hai sửa UxContrastTokenTests.cs (gói này THÊM một dòng vào bảng token cho
+#   token mới + sửa một chú thích nhắc #A3A3A3). Khai thẳng chứ không giấu: gộp MATRIX trước thì lượt gộp gói này phải đọc lại
+#   bảng token, và ngược lại.
+package	G-W10-THEME	W10	S	W9
+
+file	Packages/com.dreamtech.liveops/Editor/Hub/UI/liveops-hub-theme.uss	G-W10-THEME	W10-03 + W10-06 — nâng token màu chữ cho đủ 4,5:1 SAU khi nhân opacity của tổ tiên, ở cả hai skin
+file	Packages/com.dreamtech.liveops/Editor/Hub/UI/liveops-hub-shell.uss	G-W10-THEME	W10-06 — .liveops-hub-root đọc màu chữ nền tảng qua token thay vì thẳng biến Unity (một dòng)
+file	Packages/com.dreamtech.liveops/Editor/Hub/UI/liveops-hub-components.uss	G-W10-THEME	W10-06 (lượt sửa 2, phát hiện F1 của soát 21/9) — luật .liveops-hub-text--ok còn đặt màu CHỮ bằng var(--unity-colors-default-text): ở skin tối là #D2D2D2, đúng màu sinh ra phiếu, và giải theo skin ĐANG CHẠY chứ không theo class skin. Đổi sang token, ĐÚNG MỘT luật color; không gói W10 nào khác giữ file này (G-W10-HINT giữ timeline.uss, G-W10-FIELD giữ controls.uss) nên không va chạm văn bản trong đợt
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/UxGate/UxComposedTokenContrastTests.cs	G-W10-THEME	FILE MỚI — cổng tương phản cho màu ĐÃ HỢP THÀNH, chạy cho CẢ HAI theme trong một lượt; hằng nền đối chiếu số đo thật của skin đang chạy
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/UxGate/UxContrastTokenTests.cs	G-W10-THEME	W10-06 — khai token màu chữ nền tảng vào bảng token (trước W10 bảng đo mọi màu phụ mà bỏ trống màu chính)
+file	tools/liveops-hub/ownership.tsv	G-W10-THEME	W10 — chính khối đăng ký G-W10-THEME ở trên (USER mở quyền 21/9); gói không đụng dòng nào của ba gói W10 cũ
+# (W10, CỔNG ĐỢT — G-FIX-W10-1, 21/9/2026) VA CHẠM NGỮ NGHĨA có thật khi gộp: G-W10-MATRIX đổi tên hằng ngưỡng
+#   TextFillWarningRatio → TextFillLimitRatio (W9-25 nâng cảnh báo thành LỖI) trong khi hai ca của G-W10-FIELD gọi tên CŨ,
+#   và hai ca ấy còn CHÉP TAY hai hằng TextFillMinimumWidth/TextFillMinimumSlack vì lúc viết chúng không có quyền ghi vào
+#   Tests/Editor/Hub/UxGate/** (nợ F7 mà báo cáo gói G-W10-FIELD đã tự khai). Ba nhánh rời nhau thì compile được; gộp lại
+#   là lỗi CS0117. Ở cổng đợt rào quyền ghi không còn, nên sửa tại đây: mở hai hằng thành internal, xoá bản chép tay.
+# (CỔNG ĐỢT W10 — G-FIX-W10-2 bổ sung) Gói G-FIX-W10-1 ghi file nhưng THIẾU dòng package; bảng phải khai đủ gói
+#   nào đã ghi, không thì --wave-deps không có gì để xếp thứ tự cho nó. Đợt W10-FIX1 xếp sau phần gốc W10 (hậu tố
+#   rỗng < "FIX1") nên nó đứng sau hai gói nó sửa, đúng thứ tự thật.
+package	G-FIX-W10-1	W10-FIX1	S	G-W10-MATRIX,G-W10-FIELD
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/UxGate/UxLayoutAuditor.cs	G-FIX-W10-1	mở TextFillMinimumWidth + TextFillMinimumSlack thành internal để test của Sections đọc MỘT nguồn duy nhất
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Sections/EventTypesSectionTests.cs	G-FIX-W10-1	đổi TextFillWarningRatio → TextFillLimitRatio; hai bản chép tay đọc thẳng hằng của auditor (trả nợ F7)
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Sections/OverviewSectionTests.cs	G-FIX-W10-1	như trên, một bản chép tay
+file	tools/liveops-hub/ownership.tsv	G-FIX-W10-1	khối đăng ký của chính gói sửa ở cổng đợt
+
+# (W10 tiếp theo, 21/9/2026) G-W10-CAL2 — lỗi THẬT mà chính lưới W10 bày ra: chọn NHIỀU thanh không mở được drawer inspector
+#   ở cửa sổ hẹp hơn 1100px (CalendarSection không nghe SelectionSetChanged nên ApplyInspectorDrawerLayout không chạy lại),
+#   kèm hai hằng "medium" của repo lệch nhau 100px. Gói này nền trên NHÁNH CỔNG wt/G-W10-WAVE chứ không trên
+#   feature/liveops-hub-p1: ca ghi nhận hiện trạng sai (MultiSelectDrawer_AtMediumWidth_StaysHidden_KnownGap) và hằng
+#   MediumBreakpointWidth chỉ tồn tại SAU khi ba gói W10 đã gộp — nền d797065 không có gì để đảo.
+#   Ba file dưới đây từng thuộc G-W10-FIELD / G-W10-MATRIX; hai gói ấy đã gộp xong nên không còn ai ghi song song.
+package	G-W10-CAL2	W10-CAL2	M	G-W10-FIELD,G-W10-MATRIX,G-W10-HINT
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Calendar/CalendarSection.cs	G-W10-CAL2	nghe SelectionSetChanged → chạy lại ApplyInspectorDrawerLayout (drawer chọn nhiều ở bậc --medium)
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Sections/CalendarInspectorUxFixTests.cs	G-W10-CAL2	đảo ca ghi nhận hiện trạng sai thành ca khoá hành vi ĐÚNG ở bốn cỡ --medium
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/UxGate/UxHubWindowFixture.cs	G-W10-CAL2	MediumBreakpointWidth thôi chép tay 1000, đọc thẳng LiveOpsHubBreakpoints.MediumBelowWidth
+file	tools/liveops-hub/ownership.tsv	G-W10-CAL2	chính khối đăng ký này
+# ---------------------------------------------------------------------------------------------------------------------
+# G-W10-MATRIX2 (21/9/2026) — gói VÉT TIẾP của đợt W10, làm nốt việc dở của G-W10-MATRIX sau khi USER chốt hai quyết định
+# thiết kế. Gói đứng trên NHÁNH CỔNG wt/G-W10-WAVE (HINT + FIELD + MATRIX + G-FIX-W10-1), không đứng trên d797065:
+#   - ca khoá HÀNH VI SAI phải đảo (MultiSelectDrawer_AtMediumWidth_StaysHidden_KnownGap) nằm trong file của G-W10-FIELD;
+#   - bằng chứng của luật rút gọn có điều kiện chỉ có nghĩa trên bản đã dọn bảy chỗ textTight của HINT/FIELD.
+# Quyền ghi của gói vì vậy đo theo nền 309b4ed (đỉnh nhánh cổng), khai thẳng ở báo cáo G-W10-MATRIX2-build.md.
+# (CỔNG ĐỢT W10 — G-FIX-W10-2, 21/9/2026) Đợt của gói khai SAI sự thật: gói này KHÔNG chạy song song với
+#   G-W10-MATRIX mà đứng TRÊN nó (wt/G-W10-MATRIX là tổ tiên của wt/G-W10-MATRIX2, nền đo quyền ghi là
+#   309b4ed = đỉnh wt/G-W10-WAVE chứa HINT + FIELD + MATRIX). Khai đợt "W10" cho một gói phụ thuộc gói W10 khác
+#   nên --wave-deps báo lỗi, đúng ra nó phải báo. Đặt đợt riêng cho gói vét tiếp, y như W9 đã làm (W9.5 / W9.7)
+#   và y như G-W10-CAL2 ở ngay trên (W10-CAL2). Đây là sửa cho BẢN GHI khớp sự thật, không phải nới luật:
+#   số lỗi --wave-deps của đợt W10 về 0, 17 lỗi còn lại là nợ có sẵn từ W1–W6 trên chính d797065.
+#   Phụ thuộc khai đủ ba gói của nhánh cổng chứ không mỗi G-W10-MATRIX, vì gói đứng trên cả ba.
+package	G-W10-MATRIX2	W10-MATRIX2	L	G-W10-MATRIX,G-W10-HINT,G-W10-FIELD
+
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/UxGate/**	G-W10-MATRIX2	Luật rút gọn CÓ ĐIỀU KIỆN (user chốt 21/9) + W9-25 sau khi áp luật + W10-07 (biến thể dữ liệu xấu nhất cho 12 màn còn nợ) + bỏ chờ bằng đếm khung
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Sections/CalendarInspectorUxFixTests.cs	G-W10-MATRIX2	Đảo ca MultiSelectDrawer_AtMediumWidth_* từ khoá HIỆN TRẠNG SAI sang khoá HÀNH VI ĐÚNG, và đưa 700x560 trở lại bộ cỡ
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Sections/RecurringUxFixTests.cs	G-W10-MATRIX2	Hai ca PrefixDraft_ClickLockedField* đỏ khi chạy song song trên 2022.3 — bỏ vế đếm khung, chờ theo điều kiện + hạn giờ, và tự cầm nhịp panel
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Calendar/CalendarSection.cs	G-W10-MATRIX2	LỖI THẬT: chọn NHIỀU thanh không mở được drawer inspector ở cửa sổ hẹp hơn 1100px (CalendarSection không nghe SelectionSetChanged)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Controls/LiveOpsTableCellTooltip.cs	G-W10-MATRIX2	FILE MỚI — điều kiện (a) của luật rút gọn có điều kiện: ô bảng không chứa hết chữ thì mang tooltip đủ chữ
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/EventTypes/EventTypeTable.cs	G-W10-MATRIX2	Ô bảng mang tên cột (để miễn trừ khai theo TỪNG cột) và đi qua LiveOpsTableCellTooltip
+file	tools/liveops-hub/ownership.tsv	G-W10-MATRIX2	W10 — chính khối đăng ký này
+
+# (CỔNG ĐỢT W10 — G-FIX-W10-2) Gói sửa tại cổng, chỉ chạm đúng bảng quyền ghi.
+# Đợt W10.5 chứ không "W10-GATE": wave_sort_key so bằng tuple (số, hậu tố CHỮ), nên "GATE" < "MATRIX2" theo thứ tự
+#   chuỗi và gói cổng sẽ bị coi là đứng TRƯỚC gói nó gộp. W9 đã gặp đúng chỗ này và đặt W9.5 cho gói cổng — theo y vậy.
+package	G-FIX-W10-2	W10.5	S	G-W10-MATRIX2,G-W10-CAL2,G-W10-THEME
+file	tools/liveops-hub/ownership.tsv	G-FIX-W10-2	đặt lại đợt của G-W10-MATRIX2 cho khớp thứ tự thật + khai đủ phụ thuộc
