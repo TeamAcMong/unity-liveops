@@ -69,9 +69,9 @@ namespace DreamTech.LiveOps.Editor
             int days = (int)Math.Floor(absolute.TotalDays);
             int hours = absolute.Hours;
             int minutes = absolute.Minutes;
-            string dayUnit = compact ? LiveOpsHubStrings.CompactDayUnit : LiveOpsHubStrings.DurationDayUnit;
-            string hourUnit = compact ? LiveOpsHubStrings.CompactHourUnit : LiveOpsHubStrings.DurationHourUnit;
-            string minuteUnit = compact ? LiveOpsHubStrings.CompactMinuteUnit : LiveOpsHubStrings.DurationMinuteUnit;
+            string dayUnit = compact ? LiveOpsHubStrings.CompactDayUnit : DayUnitOf(days);
+            string hourUnit = compact ? LiveOpsHubStrings.CompactHourUnit : HourUnitOf(hours);
+            string minuteUnit = compact ? LiveOpsHubStrings.CompactMinuteUnit : MinuteUnitOf(minutes);
 
             StringBuilder builder = new StringBuilder();
             if (days > 0)
@@ -83,6 +83,30 @@ namespace DreamTech.LiveOps.Editor
             if (hours > 0) AppendPart(builder, hours, hourUnit, compact);
             if (minutes > 0 || hours == 0) AppendPart(builder, minutes, minuteUnit, compact);
             return builder.ToString();
+        }
+
+        /// <summary>
+        /// (W9-24) Đơn vị NGÀY theo số lượng — bản tiếng Anh đọc "1 day" nhưng "0 days" và "2 days" (luật số ít/số nhiều
+        /// Q-W5-2). Ba hàm <c>…UnitOf</c> là lối vào DUY NHẤT của ba đơn vị thời lượng: thời lượng của hub
+        /// (<see cref="Duration"/>), meta làn của trục và readout lúc kéo đều gọi qua đây, nên không còn chỗ nào nối thẳng
+        /// chuỗi số nhiều cho n = 1 ("= 1 days 12 hours", "dời +1 days"). Bản gọn ("d"/"h"/"m") không chia số nên không có
+        /// cặp số ít.
+        /// </summary>
+        internal static string DayUnitOf(long amount)
+        {
+            return amount == 1L ? LiveOpsHubStrings.DurationDayUnitSingular : LiveOpsHubStrings.DurationDayUnit;
+        }
+
+        /// <summary>Đơn vị GIỜ theo số lượng — xem <see cref="DayUnitOf"/>.</summary>
+        internal static string HourUnitOf(long amount)
+        {
+            return amount == 1L ? LiveOpsHubStrings.DurationHourUnitSingular : LiveOpsHubStrings.DurationHourUnit;
+        }
+
+        /// <summary>Đơn vị PHÚT theo số lượng — xem <see cref="DayUnitOf"/>.</summary>
+        internal static string MinuteUnitOf(long amount)
+        {
+            return amount == 1L ? LiveOpsHubStrings.DurationMinuteUnitSingular : LiveOpsHubStrings.DurationMinuteUnit;
         }
 
         /// <summary>"sau 11 giờ 13 phút" khi mốc ở tương lai · "13 giờ trước" khi mốc đã qua (hoặc đúng lúc này).</summary>

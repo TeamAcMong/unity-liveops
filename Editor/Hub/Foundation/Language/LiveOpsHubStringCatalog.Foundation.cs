@@ -48,6 +48,15 @@ namespace DreamTech.LiveOps.Editor
             table.Add(nameof(LiveOpsHubStrings.DurationMinuteUnit),
                 vietnamese: "phút",
                 english: "minutes");
+            table.Add(nameof(LiveOpsHubStrings.DurationDayUnitSingular),
+                vietnamese: "ngày",
+                english: "day");
+            table.Add(nameof(LiveOpsHubStrings.DurationHourUnitSingular),
+                vietnamese: "giờ",
+                english: "hour");
+            table.Add(nameof(LiveOpsHubStrings.DurationMinuteUnitSingular),
+                vietnamese: "phút",
+                english: "minute");
             table.Add(nameof(LiveOpsHubStrings.CompactDayUnit),
                 vietnamese: "n",
                 english: "d");

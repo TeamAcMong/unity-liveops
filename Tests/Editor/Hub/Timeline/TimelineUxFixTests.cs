@@ -600,8 +600,16 @@ namespace DreamTech.LiveOps.Editor.Tests
         }
 
         /// <summary>
-        /// (UX-31, UJ-24) Thanh bị bỏ hẹp (hunt-0916-bonus ~45px) không đủ chỗ cho nhãn id nên chỉ còn gạch ngang: người dùng
-        /// thấy "một đợt nào đó bị bỏ" mà không biết đợt nào. Tag "bị bỏ" bên phải thanh phải nói ra id.
+        /// (UX-31, UJ-24) Thanh bị bỏ hẹp (hunt-0916-bonus ~45px) không đủ chỗ cho nhãn id ĐẦY ĐỦ: người dùng thấy "một đợt
+        /// nào đó bị bỏ" mà không biết đợt nào. Tag "bị bỏ" bên phải thanh phải nói ra id.
+        /// <para>
+        /// (W9-UX31-NUMERIC) Tiền đề đổi từ "nhãn thân RỖNG" sang "nhãn thân KHÔNG CHỨA đủ id" — đây là SIẾT chứ không nới.
+        /// "Rỗng" chỉ là cái bình phong của điều kiện thật: bản cũ của <c>DroppedTagTextFor</c> dùng đúng cái bình phong ấy
+        /// (<c>Label.text.Length > 0</c>) nên mẩu "38"/"09b" khác rỗng là tag im luôn, và id không còn đọc được ở đâu — chính
+        /// là phiếu W9-UX31-NUMERIC. Nay nhãn thanh hẹp có thể là mẩu mang "…" ("hunt…", "…bonus"): khác rỗng mà vẫn KHÔNG
+        /// nói ra id, nên tag vẫn phải nói. Cùng lập luận mà <c>UxCalendarJourneyTests.NarrowDroppedBar_HasReadableIdLabel</c>
+        /// đã viết ra: điều phải kiểm là "id đọc được", không phải "nhãn thân rỗng".
+        /// </para>
         /// </summary>
         [UnityTest]
         public IEnumerator NarrowDroppedBar_TagCarriesEventId()
@@ -609,7 +617,10 @@ namespace DreamTech.LiveOps.Editor.Tests
             yield return Open();
             LiveOpsTimelineBar bonus = Element.FindBar(LiveOpsDesignSample.HuntBonusEntryKey);
             Assert.IsTrue(bonus.Model.IsDropped, "tiền đề: bonus bị bỏ");
-            Assert.AreEqual(string.Empty, bonus.Label.text, "tiền đề: thanh hẹp nên không có nhãn id trong thân");
+            Assert.Less(bonus.Width, LiveOpsTimelineGeometry.LabelFullIdMinimumBarWidth,
+                "tiền đề: thanh phải HẸP, không thì nhãn thân đã mang đủ id và nhánh tag không bao giờ chạy");
+            StringAssert.DoesNotContain(bonus.Model.EventId, bonus.Label.text,
+                "tiền đề: thanh hẹp nên nhãn thân không mang ĐỦ id — nhãn đang là \"" + bonus.Label.text + "\"");
 
             LiveOpsTimelineLane lane = Element.FindLaneElement("treasure-hunt");
             List<VisualElement> tags = VisibleDroppedTags(lane);
