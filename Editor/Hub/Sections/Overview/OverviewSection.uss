@@ -293,11 +293,35 @@
     padding-right: var(--liveops-hub-space-6);
 }
 
+/*
+ * (W9-25 chỗ 3) Ô giờ giữ đúng 170px của Hình 4, nhưng vùng NỘI DUNG được nới theo hai đường:
+ *  - align-items: stretch thay flex-start — nhãn mono trước đó tự co đúng bằng chữ mình (161px đo ở 2022.3) nên "khoảng dư"
+ *    của nó là 0 dù ô còn chỗ; stretch cho nhãn nhận trọn bề rộng ô và chỗ dư của ô mới thành chỗ dư của CHỮ. Chữ vẫn căn
+ *    trái nên trông y hệt.
+ *  - đệm phải 6 → 2px VÀ bỏ đệm ngang mặc định của chính nhãn (Unity cho TextElement 1px trái + 2px phải): chuỗi dài nhất
+ *    "14/9 00:00 → 20/9 00:00" cần 157px, ô 170 trừ đệm 6 và 3px của nhãn chỉ còn 161 — dư 4px, tức 2,5%, dưới ngưỡng dư 5%
+ *    của W9-25. Đo lại sau khi nới: 168px vùng nội dung, dư 11px (6,5%). Nới ĐỆM chứ không nới bề rộng cột vì 170 là số đo
+ *    của ma trận ảnh 9.5 và của OverviewSectionTests.NeedsActionRow_ColumnWidthsMatchDesign. Đệm DỌC của nhãn giữ nguyên để
+ *    hai mức chữ (giờ + tương đối) không xê dịch.
+ *
+ * (soát W10 F8) Luật bỏ đệm NGANG phải trùng MỌI con trực tiếp của ô giờ, không riêng nhãn mono. Ô này có ba loại con ở ba
+ * chỗ: nhãn giờ (mono) và nhãn tương đối (liveops-hub-overview-upcoming-relative) ở hàng dữ liệu, nhãn tiêu đề (liveops-hub-caption)
+ * ở hàng đầu — hàng tiêu đề dùng LẠI đúng class --time. Chỉ bỏ đệm cho nhãn mono thì hai nhãn kia giữ 1px trái mặc định của
+ * TextElement, tức ba dòng cùng một cột bắt đầu lệch nhau 1px theo chiều ngang. Một pixel vẫn là một cạnh không thẳng.
+ */
 .liveops-hub-overview-upcoming-cell--time {
     width: 170px;
     flex-direction: column;
-    align-items: flex-start;
+    align-items: stretch;
     justify-content: center;
+    padding-right: var(--liveops-hub-space-2);
+}
+
+.liveops-hub-overview-upcoming-cell--time > .liveops-hub-mono,
+.liveops-hub-overview-upcoming-cell--time > .liveops-hub-overview-upcoming-relative,
+.liveops-hub-overview-upcoming-cell--time > .liveops-hub-caption {
+    padding-left: 0;
+    padding-right: 0;
 }
 
 .liveops-hub-overview-upcoming-cell--event {

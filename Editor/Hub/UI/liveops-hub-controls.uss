@@ -7,7 +7,9 @@
  * element chỉ thấy thuộc tính khai trên rule khớp chính nó ([API §12.2]; test ControlsSkinTokenTests).
  */
 
-/* ---------------------------------------------------------------- Ô ngày giờ UTC — ô ngày 88 · ô giờ 44 · "UTC" 10px 0,7 */
+/* ---------------------------------------------------------------- Ô ngày giờ UTC — ô ngày 88 · ô giờ 44 · "UTC" 10px 0,7
+   Hai hàng: hàng GIÁ TRỊ (ngày + giờ + "UTC") và DÒNG LỖI (biểu tượng 12px + câu lỗi). Biểu tượng ở dòng lỗi chứ không cuối
+   hàng giá trị — W9-30, xem chú thích của LiveOpsUtcDateTimeField. */
 
 .liveops-hub-utc-field {
     flex-shrink: 0;
@@ -84,8 +86,12 @@
     flex-shrink: 0;
 }
 
+/* (W9-30) Biểu tượng lỗi đứng ĐẦU DÒNG LỖI chứ không cuối hàng giá trị, nên lề đổi sang phải và nó bám MÉP TRÊN của câu:
+   câu lỗi dài ba dòng trong pane 280px, căn giữa theo trục dọc thì biểu tượng trôi xuống giữa đoạn văn. */
 .liveops-hub-utc-field__error-icon {
-    margin-left: var(--liveops-hub-space-4);
+    margin-right: var(--liveops-hub-space-4);
+    margin-top: var(--liveops-hub-space-2);
+    align-self: flex-start;
 }
 
 .liveops-hub-utc-field__device-line {
@@ -95,12 +101,16 @@
     margin-top: var(--liveops-hub-space-2);
 }
 
-/* Dòng lỗi 10px; chữ blocked-text từ class liveops-hub-text--blocked (opacity 1). */
+/* Dòng lỗi 10px; chữ blocked-text từ class liveops-hub-text--blocked (opacity 1).
+   (W9-30) Câu lỗi nay đứng cạnh biểu tượng trong MỘT hàng: phải co được và min-width 0, kẻo bề rộng một dòng của câu đẩy
+   chính nó ra ngoài cột field thay vì xuống dòng. */
 .liveops-hub-utc-field__error {
     font-size: 10px;
     padding: 0;
     margin-top: var(--liveops-hub-space-2);
     white-space: normal;
+    flex-shrink: 1;
+    min-width: 0;
 }
 
 .liveops-hub-utc-field--hidden {

@@ -108,6 +108,12 @@ namespace DreamTech.LiveOps.Editor
             IntegerField shiftHours = new IntegerField(LiveOpsHubStrings.TimelineMultiSelectShiftFieldLabel) { value = 0 };
             shiftHours.AddToClassList(LiveOpsHubClassNames.CalendarInspectorField);
             shiftHours.AddToClassList(LiveOpsHubClassNames.CalendarInspectorFieldNumber);
+            // (W9-25 chỗ 1) Nhãn của RIÊNG ô này được phép xuống dòng. "Shift both (hours)" cần 92px chữ trong cột nhãn 96px,
+            // tức 93px vùng nội dung — dư đúng 1px, nên một đổi metric font là cắt mất "(hours)". Cột nhãn 96px KHÔNG nới
+            // được: đo ở 1280x760, hàng ô giờ UTC đã dùng 161px trong 168px mà cột field còn lại, nới nhãn thêm 8px là đẩy
+            // nhãn "UTC" ra ngoài pane. Cho nhãn wrap thì chữ không bao giờ bị cắt theo bề rộng nữa mà hàng vẫn y hệt hôm
+            // nay (92 < 93 nên tiếng Anh vẫn một dòng) — và pane chọn nhiều chỉ có MỘT field nên không có cột nào để lệch.
+            shiftHours.AddToClassList(LiveOpsHubClassNames.CalendarWrapText);
             VisualElement shiftRow = BuildFieldRow();
             shiftRow.Add(shiftHours);
             Button apply = new Button(() => _presenter.ShiftSelectedEvents(shiftHours.value))
