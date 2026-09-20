@@ -277,6 +277,13 @@
     white-space: normal;
 }
 
+/* (W9-25 chỗ 1) white-space của BaseField không xuống được nhãn con, nên gắn thẳng vào nhãn của field mang
+   liveops-hub-calendar-wrap-text. Chỉ ô "Dời cả hai (giờ)" của pane chọn nhiều mang class này; cột nhãn 96px giữ nguyên cho
+   mọi hàng khác vì hàng ô giờ UTC không còn pixel nào để nhường (xem chú thích ở CalendarEventInspector.RefreshMultiple). */
+.liveops-hub-calendar-inspector-field.liveops-hub-calendar-wrap-text > .unity-base-field__label {
+    white-space: normal;
+}
+
 /* Popover Thêm đợt: header 24px có ba step-dot, danh sách loại hàng 22px, hàng nút dính đáy. */
 .liveops-hub-calendar-flow-header {
     flex-direction: row;
