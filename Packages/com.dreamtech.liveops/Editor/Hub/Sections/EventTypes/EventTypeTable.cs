@@ -23,6 +23,58 @@ namespace DreamTech.LiveOps.Editor
         internal const string EventCountColumnName = "event-count";
         internal const string StateColumnName = "state";
 
+        /// <summary>
+        /// (W9-05) Bề rộng TỐI THIỂU đọc được của từng cột — đo trên bản chữ dài nhất của dữ liệu mẫu cộng đệm ô 8px:
+        /// id loại "star_tournament_v1" cần 119px, "Joins automatically" cần 100px, khoá config "star-tournament" cần 99px,
+        /// "Recurring rule" cần 73px. Không khai số này thì <see cref="MultiColumnListView"/> chia đều bề rộng còn lại và
+        /// bóp MỌI cột xuống 27px ở cửa sổ 700 — tám cột đều thành chữ cụt, đúng 76 chỗ của phiếu W9-05.
+        /// </summary>
+        private const float ColorColumnMinimumWidth = 44f;
+
+        private const float TypeIdColumnMinimumWidth = 128f;
+        private const float DisplayNameColumnMinimumWidth = 120f;
+        private const float EntryColumnMinimumWidth = 112f;
+        private const float ConfigKeyColumnMinimumWidth = 112f;
+        private const float SourceColumnMinimumWidth = 84f;
+        private const float EventCountColumnMinimumWidth = 56f;
+        private const float StateColumnMinimumWidth = 36f;
+
+        /// <summary>
+        /// Chỗ dành cho thanh cuộn dọc của bảng. Trừ sẵn thì tổng bề rộng tối thiểu của các cột đang hiện không bao giờ
+        /// vượt viewport, tức bảng không bao giờ mọc thanh cuộn NGANG — cuộn ngang trong một bảng là cách giấu cột đi mà
+        /// không nói, cổng bố cục tính nó là lỗi.
+        /// </summary>
+        private const float VerticalScrollerReserve = 14f;
+
+        /// <summary>
+        /// Bốn cột luôn hiện: màu, id loại, tên hiển thị, dấu trạng thái. Đây là phần trả lời "hàng này là loại nào và nó
+        /// đang thế nào" — bỏ cột nào trong bốn cột này thì bảng thôi là bảng loại.
+        /// </summary>
+        private const float AlwaysVisibleColumnsWidth = ColorColumnMinimumWidth + TypeIdColumnMinimumWidth
+            + DisplayNameColumnMinimumWidth + StateColumnMinimumWidth;
+
+        /// <summary>
+        /// Bốn cột phụ theo thứ tự GIỮ LẠI: cách vào → khoá config → nguồn → số đợt. Cửa sổ hẹp dần thì bỏ từ cuối danh
+        /// sách. Bỏ theo TIỀN TỐ (gặp cột đầu tiên không vừa là dừng) chứ không nhặt cột nào vừa thì lấy: nhảy cóc một cột
+        /// làm thứ tự cột đổi theo bề rộng cửa sổ và người dùng mất mốc đọc.
+        /// </summary>
+        private static readonly float[] OptionalColumnMinimumWidths =
+        {
+            EntryColumnMinimumWidth, ConfigKeyColumnMinimumWidth, SourceColumnMinimumWidth, EventCountColumnMinimumWidth,
+        };
+
+        /// <summary>Ba cột đầu (màu, id loại, tên hiển thị) — luôn nằm trước bốn cột phụ.</summary>
+        private readonly List<Column> _leadingColumns = new List<Column>();
+
+        /// <summary>Bốn cột phụ theo đúng thứ tự giữ lại của <see cref="OptionalColumnMinimumWidths"/>.</summary>
+        private readonly List<Column> _optionalColumns = new List<Column>();
+
+        /// <summary>Cột dấu trạng thái — luôn là cột CUỐI, kể cả khi mọi cột phụ đã bị bỏ.</summary>
+        private Column _stateColumn;
+
+        /// <summary>Số cột phụ đang hiện; -1 = chưa dựng lần nào. Chỉ dựng lại bảng cột khi con số này ĐỔI.</summary>
+        private int _visibleOptionalColumnCount = -1;
+
         private readonly List<EventTypeRow> _laneOrder = new List<EventTypeRow>();
         private readonly List<EventTypeRow> _visibleOrder = new List<EventTypeRow>();
 
@@ -32,6 +84,8 @@ namespace DreamTech.LiveOps.Editor
             View.AddToClassList(LiveOpsHubClassNames.EventTypesTable);
             View.selectionType = SelectionType.Single;
             AddColumns();
+            // Bề rộng bảng đổi (kéo mép cửa sổ, inspector co lại) thì tính lại xem giữ được bao nhiêu cột phụ.
+            View.RegisterCallback<GeometryChangedEvent>(OnViewGeometryChanged);
             LiveOpsTableSorting.EnableCustomSorting(View);
             View.columnSortingChanged += ApplySorting;
             View.selectedIndicesChanged += OnSelectedIndicesChanged;
@@ -86,33 +140,87 @@ namespace DreamTech.LiveOps.Editor
 
         private void AddColumns()
         {
-            View.columns.Add(BuildColumn(ColorColumnName, LiveOpsHubStrings.EventTypesColumnColor, 44, MakeSwatchCell, BindSwatchCell, false));
-            View.columns.Add(BuildColumn(TypeIdColumnName, LiveOpsHubStrings.EventTypesColumnTypeId, 140, MakeMonoCell, BindTypeIdCell, true));
-            Column displayName = BuildColumn(DisplayNameColumnName, LiveOpsHubStrings.EventTypesColumnDisplayName, 180, MakeTextCell,
-                BindDisplayNameCell, true);
+            _leadingColumns.Add(BuildColumn(ColorColumnName, LiveOpsHubStrings.EventTypesColumnColor, 44, ColorColumnMinimumWidth,
+                MakeSwatchCell, BindSwatchCell, false));
+            _leadingColumns.Add(BuildColumn(TypeIdColumnName, LiveOpsHubStrings.EventTypesColumnTypeId, 140, TypeIdColumnMinimumWidth,
+                MakeMonoCell, BindTypeIdCell, true));
+            Column displayName = BuildColumn(DisplayNameColumnName, LiveOpsHubStrings.EventTypesColumnDisplayName, 180,
+                DisplayNameColumnMinimumWidth, MakeTextCell, BindDisplayNameCell, true);
             displayName.stretchable = true;
-            displayName.minWidth = 120;
-            View.columns.Add(displayName);
-            View.columns.Add(BuildColumn(EntryColumnName, LiveOpsHubStrings.EventTypesColumnEntry, 120, MakeTextCell, BindEntryCell, true));
-            View.columns.Add(BuildColumn(ConfigKeyColumnName, LiveOpsHubStrings.EventTypesColumnConfigKey, 140, MakeMonoCell, BindConfigKeyCell, true));
-            View.columns.Add(BuildColumn(SourceColumnName, LiveOpsHubStrings.EventTypesColumnSource, 90, MakeTextCell, BindSourceCell, true));
-            View.columns.Add(BuildColumn(EventCountColumnName, LiveOpsHubStrings.EventTypesColumnEventCount, 84, MakeCountCell, BindCountCell, true));
+            _leadingColumns.Add(displayName);
+            _optionalColumns.Add(BuildColumn(EntryColumnName, LiveOpsHubStrings.EventTypesColumnEntry, 120, EntryColumnMinimumWidth,
+                MakeTextCell, BindEntryCell, true));
+            _optionalColumns.Add(BuildColumn(ConfigKeyColumnName, LiveOpsHubStrings.EventTypesColumnConfigKey, 140, ConfigKeyColumnMinimumWidth,
+                MakeMonoCell, BindConfigKeyCell, true));
+            _optionalColumns.Add(BuildColumn(SourceColumnName, LiveOpsHubStrings.EventTypesColumnSource, 90, SourceColumnMinimumWidth,
+                MakeTextCell, BindSourceCell, true));
+            _optionalColumns.Add(BuildColumn(EventCountColumnName, LiveOpsHubStrings.EventTypesColumnEventCount, 84,
+                EventCountColumnMinimumWidth, MakeCountCell, BindCountCell, true));
             // Cột 8 không có tiêu đề: chỗ cho dấu trạng thái, tiêu đề "Trạng thái" trên 36px sẽ bị cắt thành chữ vô nghĩa.
-            View.columns.Add(BuildColumn(StateColumnName, string.Empty, 36, MakeStateCell, BindStateCell, false));
+            _stateColumn = BuildColumn(StateColumnName, string.Empty, 36, StateColumnMinimumWidth, MakeStateCell, BindStateCell, false);
+            ApplyVisibleColumnCount(_optionalColumns.Count);
         }
 
-        private static Column BuildColumn(string columnName, string title, float width, Func<VisualElement> makeCell,
-            Action<VisualElement, int> bindCell, bool sortable)
+        private static Column BuildColumn(string columnName, string title, float width, float minimumWidth,
+            Func<VisualElement> makeCell, Action<VisualElement, int> bindCell, bool sortable)
         {
             return new Column
             {
                 name = columnName,
                 title = title,
                 width = width,
+                minWidth = minimumWidth,
                 sortable = sortable,
                 makeCell = makeCell,
                 bindCell = bindCell,
             };
+        }
+
+        private void OnViewGeometryChanged(GeometryChangedEvent geometryEvent)
+        {
+            int wanted = OptionalColumnCountThatFits(geometryEvent.newRect.width);
+            if (wanted < 0 || wanted == _visibleOptionalColumnCount) return;
+            // Dựng lại bảng cột là thay đổi CẤU TRÚC cây; làm ngay bên trong một lượt layout là sửa cái đang được đo.
+            // Hoãn sang lượt sau — cổng bố cục chờ layout ổn định 9 khung nên vẫn đo đúng bộ cột mới.
+            View.schedule.Execute(() => ApplyVisibleColumnCount(wanted));
+        }
+
+        /// <summary>
+        /// Giữ lại nhiều cột phụ nhất mà bề rộng bảng còn CHỨA ĐƯỢC ở bề rộng tối thiểu đọc được của chúng; trả về -1 khi
+        /// chưa có số đo. Đây là "thu gọn có chủ đích": cột bị bỏ không biến mất khỏi hub — mọi giá trị của loại đang chọn
+        /// vẫn đọc đủ ở inspector bên phải, vốn là nơi thiết kế đặt chi tiết ([SD1] §2.1). Ngược lại, để tám cột cùng ở lại
+        /// trong 423px thì CẢ TÁM đều còn 27px và không cột nào đọc nổi — mất nhiều hơn hẳn.
+        /// </summary>
+        private int OptionalColumnCountThatFits(float viewWidth)
+        {
+            if (float.IsNaN(viewWidth) || viewWidth <= 0f) return -1;
+            float usableWidth = viewWidth - VerticalScrollerReserve;
+            float used = AlwaysVisibleColumnsWidth;
+            int count = 0;
+            while (count < OptionalColumnMinimumWidths.Length && used + OptionalColumnMinimumWidths[count] <= usableWidth)
+            {
+                used += OptionalColumnMinimumWidths[count];
+                count++;
+            }
+
+            return count;
+        }
+
+        /// <summary>
+        /// Dựng lại danh sách cột với <paramref name="optionalCount"/> cột phụ đầu tiên. Dựng LẠI chứ không dùng
+        /// <c>Column.visible</c>: ở Unity 2022.3, một cột ẩn đứng TRƯỚC một cột hiện làm
+        /// <c>MultiColumnController.OnColumnResized</c> tra ô theo chỉ số của danh sách ĐẦY ĐỦ trong khi hàng chỉ dựng ô cho
+        /// cột đang hiện — ném <c>ArgumentOutOfRangeException</c> ngay lượt layout đầu (đã gặp thật ở lượt EditMode 2022.3
+        /// của gói này). Cột dấu trạng thái luôn là cột cuối nên trường hợp "ẩn đứng trước hiện" là không tránh được.
+        /// </summary>
+        private void ApplyVisibleColumnCount(int optionalCount)
+        {
+            if (optionalCount == _visibleOptionalColumnCount) return;
+            _visibleOptionalColumnCount = optionalCount;
+            View.columns.Clear();
+            foreach (Column column in _leadingColumns) View.columns.Add(column);
+            for (int index = 0; index < optionalCount; index++) View.columns.Add(_optionalColumns[index]);
+            View.columns.Add(_stateColumn);
         }
 
         private static VisualElement MakeSwatchCell()

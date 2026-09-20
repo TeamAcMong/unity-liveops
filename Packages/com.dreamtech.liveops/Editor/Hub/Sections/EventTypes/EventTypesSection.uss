@@ -40,7 +40,11 @@
     flex-grow: 1;
 }
 
-/* Cửa sổ hẹp: inspector xuống 240px thay vì đẩy bảng còn vài chục pixel (bảng mới là thứ người dùng đọc trước). */
+/*
+ * Cửa sổ hẹp: inspector xuống 240px thay vì đẩy bảng còn vài chục pixel (bảng mới là thứ người dùng đọc trước).
+ * (W9-05) Mốc đổi từ --narrow (<900) sang --medium (<1100): ở 1024px bảng chỉ còn 527px cho tám cột cần tối thiểu 668px,
+ * tức chính cỡ đó cũng đã thiếu chỗ. 60px trả lại cho bảng ở 1024 đủ để giữ thêm một cột chữ thay vì bỏ đi.
+ */
 .liveops-hub-event-types-inspector {
     width: 300px;
     flex-shrink: 0;
@@ -50,7 +54,7 @@
     border-left-color: var(--unity-colors-window-border);
 }
 
-.liveops-hub--narrow .liveops-hub-event-types-inspector {
+.liveops-hub--medium .liveops-hub-event-types-inspector {
     width: 240px;
 }
 
@@ -197,8 +201,18 @@
     overflow: hidden;
 }
 
+/*
+ * (W9-05, lộ ra ở lượt EditMode 2022.3) Ô giá trị phải lấy ĐÚNG phần còn lại của hàng: bề rộng hàng trừ nhãn 99px.
+ * Ở 2022.3, một BaseField (TextField/Toggle) không khai flex-basis thì lấy bề rộng cơ sở bằng TRỌN bề rộng hàng rồi
+ * mới bị đẩy sang phải sau nhãn — kết quả là ô tràn khỏi hàng đúng 99px ở MỌI cỡ cửa sổ, kể cả 1920, và icon khoá
+ * cạnh ô id bị đẩy ra ngoài theo 111px. 6000.6 không có triệu chứng đó, nên không khai tường minh thì lỗi chỉ hiện ở
+ * một bản Unity. `flex-basis: 0` bỏ hẳn bề rộng cơ sở theo nội dung: ô nhận đúng phần chia của flexbox.
+ */
 .liveops-hub-event-types-field-value {
     flex-grow: 1;
+    flex-shrink: 1;
+    flex-basis: 0;
+    width: auto;
     margin: 0;
     min-width: 0;
 }
@@ -219,8 +233,13 @@
     white-space: normal;
 }
 
+/*
+ * (W9-05) flex-wrap: tám ô 18px là 144px, còn cột giá trị của inspector chỉ rộng ~130px khi inspector co về 240px — ô thứ
+ * tám bị đẩy 12px ra ngoài cha. Cho dãy xuống dòng: người dùng vẫn bấm được cả tám màu, chỉ là hai hàng bốn ô.
+ */
 .liveops-hub-event-types-color-slots {
     flex-direction: row;
+    flex-wrap: wrap;
     flex-grow: 1;
 }
 
@@ -248,4 +267,12 @@
     margin: 10px 3px 0 3px;
     padding: 6px 8px;
     flex-shrink: 0;
+}
+
+/*
+ * (W9-05) Câu "n đợt cố định · đợt tới …" dài theo dữ liệu (bản tiếng Anh cần 223px trong card rộng 204px). Card nằm trong
+ * inspector 240–300px nên không nới được — cho xuống dòng.
+ */
+.liveops-hub-event-types-usage-text {
+    white-space: normal;
 }

@@ -82,5 +82,11 @@ namespace DreamTech.LiveOps.Editor
         internal const string EventTypesColorSlotSuggested = "liveops-hub-event-types-color-slot--suggested";
 
         internal const string EventTypesUsageCard = "liveops-hub-event-types-usage-card";
+
+        /// <summary>
+        /// Câu "n đợt cố định · đợt tới …" trong card Dùng ở đâu (W9-05). Câu này dài theo dữ liệu nên phải xuống dòng: cột
+        /// inspector rộng 240–300px, một dòng không bao giờ đủ cho bản tiếng Anh.
+        /// </summary>
+        internal const string EventTypesUsageText = "liveops-hub-event-types-usage-text";
     }
 }

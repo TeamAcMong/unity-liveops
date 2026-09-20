@@ -109,18 +109,30 @@
     overflow: hidden;
 }
 
+/*
+ * (W9-03) Xuống dòng thay vì cắt: ở 700px cột chữ còn 348px trong khi tiêu đề phát hiện cần tới 373px và dòng "ở đâu" cần
+ * 431px. Cột chữ có flex-grow nên nó đã lấy hết chỗ còn lại của hàng — không còn bề rộng nào để xin thêm, chỉ còn cách cho
+ * câu chạy xuống dòng thứ hai. Hàng chỉ khai min-height nên cao thêm là hợp lệ.
+ */
 .liveops-hub-overview-need-title {
     font-size: 11px;
+    white-space: normal;
 }
 
 .liveops-hub-overview-need-detail {
     font-size: 10px;
     opacity: 0.7;
+    white-space: normal;
 }
 
 /* Cột 96px căn phải: trạng thái CỔNG, tách khỏi mức của phát hiện (dấu Blocked 7px riêng). */
+/*
+ * (W9-03) min-width chứ không width: nội dung cột là dấu Blocked 7px + câu "chặn Copy JSON", và ở bản tiếng Anh cặp đó cần
+ * 100px — width cứng 96 đẩy dấu Blocked ra NGOÀI mép trái cột ở mọi cỡ cửa sổ. 96 vẫn là số đo của Hình 4 cho hàng không
+ * chặn (cột rỗng giữ chỗ để mọi nút thẳng hàng); hàng có chặn được phép rộng thêm đúng phần chữ cần.
+ */
 .liveops-hub-overview-need-blocks {
-    width: 96px;
+    min-width: 96px;
     flex-shrink: 0;
     flex-direction: row;
     align-items: center;
@@ -144,11 +156,20 @@
     overflow: hidden;
 }
 
-/* Nút lấp đúng bề rộng cột của Hình 4 — chữ nút dài ngắn khác nhau không được làm cột nút răng cưa. */
+/*
+ * Nút lấp đúng bề rộng cột của Hình 4 — chữ nút dài ngắn khác nhau không được làm cột nút răng cưa.
+ * (W9-03) Giữ 150px và cho chữ XUỐNG DÒNG thay vì nới bề rộng: "Open Check calendar · To review" cần 172px ở MỌI cỡ cửa sổ
+ * (kể cả 1920), tức đây không phải lỗi cửa sổ hẹp mà là chữ dài hơn cột. Nới bề rộng theo chữ sẽ làm cột nút răng cưa —
+ * đúng thứ số đo 150px sinh ra để tránh. height: auto để dòng thứ hai có chỗ; 18px trở thành sàn, không còn là trần.
+ */
 .liveops-hub-overview-need-button > .liveops-hub-button {
     width: 150px;
+    height: auto;
+    min-height: 18px;
     flex-shrink: 0;
     margin-left: 0;
+    white-space: normal;
+    -unity-text-align: middle-center;
 }
 
 /* ---------------------------------------------------------------- Đường đi của lịch */
@@ -209,8 +230,14 @@
     flex-shrink: 0;
 }
 
+/*
+ * (W9-03) flex-wrap: hàng bảng được phép xuống dòng. Bốn cột đầu là số đo cố định của Hình 4 (170+250+140+130 = 690px),
+ * còn cột nội dung của màn chỉ rộng ~607px ở cửa sổ 700 và ~727px ở 820 — không cho xuống dòng thì cột 4 và cột 5 bị đẩy
+ * RA NGOÀI cửa sổ và cột Ghi chú co còn 0–37px. Xuống dòng giữ nguyên số đo thiết kế ở cửa sổ rộng và không cắt chữ nào.
+ */
 .liveops-hub-overview-upcoming-head-row {
     flex-direction: row;
+    flex-wrap: wrap;
     align-items: center;
     flex-shrink: 0;
     min-height: 20px;
@@ -222,6 +249,7 @@
 
 .liveops-hub-overview-upcoming-row {
     flex-direction: row;
+    flex-wrap: wrap;
     align-items: center;
     flex-shrink: 0;
     min-height: 26px;
@@ -256,10 +284,19 @@
     width: 130px;
 }
 
+/*
+ * (W9-03) min-width 340 là ĐIỀU KIỆN XUỐNG DÒNG của cả bảng, không phải một số trang trí: câu ghi chú dài nhất của dữ liệu
+ * mẫu cần 322px (bản tiếng Anh) cộng đệm ô 6px. Khai bề rộng tối thiểu này thì flexbox tính cột Ghi chú là 340px khi chia
+ * hàng, nên ở mọi cửa sổ mà 690px (bốn cột cố định) + 340px không vừa — tức từ 1280 trở xuống — Ghi chú TỰ rơi xuống dòng
+ * hai và nhận trọn bề rộng bảng. Mọi hàng và cả hàng tiêu đề rơi dòng GIỐNG NHAU vì điều kiện không phụ thuộc chữ của từng
+ * hàng; nếu để flexbox tự đo theo chữ thì hàng ghi chú ngắn ở lại dòng một còn hàng dài rơi xuống, bảng thành răng cưa.
+ * flex-shrink 1 giữ nguyên: ở cửa sổ rất hẹp cột này được phép co, nhưng không bao giờ dưới 340px.
+ */
 .liveops-hub-overview-upcoming-cell--note {
     flex-grow: 1;
     flex-shrink: 1;
     width: auto;
+    min-width: 340px;
 }
 
 .liveops-hub-overview-upcoming-relative {
@@ -355,4 +392,21 @@
 
 .liveops-hub--narrow .liveops-hub-overview-default > .liveops-hub-card {
     flex-shrink: 0;
+}
+
+/*
+ * (W9-03) Câu chú cuối thân: class khung liveops-hub-note không khai white-space nên câu dài bị cắt (cần 769px, có 593px ở
+ * cửa sổ 700). Đây là câu giải thích "vòng rỗng không phải là đạt" — cắt nó đi là mất đúng phần nói VÌ SAO.
+ */
+.liveops-hub-overview-footer-note {
+    white-space: normal;
+}
+
+/*
+ * (W9-03) Dòng chân của metric tile ("2 bị bỏ · 1 mất tiến độ · 2 nên xem") dài hơn tile ở 1024px (cần 188, có 174). Tile
+ * có min-width 132 và chia đều bề rộng hàng, nên không nới được — cho xuống dòng, hàng metric đã align-items: stretch nên
+ * bốn tile vẫn bằng nhau. Chỉ áp trong hàng metric của màn này, không đụng class khung.
+ */
+.liveops-hub-overview-metric-foot-row .liveops-hub-metric-foot {
+    white-space: normal;
 }

@@ -82,23 +82,6 @@ namespace DreamTech.LiveOps.Editor.Tests
                 "Màn Xuất JSON nằm NGOÀI phạm vi đợt W8 (USER chốt 18/9/2026). 245 chỗ là khối lượng của một đợt riêng, "
                 + "không phải việc kèm theo của một gói sửa hành trình. MẤT ĐỘ PHỦ: hoãn cả test nên 3/12 cặp cỡ × ngôn "
                 + "ngữ đang SẠCH (1440x900 vi, 1920x1040 vi, 1920x1040 en) cũng ngừng được kiểm tới W9."),
-            new UxLayoutDeferralEntry("W9-03", "overview", 126,
-                "Màn Tổng quan nằm NGOÀI phạm vi đợt W8 (USER chốt 18/9/2026). 126 chỗ là bố cục của cả màn ở 6 cỡ × 2 "
-                + "ngôn ngữ, phải đo lại và chia việc ở đợt riêng. MẤT ĐỘ PHỦ: 2/12 cặp đang SẠCH (1440x900 vi, "
-                + "1920x1040 vi) cũng ngừng được kiểm tới W9."),
-            new UxLayoutDeferralEntry("W9-04", "shell-rail-status", 126,
-                "Khung chung (rail + status bar) nằm NGOÀI phạm vi đợt W8 theo chốt của USER 18/9/2026, dù sửa khung "
-                + "đụng MỌI màn nên phải là đợt riêng. NGHIỆM THU CÒN NỢ: đây đúng là test 'L' của đầu việc UX-20 "
-                + "(UX-FIX-PLAN.md:56, tên cũ Shell_StatusBar_NoOverlap) — gói E coi UX-20 là xong nhưng tiêu chí chưa "
-                + "bao giờ xanh. MẤT ĐỘ PHỦ: 2/12 cặp đang SẠCH (1440x900 vi, 1920x1040 vi) ngừng được kiểm tới W9."),
-            new UxLayoutDeferralEntry("W9-05", "event-types", 104,
-                "Màn Loại event nằm NGOÀI phạm vi đợt W8 (USER chốt 18/9/2026). 104 chỗ là bố cục của cả màn, phải đo "
-                + "lại và chia việc ở đợt riêng. MẤT ĐỘ PHỦ nặng nhất nhóm: lỗi chỉ ở ba cỡ hẹp, nên hoãn cả test làm "
-                + "6/12 cặp đang SẠCH (1280x760, 1440x900, 1920x1040 — cả vi lẫn en) ngừng được kiểm tới W9."),
-            new UxLayoutDeferralEntry("W9-06", "validation", 76,
-                "Màn Kiểm lịch nằm NGOÀI phạm vi đợt W8 (USER chốt 18/9/2026). 76 chỗ là bố cục của cả màn ở 6 cỡ × 2 "
-                + "ngôn ngữ, phải đo lại và chia việc ở đợt riêng. MẤT ĐỘ PHỦ: 0/12 cặp sạch — mọi cỡ đều đang đỏ nên "
-                + "hoãn không che mất cặp nào đang xanh."),
         };
 
         /// <summary>Mọi mục — dùng cho test gác danh sách và cho báo cáo của cổng người.</summary>

@@ -60,6 +60,7 @@ namespace DreamTech.LiveOps.Editor
         private Button _emptyAction;
         private LiveOpsButtonSlot _safeRepairSlot;
         private Button _recheckButton;
+        private Label _recheckButtonLabel;
         private VisualElement _bulkPreviewHost;
         private SafeRepairPreviewCard _bulkPreview;
         private LiveOpsHoverCardHost _hoverCardHost;
@@ -139,7 +140,7 @@ namespace DreamTech.LiveOps.Editor
             // Bỏ vỏ TemplateContainer: vỏ không mang class nào nên nó không giãn, và thân màn sẽ cao 0 trong cột section body.
             _root = layout.Instantiate().Q(LiveOpsHubPaths.ValidationElementNames.Body) ?? layout.Instantiate();
             _root.name = LiveOpsHubPaths.ValidationElementNames.Body;
-            StyleSheet sheet = Services.LayoutLoader.LoadStyleSheet(LiveOpsHubPaths.ValidationSectionUss);
+            StyleSheet sheet = LoadSectionStyleSheet();
             if (sheet != null) _root.styleSheets.Add(sheet);
 
             _notice = _root.Q(LiveOpsHubPaths.ValidationElementNames.Notice);
@@ -182,13 +183,33 @@ namespace DreamTech.LiveOps.Editor
             _safeRepairSlot = new LiveOpsButtonSlot(safeRepair);
             container.Add(_safeRepairSlot);
 
-            _recheckButton = new Button(OnRecheckClicked) { name = RecheckButtonElementName, text = LiveOpsHubStrings.ValidationRecheckButton };
+            // (W9-06) Nút KHÔNG dùng `Button.text`: Button có con thì thôi tự đo theo chữ, nó co về min-width 54px và chữ bị
+            // cắt ở mọi cỡ cửa sổ. Icon + Label con xếp hàng ngang (class recheck-button) để nút đo theo đúng cả hai.
+            _recheckButton = new Button(OnRecheckClicked) { name = RecheckButtonElementName };
             _recheckButton.AddToClassList(LiveOpsHubClassNames.Button);
             _recheckButton.AddToClassList(LiveOpsHubClassNames.ButtonPrimary);
-            _recheckButton.Insert(0, LiveOpsHubIcons.CreateImage(RecheckIconName, RecheckIconSize));
+            _recheckButton.AddToClassList(LiveOpsHubClassNames.ValidationRecheckButton);
+            // Nút nằm ở section header — NGOÀI cây thân màn, nên sheet gắn vào _root không với tới nó. Không gắn thêm ở đây
+            // thì luật recheck-button im lặng không chạy và nút quay về flex-direction: column của Button (icon nằm TRÊN
+            // chữ, chữ tràn khỏi nút 13px). Cùng cách Tổng quan gắn sheet cho nút "Kiểm lại tất cả" của nó.
+            StyleSheet headerSheet = LoadSectionStyleSheet();
+            if (headerSheet != null) _recheckButton.styleSheets.Add(headerSheet);
+            _recheckButton.Add(LiveOpsHubIcons.CreateImage(RecheckIconName, RecheckIconSize));
+            _recheckButtonLabel = new Label(LiveOpsHubStrings.ValidationRecheckButton);
+            _recheckButtonLabel.AddToClassList(LiveOpsHubClassNames.ValidationRecheckButtonLabel);
+            _recheckButton.Add(_recheckButtonLabel);
             container.Add(_recheckButton);
             RefreshHeaderActions(null);
         }
+
+        /// <summary>Stylesheet của màn; giữ một tham chiếu vì nó được gắn ở HAI chỗ — thân màn và nút của section header.</summary>
+        private StyleSheet LoadSectionStyleSheet()
+        {
+            if (_sectionStyleSheet == null) _sectionStyleSheet = Services.LayoutLoader.LoadStyleSheet(LiveOpsHubPaths.ValidationSectionUss);
+            return _sectionStyleSheet;
+        }
+
+        private StyleSheet _sectionStyleSheet;
 
         private const string RecheckIconName = "Refresh";
         private const int RecheckIconSize = 16;
@@ -357,7 +378,9 @@ namespace DreamTech.LiveOps.Editor
             if (_recheckButton != null)
             {
                 bool isRunning = Services.Session.Asset != null && Services.Session.Check.IsRunning;
-                _recheckButton.text = isRunning ? LiveOpsHubStrings.ValidationRecheckRunningButton : LiveOpsHubStrings.ValidationRecheckButton;
+                _recheckButtonLabel.text = isRunning
+                    ? LiveOpsHubStrings.ValidationRecheckRunningButton
+                    : LiveOpsHubStrings.ValidationRecheckButton;
                 _recheckButton.SetEnabled(Services.Session.Asset != null && !isRunning);
             }
         }
