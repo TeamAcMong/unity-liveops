@@ -831,11 +831,11 @@ directory	Packages/com.dreamtech.liveops/Tests/Editor/Hub/UxGate	G-UX-GATE	W8
 # (luợt 2 đợt W8-UX2, 19/9/2026 — plan/w8-ux/UX-PASS2-PLAN.md mục 3) Bốn gói chạy song song trên nhánh cổng wt/G-UX-WAVE.
 #   Cột đợt ghi "W8" chứ không "W8-UX2" vì check-ownership.py --wave-deps đọc số đợt bằng float; luợt 2 là luợt sửa tiếp của chính đợt W8.
 #   G-UX2-TIMEFIELD thêm khối này theo phát hiện F-06 của lượt soát (trước đó không gói UX2 nào có dòng đăng ký nên check-ownership.py báo "gói không có trong bảng").
-package	G-UX2-TIMEFIELD	W8	M	W7
-package	G-UX2-DRAG	W8	M	W7
-package	G-UX2-RECURRING	W8	M	W7
-package	G-UX2-DEFER	W8	S	W7
-package	G-FIX-UX2-1	W8	S	W7
+package	G-UX2-TIMEFIELD	W8-UX2	M	W7
+package	G-UX2-DRAG	W8-UX2	M	W7
+package	G-UX2-RECURRING	W8-UX2	M	W7
+package	G-UX2-DEFER	W8-UX2	S	W7
+package	G-FIX-UX2-1	W8-UX2	S	W7
 file	Packages/com.dreamtech.liveops/Editor/Hub/Controls/LiveOpsUtcDateTimeField.cs	G-UX2-TIMEFIELD	W8-UX2 (luợt 2 đợt sửa UI/UX 19/9/2026, plan/w8-ux/UX-PASS2-PLAN.md mục 3)
 file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Calendar/CalendarEventInspector.cs	G-UX2-TIMEFIELD	W8-UX2 (luợt 2 đợt sửa UI/UX 19/9/2026, plan/w8-ux/UX-PASS2-PLAN.md mục 3)
 file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Calendar/CalendarInspectorModel.cs	G-UX2-TIMEFIELD	W8-UX2 (luợt 2 đợt sửa UI/UX 19/9/2026, plan/w8-ux/UX-PASS2-PLAN.md mục 3) — mở rộng danh sách file của gói: khoá hai mép giờ của đợt đã khép phải quyết ở model rồi view mới đọc được (phát hiện F-02); không gói UX2 nào khác chạm file này
@@ -855,11 +855,11 @@ file	tools/liveops-hub/ownership.tsv	G-UX2-TIMEFIELD	W8-UX2 (luợt 2 đợt s�
 #   CALENDAR → RECURRING (AUDIT đi trước vì nó đổi cách ĐẾM, hai gói sau phải đo trên luật đã đúng). Cạnh AUDIT→RECURRING là
 #   thứ tự GỘP, KHÔNG ghi vào cột phụ thuộc (cột đó đọc theo số đợt; ghi tên gói cùng đợt vào là --wave-deps báo lỗi giả) —
 #   cùng tiền lệ bốn cạnh CHỈ-PROBE của W2-TIERS 3.1.
-package	G-UX3-AUDIT	W8	S	W7
-package	G-UX3-CALENDAR	W8	M	W7
-package	G-UX3-TIMELINE	W8	M	W7
-package	G-UX3-RECURRING	W8	M	W7
-package	G-FIX-UX3-1	W8	S	W7
+package	G-UX3-AUDIT	W8-UX3	S	W7
+package	G-UX3-CALENDAR	W8-UX3	M	W7
+package	G-UX3-TIMELINE	W8-UX3	M	W7
+package	G-UX3-RECURRING	W8-UX3	M	W7
+package	G-FIX-UX3-1	W8-UX3	S	W7
 file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/UxGate/UxLayoutAuditor.cs	G-UX3-AUDIT	W8-UX3 — hai chỗ luật đo nói SAI sự thật (hàng dưới lằn cuộn bị báo "bị cắt"; màu có alpha đo như màu đục)
 file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/UxGate/UxLayoutAuditTests.cs	G-UX3-AUDIT	W8-UX3 — luật tương phản phủ cả bốn dấu chú giải, không chỉ ba
 file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/UxGate/UxContrastTokenTests.cs	G-UX3-AUDIT,G-FIX-UX3-1	W8-UX3 — file MỚI: kiểm tự động tỉ lệ tương phản WCAG của mọi token màu, CẢ HAI skin (chữ 4,5:1 / hình khối 3:1) | G-FIX-UX3-1: ba dấu chú giải mà G-UX3-TIMELINE khai thêm phải vào BẢNG ĐO (bậc hình khối 3:1), không vào miễn trừ
@@ -903,6 +903,8 @@ file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/UxGate/UxLayoutAuditTests.c
 file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/UxGate/UxLayoutDeferralList.cs	G-W9-GATE,G-W9-EXPORT,G-W9-SCREENS	W9-18 mục hoãn theo cỡ (G-W9-GATE); hai gói màn chỉ GỠ dòng màn của mình khi đã xanh
 file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Capture/**	G-W9-GATE	W9-17 bỏ chiều cao cố định của confirm-root + W9-22 ba kịch bản chụp còn thiếu
 file	tools/liveops-hub/check-ownership.py	G-W9-GATE	W9-02 — đọc được nhãn đợt có hậu tố (W8-UX2) thay vì vỡ ở float()
+file	tools/liveops-hub/ux-layout-report.py	G-UX-GATE,G-W9-GATE	G-W9-GATE thêm loại textTight của W9-25 vào bảng hiển thị — lệch kỹ thuật tự duyệt: một loại phát hiện MỚI mà công cụ báo cáo không biết đọc là một lỗ im lặng đúng loại mà cổng này sinh ra để diệt, và không gói W9 nào khác chạm file
+file	tools/liveops-hub/measure-capture.py	G-TOOLS,G-W9-GATE	G-W9-GATE thêm sai số RIÊNG cho một khung (khoá "tolerance") — W9-17 cần nói "chiều cao một dòng chữ là số của FONT" cho ĐÚNG một khung thay vì nới --tolerance cho cả bộ ảnh; không gói W9 nào khác chạm file
 file	tools/liveops-hub/ownership.tsv	G-W9-GATE	W9-02 cột đợt W8-UX2 cho năm dòng G-UX2-*/G-FIX-UX2-1; G-W9-GATE viết khối đăng ký đợt W9
 file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Export/**	G-W9-EXPORT	W9-01 — 241 chỗ không dùng được của màn Xuất JSON
 file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Overview/**	G-W9-SCREENS	W9-03 + W9-04 — 118 chỗ, bảng "đợt tới" đẩy cột ra ngoài cửa sổ

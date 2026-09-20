@@ -23,6 +23,26 @@ import sys
 DEFAULT_BASE_BRANCH = "feature/liveops-hub-p1"
 PACKAGE_PREFIX = "Packages/com.dreamtech.liveops/"
 
+# Nhãn đợt: "W" + số (lẻ được: W3.5 của G-I18N, W9.5 của G-W9-GATE) + hậu tố tuỳ chọn của một LƯỢT bên trong đợt
+# ("W8-UX2" = lượt 2 của đợt sửa UI/UX W8). Có hậu tố vì một đợt dài chạy nhiều lượt sửa nối nhau, mà mỗi lượt vẫn
+# phải xếp SAU lượt trước — ghi chung "W8" thì bảng không diễn tả được thứ tự đó, còn đánh số lẻ W8.1/W8.2 thì mọi
+# báo cáo cũ (viết "W8-UX2") trỏ sai đợt.
+WAVE_PATTERN = re.compile(r"^W(\d+(?:\.\d+)?)(?:-([A-Za-z0-9]+))?$")
+
+
+def wave_sort_key(wave):
+    """Khoá xếp thứ tự của một nhãn đợt: (số đợt, hậu tố lượt).
+
+    So bằng TUPLE chứ không bằng một số thực: hậu tố là chữ ("UX2") nên không nhét vào phần thập phân được, mà bản cũ
+    gọi thẳng float(wave[1:]) nên đổi cột đợt sang "W8-UX2" là vỡ ngay ở dòng đầu (ValueError: could not convert
+    '8-UX2'). Chuỗi rỗng đứng trước mọi chuỗi khác, nên "W8" < "W8-UX2" < "W9" — đúng nghĩa "lượt 2 nằm trong đợt 8
+    nhưng sau phần gốc của đợt 8".
+    """
+    match = WAVE_PATTERN.match(wave or "")
+    if match is None:
+        raise ValueError("nhãn đợt lạ '%s' — phải dạng W<số> hoặc W<số>-<lượt>, ví dụ W8, W3.5, W8-UX2" % wave)
+    return (float(match.group(1)), match.group(2) or "")
+
 
 def glob_to_regex(pattern):
     # `**` khớp mọi tầng, `*` trong một tầng; "X/**" khớp cả chính X (thư mục gốc của nhánh).
@@ -207,17 +227,27 @@ def check_wave_dependencies(table):
     errors = []
     for package in table.package_order:
         wave = table.packages[package]["wave"]
-        # Đợt có thể lẻ (W3.5 = gói G-I18N chen giữa W3 và W4) nên đọc bằng float, không int.
-        wave_number = float(wave[1:])
+        # Đợt có thể lẻ (W3.5 = gói G-I18N chen giữa W3 và W4) và có thể mang hậu tố lượt (W8-UX2), nên so bằng
+        # wave_sort_key chứ không bằng float của phần sau chữ W.
+        try:
+            wave_key = wave_sort_key(wave)
+        except ValueError as error:
+            errors.append("%s: %s" % (package, error))
+            continue
         for dependency in table.packages[package]["dependencies"]:
-            if re.match(r"^W\d+$", dependency):
+            if WAVE_PATTERN.match(dependency):
                 dependency_wave = dependency
             else:
                 dependency_wave = table.wave_of(dependency)
                 if dependency_wave is None:
                     errors.append("%s phụ thuộc '%s' không có trong bảng" % (package, dependency))
                     continue
-            if float(dependency_wave[1:]) >= wave_number:
+            try:
+                dependency_key = wave_sort_key(dependency_wave)
+            except ValueError as error:
+                errors.append("%s phụ thuộc %s: %s" % (package, dependency, error))
+                continue
+            if dependency_key >= wave_key:
                 errors.append("%s (%s) phụ thuộc %s (%s) — phải ở đợt trước" % (package, wave, dependency, dependency_wave))
     if errors:
         for error in errors:

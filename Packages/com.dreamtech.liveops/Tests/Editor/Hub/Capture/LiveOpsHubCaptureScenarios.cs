@@ -74,5 +74,29 @@ namespace DreamTech.LiveOps.Editor.Tests
 
         /// <summary>Ma trận cỡ cửa sổ của đợt W8-UX (§3.4) — bí danh <c>capture.sh --scenarios ux-sizes</c>.</summary>
         static partial void RegisterUxSizes(List<LiveOpsHubCaptureScenario> scenarios);
+
+        /// <summary>
+        /// Khung số đo của hộp xác nhận: đo BỀ RỘNG 400px, KHÔNG đo chiều cao (W9-17).
+        /// <para>
+        /// Bề rộng 400 là hứa thiết kế [FD §3.10] — hộp là một cột cố định ở mọi cấp, mọi ngôn ngữ, mọi nội dung. Chiều cao
+        /// thì KHÔNG: hộp tự co theo nội dung (số dòng câu hỏi, có hay không ô "gõ để xác nhận", có hay không số liệu).
+        /// </para>
+        /// <para>
+        /// Bản cũ khai chiều cao bằng chiều cao CỬA SỔ (212px cấp 1, 290px cấp 2) cho phần tử gốc BÊN TRONG cửa sổ đó. Hai
+        /// con số ấy không bao giờ đúng: mười kịch bản hộp đo được bốn giá trị rời rạc 100 / 113 / 127 / 201px, ổn định y hệt
+        /// ở cả hai bản Unity lẫn cả hai skin — nên 40 trong 42 ô lệch của bảng số đo ảnh ở lượt 2 VÀ lượt 3 đều là chính nó,
+        /// hai lượt liền, không phải hồi quy của đợt nào. Thay một con số sai bằng một con số sai khác (ví dụ pin 201) chỉ
+        /// chuyển chỗ lệch sang chín kịch bản còn lại, và lần sau sửa một câu chữ là lệch lại.
+        /// </para>
+        /// <para>
+        /// Bỏ đo chiều cao KHÔNG phải nới cổng: thứ đáng kiểm ở hộp là "chữ có đọc hết không, nút có nằm trong hộp không", và
+        /// đó là việc của <c>UxLayoutAuditTests.ConfirmWindow_TextNotCut</c> — nó đo chữ bằng MeasureTextSize trên cây thật
+        /// chứ không dò cạnh trên ảnh. Cái mất ở đây là một câu khẳng định SAI, cái giữ lại là bề rộng và toàn bộ cổng bố cục.
+        /// </para>
+        /// </summary>
+        private static LiveOpsHubCaptureExpectedFrame ConfirmRootExpectedFrame()
+        {
+            return new LiveOpsHubCaptureExpectedFrame(LiveOpsConfirmContent.RootElementName, LiveOpsConfirmWindow.Width, 0f);
+        }
     }
 }
