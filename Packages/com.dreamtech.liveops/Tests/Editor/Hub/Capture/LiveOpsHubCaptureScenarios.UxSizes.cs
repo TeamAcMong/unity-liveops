@@ -75,6 +75,43 @@ namespace DreamTech.LiveOps.Editor.Tests
             AddUxRecurringSize(scenarios, LiveOpsHubCaptureScenarioIds.UxRecurringEnglish1280, 1280, 760, LiveOpsHubLanguageId.English);
             AddUxRecurringSize(scenarios, LiveOpsHubCaptureScenarioIds.UxRecurringEnglish1440, 1440, 900, LiveOpsHubLanguageId.English);
             AddUxRecurringSize(scenarios, LiveOpsHubCaptureScenarioIds.UxRecurringEnglish1920, 1920, 1040, LiveOpsHubLanguageId.English);
+
+            // W9-22(b): trạng thái CHỌN NHIỀU đợt. Chụp ở 1024x700 vì đó là cỡ hẹp nhất mà cả hai thanh của mẫu thiết kế
+            // đều được vẽ; ở 700 trục không vẽ thanh thứ hai nên ảnh sẽ không nói về việc chọn nhiều.
+            AddUxMultiSelection(scenarios, LiveOpsHubCaptureScenarioIds.UxCalendarMulti1024, 1024, 700);
+            AddUxMultiSelection(scenarios, LiveOpsHubCaptureScenarioIds.UxCalendarMultiEnglish1024, 1024, 700,
+                LiveOpsHubLanguageId.English);
+        }
+
+        /// <summary>Hai đợt của mẫu thiết kế mà cả 1024 lẫn các cỡ rộng đều vẽ — cùng cặp mà ca kiểm bố cục nhiều-chọn bấm.</summary>
+        private static readonly string[] UxMultiSelectionBarKeys =
+        {
+            LiveOpsDesignSample.LavaQuestEarlyEntryKey, LiveOpsDesignSample.HuntEarlyEntryKey,
+        };
+
+        private static void AddUxMultiSelection(List<LiveOpsHubCaptureScenario> scenarios, string scenarioId, int width, int height,
+            LiveOpsHubLanguageId language = LiveOpsHubLanguageId.Vietnamese)
+        {
+            scenarios.Add(new LiveOpsHubCaptureScenario(scenarioId, width, height, OpenUxCalendarMultiSelection)
+                .WithLanguage(language)
+                .WithExpectedFrames(UxSizeInvariantFrames()));
+        }
+
+        private static EditorWindow OpenUxCalendarMultiSelection()
+        {
+            LiveOpsHubServices services = UxSizesServices();
+            List<IHubSection> sections = LiveOpsHubSections.Create(services);
+            foreach (IHubSection section in sections)
+            {
+                // Đi qua SetSelectedBarKeys của presenter — cùng đường mà ⌘bấm thanh thứ hai đi, nên ảnh cho thấy đúng trạng
+                // thái mà người dùng dựng được, kể cả phần thanh hành động hàng loạt ở chân màn.
+                if (section is CalendarSection calendar)
+                {
+                    calendar.Presenter.SetSelectedBarKeys(UxMultiSelectionBarKeys, UxMultiSelectionBarKeys[0]);
+                }
+            }
+
+            return LiveOpsHubWindow.OpenWithServices(services, sections, LiveOpsHubSections.Ids.Calendar);
         }
 
         private static void AddUxSize(List<LiveOpsHubCaptureScenario> scenarios, string scenarioId, int width, int height,
@@ -97,12 +134,19 @@ namespace DreamTech.LiveOps.Editor.Tests
         /// Ba khung thiết kế KHÔNG đổi theo cỡ cửa sổ — đo được trên mọi ảnh của ma trận. Chiều rộng để 0 (= không đo chiều đó)
         /// vì bề rộng là cái đang thay đổi có chủ đích ở bộ ảnh này.
         /// </summary>
+        /// <summary>
+        /// Chiều cao header màn ở cửa sổ hẹp hơn <see cref="LiveOpsHubBreakpoints.MediumBelowWidth"/> (W9-01): phụ đề
+        /// xuống dòng và nhóm nút xuống dòng riêng. Đo được 61 trên CẢ 42 ảnh hẹp của hai bản Unity.
+        /// </summary>
+        private const float UxSectionHeaderHeightBelowMedium = 61f;
+
         private static LiveOpsHubCaptureExpectedFrame[] UxSizeInvariantFrames()
         {
             return new[]
             {
                 new LiveOpsHubCaptureExpectedFrame("liveops-hub-header", 0f, UxHeaderHeight),
-                new LiveOpsHubCaptureExpectedFrame("liveops-hub-section-header", 0f, UxSectionHeaderHeight),
+                new LiveOpsHubCaptureExpectedFrame("liveops-hub-section-header", 0f, UxSectionHeaderHeight)
+                    .WithHeightBelowWindowWidth(LiveOpsHubBreakpoints.MediumBelowWidth, UxSectionHeaderHeightBelowMedium),
                 new LiveOpsHubCaptureExpectedFrame("liveops-hub-status", 0f, UxStatusBarHeight),
             };
         }

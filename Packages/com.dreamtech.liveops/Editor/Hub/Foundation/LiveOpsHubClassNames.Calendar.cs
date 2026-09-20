@@ -27,6 +27,13 @@ namespace DreamTech.LiveOps.Editor
         internal const string CalendarInspectorBody = "liveops-hub-calendar-inspector-body";
         internal const string CalendarInspectorSeparator = "liveops-hub-calendar-inspector-separator";
         internal const string CalendarInspectorIssues = "liveops-hub-calendar-inspector-issues";
+
+        /// <summary>
+        /// (W9-21) Khối field CHỈ ĐỌC của đợt sinh từ luật. Trước đây khối này chỉ là <c>SetEnabled(false)</c>, nên dấu hiệu
+        /// "không sửa ở đây" là độ mờ của Unity — thứ nhân vào màu đã hợp thành và kéo chữ xuống 2,28–3,54:1. Nay dấu hiệu là
+        /// viền trái + ghi chú, còn chữ giữ nguyên màu đọc được.
+        /// </summary>
+        internal const string CalendarInspectorReadOnlyPane = "liveops-hub-calendar-inspector-read-only-pane";
         internal const string CalendarFieldRow = "liveops-hub-calendar-field-row";
         internal const string CalendarFieldSubline = "liveops-hub-calendar-field-subline";
         internal const string CalendarFieldError = "liveops-hub-calendar-field-error";

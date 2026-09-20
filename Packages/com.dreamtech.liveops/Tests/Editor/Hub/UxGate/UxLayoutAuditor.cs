@@ -18,6 +18,9 @@ namespace DreamTech.LiveOps.Editor.Tests
     {
         internal const string ZeroSizeNamed = "zeroSizeNamed";
         internal const string TextCut = "textCut";
+
+        /// <summary>Chữ CHƯA cắt nhưng chiếm gần hết bề rộng ô — cảnh báo sớm của W9-25, xem <see cref="UxLayoutAuditor.TextFillWarningRatio"/>.</summary>
+        internal const string TextTight = "textTight";
         internal const string ChildOverflow = "childOverflow";
         internal const string ScrollViews = "scrollViews";
         internal const string AbsoluteOverText = "absoluteOverText";
@@ -197,6 +200,9 @@ namespace DreamTech.LiveOps.Editor.Tests
 
         public List<UxLayoutFinding> ZeroSizeNamed { get; } = new List<UxLayoutFinding>();
         public List<UxLayoutFinding> TextCut { get; } = new List<UxLayoutFinding>();
+
+        /// <summary>Chữ vừa đủ lọt ô nhưng khoảng dư dưới ngưỡng (W9-25).</summary>
+        public List<UxLayoutFinding> TextTight { get; } = new List<UxLayoutFinding>();
         public List<UxLayoutFinding> ChildOverflow { get; } = new List<UxLayoutFinding>();
 
         /// <summary>MỌI ScrollView của màn (chẩn đoán), kể cả cái không có vấn đề — chỉ dòng mang dấu hiệu mới tính là lỗi.</summary>
@@ -269,6 +275,19 @@ namespace DreamTech.LiveOps.Editor.Tests
             }
         }
 
+        /// <summary>
+        /// Dòng CẢNH BÁO của màn: chữ chưa cắt nhưng ô gần hết chỗ (W9-25). KHÔNG đi vào câu assert — phiếu W9-25 nói
+        /// "cảnh báo", và biến nó thành test đỏ là đổi luật bố cục giữa chừng cho những màn đã nghiệm thu xong: đo trên
+        /// 2022.3 thấy luật này bắt thêm 31 chỗ ở màn Luật lặp và 12 chỗ ở nhãn thước — cả hai đang XANH và thuộc gói khác,
+        /// nên làm chúng đỏ là gói này tự lấn sang phạm vi người khác bằng một ngưỡng mới.
+        /// </summary>
+        public List<string> Warnings(IReadOnlyList<VisualElement> subtreeRoots)
+        {
+            List<string> warnings = new List<string>();
+            AppendProblems(warnings, UxLayoutFindingKinds.TextTight, TextTight, subtreeRoots);
+            return warnings;
+        }
+
         private static void AppendProblems(List<string> problems, string kind, List<UxLayoutFinding> entries,
             IReadOnlyList<VisualElement> subtreeRoots)
         {
@@ -325,6 +344,58 @@ namespace DreamTech.LiveOps.Editor.Tests
 
         /// <summary>Chồng lấn dưới mức này là viền/đường kẻ chạm nhau, không phải hai khối đè lên nhau.</summary>
         private const float OverlapTolerance = 2f;
+
+        /// <summary>
+        /// Chữ chiếm quá tỉ lệ này của bề rộng ô thì báo <see cref="UxLayoutFindingKinds.TextTight"/> (W9-25).
+        /// <para>
+        /// Vì sao cần một luật RIÊNG bên cạnh "đã cắt chưa": lượt 3 của đợt W8 chữa ô id bị cắt bằng cách nhường đệm ngang
+        /// về 0, nên chuỗi mono <c>2026-09-10</c> (75px trên 2022.3) còn ĐÚNG 0,5px dư mỗi bên trong ô pin 76px. Cổng cũ
+        /// xanh — vì chưa cắt — nhưng một đổi metric font bất kỳ (bản Unity khác, DPI khác, cỡ chữ Editor khác) là cắt lại
+        /// IM LẶNG. Ngưỡng này biến "còn dư bao nhiêu" thành thứ đo được, tức là cái lưới đáng lẽ đã bắt W9-19 từ trong đợt.
+        /// </para>
+        /// <para>
+        /// 95% chọn theo [SD1]: ô nào cũng còn ít nhất một nửa đệm thiết kế mỗi bên thì còn chịu được một lần đổi metric.
+        /// Dưới ngưỡng này KHÔNG báo gì — đây là cảnh báo về khoảng dư, không phải một ngưỡng bố cục mới.
+        /// </para>
+        /// </summary>
+        internal const float TextFillWarningRatio = 0.95f;
+
+        /// <summary>
+        /// Ô hẹp hơn mức này không áp luật dư 5%: 5% của một ô 20px là 1px, mỏng hơn cả sai số của <c>MeasureTextSize</c>
+        /// (<see cref="TextMeasureTolerance"/> = 3px), nên mọi icon và mọi ô một ký tự sẽ báo "chật" mà không nói lên điều gì.
+        /// </summary>
+        private const float TextFillMinimumWidth = 60f;
+
+        /// <summary>
+        /// Khoảng dư phải LỚN HƠN ngần này pixel thì mới được coi là "ô rộng hơn chữ". Dưới mức đó nghĩa là ô đang ôm khít
+        /// chữ — ô TỰ CO theo nội dung.
+        /// <para>
+        /// Vì sao phải có vế này (đo được ở hai lượt đầu của W9-25): phần lớn <c>Label</c> của hub tự co, nên chúng rộng
+        /// ĐÚNG bằng chữ của mình ("cần 74 có 74, dư 0") và tỉ lệ lấp luôn là 100%. Luật "chữ chiếm > 95% bề rộng ô" một
+        /// mình vì vậy báo 1 500+ chỗ ở lượt đầu, gần như toàn bộ là nhãn tự co — một cảnh báo nổ ở mọi nhãn thì không ai
+        /// đọc nữa, tức cái lưới sinh ra để bắt W9-19 lại tự vô hiệu hoá mình. (Lượt hai thử phân biệt bằng "hàng chứa còn
+        /// thừa bao nhiêu" và KHÔNG ăn thua: hàng nào có một khối giãn thì tổng bề rộng con luôn bằng bề rộng hàng, nên chỗ
+        /// thừa đo được là 0 kể cả khi nhãn nở ra thoải mái.)
+        /// </para>
+        /// <para>
+        /// Phân biệt đúng chỗ là nhìn vào KHOẢNG DƯ, đúng như tên phiếu: ô tự co có dư 0 — chữ dài thêm thì ô dài theo, không
+        /// bao giờ cắt im lặng. Ô có rủi ro là ô rộng HƠN chữ nhưng chỉ hơn một chút: ô ngày 76px của W9-19 ôm chuỗi mono
+        /// 75px, dư đúng 1px, và một đổi metric font là cắt. Luật đọc thành một câu: "ô rộng hơn chữ, nhưng dư dưới 5%".
+        /// </para>
+        /// <para>
+        /// 0,5px vì <c>MeasureTextSize</c> và layout đều làm tròn theo pixelsPerPoint: dưới nửa pixel thì "dư" là nhiễu của
+        /// phép đo chứ không phải chỗ trống có thật.
+        /// </para>
+        /// </summary>
+        private const float TextFillMinimumSlack = 0.5f;
+
+        /// <summary>
+        /// Ký tự "…" mà hub tự đặt vào một nhãn ĐÃ RÚT GỌN (nhãn thanh trục rút id theo bề rộng thanh). Chuỗi đã rút thì
+        /// luật dư 5% không có nghĩa gì: bề rộng đo được là bề rộng của bản ĐÃ CẮT, nên nó luôn vừa khít ô theo đúng thiết
+        /// kế, và "còn dư mấy pixel" không nói gì về chuỗi thật. Câu hỏi đúng cho nhãn như vậy là câu của W9-23 — mẩu còn
+        /// lại có đọc ra id không — chứ không phải câu của W9-25.
+        /// </summary>
+        private const char EllipsisCharacter = '\u2026';
 
         internal const string ScrollViewOverflowVerticalMark = "TRÀN DỌC KHÔNG CÓ THANH CUỘN";
         internal const string ScrollViewOverflowHorizontalMark = "TRÀN NGANG KHÔNG CÓ THANH CUỘN";
@@ -465,6 +536,7 @@ namespace DreamTech.LiveOps.Editor.Tests
             AppendArray(json, UxLayoutFindingKinds.MissingElement, result.MissingElement);
             AppendArray(json, UxLayoutFindingKinds.ZeroSizeNamed, result.ZeroSizeNamed);
             AppendArray(json, UxLayoutFindingKinds.TextCut, result.TextCut);
+            AppendArray(json, UxLayoutFindingKinds.TextTight, result.TextTight);
             AppendArray(json, UxLayoutFindingKinds.ChildOverflow, result.ChildOverflow);
             AppendArray(json, UxLayoutFindingKinds.ScrollViews, result.ScrollViews);
             AppendArray(json, UxLayoutFindingKinds.AbsoluteOverText, result.AbsoluteOverText);
@@ -587,9 +659,11 @@ namespace DreamTech.LiveOps.Editor.Tests
             WhiteSpace whiteSpace = text.resolvedStyle.whiteSpace;
             bool wraps = whiteSpace != WhiteSpace.NoWrap;
             string reason = null;
+            float naturalWidth = float.NaN;
             if (!wraps)
             {
                 Vector2 natural = MeasureText(text, value, float.NaN);
+                naturalWidth = natural.x;
                 if (natural.x > content.width + TextMeasureTolerance)
                 {
                     reason = "ngang cần " + Number(natural.x) + " có " + Number(content.width);
@@ -605,10 +679,34 @@ namespace DreamTech.LiveOps.Editor.Tests
             }
             if (reason == null && IsElided(text)) reason = "isElided";
             bool clipped = IsClippedByAncestor(text, bound, result.RootBound, out string clipper);
-            if (reason == null && !clipped) return;
+            if (reason == null && !clipped)
+            {
+                CheckTextFillRatio(text, content, naturalWidth, bound, result);
+                return;
+            }
             Add(result, result.TextCut, UxLayoutFindingKinds.TextCut, text,
                 Describe(text) + " " + (reason ?? string.Empty) + (clipped ? " | bị cha cắt: " + clipper : string.Empty)
                 + " @" + RectText(bound, result.RootBound));
+        }
+
+        /// <summary>
+        /// W9-25: chữ CHƯA cắt nhưng khoảng dư của ô đã mỏng hơn <see cref="TextFillWarningRatio"/>. Chỉ áp cho chữ KHÔNG
+        /// xuống dòng (chữ xuống dòng thì bề rộng không còn là cái quyết định đọc được hay không) và cho ô đủ rộng để 5%
+        /// còn là một con số có nghĩa.
+        /// </summary>
+        private static void CheckTextFillRatio(TextElement text, Rect content, float naturalWidth, Rect bound,
+            UxLayoutAuditResult result)
+        {
+            if (float.IsNaN(naturalWidth) || naturalWidth <= 0f) return;
+            if (content.width < TextFillMinimumWidth) return;
+            if (text.text.IndexOf(EllipsisCharacter.ToString(), StringComparison.Ordinal) >= 0 || IsElided(text)) return;
+            float fill = naturalWidth / content.width;
+            if (fill <= TextFillWarningRatio) return;
+            float slack = content.width - naturalWidth;
+            if (slack <= TextFillMinimumSlack) return;
+            Add(result, result.TextTight, UxLayoutFindingKinds.TextTight, text,
+                Describe(text) + " chữ chiếm " + Number(fill * 100f) + "% bề rộng ô (cần " + Number(naturalWidth)
+                + " có " + Number(content.width) + ", dư " + Number(slack) + ") @" + RectText(bound, result.RootBound));
         }
 
         private static void CheckScrollView(ScrollView scrollView, UxLayoutAuditResult result)

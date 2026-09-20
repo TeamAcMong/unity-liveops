@@ -385,6 +385,138 @@ namespace DreamTech.LiveOps.Editor.Tests
             }
         }
 
+        // ======================================================== W9-05: cột bảng co theo bề rộng, và co thì phải NÓI
+
+        /// <summary>
+        /// Bậc cột theo bề rộng là một hàm thuần, nên khoá bằng test đơn vị chứ không chỉ bằng một lượt dựng cửa sổ.
+        /// Mốc: bốn cột luôn hiện tốn 44 + 128 + 120 + 36 = 328px, cộng 14px trừ sẵn cho thanh cuộn dọc = 342px. Mỗi cột
+        /// phụ tiếp theo cộng thêm đúng bề rộng tối thiểu ĐỌC ĐƯỢC của nó: 116 (Cách vào) → 140 (Khoá config) → 88
+        /// (Nguồn) → 56 (Đợt).
+        /// </summary>
+        [Test]
+        public void OptionalColumnCountThatFits_KeepsAsManyColumnsAsReallyFit()
+        {
+            Assert.AreEqual(-1, EventTypeTable.OptionalColumnCountThatFits(float.NaN), "chưa có số đo thì KHÔNG dựng lại cột");
+            Assert.AreEqual(-1, EventTypeTable.OptionalColumnCountThatFits(0f), "bề rộng 0 là cây chưa layout, không phải bảng hẹp");
+
+            Assert.AreEqual(0, EventTypeTable.OptionalColumnCountThatFits(342f), "vừa đúng bốn cột luôn hiện");
+            Assert.AreEqual(0, EventTypeTable.OptionalColumnCountThatFits(457f), "thiếu 1px cho cột Cách vào thì KHÔNG lấy nó");
+            Assert.AreEqual(1, EventTypeTable.OptionalColumnCountThatFits(458f));
+            Assert.AreEqual(2, EventTypeTable.OptionalColumnCountThatFits(598f));
+            Assert.AreEqual(3, EventTypeTable.OptionalColumnCountThatFits(686f));
+            Assert.AreEqual(4, EventTypeTable.OptionalColumnCountThatFits(742f));
+            Assert.AreEqual(4, EventTypeTable.OptionalColumnCountThatFits(1600f), "rộng bao nhiêu cũng chỉ có bốn cột phụ");
+        }
+
+        /// <summary>
+        /// Bỏ cột theo TIỀN TỐ: thiếu chỗ cho cột thứ hai thì mọi cột sau nó cũng bị bỏ, kể cả cột "Đợt" chỉ cần 56px.
+        /// Nhặt cột nào vừa thì lấy sẽ làm THỨ TỰ cột đổi theo bề rộng cửa sổ và người dùng mất mốc đọc.
+        /// </summary>
+        [Test]
+        public void OptionalColumnCountThatFits_DropsBySuffix_NotByWhicheverFits()
+        {
+            // 342 + 116 = 458 đủ cho cột Cách vào; thêm 56 nữa (514) vẫn KHÔNG đủ cho cột thứ hai (140) — và cột "Đợt"
+            // (56px, đứng thứ tư) vẫn không được nhảy cóc lên thay chỗ.
+            Assert.AreEqual(1, EventTypeTable.OptionalColumnCountThatFits(514f));
+        }
+
+        /// <summary>
+        /// Cửa sổ hẹp làm bảng bỏ bớt cột — và việc đó phải được KHAI ra chữ (soát W9 R-01). Giấu im lặng thì người đọc
+        /// tưởng bảng chỉ có bấy nhiêu cột và không bao giờ biết phải nới cửa sổ hay nhìn sang pane chi tiết.
+        /// </summary>
+        [UnityTest]
+        public IEnumerator Table_AtNarrowWindow_SaysWhichColumnsItHides()
+        {
+            LiveOpsHubServices services = LiveOpsHubTestServices.ForScenario(LiveOpsHubTestServices.DesignSampleScenario);
+            EventTypesSection section = new EventTypesSection(services);
+            using (SectionTestScope scope = SectionTestScope.Open(section, 700, 560))
+            {
+                yield return scope.WaitForLayout();
+
+                IReadOnlyList<string> hidden = section.Table.HiddenColumnTitles;
+                Assert.Greater(hidden.Count, 0, "ở 700px bảng không thể chứa đủ tám cột — nếu không cột nào bị bỏ thì "
+                    + "hoặc số đo đã đổi, hoặc bảng đang bóp cột thay vì bỏ cột");
+
+                VisualElement note = scope.View.Q(EventTypesSection.ColumnsHiddenNoteName);
+                Label noteText = scope.View.Q<Label>(EventTypesSection.ColumnsHiddenNoteTextName);
+                Assert.IsNotNull(note, "phải có dòng khai báo cột bị ẩn dưới bảng");
+                Assert.IsFalse(note.ClassListContains(LiveOpsHubClassNames.EventTypesHidden),
+                    "có cột bị bỏ thì dòng khai báo phải HIỆN");
+                foreach (string title in hidden)
+                {
+                    StringAssert.Contains(title, noteText.text, "dòng khai báo phải gọi TÊN cột bị bỏ, không nói chung chung");
+                }
+
+                StringAssert.Contains(noteText.text, note.tooltip,
+                    "tooltip nhắc lại đúng câu đó cho người muốn đọc lại khi câu đã xuống nhiều dòng");
+            }
+        }
+
+        /// <summary>Cửa sổ đủ rộng thì không cột nào bị bỏ và dòng khai báo phải BIẾN MẤT, không để lại câu cũ.</summary>
+        [UnityTest]
+        public IEnumerator Table_AtWideWindow_ShowsEveryColumnAndHidesTheNote()
+        {
+            LiveOpsHubServices services = LiveOpsHubTestServices.ForScenario(LiveOpsHubTestServices.DesignSampleScenario);
+            EventTypesSection section = new EventTypesSection(services);
+            using (SectionTestScope scope = SectionTestScope.Open(section, 1280, 760))
+            {
+                yield return scope.WaitForLayout();
+
+                Assert.AreEqual(0, section.Table.HiddenColumnTitles.Count, "1280px chứa đủ tám cột");
+                VisualElement note = scope.View.Q(EventTypesSection.ColumnsHiddenNoteName);
+                Assert.IsTrue(note.ClassListContains(LiveOpsHubClassNames.EventTypesHidden),
+                    "không bỏ cột nào thì dòng khai báo phải ẩn");
+            }
+        }
+
+        /// <summary>
+        /// Ca của soát W9 R-07: đang sắp theo một cột PHỤ rồi thu hẹp cửa sổ tới mức cột đó biến mất. Danh sách cột được
+        /// dựng lại, nên mô tả sắp xếp trỏ vào một <c>Column</c> đã rời bảng phải bị gỡ và bảng về THỨ TỰ LÀN — giữ một
+        /// thứ tự mà người dùng không còn nhìn thấy lý do là tệ hơn hẳn.
+        /// </summary>
+        [UnityTest]
+        public IEnumerator Table_SortedByOptionalColumn_ThenNarrowed_FallsBackToLaneOrder()
+        {
+            LiveOpsHubServices services = LiveOpsHubTestServices.ForScenario(LiveOpsHubTestServices.DesignSampleScenario);
+            EventTypesSection section = new EventTypesSection(services);
+            using (SectionTestScope scope = SectionTestScope.Open(section, 1280, 760))
+            {
+                yield return scope.WaitForLayout();
+                Assert.AreEqual(0, section.Table.HiddenColumnTitles.Count, "nền của ca này là bảng ĐỦ tám cột");
+
+                section.Table.View.sortColumnDescriptions.Add(
+                    new SortColumnDescription(EventTypeTable.SourceColumnName, SortDirection.Descending));
+                yield return null;
+
+                scope.Window.position = new UnityEngine.Rect(0, 0, 700, 560);
+                yield return scope.WaitForLayout();
+                // W9-16: chờ theo ĐIỀU KIỆN + hạn giờ thay vì đếm ba khung hình. Bảng dựng lại bộ cột trong một lượt
+                // schedule.Execute nối sau lượt layout, nên "ba khung" là đủ hay không tuỳ máy đang bận tới đâu — đo
+                // được trên chính cây này: 2/6 lượt đỏ ngay sau khi Unity vừa import lại USS, 4/6 lượt xanh. Điều kiện
+                // dưới đây hỏi đúng cái đang chờ: bảng đã ÁP XONG bộ cột hợp với bề rộng nó đang có hay chưa.
+                yield return UxEventSender.WaitUntil(
+                    () => section.Table.AppliedOptionalColumnCount
+                        == EventTypeTable.OptionalColumnCountThatFits(section.Table.View.resolvedStyle.width),
+                    "bảng Loại event chưa áp xong bộ cột cho bề rộng mới sau khi thu hẹp cửa sổ còn 700px");
+
+                Assert.Greater(section.Table.HiddenColumnTitles.Count, 0,
+                    "700px phải bỏ bớt cột — ca này mới có nghĩa (bề rộng bảng đo được: "
+                    + section.Table.View.resolvedStyle.width.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture) + "px)");
+                foreach (SortColumnDescription description in section.Table.View.sortColumnDescriptions)
+                {
+                    Assert.AreNotEqual(EventTypeTable.SourceColumnName, description.columnName,
+                        "cột đã rời bảng thì mô tả sắp xếp của nó phải bị gỡ, không được trỏ vào Column đã bỏ");
+                }
+
+                IReadOnlyList<EventTypeRow> visible = section.Table.VisibleRows;
+                for (int index = 0; index < visible.Count; index++)
+                {
+                    Assert.AreEqual(services.Session.Document.EventTypes[index].TypeId, visible[index].TypeId,
+                        "không còn cột nào đang sắp thì bảng về đúng thứ tự làn (V-12)");
+                }
+            }
+        }
+
         [UnityTest]
         public IEnumerator PickColor_AppliesOneUndoGroupAndShowsUndoToast()
         {

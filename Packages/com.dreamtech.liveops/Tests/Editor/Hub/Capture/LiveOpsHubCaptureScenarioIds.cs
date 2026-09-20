@@ -68,11 +68,19 @@ namespace DreamTech.LiveOps.Editor.Tests
         internal const string H13bAddEventStep2 = "h13b-add-event-step2";
         internal const string H13bAddEventStep3 = "h13b-add-event-step3";
         internal const string H13bAddEventOverlap = "h13b-add-event-overlap";
+
+        /// <summary>W9-22(a): bước 1 của popover Thêm đợt bản TIẾNG ANH — ca nghiệm thu RC-08 của UX-10 là bản en, và bộ
+        /// ảnh cũ chỉ có bản vi nên UX-10 mãi đứng ở "MỘT PHẦN".</summary>
+        internal const string H13bAddEventStep1English = "h13b-add-event-step1-en";
         internal const string H14aRecurringDefault = "h14a-recurring-default";
         internal const string H14bRecurringPrefixDraft = "h14b-recurring-prefix-draft";
         internal const string H14cRecurringAfterWrite = "h14c-recurring-after-write";
         internal const string H14dRecurringActiveLonger = "h14d-recurring-active-longer";
         internal const string H14eRecurringJsonError = "h14e-recurring-json-error";
+
+        /// <summary>W9-22(c): màn Luật lặp ở 700x560 ĐÃ CUỘN tới card "đợt kế tiếp" — ở cỡ đó card nằm dưới lằn cuộn nên
+        /// mọi ảnh cũ của màn này chưa bao giờ cho thấy nó.</summary>
+        internal const string H14fRecurringOccurrencesScrolled = "h14f-recurring-occurrences-scrolled";
         internal const string H15ValidationDefault = "h15-validation-default";
         internal const string H172aStaleEdited = "h17-2a-stale-edited";
         internal const string H172bStaleMilestone = "h17-2b-stale-milestone";
