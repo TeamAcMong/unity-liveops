@@ -103,7 +103,12 @@ namespace DreamTech.LiveOps.Editor.Tests
             return false;
         }
 
-        private static bool Identifies(string selector, VisualElement element)
+        /// <summary>
+        /// So khớp một selector (tên element hoặc class USS, có hay không có dấu <c>.</c>/<c>#</c> đứng trước) với một phần tử.
+        /// <c>internal</c> vì <see cref="UxTruncationExemption"/> phải hỏi ĐÚNG câu hỏi này: hai luật miễn trừ dùng hai cách
+        /// so khớp khác nhau là hai bảng nói hai thứ tiếng, và chỗ lệch nhau sẽ chỉ lộ ra ở một màn nào đó.
+        /// </summary>
+        internal static bool Identifies(string selector, VisualElement element)
         {
             string bare = selector[0] == '.' || selector[0] == '#' ? selector.Substring(1) : selector;
             if (string.Equals(element.name, bare, StringComparison.Ordinal)) return true;

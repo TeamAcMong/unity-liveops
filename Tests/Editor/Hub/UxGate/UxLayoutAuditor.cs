@@ -1126,6 +1126,11 @@ namespace DreamTech.LiveOps.Editor.Tests
         private static void Add(UxLayoutAuditResult result, List<UxLayoutFinding> entries, string kind, VisualElement owner, string entry)
         {
             if (UxLayoutAllowList.Allows(result.ScreenId, kind, owner)) return;
+            // Luật rút gọn CÓ ĐIỀU KIỆN (user chốt 21/9/2026) — xem UxTruncationExemption. Khác UxLayoutAllowList ở chỗ nó
+            // không tha bằng lời khai: mục có khai mà ô đang THIẾU tooltip đủ chữ thì phát hiện vẫn đỏ, và dòng chẩn đoán
+            // nói thẳng thiếu cái gì.
+            if (UxTruncationExemption.Allows(result.ScreenId, kind, owner, out string exemptionNote)) return;
+            if (exemptionNote.Length > 0) entry = entry + " | " + exemptionNote;
             if (entries.Count >= MaximumEntriesPerKind)
             {
                 // Trần cắt IM LẶNG là cách cổng nói dối: JSON in "problemCount" của phần đã cắt và báo cáo trước/sau so hai con
