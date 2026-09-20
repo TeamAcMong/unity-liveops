@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using DreamTech.LiveOps.Tests;
 using NUnit.Framework;
 
@@ -119,22 +120,102 @@ namespace DreamTech.LiveOps.Editor.Tests
             Assert.AreEqual(string.Empty, LiveOpsTimelineGeometry.BarLabel("pass-36", 23.9f, true, false), "< 24px: không nhãn");
             Assert.AreEqual(string.Empty, LiveOpsTimelineGeometry.BarLabel("lava-quest-2026-09b", 27f, false, true), "room 7 < 8: không nhãn");
 
-            // 24–64px: số thứ tự khi hậu tố khớp ^\d{1,4}[a-z]?$ và vừa room.
-            Assert.AreEqual("38", LiveOpsTimelineGeometry.BarLabel("pass-38", 29.2f, true, false), "Hình 1: pass-38 cắt mép phải, nhãn \"38\"");
-            Assert.AreEqual("09b", LiveOpsTimelineGeometry.BarLabel("lava-quest-2026-09b", 40f, false, true));
-            Assert.AreEqual(string.Empty, LiveOpsTimelineGeometry.BarLabel("hunt-0916-bonus", 44.4f, false, false),
-                "hậu tố \"bonus\" không phải số thứ tự: để trống, dựa vào tooltip");
-            Assert.AreEqual(string.Empty, LiveOpsTimelineGeometry.BarLabel("sky-race-246", 24.2f, true, false), "\"246\" rộng 16,8 > room 12,2");
-            Assert.AreEqual(string.Empty, LiveOpsTimelineGeometry.BarLabel("pass-12345", 60f, true, false), "hậu tố quá 4 chữ số");
+            // (W9-UX31-NUMERIC) Dưới 64px: cùng MỘT luật với thanh rộng, chỉ khác là không trừ 13px icon lặp (icon chỉ vẽ
+            // từ 64px). Mẩu luôn mang "…" nên không còn mẩu số trần giả làm id; id đủ thì in đủ.
+            Assert.AreEqual("pass-38", LiveOpsTimelineGeometry.BarLabel("pass-38", 60f, false, false),
+                "room 48 ≥ 7 ký tự × 5,6 = 39,2: in đủ \"pass-38\" thay cho mẩu \"38\" của bản cũ (W9-UX31-NUMERIC)");
+            Assert.AreEqual("…38", LiveOpsTimelineGeometry.BarLabel("pass-38", 29.2f, true, false),
+                "room 17,2 → tối đa 3 ký tự: mẩu \"38\" của bản cũ nay mang \"…\" (W9-UX31-NUMERIC)");
+            Assert.AreEqual("…09a", LiveOpsTimelineGeometry.BarLabel("lava-quest-2026-09a", 47f, false, false),
+                "thanh 47px đo được ở ảnh 820 khi có pane inspector: mẩu phân biệt \"09a\" vẫn giữ, có dấu \"…\"");
+            Assert.AreEqual("…09b", LiveOpsTimelineGeometry.BarLabel("lava-quest-2026-09b", 47f, false, true),
+                "cùng thanh đó nhưng có vuông \"khác bản đã đăng\": room 27 → tối đa 4 ký tự, vừa khít \"…09b\"");
+            Assert.AreEqual(string.Empty, LiveOpsTimelineGeometry.BarLabel("lava-quest-2026-09b", 40f, false, true),
+                "room 20 → tối đa 3: \"…09b\" cần 4 nên đành trống — id đọc ở tooltip và ở tag \"bị bỏ\"");
+            Assert.AreEqual("hunt…", LiveOpsTimelineGeometry.BarLabel("hunt-0916-bonus", 44.4f, false, false),
+                "room 32,4 → tối đa 5: \"…bonus\" cần 6 nên lấy TIỀN TỐ thật; tag \"bị bỏ\" vẫn nói đủ id");
+            Assert.AreEqual("…bonus", LiveOpsTimelineGeometry.BarLabel("hunt-0916-bonus", 46f, false, false),
+                "thanh 46px đo được ở ảnh 1024: tối đa 6 vừa đúng hậu tố thật \"bonus\"");
+            Assert.AreEqual(string.Empty, LiveOpsTimelineGeometry.BarLabel("sky-race-246", 24.2f, true, false),
+                "room 12,2 → tối đa 2, kể cả \"…246\" cũng không vừa");
+            Assert.AreEqual("…12345", LiveOpsTimelineGeometry.BarLabel("pass-12345", 60f, true, false),
+                "bản cũ bỏ hẳn vì hậu tố quá 4 chữ số; luật mới không xét dạng hậu tố nữa, chỉ xét chỗ");
 
-            // ≥ 64px: id đầy đủ; dài quá thì cắt giữa ceil(k/2) đầu + "…" + floor(k/2) cuối, k = max(3, max − 1).
+            // ≥ 64px: id đầy đủ; dài quá thì rút TẠI DẤU PHÂN CÁCH, mẩu còn lại là hậu tố (ưu tiên) hoặc tiền tố THẬT (W9-23).
             Assert.AreEqual("hunt-0914", LiveOpsTimelineGeometry.BarLabel("hunt-0914", 89.7f, false, false));
             Assert.AreEqual("weekly-pass-35", LiveOpsTimelineGeometry.BarLabel("weekly-pass-35", 180.4f, true, true));
-            Assert.AreEqual("lava-q…6-09b", LiveOpsTimelineGeometry.BarLabel("lava-quest-2026-09b", 89.8f, false, true),
-                "room 69,8 → tối đa 12 ký tự → k = 11");
-            Assert.AreEqual("star-t…26-10", LiveOpsTimelineGeometry.BarLabel("star-tournament-2026-10", 80f, false, false));
-            Assert.AreEqual("sky-…246", LiveOpsTimelineGeometry.BarLabel("sky-race-246", 70f, true, false), "icon lặp trừ 13px trước khi chia");
+            Assert.AreEqual("…pass-35", LiveOpsTimelineGeometry.BarLabel("weekly-pass-35", 87f, false, false),
+                "ca của hành trình 820: bản cũ ra \"weekly…ass-35\" — \"ass-35\" không là mẩu nào của id (W9-23)");
+            Assert.AreEqual("…2026-09b", LiveOpsTimelineGeometry.BarLabel("lava-quest-2026-09b", 89.8f, false, true),
+                "room 69,8 → tối đa 12 ký tự → hậu tố dài nhất còn vừa là \"2026-09b\"");
+            Assert.AreEqual("…2026-10", LiveOpsTimelineGeometry.BarLabel("star-tournament-2026-10", 80f, false, false));
+            Assert.AreEqual("…246", LiveOpsTimelineGeometry.BarLabel("sky-race-246", 70f, true, false), "icon lặp trừ 13px trước khi chia");
+            Assert.AreEqual("star-…", LiveOpsTimelineGeometry.BarLabel("star-tournament", 64f, true, false),
+                "tối đa 6 ký tự: không hậu tố nào vừa nên giữ TIỀN TỐ thật (W9-23)");
+            Assert.AreEqual("tournament20…", LiveOpsTimelineGeometry.BarLabel("tournament2026", 87f, false, false),
+                "id một đoạn, không có dấu phân cách nào: tiền tố thật là đường duy nhất (W9-23)");
             Assert.AreEqual(string.Empty, LiveOpsTimelineGeometry.BarLabel(null, 200f, false, false));
+        }
+
+        /// <summary>
+        /// (W9-23) Luật của nhãn thanh, quét cả dải bề rộng chứ không vài ca lẻ: nhãn chỉ được là RỖNG, là id ĐẦY ĐỦ, hoặc
+        /// là một mẩu mang "…" mà phần chữ còn lại là hậu tố thật bắt đầu ngay sau một dấu "-", hoặc là tiền tố thật của id.
+        /// Chính cái luật này bắt được lỗi "weekly…ass-35": mẩu "ass-35" không phải hậu tố nào của id — bản cũ quét dải này
+        /// sẽ đỏ ở hàng trăm bề rộng.
+        /// </summary>
+        [Test]
+        public void Geometry_BarLabel_KeepsOnlyRealPrefixOrSuffix()
+        {
+            string[] identifiers =
+            {
+                "weekly-pass-35", "lava-quest-2026-09b", "star-tournament-2026-10", "hunt-0916-bonus", "sky-race-246",
+                "tournament2026", "a-b",
+            };
+            bool[] flags = { false, true };
+            string ellipsis = LiveOpsHubStrings.TimelineBarLabelEllipsis;
+            int checkedCases = 0;
+            foreach (string identifier in identifiers)
+            {
+                foreach (bool isRecurring in flags)
+                {
+                    foreach (bool isChanged in flags)
+                    {
+                        for (float width = 20f; width <= 260f; width += 0.5f)
+                        {
+                            string label = LiveOpsTimelineGeometry.BarLabel(identifier, width, isRecurring, isChanged);
+                            AssertLabelIsRealFragment(identifier, label, ellipsis,
+                                identifier + " @" + width.ToString("0.0", CultureInfo.InvariantCulture) + "px"
+                                + (isRecurring ? " lặp" : string.Empty) + (isChanged ? " đã đổi" : string.Empty));
+                            checkedCases++;
+                        }
+                    }
+                }
+            }
+            Assert.Greater(checkedCases, 1000, "dải quét phải đủ rộng thì luật mới có nghĩa");
+        }
+
+        /// <summary>Nhãn phải là rỗng / id đầy đủ / "…" + hậu tố thật sau dấu "-" / tiền tố thật + "…" — không có dạng thứ năm.</summary>
+        private static void AssertLabelIsRealFragment(string identifier, string label, string ellipsis, string context)
+        {
+            if (label.Length == 0 || string.Equals(label, identifier, StringComparison.Ordinal)) return;
+
+            if (label.StartsWith(ellipsis, StringComparison.Ordinal))
+            {
+                string suffix = label.Substring(ellipsis.Length);
+                Assert.Less(suffix.Length, identifier.Length, context + ": mẩu \"" + suffix + "\" không ngắn hơn id");
+                Assert.IsTrue(identifier.EndsWith(suffix, StringComparison.Ordinal),
+                    context + ": \"" + suffix + "\" không phải HẬU TỐ thật của id");
+                // Dấu "-" ngay trước mẩu: rút giữa hai chữ cái ("ass-35") là đúng cái W9-23 cấm.
+                Assert.AreEqual('-', identifier[identifier.Length - suffix.Length - 1],
+                    context + ": \"" + suffix + "\" không bắt đầu ngay sau một dấu phân cách");
+                return;
+            }
+
+            Assert.IsTrue(label.EndsWith(ellipsis, StringComparison.Ordinal),
+                context + ": nhãn \"" + label + "\" không mang dấu \"…\" ở đầu hay ở cuối — người đọc tưởng đó là cả id");
+            string prefix = label.Substring(0, label.Length - ellipsis.Length);
+            Assert.IsTrue(identifier.StartsWith(prefix, StringComparison.Ordinal),
+                context + ": \"" + prefix + "\" không phải TIỀN TỐ thật của id");
         }
 
         [Test]
