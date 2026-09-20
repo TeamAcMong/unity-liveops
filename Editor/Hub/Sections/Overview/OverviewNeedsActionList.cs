@@ -138,6 +138,7 @@ namespace DreamTech.LiveOps.Editor
             mark.SetHealth(HealthState.Blocked);
             blocks.Add(mark);
             Label label = new Label(LiveOpsHubStrings.OverviewBlocksCopyLabel);
+            label.AddToClassList(LiveOpsHubClassNames.OverviewNeedBlocksLabel);
             LiveOpsHubStyle.SetStateText(label, HealthState.Blocked);
             blocks.Add(label);
             return blocks;

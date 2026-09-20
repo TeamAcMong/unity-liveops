@@ -45,6 +45,12 @@ namespace DreamTech.LiveOps.Editor
         internal const string OverviewNeedTitle = "liveops-hub-overview-need-title";
         internal const string OverviewNeedDetail = "liveops-hub-overview-need-detail";
         internal const string OverviewNeedBlocks = "liveops-hub-overview-need-blocks";
+
+        /// <summary>
+        /// Nhãn "chặn Copy JSON" trong cột 96px (soát W9 R-09). Có class riêng vì nhãn phải được XUỐNG DÒNG trong khi cột
+        /// giữ nguyên bề rộng thiết kế — cột rộng thêm là cột nút lệch hàng.
+        /// </summary>
+        internal const string OverviewNeedBlocksLabel = "liveops-hub-overview-need-blocks-label";
         internal const string OverviewNeedButton = "liveops-hub-overview-need-button";
 
         // Đường đi của lịch — thân 48px, 4 nút tầng P1 chia đều

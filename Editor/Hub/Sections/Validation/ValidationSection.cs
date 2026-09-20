@@ -184,11 +184,11 @@ namespace DreamTech.LiveOps.Editor
             container.Add(_safeRepairSlot);
 
             // (W9-06) Nút KHÔNG dùng `Button.text`: Button có con thì thôi tự đo theo chữ, nó co về min-width 54px và chữ bị
-            // cắt ở mọi cỡ cửa sổ. Icon + Label con xếp hàng ngang (class recheck-button) để nút đo theo đúng cả hai.
+            // cắt ở mọi cỡ cửa sổ. Icon + Label con xếp hàng ngang (class recheck-button-row) để nút đo theo đúng cả hai.
             _recheckButton = new Button(OnRecheckClicked) { name = RecheckButtonElementName };
             _recheckButton.AddToClassList(LiveOpsHubClassNames.Button);
             _recheckButton.AddToClassList(LiveOpsHubClassNames.ButtonPrimary);
-            _recheckButton.AddToClassList(LiveOpsHubClassNames.ValidationRecheckButton);
+            _recheckButton.AddToClassList(LiveOpsHubClassNames.ValidationRecheckButtonRow);
             // Nút nằm ở section header — NGOÀI cây thân màn, nên sheet gắn vào _root không với tới nó. Không gắn thêm ở đây
             // thì luật recheck-button im lặng không chạy và nút quay về flex-direction: column của Button (icon nằm TRÊN
             // chữ, chữ tràn khỏi nút 13px). Cùng cách Tổng quan gắn sheet cho nút "Kiểm lại tất cả" của nó.

@@ -127,17 +127,33 @@
 
 /* Cột 96px căn phải: trạng thái CỔNG, tách khỏi mức của phát hiện (dấu Blocked 7px riêng). */
 /*
- * (W9-03) min-width chứ không width: nội dung cột là dấu Blocked 7px + câu "chặn Copy JSON", và ở bản tiếng Anh cặp đó cần
- * 100px — width cứng 96 đẩy dấu Blocked ra NGOÀI mép trái cột ở mọi cỡ cửa sổ. 96 vẫn là số đo của Hình 4 cho hàng không
- * chặn (cột rỗng giữ chỗ để mọi nút thẳng hàng); hàng có chặn được phép rộng thêm đúng phần chữ cần.
+ * (W9-03, sửa lại theo soát W9 R-09) Bề rộng CỨNG 96px — đúng số đo Hình 4 [SD1 §1.1], không phải min-width.
+ * Cột này tồn tại ĐỂ MỌI NÚT THẲNG HÀNG: BuildBlocksColumn dựng cột RỖNG cho cả hàng không chặn chính vì lý do đó, nên
+ * một cột "co giãn theo nội dung từng hàng" là cột phá đúng việc nó sinh ra để làm. Bản W9-03 đổi sang `min-width: 96px`
+ * để chữ "blocks Copy JSON" (cần 100px) thôi đẩy dấu Blocked ra ngoài mép trái — chữa được chỗ tràn nhưng mở cửa cho
+ * hàng rộng khác nhau, và làm số 96px của [SD1 §1.1] thành một con số chỉ đúng ở hàng rỗng.
+ * Cách chữa đúng: giữ CỘT 96px, cho CHỮ bên trong xuống dòng (luật ngay dưới). Hàng khai min-height 34px nên dòng thứ
+ * hai có chỗ; không hàng nào rộng khác hàng nào, và không chữ nào bị cắt.
+ * (Đo được: sau riêng thay đổi này, cả bốn `overview-need-blocks-*` đều rộng đúng 96 — nhưng cột nút VẪN lệch 3px, nên
+ *  3px đó có nguồn khác; xem chú thích `margin-right: 0` ở luật nút bên dưới.)
  */
 .liveops-hub-overview-need-blocks {
-    min-width: 96px;
+    width: 96px;
     flex-shrink: 0;
     flex-direction: row;
     align-items: center;
     justify-content: flex-end;
     font-size: 10px;
+}
+
+/*
+ * (soát W9 R-09) Chữ "chặn Copy JSON" / "blocks Copy JSON" xuống dòng TRONG cột 96px thay vì đẩy dấu Blocked ra ngoài.
+ * flex-shrink 1 + white-space normal: nhãn nhận đúng phần còn lại sau dấu Blocked rồi tự ngắt dòng ở khoảng trắng.
+ */
+.liveops-hub-overview-need-blocks-label {
+    flex-shrink: 1;
+    white-space: normal;
+    -unity-text-align: middle-right;
 }
 
 /*
@@ -168,6 +184,18 @@
     min-height: 18px;
     flex-shrink: 0;
     margin-left: 0;
+    /*
+     * (soát W9 R-09) margin-right: 0 là chỗ chữa 3px RĂNG CƯA còn lại — đo được, không phải đoán.
+     * Button của Unity mang sẵn margin 1px 3px. Slot bọc nút khai `min-width: 150px; flex-shrink: 1`, nên bề rộng
+     * MONG MUỐN của slot là 150 (nút) + 3 (margin phải) = 153. Hàng nào cột chữ bên trái phải xuống dòng thì flexbox
+     * đòi lại chỗ ở đứa co được — slot rơi về đúng min-width 150, tức HẸP HƠN 3px so với hàng không xuống dòng, và
+     * mép trái nút của hàng đó lệch sang phải 3px. Đo trên ux-w9-overview-en-700x560-light.png (lượt chụp SAU khi cột
+     * 96px đã cố định): slot hàng 0 và 2 rộng 153 (x=515), slot hàng 1 và 3 rộng 150 (x=518) — đúng hai hàng có chữ
+     * xuống dòng, và KHÔNG trùng với hai hàng có dấu chặn. Sau khi bỏ margin: cả bốn slot x=518 w=150.
+     * Bỏ margin phải thì bề rộng mong muốn của slot BẰNG min-width, không còn gì để co, và bốn nút thẳng một cột ở
+     * mọi hàng, mọi ngôn ngữ.
+     */
+    margin-right: 0;
     white-space: normal;
     -unity-text-align: middle-center;
 }

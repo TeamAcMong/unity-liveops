@@ -26,10 +26,15 @@ namespace DreamTech.LiveOps.Editor
         /// Nút "[Refresh] Kiểm lại" của section header (W9-06). Button LÀ một TextElement: thêm một Image con thì nút không
         /// còn tự đo theo <c>text</c> nữa, nó co về <c>min-width: 54px</c> và chữ bị cắt ở MỌI cỡ cửa sổ. Class này xếp nút
         /// thành hàng ngang để icon và Label chữ đứng cạnh nhau — cùng cách đã dùng cho nút "Kiểm lại tất cả" của Tổng quan.
+        /// <para>
+        /// Hậu tố <c>Row</c> là CỐ Ý (soát W9 R-12): không có nó thì hằng TÊN CLASS này trùng tên với hằng CHỮ HIỂN THỊ
+        /// <c>LiveOpsHubStrings.ValidationRecheckButton</c>, và hai thứ đó đứng cách nhau bảy dòng trong
+        /// <c>ValidationSection.cs</c> — đọc lướt không phân biệt được cái nào là class, cái nào là câu chữ.
+        /// </para>
         /// </summary>
-        internal const string ValidationRecheckButton = "liveops-hub-validation-recheck-button";
+        internal const string ValidationRecheckButtonRow = "liveops-hub-validation-recheck-button-row";
 
-        /// <summary>Label chữ của nút "Kiểm lại" — xem <see cref="ValidationRecheckButton"/>.</summary>
+        /// <summary>Label chữ của nút "Kiểm lại" — xem <see cref="ValidationRecheckButtonRow"/>.</summary>
         internal const string ValidationRecheckButtonLabel = "liveops-hub-validation-recheck-button-label";
 
         internal const string ValidationSummary = "liveops-hub-validation-summary";
