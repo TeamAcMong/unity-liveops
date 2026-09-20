@@ -490,9 +490,18 @@ namespace DreamTech.LiveOps.Editor.Tests
 
                 scope.Window.position = new UnityEngine.Rect(0, 0, 700, 560);
                 yield return scope.WaitForLayout();
-                yield return LiveOpsHubWindowTestScope.WaitFrames(3);
+                // W9-16: chờ theo ĐIỀU KIỆN + hạn giờ thay vì đếm ba khung hình. Bảng dựng lại bộ cột trong một lượt
+                // schedule.Execute nối sau lượt layout, nên "ba khung" là đủ hay không tuỳ máy đang bận tới đâu — đo
+                // được trên chính cây này: 2/6 lượt đỏ ngay sau khi Unity vừa import lại USS, 4/6 lượt xanh. Điều kiện
+                // dưới đây hỏi đúng cái đang chờ: bảng đã ÁP XONG bộ cột hợp với bề rộng nó đang có hay chưa.
+                yield return UxEventSender.WaitUntil(
+                    () => section.Table.AppliedOptionalColumnCount
+                        == EventTypeTable.OptionalColumnCountThatFits(section.Table.View.resolvedStyle.width),
+                    "bảng Loại event chưa áp xong bộ cột cho bề rộng mới sau khi thu hẹp cửa sổ còn 700px");
 
-                Assert.Greater(section.Table.HiddenColumnTitles.Count, 0, "700px phải bỏ bớt cột — ca này mới có nghĩa");
+                Assert.Greater(section.Table.HiddenColumnTitles.Count, 0,
+                    "700px phải bỏ bớt cột — ca này mới có nghĩa (bề rộng bảng đo được: "
+                    + section.Table.View.resolvedStyle.width.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture) + "px)");
                 foreach (SortColumnDescription description in section.Table.View.sortColumnDescriptions)
                 {
                     Assert.AreNotEqual(EventTypeTable.SourceColumnName, description.columnName,

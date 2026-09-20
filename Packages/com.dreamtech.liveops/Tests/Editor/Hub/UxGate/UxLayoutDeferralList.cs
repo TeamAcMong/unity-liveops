@@ -81,49 +81,23 @@ namespace DreamTech.LiveOps.Editor.Tests
     }
 
     /// <summary>
-    /// Danh sách HOÃN sang đợt W9 của cổng W8-UX — ĐÚNG 5 màn NGOÀI phạm vi đợt mà USER đã chốt ngày 18/9/2026 (Xuất JSON,
-    /// Tổng quan, Loại event, Kiểm lịch, khung). Không màn nào khác được vào đây: màn TRONG đợt (Lịch, trục, Luật lặp) mà
-    /// đỏ thì phải sửa hoặc phải có câu trả lời của USER — hoãn nó là tự cấp phép cho chính mình, đúng loại "xanh giả" mà
-    /// cổng sinh ra để diệt.
+    /// Danh sách HOÃN của kiểm bố cục — nay RỖNG. Đợt W8-UX mở nó với đúng 5 màn NGOÀI phạm vi đợt mà USER chốt ngày
+    /// 18/9/2026 (Xuất JSON, Tổng quan, Loại event, Kiểm lịch, khung); đợt W9 đóng nốt cả năm, phiếu cuối cùng là W9-01
+    /// (màn Xuất JSON, gỡ ở cổng đợt W9 ngày 20/9/2026). Từ đây MỌI màn của ma trận chạy đầy đủ ở MỌI cỡ.
     /// <para>
-    /// Luật của danh sách: KHÔNG xoá test, KHÔNG nới <see cref="UxLayoutAllowList"/>, KHÔNG đổi ngưỡng. Test của màn có
-    /// tên ở đây gọi <see cref="IgnoreWhenDeferred"/> ở đầu thân test nên NUnit báo "Ignored" kèm mã phiếu — cổng nhìn ra
-    /// ngay 5 màn đang nợ, chứ không thấy màu xanh giả. Gỡ một dòng ở đây là test đó chạy lại đầy đủ ngay lượt sau.
+    /// Giữ lại lớp này thay vì xoá vì nó là hợp đồng: nếu một đợt sau buộc phải hoãn một màn thì đường đi đã có sẵn và có
+    /// gác (<c>UxLayoutAuditTests.DeferralList_EveryEntry_HasUniqueIdAndReason</c> khoá cả tập mã phiếu lẫn tập màn vào
+    /// phần USER đã duyệt, nay là tập RỖNG — thêm một dòng ở đây mà không sửa hai mảng đó là test đỏ ngay).
     /// </para>
     /// <para>
-    /// Mã phiếu giữ nguyên số của bảng kế hoạch (<c>UX-PASS2-PLAN.md</c> mục 2(c)) nên dãy KHÔNG liền: W9-02 và
-    /// W9-07…W9-15 là các màn TRONG đợt, đã bị rút khỏi danh sách này ở lượt sửa 19/9/2026 và trả về cho một gói sửa bố
-    /// cục riêng. Đánh số lại sẽ làm mọi báo cáo cũ trỏ sai phiếu.
-    /// </para>
-    /// <para>
-    /// Số chỗ ghi theo lượt EditMode 6000.6 toàn bộ của nhánh cổng (<c>full-6000-3.xml</c>, 18/9/2026) — gộp 6 cỡ cửa sổ ×
-    /// 2 ngôn ngữ, nên một lỗi bố cục thật thường được đếm nhiều lần. MẤT ĐỘ PHỦ: một mục hoãn dừng CẢ test, tức dừng luôn
-    /// những cặp cỡ × ngôn ngữ đang SẠCH của màn đó; mỗi lý do dưới đây khai đúng số cặp sạch bị mất để W9 biết mình đang
-    /// mù ở đâu (việc tách test theo cỡ nằm trong phạm vi W9).
+    /// Luật của danh sách khi nó còn dùng tới: KHÔNG xoá test, KHÔNG nới <see cref="UxLayoutAllowList"/>, KHÔNG đổi
+    /// ngưỡng. Hoãn nói "chỗ này là LỖI THẬT, chưa tới lượt sửa" chứ không đụng một câu assert nào.
     /// </para>
     /// </summary>
     internal static class UxLayoutDeferralList
     {
-        /// <summary>Nhãn cỡ của ma trận bố cục — viết một chỗ để mục hoãn không gõ sai "1024x700" thành "1024x760".</summary>
-        private const string Size700 = "700x560";
-
-        private const string Size820 = "820x560";
-        /// <summary>Cỡ MỚI của W9-20. Nó nằm trong danh sách hoãn của mọi màn đang đỏ ở 820 và 1024 vì chưa ai đo nó,
-        /// và coi một cỡ CHƯA ĐO là sạch thì mục hoãn lại thành chỗ trốn kiểm. Gói màn đo xong thì gỡ.</summary>
-        private const string Size950 = "950x700";
-        private const string Size1024 = "1024x700";
-        private const string Size1280 = "1280x760";
-        private const string Size1440 = "1440x900";
-
-        private static readonly UxLayoutDeferralEntry[] Entries =
-        {
-            new UxLayoutDeferralEntry("W9-01", "export", 241,
-                "Màn Xuất JSON nằm NGOÀI phạm vi đợt W8 (USER chốt 18/9/2026) và là việc của gói G-W9-EXPORT. Số chỗ đo "
-                + "lại trên 6d73130 là 241 (sổ W9 ghi 245 theo lượt 2; lượt 3 sửa USS dùng chung nên kéo theo màn này). "
-                + "HOÃN THEO CỠ từ đợt W9: 1920x1040 đo được 0 chỗ ở cả hai ngôn ngữ nên cỡ đó CHẠY ĐẦY ĐỦ ngay lượt này "
-                + "— một lần sửa làm hỏng cỡ rộng sẽ đỏ ngay, không phải đợi hết đợt.",
-                Size700, Size820, Size950, Size1024, Size1280, Size1440),
-        };
+        /// <summary>Rỗng từ cổng đợt W9 — xem chú thích của lớp.</summary>
+        private static readonly UxLayoutDeferralEntry[] Entries = new UxLayoutDeferralEntry[0];
 
         /// <summary>Mọi mục — dùng cho test gác danh sách và cho báo cáo của cổng người.</summary>
         public static IReadOnlyList<UxLayoutDeferralEntry> All

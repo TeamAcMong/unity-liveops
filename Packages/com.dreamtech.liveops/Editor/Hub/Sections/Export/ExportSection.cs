@@ -29,6 +29,7 @@ namespace DreamTech.LiveOps.Editor
         internal const string EmptyBodyElementName = "export-empty-body";
         internal const string EmptyActionElementName = "export-empty-action";
         internal const string DefaultBodyElementName = "export-default";
+        internal const string ScrollElementName = "export-scroll";
         internal const string NoticesElementName = "export-notices";
         internal const string GateHostElementName = "export-gate-host";
         internal const string MetricsHostElementName = "export-metrics-host";
@@ -79,6 +80,7 @@ namespace DreamTech.LiveOps.Editor
         private VisualElement _root;
         private VisualElement _empty;
         private VisualElement _defaultBody;
+        private ScrollView _scroll;
         private VisualElement _notices;
         private Label _jsonMeta;
         private LiveOpsButtonSlot _copySlot;
@@ -144,11 +146,14 @@ namespace DreamTech.LiveOps.Editor
             }
             _root = layout.Instantiate();
             _root.name = BodyElementName;
+            _root.AddToClassList(LiveOpsHubClassNames.ExportRoot);
             StyleSheet sheet = Services.LayoutLoader.LoadStyleSheet(LiveOpsHubPaths.ExportSectionUss);
             if (sheet != null) _root.styleSheets.Add(sheet);
 
             _empty = _root.Q(EmptyElementName);
             _defaultBody = _root.Q(DefaultBodyElementName);
+            _scroll = _root.Q<ScrollView>(ScrollElementName);
+            ConfigureBodyScroll();
             _notices = _root.Q(NoticesElementName);
             _root.Q<Label>(EmptyTitleElementName).text = LiveOpsHubStrings.ExportNoAssetTitle;
             _root.Q<Label>(EmptyBodyElementName).text = LiveOpsHubStrings.ExportNoAssetBody;
@@ -225,6 +230,19 @@ namespace DreamTech.LiveOps.Editor
             Refresh();
         }
 
+        /// <summary>
+        /// Hướng cuộn của thân màn (W9-01, cùng luật Q-W5-1 với màn Tổng quan). Đặt từ C# chứ không từ thuộc tính UXML: tên
+        /// thuộc tính của ScrollView lệch giữa 2022.3 và 6000.6, còn property thì không — một đường đặt cho cả hai bản.
+        /// Ngang <c>Hidden</c> vì bố cục đã xếp dọc theo breakpoint, không bao giờ có chữ nằm ngoài bề ngang.
+        /// </summary>
+        private void ConfigureBodyScroll()
+        {
+            if (_scroll == null) return;
+            _scroll.mode = ScrollViewMode.Vertical;
+            _scroll.verticalScrollerVisibility = ScrollerVisibility.Auto;
+            _scroll.horizontalScrollerVisibility = ScrollerVisibility.Hidden;
+        }
+
         // ------------------------------------------------------------------------------------------------------ dựng lại
 
         internal void Refresh()
@@ -234,6 +252,9 @@ namespace DreamTech.LiveOps.Editor
             bool hasAsset = session.Asset != null;
             _empty.EnableInClassList(LiveOpsHubClassNames.ExportHidden, hasAsset);
             _defaultBody.EnableInClassList(LiveOpsHubClassNames.ExportHidden, !hasAsset);
+            // Khung cuộn ẩn cùng thân mặc định: để lại một ScrollView rỗng thì empty "chưa có asset" bị đẩy xuống dưới một
+            // khối cao bằng cả thân — đúng cách màn Tổng quan làm với overview-scroll.
+            if (_scroll != null) _scroll.EnableInClassList(LiveOpsHubClassNames.ExportHidden, !hasAsset);
             if (!hasAsset)
             {
                 Gate = null;

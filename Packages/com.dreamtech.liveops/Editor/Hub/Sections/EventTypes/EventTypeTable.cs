@@ -129,6 +129,17 @@ namespace DreamTech.LiveOps.Editor
 
         internal MultiColumnListView View { get; }
 
+        /// <summary>
+        /// Số cột phụ ĐÃ ÁP xong (−1 khi chưa có số đo nào). Khác <see cref="OptionalColumnCountThatFits"/> ở chỗ hàm kia
+        /// nói "bề rộng này chứa được mấy cột" còn cái này nói "bảng đã dựng lại xong theo con số đó chưa" — khoảng giữa
+        /// hai cái là một lượt <c>schedule.Execute</c>. Test cần đọc được nó để CHỜ THEO ĐIỀU KIỆN thay vì đếm khung
+        /// hình (W9-16): ba khung là đủ hay không tuỳ máy đang bận tới đâu.
+        /// </summary>
+        internal int AppliedOptionalColumnCount
+        {
+            get { return _visibleOptionalColumnCount; }
+        }
+
         /// <summary>Tiêu đề các cột phụ đang bị ẩn ở bề rộng hiện tại — rỗng khi bảng còn đủ tám cột.</summary>
         internal IReadOnlyList<string> HiddenColumnTitles
         {

@@ -924,3 +924,17 @@ file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubStrings.Even
 file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Sections/EventTypesSectionTests.cs	G-EVENTTYPES,G-W9-SCREENS	W9-05 — test đơn vị của bậc cột theo bề rộng + ca sắp-theo-cột-phụ-rồi-thu-hẹp (soát R-07)
 file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/UxGate/UxLayoutAuditTests.cs	G-UX-GATE,G-FIX-UX-1,G-FIX-UX-4,G-FIX-UX-5,G-FIX-UX-6,G-FIX-UX-7,G-FIX-UX-8,G-UX2-DEFER,G-UX2-RECURRING,G-UX2-TIMEFIELD,G-UX2-DRAG,G-FIX-UX2-1,G-UX3-AUDIT,G-W9-GATE,G-W9-SCREENS	W9-03…W9-06 — gỡ bốn mã phiếu/bốn màn khỏi ApprovedDeferralIds/Screens và bốn lời gọi IgnoreWhenDeferred; SỬA CHÉO đã khai ở báo cáo gói, chỉ làm cổng CHẶT hơn
 file	tools/liveops-hub/ownership.tsv	G-W9-SCREENS	W9 — chính khối đăng ký này (soát R-02)
+
+# (W9, CỔNG ĐỢT — G-FIX-W9-1, 20/9/2026) Gói G-W9-EXPORT không giao được sản phẩm nào (nhánh wt/G-W9-EXPORT đứng nguyên ở
+#   6d73130): nó tự khai chặn vì hai file cần sửa thuộc quyền ghi của gói khác. Ở CỔNG ĐỢT cả hai gói ấy đã gộp nên rào đó
+#   không còn, và phiếu W9-01 được làm tại đây dưới tên G-FIX-W9-1 — cùng tiền lệ G-FIX-W2-1 / G-FIX-W6-1 / G-FIX-UX3-1.
+#   Sáu dòng dưới NỐI thêm tên gói sửa vào đúng những vùng nó chạm; owners cộng dồn qua mọi dòng khớp nên không dòng nào
+#   của gói khác bị đổi.
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Export/**	G-FIX-W9-1	W9-01 — khung cuộn dọc cho thân màn, hai hàng xếp dọc dưới 1100px, chữ xuống dòng thay vì rút bằng "…"
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubClassNames.Export.cs	G-FIX-W9-1	W9-01 — hai hằng class mới: gốc thân (giãn) và khung cuộn
+file	Packages/com.dreamtech.liveops/Editor/Hub/UI/liveops-hub-shell.uss	G-FIX-W9-1	W9-01 — header màn cao theo nội dung, phụ đề xuống dòng, dưới 1100px nhóm nút xuống dòng riêng
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/UxGate/UxLayoutAuditTests.cs	G-FIX-W9-1	W9-01 — tập phiếu/màn được duyệt hoãn về RỖNG
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/UxGate/UxLayoutDeferralList.cs	G-FIX-W9-1	W9-01 — gỡ mục hoãn cuối cùng (màn export)
+file	tools/liveops-hub/ownership.tsv	G-FIX-W9-1	khối đăng ký của chính gói sửa ở cổng đợt
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/EventTypes/EventTypeTable.cs	G-FIX-W9-1	W9-16 — mở đọc "đã áp xong bộ cột nào" để test chờ theo ĐIỀU KIỆN thay vì đếm khung hình
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Sections/EventTypesSectionTests.cs	G-FIX-W9-1	W9-16 — ca thu hẹp cửa sổ thôi đếm ba khung hình; câu fail in kèm bề rộng bảng đo được

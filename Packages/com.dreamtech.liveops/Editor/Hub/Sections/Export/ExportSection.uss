@@ -7,13 +7,29 @@
  * class `--last` bật từ C#.
  */
 
+/*
+ * TemplateContainer do UXML sinh ra không mang class nào, nên mặc định nó CAO THEO NỘI DUNG. Đo được ở 1440: thân chỉ
+ * lấp 628/813px chiều cao dùng được, tức khung cuộn bên trong cũng cao theo nội dung và không bao giờ có thanh cuộn.
+ * Gắn flex-grow ngay ở gốc thì cả chuỗi bên dưới (trang → khung cuộn) mới có chiều cao xác định để chia.
+ */
+.liveops-hub-export-root {
+    flex-grow: 1;
+}
+
 .liveops-hub-export-page {
     flex-grow: 1;
     padding: var(--liveops-hub-space-10);
 }
 
-.liveops-hub-export-default {
+/*
+ * W9-01: thân nằm trong một khung cuộn DỌC (xem chú thích ở ExportSection.uxml). Khung giãn hết cột nội dung, còn thân
+ * bên trong cao theo nội dung — đặt flex-grow cho thân thì nó bị ép bằng viewport và khung không bao giờ cuộn.
+ */
+.liveops-hub-export-scroll {
     flex-grow: 1;
+}
+
+.liveops-hub-export-default {
     flex-direction: column;
 }
 
@@ -77,8 +93,19 @@
     margin-right: var(--liveops-hub-space-8);
 }
 
+/*
+ * W9-01: khung xem JSON là một pane CUỘN RIÊNG cao cố định, không còn giãn theo thân. Vì sao: thân nay nằm trong một
+ * khung cuộn dọc, mà trong khung cuộn không có "chiều cao còn lại" để giãn — để nguyên flex-grow thì danh sách dòng JSON
+ * dựng HẾT (đo được 508x1040 ở 1920, không một thanh cuộn nào) và kéo cả trang dài thêm gần gấp đôi, đồng thời làm một
+ * dòng code có chú thích bị ép còn 200px cho chữ cần 218. Cao cố định thì thanh cuộn của chính pane quay lại làm việc.
+ */
 .liveops-hub-export-json-host {
-    flex-grow: 1;
+    height: 420px;
+}
+
+/* Dưới 1100 thân xếp dọc nên pane JSON nhường chỗ cho card diff và bảng lịch sử ngay bên dưới. */
+.liveops-hub--medium .liveops-hub-export-json-host {
+    height: 300px;
 }
 
 .liveops-hub-export-side-column {
@@ -87,29 +114,35 @@
     flex-direction: column;
 }
 
-/* Cửa sổ hẹp (< 720): JSON trên, diff dưới — hàng dưới xếp dọc và bỏ bề rộng cố định của card JSON. */
+/*
+ * Cửa sổ dưới 1100 (W9-01, trước đây là dưới 720): JSON trên, diff dưới; cổng trên, metric dưới.
+ * Vì sao dời bậc từ --compact lên --medium: cột phải bắt đầu ở x=743 dù cửa sổ rộng bao nhiêu (card JSON 520 + rail +
+ * đệm), nên bề rộng CÒN LẠI cho nó là (bề rộng cửa sổ − 743). Đo được: 271px ở 1024 và 3px ở 700 — ô chữ của một hàng
+ * diff chỉ còn 97px cho câu cần 225. Dưới 1100 thì cột phải chưa bao giờ đủ rộng để đứng cạnh card JSON; xếp dọc là
+ * cách duy nhất không cắt chữ mà cũng không nới ngưỡng nào. Từ 1280 trở lên hai cột vẫn đứng cạnh nhau như thiết kế.
+ */
 
-.liveops-hub--compact .liveops-hub-export-bottom-row {
+.liveops-hub--medium .liveops-hub-export-bottom-row {
     flex-direction: column;
 }
 
-.liveops-hub--compact .liveops-hub-export-json-column {
+.liveops-hub--medium .liveops-hub-export-json-column {
     flex-basis: auto;
     margin-right: 0;
     margin-bottom: var(--liveops-hub-space-8);
 }
 
-.liveops-hub--compact .liveops-hub-export-top-row {
+.liveops-hub--medium .liveops-hub-export-top-row {
     flex-direction: column;
 }
 
-.liveops-hub--compact .liveops-hub-export-gate-column {
+.liveops-hub--medium .liveops-hub-export-gate-column {
     flex-basis: auto;
     margin-right: 0;
     margin-bottom: var(--liveops-hub-space-8);
 }
 
-.liveops-hub--compact .liveops-hub-export-metric-host {
+.liveops-hub--medium .liveops-hub-export-metric-host {
     flex-basis: auto;
 }
 
@@ -160,18 +193,18 @@
 /* ---------------------------------------------------------------- Card: tiêu đề, meta */
 
 /*
- * Header card ở 1280 phải co được: tiêu đề và meta cắt bằng ellipsis, hàng chip KHÔNG co (chip thứ tư "Giữ 3" là số người
- * đọc cần). Thiếu min-width:0 thì flex-shrink không có tác dụng trên phần tử có chữ, nên meta bị cắt giữa chữ và chip
- * tràn ra ngoài card.
+ * Header card ở 1280 phải co được: tiêu đề và meta XUỐNG DÒNG (W9-01, trước đây rút bằng "…"), hàng chip KHÔNG co (chip
+ * thứ tư "Giữ 3" là số người đọc cần). Thiếu min-width:0 thì flex-shrink không có tác dụng trên phần tử có chữ, nên meta
+ * bị cắt giữa chữ và chip tràn ra ngoài card.
+ * Vì sao bỏ ellipsis: meta của card Các lần đã đăng là danh sách LỆNH ("chuột phải: So với nháp · Khôi phục vào nháp…")
+ * — rút đi là giấu mất lệnh, người dùng không có đường nào khác biết chúng tồn tại.
  */
 .liveops-hub-export-card-title {
     -unity-font-style: bold;
     font-size: 11px;
     flex-shrink: 1;
     min-width: 0;
-    overflow: hidden;
-    white-space: nowrap;
-    text-overflow: ellipsis;
+    white-space: normal;
 }
 
 .liveops-hub-export-card-meta {
@@ -180,9 +213,20 @@
     margin-left: var(--liveops-hub-space-6);
     flex-shrink: 1;
     min-width: 0;
-    overflow: hidden;
-    white-space: nowrap;
-    text-overflow: ellipsis;
+    white-space: normal;
+}
+
+/*
+ * Header card của màn này cao THEO NỘI DUNG (sàn 24px) và cho xuống dòng: tiêu đề + meta + hàng chip của card diff cộng
+ * lại dài hơn một dòng ở mọi cỡ dưới 1280. Khoá cứng 24px như mặc định thì phần dư bị cắt mất.
+ */
+.liveops-hub-export-page .liveops-hub-card-header {
+    height: auto;
+    min-height: 24px;
+    flex-wrap: wrap;
+    align-content: center;
+    padding-top: 3px;
+    padding-bottom: 3px;
 }
 
 .liveops-hub-export-card-spacer {
@@ -191,11 +235,15 @@
 
 /* ---------------------------------------------------------------- Card Cổng xuất */
 
+/*
+ * W9-01: cao theo nội dung với sàn 22px. Câu của một dòng cổng là một KẾT LUẬN ("Parser của game xác nhận: giữ 6/8 mục,
+ * bỏ 2") — đo được 288px (vi) / 378px (en) trong ô 273px ngay ở 1280, nên nó cần xuống dòng chứ không phải chỗ rộng hơn.
+ */
 .liveops-hub-export-gate-row {
     flex-direction: row;
     align-items: center;
-    height: 22px;
-    padding: 0 var(--liveops-hub-space-8);
+    min-height: 22px;
+    padding: 2px var(--liveops-hub-space-8);
 }
 
 .liveops-hub-export-gate-row--clickable {
@@ -212,9 +260,7 @@
     margin-left: var(--liveops-hub-space-8);
     flex-shrink: 1;
     min-width: 0;
-    overflow: hidden;
-    white-space: nowrap;
-    text-overflow: ellipsis;
+    white-space: normal;
 }
 
 .liveops-hub-export-gate-row-meta {
@@ -223,9 +269,7 @@
     margin-left: var(--liveops-hub-space-8);
     flex-shrink: 1;
     min-width: 0;
-    overflow: hidden;
-    white-space: nowrap;
-    text-overflow: ellipsis;
+    white-space: normal;
 }
 
 .liveops-hub-export-gate-row-spacer {
@@ -282,6 +326,14 @@
     margin-bottom: var(--liveops-hub-space-8);
 }
 
+/*
+ * Chữ chân màn (class chung .liveops-hub-note là một HÀNG, không phải ô chữ) — mặc định của UI Toolkit là không xuống
+ * dòng, nên câu 510px này bị cắt ngay ở 1280. W9-01: cho xuống dòng.
+ */
+#export-footer-note {
+    white-space: normal;
+}
+
 /* ---------------------------------------------------------------- Card diff */
 
 .liveops-hub-export-diff-chip-row {
@@ -314,6 +366,7 @@
     padding: 3px var(--liveops-hub-space-8);
 }
 
+
 .liveops-hub-export-diff-row--dropped {
     background-color: var(--liveops-hub-color-blocked-tint);
 }
@@ -330,15 +383,27 @@
 
 .liveops-hub-export-diff-row-text {
     flex-direction: column;
+    flex-grow: 1;
     flex-shrink: 1;
+    min-width: 0;
     margin-left: var(--liveops-hub-space-6);
-    overflow: hidden;
 }
 
+/* Tag "bắt buộc" đứng sau tên đợt: cho xuống dòng thay vì thò ra khỏi ô (đo được [phải 61, trái −97] ở 1024). */
 .liveops-hub-export-diff-row-title {
     flex-direction: row;
     align-items: center;
+    flex-wrap: wrap;
     font-size: 11px;
+}
+
+/*
+ * Dòng tên đợt của một hàng diff ("hunt-0914 chồng giờ với lava-quest-2026-09b") là Label KHÔNG mang class riêng — nó do
+ * ExportDiffCard dựng thẳng. Chọn theo kiểu phần tử để nó xuống dòng; đây là chỗ duy nhất trong màn có Label trần nằm
+ * trực tiếp trong hàng tiêu đề, nên selector không với sang đâu khác.
+ */
+.liveops-hub-export-diff-row-title > Label {
+    white-space: normal;
 }
 
 .liveops-hub-export-diff-row-consequence {
@@ -401,12 +466,16 @@
     flex-shrink: 0;
 }
 
+/*
+ * Ô Ghi chú mang hai mẩu: ghi chú của lần đăng và hậu tố "· đang là bản so". W9-01: cho XUỐNG DÒNG thay vì cắt — đo được
+ * hậu tố thò 125px ra ngoài ô ở 1280 tiếng Anh, và nó là chỗ duy nhất nói hàng nào đang được dùng làm bản so.
+ */
 .liveops-hub-export-history-cell--note {
     flex-grow: 1;
     flex-shrink: 1;
     flex-direction: row;
     align-items: center;
-    overflow: hidden;
+    flex-wrap: wrap;
 }
 
 .liveops-hub-export-history-cell--sha {

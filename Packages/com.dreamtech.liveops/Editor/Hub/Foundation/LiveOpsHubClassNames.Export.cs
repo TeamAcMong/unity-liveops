@@ -15,8 +15,21 @@ namespace DreamTech.LiveOps.Editor
         internal const string ExportMetricRow = "liveops-hub-export-metric-row";
         internal const string ExportJsonColumn = "liveops-hub-export-json-column";
 
+        /// <summary>
+        /// Gốc thân màn (TemplateContainer do UXML sinh ra, KHÁC phần tử <see cref="ExportPage"/> bên trong nó). Nó không
+        /// mang class nào từ UXML nên mặc định cao theo nội dung; gắn class này để nó lấp trọn thân màn, nếu không thì cả
+        /// cây bên dưới — kể cả khung cuộn — cũng cao theo nội dung và không bao giờ cuộn.
+        /// </summary>
+        internal const string ExportRoot = "liveops-hub-export-root";
+
         /// <summary>Khối thân mặc định (hai hàng card) — ẩn nguyên khối khi chưa có asset, để empty thay CẢ thân.</summary>
         internal const string ExportDefaultBody = "liveops-hub-export-default";
+
+        /// <summary>
+        /// Khung cuộn DỌC bọc thân mặc định (W9-01, theo Q-W5-1 của màn Tổng quan). Thân màn cao hơn cửa sổ ở mọi cỡ dưới
+        /// 1280 — không có khung này thì phần dư bị rootVisualContainer cắt, tức mất chữ chứ không phải cuộn xuống xem.
+        /// </summary>
+        internal const string ExportScroll = "liveops-hub-export-scroll";
 
         /// <summary>Ô chứa khối metric (rộng 560px) và ô chứa JSON viewer — giữ bề rộng bố cục, tách khỏi control bên trong.</summary>
         internal const string ExportMetricHost = "liveops-hub-export-metric-host";
