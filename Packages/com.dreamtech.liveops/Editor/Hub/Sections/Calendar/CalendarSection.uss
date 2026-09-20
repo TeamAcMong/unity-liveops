@@ -27,8 +27,8 @@
 }
 
 /* Toolbar rút gọn ở --narrow (8.8 [FD §4.2]) — dưới 900px thanh đủ bị cắt mất vế phải: tab zoom nhường chỗ cho menu "3 tuần ▾",
-   "Danh sách" / "Hôm nay (T)" / "Chú giải" vào menu ⋮, ô tìm còn 120px. Mọi phần tử vẫn ở trong cây: đổi theo class chứ không
-   dựng lại toolbar, nên kéo rộng cửa sổ ra là mọi trạng thái còn nguyên. */
+   "Danh sách" / "Hôm nay (T)" / "Chú giải" vào menu ⋮ (ô tìm đã co còn 120px từ bậc --snug). Mọi phần tử vẫn ở trong cây:
+   đổi theo class chứ không dựng lại toolbar, nên kéo rộng cửa sổ ra là mọi trạng thái còn nguyên. */
 .liveops-hub-calendar-zoom-menu {
     display: none;
 }
@@ -58,17 +58,13 @@
     display: none;
 }
 
-.liveops-hub--narrow .liveops-hub-calendar-search {
-    width: 120px;
-}
-
-/* (UX-29, V5) Ở 820px toolbar còn thừa "Bắt lưới: Tự động ▾" và "So với đã đăng (5)" nên ô tìm bị ép và vế phải tràn. Hai mục
-   này đã có đường lệnh trong menu ⋮ nên chỗ của chúng khi hẹp là menu đó, không phải thanh. */
+/* (UX-29, V5) Ở 820px toolbar còn thừa "Bắt lưới: Tự động ▾" nên ô tìm bị ép và vế phải tràn; mục này đã có đường lệnh trong
+   menu ⋮ nên chỗ của nó khi hẹp là menu đó, không phải thanh.
+   (R-05 lượt soát 2) Luật --narrow cho công tắc "So với đã đăng" ĐÃ XOÁ vì thành code chết: breakpoint bật CỘNG DỒN
+   (--snug dưới 1000, --narrow dưới 900) nên từ W9-20 mọi cửa sổ --narrow đều đã mang --snug, mà --snug ẩn công tắc rồi.
+   Nhãn lý do thì KHÔNG xoá: từ R-04 nó Ở LẠI thanh ở bậc --snug, nên luật dưới đây là chỗ DUY NHẤT nhường nốt nó, ở dải
+   dưới 900px — nơi thanh không còn chỗ cho một câu dài và menu ⋮ là đường vào duy nhất của mọi lệnh đã rời thanh. */
 .liveops-hub--narrow .liveops-hub-calendar-snap-menu {
-    display: none;
-}
-
-.liveops-hub--narrow .liveops-hub-calendar-compare-toggle {
     display: none;
 }
 
@@ -103,17 +99,26 @@
    Số đo, không phải suy đoán: ở 950×700 tiếng Việt, khi CHƯA có bậc này, nhãn khoảng "6/9/2026 – 27/9/2026" cần 126px mà chỗ
    trên thanh chỉ còn 116px — thanh đã nhường menu "Bắt lưới" từ --medium rồi vẫn thiếu 10px (đo ở 6000.6 ngày 20/9).
    Nhường tiếp ĐÚNG MỘT control: công tắc "So với đã đăng (n)". Vì sao nó chứ không phải cái khác — lệnh của nó đã nằm sẵn
-   trong menu ⋮ đang hiện từ --medium, nên nhường nó không cắt đường vào nào; còn dải tab zoom và ô tìm KHÔNG đụng tới vì 10px
-   thiếu đã được trả dư. Nhãn lý do in cạnh nút đi theo nút: nhãn nói vì sao NÚT ĐÓ khoá, để lại một mình trên thanh là một câu
-   không còn chủ ngữ.
+   trong menu ⋮ đang hiện từ --medium, nên nhường nó không cắt đường vào nào; dải tab zoom KHÔNG đụng tới (ô tìm thì có — xem
+   luật ô tìm ngay dưới).
+   (R-04 lượt soát 2) Nhãn lý do Ở LẠI thanh ở bậc này — bản đầu ẩn cả nhãn và đó là một lỗi. Vì sao: lệnh "So với đã đăng"
+   khi bị khoá chỉ còn đường vào qua menu ⋮, mà mục menu bị khoá của DropdownMenuAction KHÔNG mang được tooltip (nhãn mục
+   cũng chốt cứng lúc append), nên ẩn nốt nhãn là kéo vùng "nút khoá mà không một chữ nói vì sao" từ dưới 900px lên dưới
+   1000px — ngược đúng SPIKE-B SP-3. Câu "Chưa có dấu đã đăng" / "No published stamp yet" đứng một mình vẫn đủ nghĩa. Chỗ
+   nhường vẫn dư: chỉ bỏ công tắc đã trả lại ~140px cho 10px còn thiếu, và nhãn lý do CHỈ hiện khi lệnh thật sự bị khoá.
    Vì sao không đợi tới --narrow: dải 900…999 khi ấy không có bậc nào của riêng nó, mà ma trận cổng trước W9-20 chỉ thử 1024
    trong cả dải 900…1099 — chỗ cắt chữ ở 950 nằm trong đúng khoảng mù đó. */
 .liveops-hub--snug .liveops-hub-calendar-compare-toggle {
     display: none;
 }
 
-.liveops-hub--snug .liveops-hub-calendar-disabled-reason {
-    display: none;
+/* Ô tìm co còn 120px từ bậc này (trước đây từ --narrow). Vì sao phải co sớm hơn một bậc: giữ nhãn lý do trên thanh (R-04) tốn
+   chỗ, và ĐO ở 950×700 tiếng Việt khi mới chỉ bỏ công tắc: nhãn khoảng "6/9/2026 – 27/9/2026" cần 126px mà chỉ còn 122px —
+   thiếu 4px (lượt dò 6000.6 `logs/G-W9-CALENDAR-fix-probe1.log`). Co ô tìm trả lại 40px, đủ dư. Vì sao co ô tìm chứ không ẩn
+   nhãn lý do: ô tìm 120px VẪN gõ được và vẫn đúng bề rộng mà bậc --narrow đã dùng từ UX-29 (không đẻ thêm con số mới), còn
+   nhãn lý do mất đi là mất hẳn câu trả lời "vì sao lệnh này xám". Luật --narrow cũ cho ô tìm đã xoá vì bị bậc này bao trùm. */
+.liveops-hub--snug .liveops-hub-calendar-search {
+    width: 120px;
 }
 
 /* Dải chú giải: ẩn khi hẹp (chỗ của nó là menu ⋮), hiện lại khi người dùng bật mục đó. Luật hai class nên nó thắng luật ẩn

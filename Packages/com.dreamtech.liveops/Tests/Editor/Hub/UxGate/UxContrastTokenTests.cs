@@ -10,6 +10,8 @@ using UnityEngine;
 using UnityEngine.TestTools;
 using UnityEngine.UIElements;
 
+using DreamTech.LiveOps.Tests;
+
 namespace DreamTech.LiveOps.Editor.Tests
 {
     /// <summary>
@@ -110,6 +112,14 @@ namespace DreamTech.LiveOps.Editor.Tests
 
         /// <summary>Thanh của đợt sinh từ luật trong lịch mẫu — chọn nó thì inspector dựng pane CHỈ ĐỌC (W9-21).</summary>
         private const string RecurringBarKey = "weekly-pass#35";
+
+        /// <summary>
+        /// (R-03 lượt soát 2) Thanh của một đợt CỐ ĐỊNH. Vì sao phải có cả hai: chọn đợt sinh từ luật thì inspector đi nhánh
+        /// <c>BuildRecurring</c>, không dựng ô ngày giờ UTC nào — mà chính ô ấy mới mang <c>.liveops-hub-utc-field__zone</c>
+        /// (opacity 0,7) và dòng giờ máy (opacity 0,82), tức đúng chủng loại lỗi mà luật màu-đã-hợp-thành sinh ra để bắt. Đo
+        /// một nhánh rồi khai "pane inspector đạt chuẩn" là đo nửa màn.
+        /// </summary>
+        private const string FixedBarKey = LiveOpsDesignSample.HuntBonusEntryKey;
 
         /// <summary>Số khung chờ cho lượt style của element probe mới gắn vào cây hub.</summary>
         private const int ProbeResolveFrames = 2;
@@ -433,7 +443,8 @@ namespace DreamTech.LiveOps.Editor.Tests
         }
 
         /// <summary>
-        /// (W9-21) Tương phản của màu ĐÃ HỢP THÀNH — gồm <c>opacity</c> của TỔ TIÊN — trên cây hub thật.
+        /// (W9-21) Tương phản của màu ĐÃ HỢP THÀNH — gồm <c>opacity</c> của TỔ TIÊN — trên cây hub thật, ở CẢ HAI nhánh của
+        /// inspector Lịch: đợt sinh từ luật (pane chỉ đọc) và đợt cố định (ô ngày giờ UTC).
         /// <para>
         /// Vì sao bảng token ở trên không đủ: nó đo TOKEN, tức màu trước khi Unity nhân opacity vào. Pane chỉ đọc của inspector
         /// Lịch khai màu chữ đạt chuẩn rồi bị <c>opacity</c> của <c>:disabled</c> kéo xuống 2,51–3,25:1 — không token nào sai,
@@ -441,44 +452,78 @@ namespace DreamTech.LiveOps.Editor.Tests
         /// thành lên nền đục gần nhất.
         /// </para>
         /// <para>
+        /// (R-03 lượt soát 2) Lặp qua CẢ HAI đợt. Bản đầu chỉ chọn đợt sinh từ luật, nên nhánh <c>BuildFixed</c> — nơi có
+        /// <c>.liveops-hub-utc-field__zone</c> (opacity 0,7, chữ 10px) và dòng giờ máy (opacity 0,82) — chưa lần nào đi qua
+        /// phép đo, dù đó đúng là chủng loại lỗi W9-21 dựng luật để bắt.
+        /// </para>
+        /// <para>
         /// Miễn trừ DUY NHẤT: phần tử không hoạt động (<c>enabledInHierarchy == false</c>) — WCAG 2.1 §1.4.3 nói thẳng chữ của
         /// "thành phần giao diện không hoạt động" không có yêu cầu tương phản. Chính vì miễn trừ đó mà ca này khẳng định RIÊNG
         /// một điều trước khi đo: pane chỉ đọc KHÔNG được là thành phần không hoạt động, vì nó là chỗ duy nhất đọc được giờ của
-        /// lần lặp đang chọn. Thiếu khẳng định ấy thì chỉ cần khoá pane lại là đủ xanh — đúng cái lỗi W9-21 mở phiếu.
+        /// lần lặp đang chọn. Thiếu khẳng định ấy thì chỉ cần khoá pane lại là đủ xanh — đúng cái lỗi W9-21 mở phiếu. Và mỗi
+        /// lượt đòi ĐO ĐƯỢC ít nhất một đoạn chữ, kẻo một đổi tên class biến phép đo thành vòng lặp rỗng.
         /// </para>
         /// <para>
-        /// Giới hạn đã khai: cửa sổ hub thật chạy ở skin ĐANG CHẠY của Editor, nên một lượt chạy phủ một skin (cùng giới hạn
-        /// với <see cref="BackdropConstants_MatchMeasuredBackdrops_InRunningSkin"/>); lượt cổng ở skin còn lại phủ nửa kia.
+        /// GIỚI HẠN ĐÃ BIẾT — skin SÁNG CHƯA ĐO (phiếu W9-27). Cửa sổ hub thật chạy ở skin ĐANG CHẠY của Editor, mà mọi lượt
+        /// cổng của đợt này chạy ở skin TỐI (đổi <c>EditorPrefs UserSkin</c> là việc riêng của <c>capture.sh</c>, SP-4), nên
+        /// luật màu-đã-hợp-thành mới chỉ có số đo ở skin tối. KHÔNG được suy sang skin sáng từ bảng token: token
+        /// <c>--liveops-hub-color-quiet</c> khác hẳn hai bên (#A3A3A3 tối / #4F4F4F sáng), và bảng token đo TRƯỚC khi nhân
+        /// opacity — đúng thứ ca này chứng minh là không đủ. Lời khai cũ ("lượt cổng ở skin còn lại phủ nửa kia") là sai: lượt
+        /// đó chưa tồn tại.
         /// </para>
         /// </summary>
         [UnityTest]
-        public IEnumerator ComposedTextColor_MeetsWcagContrast_InCalendarReadOnlyPane()
+        public IEnumerator ComposedTextColor_MeetsWcagContrast_InCalendarInspectorPanes()
         {
-            _fixture = UxHubWindowFixture.Open(LiveOpsHubSections.Ids.Calendar, UxHubWindowFixture.AllSizes[3],
-                LiveOpsHubLanguageId.Vietnamese);
-            yield return _fixture.WaitForLayout();
-            _fixture.Calendar.Presenter.SetSelectedBarKey(RecurringBarKey);
-            yield return null;
-            yield return _fixture.WaitForLayout();
+            string[] barKeys = { RecurringBarKey, FixedBarKey };
+            for (int index = 0; index < barKeys.Length; index++)
+            {
+                string barKey = barKeys[index];
+                bool isRecurring = string.Equals(barKey, RecurringBarKey, StringComparison.Ordinal);
+                _fixture = UxHubWindowFixture.Open(LiveOpsHubSections.Ids.Calendar, UxHubWindowFixture.AllSizes[3],
+                    LiveOpsHubLanguageId.Vietnamese);
+                yield return _fixture.WaitForLayout();
+                _fixture.Calendar.Presenter.SetSelectedBarKey(barKey);
+                yield return null;
+                yield return _fixture.WaitForLayout();
 
-            VisualElement readOnlyPane = _fixture.Root.Q(className: LiveOpsHubClassNames.CalendarInspectorReadOnlyPane);
-            Assert.IsNotNull(readOnlyPane,
-                "không tìm thấy khối field chỉ đọc của đợt sinh từ luật — không có chỗ nào để đo, và ca này thành lời khai suông");
-            Assert.IsTrue(readOnlyPane.enabledInHierarchy,
-                "khối field chỉ đọc đang là thành phần KHÔNG HOẠT ĐỘNG. WCAG 2.1 §1.4.3 miễn tương phản cho thứ không hoạt "
-                + "động, nên khoá khối này lại là cách làm cho phép đo dưới đây im lặng — trong khi đây là chỗ DUY NHẤT đọc "
-                + "được id, giờ lần lặp và độ dài của đợt đang chọn. Không sửa được phải giữ bằng isReadOnly + viền + ghi chú "
-                + "(W9-21)");
+                VisualElement readOnlyPane = _fixture.Root.Q(className: LiveOpsHubClassNames.CalendarInspectorReadOnlyPane);
+                if (isRecurring)
+                {
+                    Assert.IsNotNull(readOnlyPane,
+                        "không tìm thấy khối field chỉ đọc của đợt sinh từ luật — không có chỗ nào để đo, và ca này thành lời khai suông");
+                    Assert.IsTrue(readOnlyPane.enabledInHierarchy,
+                        "khối field chỉ đọc đang là thành phần KHÔNG HOẠT ĐỘNG. WCAG 2.1 §1.4.3 miễn tương phản cho thứ không hoạt "
+                        + "động, nên khoá khối này lại là cách làm cho phép đo dưới đây im lặng — trong khi đây là chỗ DUY NHẤT đọc "
+                        + "được id, giờ lần lặp và độ dài của đợt đang chọn. Không sửa được phải giữ bằng isReadOnly + viền + ghi chú "
+                        + "(W9-21)");
+                }
+                else
+                {
+                    Assert.IsNotNull(_fixture.Root.Q<LiveOpsUtcDateTimeField>(),
+                        "đợt cố định phải dựng ô ngày giờ UTC — không có ô nào thì vòng lặp này không đo thêm được gì (R-03)");
+                }
 
-            List<string> failures = new List<string>();
-            CollectComposedTextFailures(readOnlyPane, "khối field chỉ đọc của inspector Lịch", failures);
-            CollectComposedTextFailures(_fixture.Root.Q(className: LiveOpsHubClassNames.CalendarInspectorBody),
-                "thân inspector màn Lịch", failures);
+                List<string> failures = new List<string>();
+                int measuredCount = 0;
+                if (readOnlyPane != null)
+                {
+                    measuredCount += CollectComposedTextFailures(readOnlyPane, "khối field chỉ đọc của inspector Lịch", failures);
+                }
 
-            Assert.IsEmpty(failures,
-                "màu chữ ĐÃ HỢP THÀNH (nhân opacity của tổ tiên) không đạt " + Number(TextContrastRatio) + ":1 ở skin "
-                + (UnityEditor.EditorGUIUtility.isProSkin ? DarkSkinName : LightSkinName) + ":" + Environment.NewLine
-                + string.Join(Environment.NewLine, failures.ToArray()));
+                measuredCount += CollectComposedTextFailures(_fixture.Root.Q(className: LiveOpsHubClassNames.CalendarInspectorBody),
+                    "thân inspector màn Lịch, đợt \"" + barKey + "\"", failures);
+
+                Assert.Greater(measuredCount, 0,
+                    "không đo được đoạn chữ nào ở đợt \"" + barKey + "\" — phép lọc hỏng thì ca này thành lời khai suông");
+                Assert.IsEmpty(failures,
+                    "màu chữ ĐÃ HỢP THÀNH (nhân opacity của tổ tiên) không đạt " + Number(TextContrastRatio) + ":1 ở skin "
+                    + (UnityEditor.EditorGUIUtility.isProSkin ? DarkSkinName : LightSkinName) + ":" + Environment.NewLine
+                    + string.Join(Environment.NewLine, failures.ToArray()));
+
+                _fixture.Dispose();
+                _fixture = null;
+            }
         }
 
         // ------------------------------------------------------------------------------------------------- trợ giúp
@@ -488,9 +533,11 @@ namespace DreamTech.LiveOps.Editor.Tests
         /// hoạt động được bỏ qua theo WCAG 2.1 §1.4.3 — ca gọi hàm này có trách nhiệm khẳng định riêng rằng thứ nó quan tâm
         /// KHÔNG nằm trong diện miễn trừ đó.
         /// </summary>
-        private static void CollectComposedTextFailures(VisualElement root, string place, List<string> failures)
+        /// <returns>Số đoạn chữ THẬT SỰ được đo — ca gọi dùng nó để không kết luận từ một vòng lặp rỗng.</returns>
+        private static int CollectComposedTextFailures(VisualElement root, string place, List<string> failures)
         {
-            if (root == null) return;
+            if (root == null) return 0;
+            int measuredCount = 0;
             List<TextElement> texts = new List<TextElement>();
             root.Query<TextElement>().ToList(texts);
             for (int index = 0; index < texts.Count; index++)
@@ -499,6 +546,7 @@ namespace DreamTech.LiveOps.Editor.Tests
                 if (string.IsNullOrEmpty(text.text)) continue;
                 if (!UxLayoutAuditor.IsShownOnScreen(text)) continue;
                 if (!text.enabledInHierarchy) continue;
+                measuredCount++;
 
                 Color declared = text.resolvedStyle.color;
                 float opacity = EffectiveOpacity(text);
@@ -511,6 +559,8 @@ namespace DreamTech.LiveOps.Editor.Tests
                     + " nhân opacity " + Number(opacity) + " hợp thành ra " + HexText(seen) + " trên nền "
                     + HexText(background) + " (cần ≥ " + Number(TextContrastRatio) + ":1)");
             }
+
+            return measuredCount;
         }
 
         /// <summary>
