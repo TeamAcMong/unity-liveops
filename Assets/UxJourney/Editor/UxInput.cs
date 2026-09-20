@@ -377,6 +377,33 @@ namespace UxJourney
             return null;
         }
 
+        /// <summary>
+        /// Đóng các cửa sổ NỔI không phải hub (Package Manager, Console rời…) trước khi chụp. Vì sao: ảnh ghép của
+        /// <c>UxCapture</c> gộp mọi cửa sổ nổi của tiến trình, nên một Package Manager còn mở từ lần bootstrap project tạm
+        /// sẽ ĐÈ lên hub trong TOÀN BỘ ảnh của lượt (đã xảy ra ở lượt 2022.3 đầu tiên của W9). Chỉ đóng cửa sổ nổi
+        /// (<c>ContainerWindow</c> riêng), không đụng cửa sổ đã neo vào layout chính.
+        /// </summary>
+        public static void CloseFloatingNonHubWindows()
+        {
+            foreach (EditorWindow window in Resources.FindObjectsOfTypeAll<EditorWindow>())
+            {
+                if (window == null) continue;
+                string typeName = window.GetType().FullName ?? string.Empty;
+                if (typeName.StartsWith("DreamTech.LiveOps", StringComparison.Ordinal)) continue;
+                if (typeName == "UnityEditor.PopupWindow") continue;
+                if (typeName != "UnityEditor.PackageManager.UI.Internal.PackageManagerWindow"
+                    && typeName != "UnityEditor.PackageManager.UI.PackageManagerWindow"
+                    && !typeName.EndsWith("PackageManagerWindow", StringComparison.Ordinal)) continue;
+                try
+                {
+                    window.Close();
+                }
+                catch (Exception)
+                {
+                }
+            }
+        }
+
         public static void CloseAllHubWindows()
         {
             foreach (EditorWindow window in Resources.FindObjectsOfTypeAll<EditorWindow>())

@@ -47,6 +47,7 @@ namespace UxJourney
         internal static IEnumerator OpenDesignHub(UxRunner runner, string sectionId, float width, float height, string language = "Vietnamese",
             DateTime? nowUtc = null)
         {
+            UxHub.CloseFloatingNonHubWindows();
             UxHub.CloseAllHubWindows();
             yield return new WaitFrames(3);
             if (LanguageScope != null) LanguageScope.Dispose();

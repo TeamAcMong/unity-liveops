@@ -32,6 +32,7 @@ namespace UxJourney
             registry["J9b"] = J9Sizes;
             registry["J10"] = J10;
             registry["J11"] = J11;
+            registry["J11b"] = J11Short;
             RegisterExtra(registry);
         }
 
@@ -54,7 +55,9 @@ namespace UxJourney
             yield return OpenDesignHub(runner, "calendar", 1280, 760);
             runner.CurrentStep = "J1-00";
             yield return SelectBar(runner, HuntBonus);
-            float[,] sizes = { { 700, 560 }, { 820, 560 }, { 1024, 700 }, { 1280, 760 }, { 1440, 900 }, { 1920, 1040 } };
+            // Thêm 950×700: khoảng mù 900–1099px của phiếu W9-20 — bậc breakpoint ~1000px mới nằm đúng giữa khoảng này,
+            // nên mắt phải soi một cỡ nằm DƯỚI bậc đó thì mới thấy được bậc có gãy bố cục không.
+            float[,] sizes = { { 700, 560 }, { 820, 560 }, { 950, 700 }, { 1024, 700 }, { 1280, 760 }, { 1440, 900 }, { 1920, 1040 } };
             for (int index = 0; index < sizes.GetLength(0); index++)
             {
                 float width = sizes[index, 0], height = sizes[index, 1];
@@ -874,25 +877,196 @@ namespace UxJourney
             }
         }
 
-        // ------------------------------------------------------------------------------------------------ J11 màn khác
+        // ------------------------------------------------------------------------------------------------ J11 bốn màn còn lại
+
+        // Vì sao viết lại J11 ở đợt W9: bản W8 chỉ MỞ bốn màn ra rồi chụp ở hai cỡ, nên ảnh không bao giờ thấy trạng thái
+        // "đã chọn một dòng", "đang gõ tìm", "popover đang mở" — đúng những trạng thái mà bố cục hay vỡ. Đợt này mỗi màn
+        // thao tác thật vài bước chính ở năm cỡ, kể cả hai cỡ nhỏ mà W8 từng hoãn.
+        private static readonly float[][] ScreenSizes =
+        {
+            new float[] { 700, 560 }, new float[] { 820, 560 }, new float[] { 1024, 700 },
+            new float[] { 1280, 760 }, new float[] { 1920, 1040 }
+        };
 
         private static IEnumerator J11(UxRunner runner)
         {
-            yield return OpenDesignHub(runner, "overview", 1440, 900);
-            string[] titles = { "Tổng quan", "Loại event", "Kiểm lịch", "Xuất JSON" };
-            string[] slugs = { "tong-quan", "loai-event", "kiem-lich", "xuat-json" };
-            foreach (float[] size in new[] { new float[] { 1440, 900 }, new float[] { 820, 560 } })
+            yield return J11Body(runner, ScreenSizes, true);
+        }
+
+        /// <summary>Bản rút gọn cho 2022.3: chỉ Tổng quan + Xuất JSON ở 820 và 1280 (yêu cầu của lượt hành trình W9).</summary>
+        private static IEnumerator J11Short(UxRunner runner)
+        {
+            yield return J11Body(runner, new[] { new float[] { 820, 560 }, new float[] { 1280, 760 } }, false);
+        }
+
+        private static IEnumerator J11Body(UxRunner runner, float[][] sizes, bool allScreens)
+        {
+            foreach (float[] size in sizes)
             {
                 string label = Size(size[0], size[1]);
                 runner.CurrentStep = "J11-" + label;
+                // MỞ LẠI hub cho TỪNG cỡ thay vì đổi cỡ trên cùng một cửa sổ: trạng thái người dùng để lại ở cỡ trước
+                // (chữ trong ô tìm của Kiểm lịch, dòng đang chọn ở Loại event, tab của Tổng quan) không xoá được bằng
+                // phím giả, nên cỡ sau sẽ chụp nhầm "đang lọc" thành "vừa mở". Mỗi cỡ là một phiên mở hub sạch.
+                yield return OpenDesignHub(runner, "overview", size[0], size[1]);
                 yield return PlaceSized(runner, size[0], size[1]);
-                for (int index = 0; index < titles.Length; index++)
+
+                yield return Overview(runner, label);
+                if (allScreens)
                 {
-                    yield return NavigateTo(runner, titles[index]);
-                    yield return new WaitSeconds(0.4);
-                    yield return Snap(runner, "J11-" + (index + 1).ToString("00") + "-" + slugs[index] + "-" + label, titles[index] + " " + label);
+                    yield return EventTypes(runner, label);
+                    yield return ValidationScreen(runner, label);
                 }
+
+                yield return ExportScreen(runner, label);
             }
+        }
+
+        private static IEnumerator Overview(UxRunner runner, string label)
+        {
+            yield return NavigateTo(runner, "Tổng quan");
+            yield return new WaitSeconds(0.4);
+            yield return Snap(runner, "J11-01-tong-quan-" + label, "Tổng quan, vừa mở, cửa sổ " + label);
+
+            // Tab "Sắp diễn ra": đổi tab là thao tác đầu tiên người dùng làm ở màn này, và là chỗ hàng tab dễ tràn nhất ở 700.
+            VisualElement tabs = Root.Q("overview-upcoming-tabs");
+            // Tab của LiveOpsTabStrip là ToolbarToggle nằm trong một slot, KHÔNG phải Button — tìm theo class của tab.
+            List<VisualElement> tabButtons = tabs == null
+                ? new List<VisualElement>()
+                : UxFind.All(tabs, element => element.ClassListContains("liveops-hub-tab-strip__tab") && UxFind.Shown(element));
+            Note(runner, "Tổng quan " + label + ": hàng tab 'Sắp diễn ra' có " + tabButtons.Count + " tab hiện");
+            if (tabButtons.Count > 1)
+            {
+                yield return UxInput.Click(Hub, tabButtons[tabButtons.Count - 1]);
+                yield return new WaitFrames(8);
+                yield return Snap(runner, "J11-02-tong-quan-tab-" + label, "Tổng quan, bấm tab cuối của 'Sắp diễn ra', cửa sổ " + label);
+            }
+
+            // Cuộn xuống hết: thẻ "Cần xử lý" và dải chỉ số nằm dưới lằn cuộn ở cỡ nhỏ — không cuộn thì ảnh chỉ thấy nửa màn.
+            yield return ScrollToBottom(runner, "overview-scroll", "Tổng quan " + label);
+            yield return Snap(runner, "J11-03-tong-quan-cuon-" + label, "Tổng quan, cuộn xuống đáy, cửa sổ " + label);
+
+            VisualElement recheck = Root.Q("overview-recheck-all");
+            if (recheck != null && UxFind.Shown(recheck))
+            {
+                yield return UxInput.Click(Hub, recheck);
+                yield return new WaitFrames(12);
+                yield return Snap(runner, "J11-04-tong-quan-kiem-lai-" + label, "Tổng quan, bấm 'Kiểm lại tất cả', cửa sổ " + label);
+            }
+        }
+
+        private static IEnumerator EventTypes(UxRunner runner, string label)
+        {
+            yield return NavigateTo(runner, "Loại event");
+            yield return new WaitSeconds(0.4);
+            yield return Snap(runner, "J11-05-loai-event-" + label, "Loại event, vừa mở, cửa sổ " + label);
+
+            // Chọn một dòng trong bảng → pane inspector bên phải hiện ra. Ở cỡ hẹp pane này phải xuống dưới bảng chứ không
+            // được chen ngang làm bảng cụt cột — chính là chỗ W9 vừa sửa, nên ảnh phải có trạng thái đã chọn.
+            // Bảng là MultiColumnListView nên "dòng" không có class riêng — bấm vào một Ô của dòng đầu là cách người dùng chọn.
+            VisualElement row = UxFind.First(Root, element => element.ClassListContains("liveops-hub-event-types-cell") && UxFind.Shown(element)
+                                                             && element.worldBound.height > 1);
+            if (row != null)
+            {
+                yield return UxInput.Click(Hub, row);
+                yield return new WaitFrames(10);
+                yield return Snap(runner, "J11-06-loai-event-chon-" + label, "Loại event, đã chọn một loại, cửa sổ " + label);
+            }
+            else
+            {
+                Note(runner, "Loại event " + label + ": không tìm thấy dòng bảng để chọn");
+            }
+
+            VisualElement hiddenNote = Root.Q("event-types-columns-hidden-note-text");
+            if (hiddenNote is TextElement) Note(runner, "Loại event " + label + ": nhãn cột đã thu gọn = '" + ((TextElement)hiddenNote).text + "'");
+
+            VisualElement add = Root.Q("event-types-add");
+            if (add != null && UxFind.Shown(add))
+            {
+                yield return UxOs.Activate(runner);
+                yield return OpenPopoverFrom(runner, add);
+                EditorWindow popup = UxHub.PopupWindow();
+                yield return Snap(runner, "J11-07-loai-event-popover-" + label, "Loại event, popover 'Thêm loại event', cửa sổ " + label, popup);
+                if (popup != null) yield return UxInput.PressKey(popup, KeyCode.Escape, EventModifiers.None, (char)27);
+                UxOs.Release(runner);
+                yield return new WaitFrames(8);
+            }
+        }
+
+        private static IEnumerator ValidationScreen(UxRunner runner, string label)
+        {
+            yield return NavigateTo(runner, "Kiểm lịch");
+            yield return new WaitSeconds(0.4);
+            yield return Snap(runner, "J11-08-kiem-lich-" + label, "Kiểm lịch, vừa mở, cửa sổ " + label);
+
+            // Gõ tìm: toolbar của màn này gồm ô tìm + tab + menu loại; ở 700 cả ba phải xuống hàng chứ không đè nhau.
+            TextField search = Root.Q<TextField>("validation-search");
+            if (search != null && UxFind.Shown(search))
+            {
+                yield return ReplaceText(Hub, search, "hunt", false);
+                yield return new WaitFrames(10);
+                yield return Snap(runner, "J11-09-kiem-lich-tim-" + label, "Kiểm lịch, gõ tìm 'hunt', cửa sổ " + label);
+            }
+
+            // Mở một nhóm vấn đề: thân nhóm là chỗ câu chữ dài nhất của cả hub, ở 700 nó phải xuống dòng chứ không cắt.
+            VisualElement groupHeader = UxFind.First(Root, element => element.ClassListContains("liveops-hub-card-header--clickable") && UxFind.Shown(element));
+            if (groupHeader == null)
+            {
+                groupHeader = UxFind.First(Root, element => element.ClassListContains("liveops-hub-validation-group-title") && UxFind.Shown(element));
+            }
+
+            if (groupHeader != null)
+            {
+                yield return UxInput.Click(Hub, groupHeader);
+                yield return new WaitFrames(10);
+                yield return Snap(runner, "J11-10-kiem-lich-mo-nhom-" + label, "Kiểm lịch, mở một nhóm vấn đề, cửa sổ " + label);
+            }
+            else
+            {
+                Note(runner, "Kiểm lịch " + label + ": không thấy header nhóm để mở");
+            }
+
+            // Không cần xoá ô tìm ở đây: mỗi cỡ mở lại hub từ đầu (xem J11Body), nên trạng thái không rò sang cỡ sau.
+        }
+
+        private static IEnumerator ExportScreen(UxRunner runner, string label)
+        {
+            yield return NavigateTo(runner, "Xuất JSON");
+            yield return new WaitSeconds(0.4);
+            yield return Snap(runner, "J11-11-xuat-json-" + label, "Xuất JSON, vừa mở, cửa sổ " + label);
+
+            VisualElement gate = Root.Q("export-gate-compact");
+            if (gate != null) Note(runner, "Xuất JSON " + label + ": thẻ cổng đang ở dạng " + (UxFind.Shown(gate) ? "THU GỌN" : "đầy đủ"));
+
+            // Bảng lịch sử + thẻ khác biệt nằm dưới lằn cuộn ở mọi cỡ dưới 1280 — cuộn tới rồi chụp, vì bảng vỡ cột là lỗi
+            // người dùng gặp nhiều nhất ở màn này.
+            yield return ScrollToBottom(runner, "export-scroll", "Xuất JSON " + label);
+            yield return Snap(runner, "J11-12-xuat-json-cuon-" + label, "Xuất JSON, cuộn xuống bảng lịch sử, cửa sổ " + label);
+
+            ToolbarMenu formatMenu = Root.Q<ToolbarMenu>("export-metric-format-menu");
+            if (formatMenu != null) ReadMenu(runner, "Xuất JSON " + label + ": menu định dạng chỉ số", formatMenu.menu);
+        }
+
+        /// <summary>Cuộn một ScrollView xuống đáy bằng lăn chuột thật (không set scrollOffset) để bố cục phản ứng đúng như người dùng.</summary>
+        private static IEnumerator ScrollToBottom(UxRunner runner, string scrollName, string note)
+        {
+            ScrollView scroll = Root.Q<ScrollView>(scrollName);
+            if (scroll == null)
+            {
+                Note(runner, note + ": không thấy ScrollView '" + scrollName + "'");
+                yield break;
+            }
+
+            Vector2 point = scroll.worldBound.center;
+            for (int step = 0; step < 12; step++)
+            {
+                UxInput.Wheel(Hub, point, new Vector2(0, 8));
+                yield return new WaitFrames(2);
+            }
+
+            yield return new WaitFrames(8);
+            Note(runner, note + ": cuộn '" + scrollName + "' tới offset y=" + scroll.scrollOffset.y.ToString("0")
+                + " / tối đa " + Mathf.Max(0, scroll.contentContainer.worldBound.height - scroll.contentViewport.worldBound.height).ToString("0"));
         }
     }
 }
