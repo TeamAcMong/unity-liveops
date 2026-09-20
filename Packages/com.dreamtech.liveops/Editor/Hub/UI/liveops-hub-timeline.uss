@@ -768,19 +768,29 @@
 }
 
 /* (W9-29) Dòng gợi ý CAO THEO NỘI DUNG, không còn 18px cố định.
-   Vì sao đổi: vế phím tắt (⌘⌫ xoá, ⌘D nhân bản) luôn đứng CUỐI câu còn ellipsis luôn cắt từ CUỐI, nên ở cửa sổ hẹp thứ
-   mất đầu tiên đúng là thứ quan trọng nhất — và dòng gợi ý là chỗ DUY NHẤT trong hub nói ra hai phím ấy. Đo thật ngày
-   20/9/2026 trên hub 6000.6 (plan/w10/logs/hubhintprobe.txt): câu "đợt bị bỏ" cần 402px (vi) / 502px (en) mà chỗ cho
-   phần mô tả chỉ có 274px ở cửa sổ 700, 394px ở 820, 364px ở 950 và 438px ở 1024 (en) — bốn cỡ mất phím.
+   Vì sao đổi: vế phím tắt (⌘⌦ xoá, ⌘D nhân bản — glyph xoá do Editor sinh là ⌦ U+2326, không phải ⌫) luôn đứng CUỐI câu
+   còn ellipsis luôn cắt từ CUỐI, nên ở cửa sổ hẹp thứ mất đầu tiên đúng là thứ quan trọng nhất — và dòng gợi ý là chỗ DUY
+   NHẤT trong hub nói ra hai phím ấy. Đo thật ngày 20/9/2026 trên hub 6000.6: bản CŨ (plan/w10/logs/hintprobe.txt, dòng
+   gợi ý còn khoá 18px) cho câu "đợt bị bỏ" cần 402px (vi) / 502px (en) mà ô mô tả chỉ có 254px ở cửa sổ 700 và 374px ở
+   820; bản SAU khi gập (logs/hubhintprobe.txt) đo lại chính ô đó trên hub thật: 274px ở 700, 394px ở 820, 364px ở 950 và
+   438px ở 1024 (en) — bốn cỡ mà bản cũ mất phím.
    Cách chữa theo chốt của user ("cho xuống hai hàng"): bỏ chiều cao cố định, giữ SÀN 18px và cho phần mô tả xuống dòng.
    Không sinh chuỗi hiển thị mới, không bậc cỡ riêng: chỗ rộng thì câu vẫn nằm một hàng đúng 18px như cũ, chỗ hẹp thì nó
    gập xuống. Bậc cỡ bị loại vì ở 1280 phần mô tả en còn ĐÚNG 502px cho câu cần 502px — một bậc ngưỡng sẽ đặt cổng ngay
-   trên mép vực, còn gập theo nội dung thì không có mép nào để rơi. */
+   trên mép vực, còn gập theo nội dung thì không có mép nào để rơi.
+   TRẦN 56px (W10, phiếu soát F3): "cao theo nội dung" mà KHÔNG có trần thì một câu gợi ý dài hơn ở bản sau — hoặc một
+   bản dịch dài hơn — sẽ ăn dần chỗ của làn trong im lặng, vì dòng gợi ý là anh em `flex-shrink: 0` của thân trục. 56px =
+   bốn hàng chữ 10px (hàng ~13px + viền + đệm). Trạng thái CAO NHẤT đo được hôm nay là "đang chọn đợt có id dài nhất" ở
+   cửa sổ 700: 41px, tức ba hàng (plan/w10/logs/hintvariants.txt), nên trần còn dư đúng một hàng và ở 700x560 vẫn còn
+   nguyên một làn. Trần đặt Ở ĐÂY chứ không chỉ trong assert của test: vượt trần thì `overflow: hidden` cắt chữ, và chữ bị
+   cắt là thứ luật "chữ gập cao hơn ô" của UxLayoutAuditor ĐỌC RA ĐƯỢC — hỏng thành một phiếu đỏ có ảnh, không thành một
+   làn biến mất mà không ai đo. */
 .liveops-hub-timeline-hint {
     flex-direction: row;
     align-items: center;
     flex-shrink: 0;
     min-height: 18px;
+    max-height: 56px;
     padding: 0 8px;
     border-top-width: 1px;
     border-color: var(--unity-colors-window-border);
