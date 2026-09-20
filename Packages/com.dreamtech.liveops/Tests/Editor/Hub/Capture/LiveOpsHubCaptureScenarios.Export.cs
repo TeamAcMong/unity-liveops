@@ -83,15 +83,13 @@ namespace DreamTech.LiveOps.Editor.Tests
                     (int)LiveOpsConfirmWindow.Width, (int)LiveOpsConfirmWindow.Level1Height,
                     () => OpenConfirm(ExportRestoreConfirmRequest(), string.Empty),
                     window => ((LiveOpsConfirmWindow)window).Content)
-                .WithExpectedFrames(new LiveOpsHubCaptureExpectedFrame(LiveOpsConfirmContent.RootElementName, LiveOpsConfirmWindow.Width,
-                    LiveOpsConfirmWindow.Level1Height)));
+                .WithExpectedFrames(ConfirmRootExpectedFrame()));
 
             scenarios.Add(new LiveOpsHubCaptureScenario(LiveOpsHubCaptureScenarioIds.H08gConfirmRemoveStamp,
                     (int)LiveOpsConfirmWindow.Width, (int)LiveOpsConfirmWindow.Level1Height,
                     () => OpenConfirm(ExportRemoveStampConfirmRequest(), string.Empty),
                     window => ((LiveOpsConfirmWindow)window).Content)
-                .WithExpectedFrames(new LiveOpsHubCaptureExpectedFrame(LiveOpsConfirmContent.RootElementName, LiveOpsConfirmWindow.Width,
-                    LiveOpsConfirmWindow.Level1Height)));
+                .WithExpectedFrames(ConfirmRootExpectedFrame()));
 
             scenarios.Add(MarkPublished(LiveOpsHubCaptureScenarioIds.H20aMarkPublishedReady,
                 () => MarkPublishedSampleInput(ExportDraftSha).WithUserInput(true, ExportMarkNote)));

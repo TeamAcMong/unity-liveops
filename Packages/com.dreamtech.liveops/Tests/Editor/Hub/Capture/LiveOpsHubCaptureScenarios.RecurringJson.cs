@@ -45,7 +45,19 @@ namespace DreamTech.LiveOps.Editor.Tests
         /// </summary>
         private const float RecurringJsonEditorHeight = 116f;
 
-        private const float RecurringJsonErrorHeight = 13f;
+        /// <summary>
+        /// Chiều cao một DÒNG lỗi, khai theo DẢI (W9-17): 15,5 ± 3 px, tức 12,5…18,5.
+        /// <para>
+        /// Vì sao không còn là một con số: cùng một dòng chữ 10px đo được 13px trên 2022.3 và 17px (skin tối) / 18px (skin
+        /// sáng) trên 6000.6 — chênh lệch của atlas font giữa hai bản Unity, không phải của bố cục. Pin 13px làm 2 ô ảnh
+        /// 6000.6 lệch ở cả lượt 2 lẫn lượt 3; pin 17px sẽ làm 2022.3 lệch thay. Dải này nói đúng thứ đang được hứa và vẫn
+        /// đỏ ở cả hai đầu quan trọng: 0px (dòng lỗi bị <c>display: none</c> vì ảnh lỡ chụp JSON ĐÚNG) và ≥ 26px (câu lỗi
+        /// xuống hai dòng, tức bố cục quanh nó đã đổi).
+        /// </para>
+        /// </summary>
+        private const float RecurringJsonErrorHeight = 15.5f;
+
+        private const float RecurringJsonErrorHeightTolerance = 3f;
 
         static partial void RegisterRecurringJson(List<LiveOpsHubCaptureScenario> scenarios)
         {
@@ -53,7 +65,8 @@ namespace DreamTech.LiveOps.Editor.Tests
             // (ShellFramesWith) — khai mỗi hai khung riêng là lặng lẽ bỏ đo cả rail/header/status của hình này.
             List<LiveOpsHubCaptureExpectedFrame> frames = new List<LiveOpsHubCaptureExpectedFrame>(ShellFramesWith(
                 new LiveOpsHubCaptureExpectedFrame(RecurringRuleJsonFoldout.EditorElementName, 0f, RecurringJsonEditorHeight)));
-            frames.Add(new LiveOpsHubCaptureExpectedFrame(RecurringRuleJsonFoldout.ErrorElementName, 0f, RecurringJsonErrorHeight));
+            frames.Add(new LiveOpsHubCaptureExpectedFrame(RecurringRuleJsonFoldout.ErrorElementName, 0f, RecurringJsonErrorHeight,
+                RecurringJsonErrorHeightTolerance));
             scenarios.Add(new LiveOpsHubCaptureScenario(LiveOpsHubCaptureScenarioIds.H14eRecurringJsonError, StandardWidth, StandardHeight,
                     OpenRecurringJsonError)
                 .WithExpectedFrames(frames.ToArray()));

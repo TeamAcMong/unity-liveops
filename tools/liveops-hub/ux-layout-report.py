@@ -24,6 +24,8 @@ import sys
 FINDING_KINDS = [
     ("missingElement", "thiếu/không dùng được"),
     ("textCut", "chữ bị cắt"),
+    # W9-25: chữ CHƯA cắt nhưng chỗ dư dưới 5% bề rộng ô — một đổi metric font là cắt, nên nó đứng ngay sau "chữ bị cắt".
+    ("textTight", "chữ chiếm > 95% bề rộng ô"),
     ("childOverflow", "con tràn khỏi cha"),
     ("notStretched", "không giãn theo cửa sổ"),
     ("siblingOverlap", "anh em chồng nhau"),

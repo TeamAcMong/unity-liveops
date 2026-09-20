@@ -17,7 +17,8 @@ namespace DreamTech.LiveOps.Editor.Tests
     /// </summary>
     internal sealed class UxLayoutDeferralEntry
     {
-        public UxLayoutDeferralEntry(string deferralId, string screenId, int findingCount, string reason)
+        public UxLayoutDeferralEntry(string deferralId, string screenId, int findingCount, string reason,
+            params string[] deferredSizes)
         {
             if (string.IsNullOrEmpty(deferralId)) throw new ArgumentNullException(nameof(deferralId));
             if (string.IsNullOrEmpty(screenId)) throw new ArgumentNullException(nameof(screenId));
@@ -26,6 +27,7 @@ namespace DreamTech.LiveOps.Editor.Tests
             ScreenId = screenId;
             FindingCount = findingCount;
             Reason = reason;
+            DeferredSizes = deferredSizes ?? new string[0];
         }
 
         /// <summary>Mã phiếu của đợt W9 (dạng <c>W9-NN</c>) — chỗ duy nhất nối test đỏ với việc đã hẹn làm.</summary>
@@ -39,6 +41,28 @@ namespace DreamTech.LiveOps.Editor.Tests
 
         public string Reason { get; }
 
+        /// <summary>
+        /// Nhãn các cỡ cửa sổ ("700x560") còn hoãn. RỖNG = hoãn CẢ màn ở mọi cỡ (W9-18).
+        /// <para>
+        /// Vì sao hoãn theo cỡ chứ không theo màn: một mục hoãn theo màn dừng luôn những cặp cỡ × ngôn ngữ đang SẠCH của
+        /// màn đó. Màn Loại event là ví dụ nặng nhất — lỗi chỉ ở ba cỡ hẹp, nhưng hoãn cả test làm 6/12 cặp đang xanh
+        /// ngừng được kiểm, tức là một lần sửa làm hỏng ba cỡ rộng cũng sẽ KHÔNG ai thấy cho tới hết đợt W9.
+        /// </para>
+        /// </summary>
+        public IReadOnlyList<string> DeferredSizes { get; }
+
+        /// <summary>Cỡ <paramref name="sizeLabel"/> ("950x700") có đang được hoãn không; mục hoãn cả màn thì mọi cỡ đều có.</summary>
+        public bool IsDeferredAt(string sizeLabel)
+        {
+            if (DeferredSizes.Count == 0) return true;
+            for (int index = 0; index < DeferredSizes.Count; index++)
+            {
+                if (string.Equals(DeferredSizes[index], sizeLabel, StringComparison.Ordinal)) return true;
+            }
+
+            return false;
+        }
+
         /// <summary>Câu người chạy test đọc được: mã phiếu đứng đầu để lọc, rồi số chỗ, rồi lý do.</summary>
         public string IgnoreMessage
         {
@@ -46,8 +70,12 @@ namespace DreamTech.LiveOps.Editor.Tests
             {
                 // InvariantCulture vì đây là chuỗi MÁY đọc (người soát grep theo mã phiếu + con số), không phải chuỗi hiển
                 // thị: máy chạy cổng đổi ngôn ngữ hệ thống thì con số phải vẫn y nguyên. Cùng quy ước với UxLayoutAuditor.
+                string scope = DeferredSizes.Count == 0
+                    ? " ở MỌI cỡ"
+                    : " ở " + DeferredSizes.Count.ToString(CultureInfo.InvariantCulture) + " cỡ ("
+                      + string.Join(", ", DeferredSizes as string[] ?? new List<string>(DeferredSizes).ToArray()) + ")";
                 return DeferralId + " — màn '" + ScreenId + "' còn " + FindingCount.ToString(CultureInfo.InvariantCulture)
-                    + " chỗ không dùng được. " + Reason;
+                    + " chỗ không dùng được" + scope + ". " + Reason;
             }
         }
     }
@@ -76,12 +104,25 @@ namespace DreamTech.LiveOps.Editor.Tests
     /// </summary>
     internal static class UxLayoutDeferralList
     {
+        /// <summary>Nhãn cỡ của ma trận bố cục — viết một chỗ để mục hoãn không gõ sai "1024x700" thành "1024x760".</summary>
+        private const string Size700 = "700x560";
+
+        private const string Size820 = "820x560";
+        /// <summary>Cỡ MỚI của W9-20. Nó nằm trong danh sách hoãn của mọi màn đang đỏ ở 820 và 1024 vì chưa ai đo nó,
+        /// và coi một cỡ CHƯA ĐO là sạch thì mục hoãn lại thành chỗ trốn kiểm. Gói màn đo xong thì gỡ.</summary>
+        private const string Size950 = "950x700";
+        private const string Size1024 = "1024x700";
+        private const string Size1280 = "1280x760";
+        private const string Size1440 = "1440x900";
+
         private static readonly UxLayoutDeferralEntry[] Entries =
         {
-            new UxLayoutDeferralEntry("W9-01", "export", 245,
-                "Màn Xuất JSON nằm NGOÀI phạm vi đợt W8 (USER chốt 18/9/2026). 245 chỗ là khối lượng của một đợt riêng, "
-                + "không phải việc kèm theo của một gói sửa hành trình. MẤT ĐỘ PHỦ: hoãn cả test nên 3/12 cặp cỡ × ngôn "
-                + "ngữ đang SẠCH (1440x900 vi, 1920x1040 vi, 1920x1040 en) cũng ngừng được kiểm tới W9."),
+            new UxLayoutDeferralEntry("W9-01", "export", 241,
+                "Màn Xuất JSON nằm NGOÀI phạm vi đợt W8 (USER chốt 18/9/2026) và là việc của gói G-W9-EXPORT. Số chỗ đo "
+                + "lại trên 6d73130 là 241 (sổ W9 ghi 245 theo lượt 2; lượt 3 sửa USS dùng chung nên kéo theo màn này). "
+                + "HOÃN THEO CỠ từ đợt W9: 1920x1040 đo được 0 chỗ ở cả hai ngôn ngữ nên cỡ đó CHẠY ĐẦY ĐỦ ngay lượt này "
+                + "— một lần sửa làm hỏng cỡ rộng sẽ đỏ ngay, không phải đợi hết đợt.",
+                Size700, Size820, Size950, Size1024, Size1280, Size1440),
         };
 
         /// <summary>Mọi mục — dùng cho test gác danh sách và cho báo cáo của cổng người.</summary>
@@ -102,13 +143,13 @@ namespace DreamTech.LiveOps.Editor.Tests
         }
 
         /// <summary>
-        /// Dừng test với trạng thái Ignored kèm mã phiếu W9 nếu màn <paramref name="screenId"/> đang được hoãn; không
-        /// được hoãn thì trả về và test chạy tiếp bình thường. Gọi ở ĐẦU thân test để không tốn một lượt mở hub.
+        /// Dừng test với trạng thái Ignored kèm mã phiếu W9 nếu màn <paramref name="screenId"/> đang được hoãn ở MỌI cỡ;
+        /// hoãn theo cỡ thì trả về và <c>UxLayoutAuditTests.RunScreen</c> tự bỏ đúng những cỡ đó.
         /// </summary>
         public static void IgnoreWhenDeferred(string screenId)
         {
             UxLayoutDeferralEntry entry = Find(screenId);
-            if (entry == null) return;
+            if (entry == null || entry.DeferredSizes.Count > 0) return;
             Assert.Ignore(entry.IgnoreMessage);
         }
     }

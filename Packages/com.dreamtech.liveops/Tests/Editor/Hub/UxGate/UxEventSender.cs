@@ -38,9 +38,10 @@ namespace DreamTech.LiveOps.Editor.Tests
         /// <summary>Giờ thật chờ thêm sau một thao tác — đủ cho <c>schedule.Execute</c> 0 ms và một nhịp update của Editor.</summary>
         internal const int SettleMilliseconds = 40;
 
-        /// <summary>Trần chờ một điều kiện: vượt CẢ số khung lẫn số giây mới fail (V-23).</summary>
+        /// <summary>Số khung tối thiểu phải bơm trước khi được phép kết luận một điều kiện là KHÔNG bao giờ đúng.</summary>
         internal const int MaximumWaitFrames = 60;
 
+        /// <summary>Hạn giờ THẬT của một lượt chờ điều kiện; quá mức này là fail dù đã bơm bao nhiêu khung (W9-16).</summary>
         internal const int MaximumWaitMilliseconds = 5000;
 
         /// <summary>Hai lần bấm của nhấp đúp cách nhau (ms) — dưới ngưỡng nhấp đúp của macOS/Windows.</summary>
@@ -263,7 +264,17 @@ namespace DreamTech.LiveOps.Editor.Tests
 
         // ================================================================================================ chờ
 
-        /// <summary>Chờ đủ CẢ <paramref name="frames"/> khung lẫn <paramref name="milliseconds"/> giờ thật (V-23), bơm delayCall mỗi khung.</summary>
+        /// <summary>
+        /// Chờ đủ CẢ <paramref name="frames"/> khung lẫn <paramref name="milliseconds"/> giờ thật (V-23), bơm delayCall mỗi khung.
+        /// <para>
+        /// W9-16 — ĐÃ THỬ và ĐÃ BỎ: nối thêm một vế "chờ tới khi hình học của cây đứng yên" vào cuối hàm này. Ý tưởng đúng
+        /// trên giấy (thôi đoán "ba khung là đủ") nhưng đo được là nó làm cổng XẤU ĐI: đường nền W8 chạy tám lượt cho kết quả
+        /// trùng khít, còn bốn lượt với vế đó cho BỐN tập test đỏ KHÁC NHAU, và các ca hỏng đều là hành trình không liên quan
+        /// (ô ngày, ô giờ, popover). Nguyên nhân: vế đó đổi nhịp của MỌI thao tác, mà hub có hẹn giờ thật (hover card 500 ms,
+        /// toast 6 s) nên đổi nhịp là đổi hành vi. Chi tiết và hướng đi tiếp ở G-W9-GATE-build.md mục 5.3 — đừng thử lại bằng
+        /// cách nới hạn giờ.
+        /// </para>
+        /// </summary>
         internal static IEnumerator Settle(int frames, int milliseconds)
         {
             Stopwatch stopwatch = Stopwatch.StartNew();
@@ -276,17 +287,47 @@ namespace DreamTech.LiveOps.Editor.Tests
             }
         }
 
-        /// <summary>Chờ tới khi <paramref name="condition"/> đúng; chỉ fail khi quá cả 60 khung lẫn 5 giây (V-23).</summary>
+        /// <summary>
+        /// Chờ <paramref name="condition"/> tới khi đúng hoặc tới hạn giờ, rồi TRẢ VỀ — không fail. Dành cho chỗ mà lượt
+        /// chờ hết hạn là một câu trả lời có nghĩa ("chưa ăn, thử lại"), khác với <see cref="WaitUntil(Func{bool},string)"/>
+        /// nơi hết hạn nghĩa là hỏng (W9-16).
+        /// </summary>
+        internal static IEnumerator WaitUntilOrTimeout(Func<bool> condition, int timeoutMilliseconds)
+        {
+            Stopwatch stopwatch = Stopwatch.StartNew();
+            while (!condition() && stopwatch.ElapsedMilliseconds < timeoutMilliseconds)
+            {
+                PumpDelayCalls();
+                yield return null;
+            }
+        }
+
+        /// <summary>
+        /// Chờ tới khi <paramref name="condition"/> đúng; fail khi quá HẠN GIỜ THẬT (<see cref="MaximumWaitMilliseconds"/>),
+        /// sau khi đã bơm ít nhất <see cref="MaximumWaitFrames"/> khung.
+        /// <para>
+        /// W9-16: bản cũ đòi vượt CẢ số khung LẪN số giây mới được fail. Vế "số khung" ở đó không bảo vệ gì — nó chỉ làm hạn
+        /// giờ dài ra khi máy chạy chậm (ít khung hơn trong cùng một khoảng), tức là đúng lúc cần một câu trả lời dứt khoát
+        /// thì cổng lại chờ lâu hơn. Nay giờ thật là thứ quyết định; số khung chỉ còn là SÀN để một điều kiện đúng-ngay
+        /// không bị kết luận trước khi Editor kịp chạy lượt nào.
+        /// </para>
+        /// </summary>
         internal static IEnumerator WaitUntil(Func<bool> condition, string failureMessage)
+        {
+            yield return WaitUntil(condition, failureMessage, MaximumWaitMilliseconds);
+        }
+
+        internal static IEnumerator WaitUntil(Func<bool> condition, string failureMessage, int timeoutMilliseconds)
         {
             Stopwatch stopwatch = Stopwatch.StartNew();
             int frames = 0;
             while (!condition())
             {
-                if (++frames > MaximumWaitFrames && stopwatch.ElapsedMilliseconds > MaximumWaitMilliseconds)
+                if (frames >= MaximumWaitFrames && stopwatch.ElapsedMilliseconds > timeoutMilliseconds)
                 {
                     Assert.Fail(failureMessage + " (đã chờ " + frames + " khung, " + stopwatch.ElapsedMilliseconds + " ms)");
                 }
+                frames++;
                 PumpDelayCalls();
                 yield return null;
             }
