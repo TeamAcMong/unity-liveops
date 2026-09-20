@@ -39,6 +39,16 @@ namespace DreamTech.LiveOps.Editor.Tests
         /// </summary>
         private const float RequiredTextSlackPerSide = 1.5f;
 
+        /// <summary>
+        /// Sai số của PHÉP ĐO, tách bạch với ngưỡng thiết kế ở trên: <c>MeasureTextSize</c> và lượt vẽ thật làm tròn lệch nhau
+        /// vài phần mười px ở cả hai bản Unity (cùng con số 1,5px mà <c>CalendarInspectorUxFixTests</c> dùng cho mọi phép đo
+        /// chữ). Vì sao phải cộng vào: theo số của gói, 2022.3 đạt ngưỡng BẰNG ĐÚNG (chữ 75px, vùng nội dung 78px = 88 − 8 đệm
+        /// − 2 viền, tức dư đúng 1,5px mỗi bên) nên assert không dung sai sẽ đỏ vì một phần mười pixel làm tròn — thành ca chập
+        /// chờn tiếp theo, đúng chủng loại W9-16. NGƯỠNG là <see cref="RequiredTextSlackPerSide"/> × 2 = 3,0px; con số này CHỈ
+        /// bù sai số đo và KHÔNG phải một phần của khe hở.
+        /// </summary>
+        private const float TextMeasureTolerance = 1.5f;
+
         private ControlsTestPanel _panel;
 
         [TearDown]
@@ -413,11 +423,14 @@ namespace DreamTech.LiveOps.Editor.Tests
             float available = input.contentRect.width;
 
             Assert.Greater(needed, 0f, "đo chữ trả 0px — phép đo hỏng thì ca này thành lời khai suông");
-            Assert.GreaterOrEqual(available, needed + (2f * RequiredTextSlackPerSide),
+            Assert.GreaterOrEqual(available + TextMeasureTolerance, needed + (2f * RequiredTextSlackPerSide),
                 "chữ ngày \"" + LongestDateText + "\" cần " + needed.ToString("0.#", CultureInfo.InvariantCulture)
                 + "px, vùng nội dung của ô có " + available.ToString("0.#", CultureInfo.InvariantCulture)
-                + "px — cần dư ít nhất " + RequiredTextSlackPerSide.ToString("0.#", CultureInfo.InvariantCulture)
-                + "px mỗi bên để một đổi metric font không cắt chữ trong im lặng (W9-19)");
+                + "px — NGƯỠNG là dư " + RequiredTextSlackPerSide.ToString("0.#", CultureInfo.InvariantCulture)
+                + "px mỗi bên (tổng " + (2f * RequiredTextSlackPerSide).ToString("0.#", CultureInfo.InvariantCulture)
+                + "px) để một đổi metric font không cắt chữ trong im lặng, cộng "
+                + TextMeasureTolerance.ToString("0.#", CultureInfo.InvariantCulture)
+                + "px DUNG SAI ĐO của MeasureTextSize (W9-19)");
             LogAssert.NoUnexpectedReceived();
         }
 

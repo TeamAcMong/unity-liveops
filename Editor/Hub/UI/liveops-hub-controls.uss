@@ -51,7 +51,7 @@
 }
 
 /* (W9-19) Đệm ngang của ô NGÀY trở lại đúng "padding 0 4" mà [SD1 §3.1] pin cho ô nhập: lượt trước phải bỏ nó để chữ 75px vừa
-   trong ô 76px (RC-02), nay ô rộng 84 nên đệm về lại được mà chữ vẫn không chạm mép.
+   trong ô 76px (RC-02), nay ô rộng 88 nên đệm về lại được mà chữ vẫn không chạm mép.
    Ô GIỜ giữ đệm ngang 0: "12:00" cũng là chữ mono và ô pin 44px, nên 4+4 đệm chỉ còn 36px cho chữ — trả đệm ở đó là dựng lại
    đúng chỗ cắt mà lượt trước vừa dẹp. Nới ô giờ là đổi một con số [SD1] khác, ngoài phạm vi W9-19: khai thành nợ, không tự
    nới. Đệm DỌC của cả hai ô giữ nguyên. */
