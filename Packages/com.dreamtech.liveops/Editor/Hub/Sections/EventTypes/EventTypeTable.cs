@@ -31,7 +31,16 @@ namespace DreamTech.LiveOps.Editor
         /// <summary>
         /// (W9-31) Tên của cột 36px ĐÃ GỠ. Hằng còn lại vì kịch bản chụp vùng EventTypes khai một khung mong đợi theo tên này
         /// và file đó thuộc quyền ghi của gói khác trong cùng đợt; khung ấy nay không khớp phần tử nào nên không kiểm gì.
-        /// Xoá CẶP (hằng ở đây + khung trong kịch bản chụp) ở cổng đợt, kẻo hằng thừa ở lại rồi có người dựng lại cột trống.
+        /// Xoá BỘ BA ở cổng đợt, kẻo hằng thừa ở lại rồi có người dựng lại cột trống:
+        /// <list type="number">
+        /// <item>hằng này;</item>
+        /// <item>dòng <c>new LiveOpsHubCaptureExpectedFrame(EventTypeTable.StateColumnName, …)</c> và hằng
+        /// <c>EventTypesColumnStateWidth</c> trong <c>LiveOpsHubCaptureScenarios.EventTypes.cs</c>;</item>
+        /// <item>(soát W10 F3) một CHỐT trong <c>tools/liveops-hub/measure-capture.py</c>: khung mong đợi khớp 0 phần tử
+        /// phải là LỖI chứ không im lặng. Hôm nay vòng <c>for element in matching_elements(...)</c> không sinh gì khi
+        /// không khớp, nên một khung chết không làm cổng ảnh đỏ — đó là lý do khung <c>state</c> mồ côi này sống sót
+        /// qua cả lượt chụp lẫn lượt đo mà không ai biết.</item>
+        /// </list>
         /// </summary>
         internal const string StateColumnName = "state";
 
@@ -60,8 +69,21 @@ namespace DreamTech.LiveOps.Editor
         /// giờ bị lộ vì cột này GIÃN và trước W9-31 nó không bao giờ rơi xuống bề rộng tối thiểu; gỡ cột trạng thái 36px trả
         /// chỗ cho một cột phụ nữa ở cửa sổ 700px, và lúc đó cột tên hiển thị mới chạm đáy của chính nó. 128 cho 120px vùng
         /// nội dung, dư 9px (92,5%).
+        /// <para>
+        /// (soát W10 F2) Chính việc nâng 120 → 128 lại ĐẨY cỡ 700×560 ra khỏi vùng chạm đáy, và số đo nói rõ: bảng ở đó
+        /// rộng 424px, dùng được 410px sau chỗ thanh cuộn; 44+128+<b>120</b>+116 = 408 ≤ 410 nên bảng còn giữ được một cột
+        /// phụ và cột tên hiển thị rơi xuống 120 (đó là lúc dòng "99,1%" xuất hiện), còn 44+128+<b>128</b>+116 = 416 &gt; 410
+        /// nên bảng bỏ luôn cột phụ ấy và cột tên hiển thị giãn lại thành 240px. Cỡ cửa sổ THẬT SỰ ép cột xuống đáy là
+        /// 706×560 (bảng 430px) — đo được, có ảnh <c>plan/w10/shots/w931-loai-event-day-cot.png</c>.
+        /// </para>
+        /// <para>
+        /// <c>internal</c> vì vậy: con số này phải kiểm được bằng ĐƠN VỊ ("chữ dài nhất × 1/0,95 + đệm ô"), không phụ
+        /// thuộc việc bố cục hôm nay có chạm đáy hay không — xem
+        /// <c>EventTypesSectionTests.Table_AtNarrowWindow_KeepsSlackInEveryCell</c> vế 2. Khoá thứ hai là năm mốc bậc cột
+        /// của <c>OptionalColumnCountThatFits</c>, vốn tính từ <see cref="AlwaysVisibleColumnsWidth"/>.
+        /// </para>
         /// </summary>
-        private const float DisplayNameColumnMinimumWidth = 128f;
+        internal const float DisplayNameColumnMinimumWidth = 128f;
         private const float EntryColumnMinimumWidth = 116f;
         private const float ConfigKeyColumnMinimumWidth = 140f;
         private const float SourceColumnMinimumWidth = 88f;
@@ -367,8 +389,11 @@ namespace DreamTech.LiveOps.Editor
             VisualElement swatch = new VisualElement();
             swatch.AddToClassList(LiveOpsHubClassNames.Swatch);
             cell.Add(swatch);
+            // (soát W10 F4) KHÔNG đặt Size = Small: dấu của ô này LUÔN là Blocked (BindSwatchCell), mà
+            // liveops-hub-components.uss không có luật --small.--blocked — bản nhỏ chỉ tồn tại cho Ok/Warning/NotMeasured.
+            // Đặt Small ở đây là một lệnh rỗng đọc thành "dấu 7px", và con số 7 ấy đã lọt vào chú thích USS lẫn báo cáo.
+            // Để mặc định Regular thì cỡ khai đúng bằng cỡ vẽ thật: 8x8.
             LiveOpsStateMark mark = new LiveOpsStateMark();
-            mark.Size = LiveOpsStateMark.MarkSize.Small;
             cell.Add(mark);
             return cell;
         }
