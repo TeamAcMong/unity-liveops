@@ -48,6 +48,23 @@ namespace DreamTech.LiveOps.Editor.Tests
         private const int WindowWidth = 1280;
         private const int WindowHeight = 760;
 
+        /// <summary>Cỡ dò của bậc --snug (W9-20): 950 nằm giữa 900 và 1000, tức trong khoảng mù cũ của ma trận cổng.</summary>
+        private const int SnugProbeWidth = 950;
+        private const int SnugProbeHeight = 700;
+
+        /// <summary>Đợt SINH TỪ LUẬT của lịch mẫu — chọn nó thì inspector dựng khối field chỉ đọc (W9-21).</summary>
+        private const string RecurringEntryKey = "weekly-pass#35";
+
+        /// <summary>Chữ test gõ vào ô chỉ đọc. Khác mọi giá trị thật của lịch mẫu để "không đổi" là kết luận đọc được.</summary>
+        private const string TypedProbeText = "gõ thử vào ô chỉ đọc";
+
+        /// <summary>Giá trị ban đầu của ô số ĐỐI CHỨNG — cú kéo nhãn phải đổi được nó, nếu không thì cử chỉ mô phỏng là giả.</summary>
+        private const int DragProbeStartValue = 12;
+
+        /// <summary>Số bước của cú kéo mô phỏng và quãng kéo ngang — đủ dài để dragger của IntegerField vượt ngưỡng nhạy.</summary>
+        private const int DragSteps = 6;
+        private const float DragDistancePixels = 120f;
+
         /// <summary>Sai số đo chữ: <c>MeasureTextSize</c> làm tròn khác trình bày một chút ở cả hai bản Unity.</summary>
         private const float TextMeasureTolerance = 1.5f;
 
@@ -60,6 +77,9 @@ namespace DreamTech.LiveOps.Editor.Tests
         private LiveOpsHubWindow _window;
         private ControlsTestPanel _panel;
 
+        /// <summary>Cửa sổ của ca đo theo CỠ (W9-20) — mở qua fixture của cổng vì chỉ chỗ đó đặt được ngôn ngữ và cỡ cùng lúc.</summary>
+        private UxHubWindowFixture _fixture;
+
         [TearDown]
         public void TearDown()
         {
@@ -70,6 +90,12 @@ namespace DreamTech.LiveOps.Editor.Tests
             }
             _panel?.Dispose();
             _panel = null;
+            if (_fixture != null)
+            {
+                _fixture.Dispose();
+                _fixture = null;
+            }
+            UxHubWindowFixture.CloseStrayWindows();
             LiveOpsHubTestServices.ReleaseAll();
         }
 
@@ -287,7 +313,8 @@ namespace DreamTech.LiveOps.Editor.Tests
                 AssertVisibleInside(field.DateInput, body, "ô ngày của \"" + labels[index] + "\"");
                 AssertVisibleInside(field.TimeInput, body, "ô giờ của \"" + labels[index] + "\"");
                 AssertVisibleInside(field.ZoneLabel, body, "nhãn UTC của \"" + labels[index] + "\"");
-                Assert.AreEqual(76f, field.DateInput.layout.width, 1f, "ô ngày 76px [SD1 §3.1]");
+                Assert.AreEqual(88f, field.DateInput.layout.width, 1f,
+                    "ô ngày 88px (W9-19: chữ 75px ở 2022.3 + 4+4px đệm [SD1 §3.1] + 2px viền TextInput + 1,5px dư mỗi bên)");
                 Assert.AreEqual(44f, field.TimeInput.layout.width, 1f, "ô giờ 44px [SD1 §3.1]");
             }
         }
@@ -448,6 +475,211 @@ namespace DreamTech.LiveOps.Editor.Tests
             AssertNoCutText(root.Q(LiveOpsHubPaths.AddEventPopoverElementNames.StepReview), "bước 3 popover");
         }
 
+        // ============================================================================================ W9-20 · bậc --snug 1000px
+
+        /// <summary>
+        /// (W9-20) Cỡ 950×700 nằm trong khoảng mù 900–1099 mà ma trận cổng trước W9 chỉ thử ở đúng một điểm 1024. Ở đó thanh
+        /// công cụ màn Lịch đã nhường menu "Bắt lưới" (từ --medium) nhưng vẫn còn công tắc "So với đã đăng (n)" — bậc --snug
+        /// nhường nốt nó, và lệnh vẫn còn đường vào qua menu ⋮.
+        /// <para>
+        /// Đo ở CẢ HAI ngôn ngữ vì chuỗi tiếng Việt dài hơn: luật nhường đặt theo CỠ nên phải đúng cho ngôn ngữ dài nhất.
+        /// </para>
+        /// </summary>
+        [UnityTest]
+        public IEnumerator W9_20_CalendarToolbar_At950_YieldsCompareToggle_AndKeepsOverflowMenu()
+        {
+            foreach (LiveOpsHubLanguageId language in UxHubWindowFixture.AllLanguages)
+            {
+                _fixture = UxHubWindowFixture.Open(LiveOpsHubSections.Ids.Calendar, new UxWindowSize(SnugProbeWidth, SnugProbeHeight),
+                    language);
+                yield return _fixture.WaitForLayout();
+
+                VisualElement toolbar = _fixture.Root.Q(className: LiveOpsHubClassNames.CalendarToolbar);
+                Assert.IsNotNull(toolbar, "màn Lịch phải có thanh công cụ (" + language + ")");
+
+                VisualElement compareToggle = _fixture.Root.Q(className: LiveOpsHubClassNames.CalendarDepthCompareToggle);
+                Assert.IsNotNull(compareToggle, "công tắc So với đã đăng phải còn trong cây — nhường chỗ là ĐỔI CLASS, không phải dựng lại thanh");
+                Assert.AreEqual(DisplayStyle.None, compareToggle.resolvedStyle.display,
+                    "ở " + SnugProbeWidth + "px công tắc \"So với đã đăng\" phải rời thanh (bậc --snug, W9-20, " + language + ")");
+
+                VisualElement overflowMenu = _fixture.Root.Q(className: LiveOpsHubClassNames.CalendarDepthOverflowMenu);
+                Assert.IsNotNull(overflowMenu, "thanh phải có menu ⋮");
+                Assert.AreEqual(DisplayStyle.Flex, overflowMenu.resolvedStyle.display,
+                    "nhường control mà không còn menu ⋮ là CẮT ĐƯỜNG VÀO, không phải thu gọn (" + language + ")");
+
+                AssertNoCutText(toolbar,
+                    "thanh công cụ màn Lịch ở " + SnugProbeWidth + "x" + SnugProbeHeight + " (" + language + ")");
+
+                _fixture.Dispose();
+                _fixture = null;
+            }
+        }
+
+        // ============================================================================================ W9-UX09-FOLDOUT
+
+        /// <summary>
+        /// (W9-UX09-FOLDOUT) Card "Vấn đề" phải MỞ ở đúng những đợt có vấn đề, dù trước đó vừa xem một đợt sạch. Bản cũ đặt
+        /// <c>viewDataKey</c> dùng CHUNG cho mọi đợt, nên viewData khôi phục trạng thái gập của đợt trước SAU khi element gắn
+        /// vào panel và ghi đè giá trị đặt theo dữ liệu: xem một đợt sạch rồi chọn đợt hỏng thì card mở ra GẬP và người dùng
+        /// không thấy vấn đề nào.
+        /// <para>
+        /// Ca đi qua CẢ SÁU đợt mẫu theo một thứ tự cố định — trong đó có đợt sạch đứng TRƯỚC đợt hỏng — và mỗi lần đổi lựa
+        /// chọn lại đòi đúng một điều: card mở khi và chỉ khi đợt đó có phát hiện. Kèm một khẳng định về CƠ CHẾ: không được
+        /// đặt lại khoá viewData dùng chung, vì hành vi trên chỉ đúng nhờ trạng thái card suy từ dữ liệu.
+        /// </para>
+        /// </summary>
+        [UnityTest]
+        public IEnumerator Ux09_IssuesFoldout_OpensForEveryEntryThatHasFindings()
+        {
+            string[] entryKeys =
+            {
+                LiveOpsDesignSample.LavaQuestEarlyEntryKey,
+                LiveOpsDesignSample.StarTournamentEntryKey,
+                LiveOpsDesignSample.HuntBonusEntryKey,
+                LiveOpsDesignSample.HuntEarlyEntryKey,
+                LiveOpsDesignSample.LavaQuestMidEntryKey,
+                LiveOpsDesignSample.LavaQuestLateEntryKey,
+            };
+
+            yield return OpenCalendar();
+            int openedWithFindings = 0;
+            for (int index = 0; index < entryKeys.Length; index++)
+            {
+                Section().Presenter.SetSelectedBarKey(entryKeys[index]);
+                yield return null;
+                yield return WaitForLayout(InspectorBody());
+
+                Foldout foldout = InspectorBody().Q<Foldout>(className: LiveOpsHubClassNames.CalendarInspectorIssues);
+                if (foldout == null) continue;
+
+                List<VisualElement> cards = new List<VisualElement>();
+                foldout.Query(className: LiveOpsHubClassNames.FindingRow).ToList(cards);
+                bool hasFindings = cards.Count > 0;
+                if (hasFindings) openedWithFindings++;
+
+                Assert.AreEqual(hasFindings, foldout.value,
+                    "đợt \"" + entryKeys[index] + "\" có " + cards.Count + " phát hiện mà card Vấn đề "
+                    + (foldout.value ? "MỞ" : "GẬP")
+                    + " — trạng thái card phải suy từ dữ liệu của chính đợt đang chọn, không thừa kế của đợt xem trước (W9-UX09)");
+                Assert.IsTrue(string.IsNullOrEmpty(foldout.viewDataKey),
+                    "card Vấn đề lại mang viewDataKey \"" + foldout.viewDataKey + "\" — viewData khôi phục SAU khi gắn panel nên "
+                    + "nó ghi đè giá trị đặt theo dữ liệu, và một khoá dùng chung thì đợt hỏng thừa kế trạng thái gập của đợt sạch (W9-UX09)");
+            }
+
+            Assert.Greater(openedWithFindings, 0,
+                "không đợt nào trong lịch mẫu có phát hiện — ca này sẽ xanh mà không kiểm được gì");
+        }
+
+        // ============================================================================ W9-21 · pane chỉ đọc không sửa được
+
+        /// <summary>
+        /// (W9-21 · R-10 lượt soát 2) Khối field chỉ đọc của đợt sinh từ luật phải GIỮ NGUYÊN giá trị hiển thị dù người dùng
+        /// gõ vào ô hay KÉO NHÃN của ô số.
+        /// <para>
+        /// Vì sao ca này phải có: W9-21 bỏ <c>SetEnabled(false)</c> để chữ đạt tương phản, và từ đó rào duy nhất còn lại là
+        /// <c>isReadOnly</c> — thứ chặn GÕ. Dragger của <c>IntegerField</c> nằm trên NHÃN và là một đường khác hẳn; không ca
+        /// nào khẳng định đường đó cũng đóng, nên điều cả pane đang ngầm dựa vào ("xem được, sửa ở Luật lặp") không được canh
+        /// bằng test nào. Rủi ro tối đa là HIỂN THỊ sai (không field nào của pane đăng ký
+        /// <c>RegisterValueChangedCallback</c>), nhưng con số sai trên chỗ DUY NHẤT đọc được giờ của lần lặp thì vẫn là lỗi.
+        /// </para>
+        /// <para>
+        /// Chống xanh giả: cú kéo được thử TRƯỚC trên một ô số dùng được (<see cref="AddDragProbe"/>). Cử chỉ mô phỏng không
+        /// đổi nổi giá trị ô ấy thì câu "pane chỉ đọc không đổi được" đúng một cách rỗng tuếch.
+        /// </para>
+        /// </summary>
+        [UnityTest]
+        public IEnumerator W9_21_ReadOnlyPane_KeepsItsValues_WhenTypedIntoOrDragged()
+        {
+            yield return OpenCalendarWithSelection(RecurringEntryKey);
+            ScrollView body = InspectorBody();
+            yield return WaitForLayout(body);
+
+            VisualElement pane = body.Q(className: LiveOpsHubClassNames.CalendarInspectorReadOnlyPane);
+            Assert.IsNotNull(pane, "đợt sinh từ luật phải có khối field chỉ đọc (W9-21)");
+            Assert.IsTrue(pane.enabledInHierarchy,
+                "khối chỉ đọc lại bị khoá bằng SetEnabled(false) — đó là cách khoá mà W9-21 vừa dẹp vì nó kéo tương phản xuống, "
+                + "và khi khối bị khoá thì ca này không còn kiểm được đường nhập nào");
+
+            TextField idField = pane.Q<TextField>();
+            IntegerField duration = pane.Q<IntegerField>();
+            Assert.IsNotNull(idField, "khối chỉ đọc phải có ô chữ (id đợt)");
+            Assert.IsNotNull(duration, "khối chỉ đọc phải có ô số (độ dài)");
+            string idTextBefore = idField.value;
+            int durationBefore = duration.value;
+            int revisionBefore = Services().Session.DocumentRevision;
+
+            IntegerField dragProbe = AddDragProbe();
+            yield return WaitForLayout(dragProbe);
+
+            Assert.IsTrue(UxEventSender.PickReaches(_window, idField),
+                "không bấm tới được ô id — cú gõ dưới đây sẽ không đi tới đâu và ca này thành lời khai suông");
+            yield return UxEventSender.ReplaceText(_window, idField, TypedProbeText);
+            yield return UxEventSender.PressEnter(_window);
+            Assert.AreEqual(idTextBefore, idField.value,
+                "gõ vào ô chỉ đọc mà giá trị ĐỔI — isReadOnly là rào duy nhất còn lại sau khi W9-21 bỏ SetEnabled(false)");
+
+            yield return DragFieldLabel(dragProbe);
+            Assert.AreNotEqual(DragProbeStartValue, dragProbe.value,
+                "cú kéo nhãn mô phỏng không đổi nổi giá trị của một ô số DÙNG ĐƯỢC — chưa có cử chỉ thật thì hai câu dưới đây "
+                + "đúng một cách rỗng tuếch");
+
+            yield return DragFieldLabel(duration);
+            Assert.AreEqual(durationBefore, duration.value,
+                "kéo nhãn ô số của khối chỉ đọc làm ĐỔI con số người dùng đang đọc — isReadOnly chặn gõ chứ không chặn dragger "
+                + "của IntegerField (W9-21)");
+            Assert.AreEqual(revisionBefore, Services().Session.DocumentRevision,
+                "khối chỉ đọc đã ghi vào tài liệu — pane này chỉ được đọc, mọi lần sửa đi qua màn Luật lặp");
+        }
+
+        // ============================================================================ W9-20 · lý do khoá ở bậc --snug
+
+        /// <summary>
+        /// (W9-20 · R-04 lượt soát 2) Ở 950px công tắc "So với đã đăng" rời thanh, nhưng NHÃN LÝ DO thì ở lại.
+        /// <para>
+        /// Vì sao: bản đầu của W9-20 ẩn cả hai, tức kéo vùng "lệnh bị khoá mà không một chữ nói vì sao" từ dưới 900px lên dưới
+        /// 1000px — ngược SPIKE-B SP-3. Ở bậc này lệnh chỉ còn đường vào qua menu ⋮, mà mục menu bị khoá của
+        /// <c>DropdownMenuAction</c> không mang được tooltip (nhãn mục cũng chốt cứng lúc append), nên nhãn trên thanh là chỗ
+        /// DUY NHẤT còn nói được lý do.
+        /// </para>
+        /// <para>
+        /// Trạng thái "chưa có dấu đã đăng" đặt thẳng qua <c>SetCompareState</c> — người sinh ra trạng thái ấy — để cổng đo
+        /// được CẢ cảnh bị khoá, không chỉ cảnh mà lịch mẫu tình cờ đang ở.
+        /// </para>
+        /// </summary>
+        [UnityTest]
+        public IEnumerator W9_20_CalendarToolbar_At950_KeepsCompareDisabledReason_OnScreen()
+        {
+            foreach (LiveOpsHubLanguageId language in UxHubWindowFixture.AllLanguages)
+            {
+                _fixture = UxHubWindowFixture.Open(LiveOpsHubSections.Ids.Calendar,
+                    new UxWindowSize(SnugProbeWidth, SnugProbeHeight), language);
+                yield return _fixture.WaitForLayout();
+
+                _fixture.Calendar.Toolbar.SetCompareState(false, false, 0);
+                yield return _fixture.WaitForLayout();
+
+                Label reason = _fixture.Calendar.Toolbar.CompareDisabledReason;
+                Assert.IsNotNull(reason, "thanh công cụ phải có nhãn lý do của nút \"So với đã đăng\"");
+                Assert.AreEqual(LiveOpsHubStrings.CalendarDepthCompareUnavailableReason, reason.text,
+                    "nhãn lý do phải in đúng câu lý do (" + language + ")");
+                Assert.IsTrue(UxLayoutAuditor.IsShownOnScreen(reason),
+                    "ở " + SnugProbeWidth + "px nhãn lý do biến mất cùng cái nút — người dùng chỉ còn thấy một mục xám trong "
+                    + "menu ⋮ và không một chữ nào nói vì sao (" + language + ")");
+
+                VisualElement compareToggle = _fixture.Root.Q(className: LiveOpsHubClassNames.CalendarDepthCompareToggle);
+                Assert.IsNotNull(compareToggle, "công tắc phải còn trong cây — nhường chỗ là ĐỔI CLASS, không phải dựng lại thanh");
+                Assert.AreEqual(DisplayStyle.None, compareToggle.resolvedStyle.display,
+                    "ở " + SnugProbeWidth + "px công tắc phải rời thanh (bậc --snug, W9-20, " + language + ")");
+
+                AssertNoCutText(_fixture.Root.Q(className: LiveOpsHubClassNames.CalendarToolbar),
+                    "thanh công cụ màn Lịch ở " + SnugProbeWidth + "x" + SnugProbeHeight + " khi lệnh So với bị khoá ("
+                    + language + ")");
+
+                _fixture.Dispose();
+                _fixture = null;
+            }
+        }
+
         // ============================================================================================ hạ tầng test
 
         private LiveOpsHubServices Services()
@@ -488,6 +720,32 @@ namespace DreamTech.LiveOps.Editor.Tests
                 if (string.Equals(fields[index].label, label, StringComparison.Ordinal)) return fields[index];
             }
             return null;
+        }
+
+        /// <summary>
+        /// Ô số DÙNG ĐƯỢC gắn tạm vào cửa sổ hub làm ĐỐI CHỨNG DƯƠNG cho cú kéo nhãn. Đặt tuyệt đối ở mép dưới-trái để không
+        /// bóp bố cục của hub và không nằm chồng lên pane inspector bên phải — cùng cách <see cref="AddFocusTarget"/> gắn ô chữ
+        /// tạm vào root.
+        /// </summary>
+        private IntegerField AddDragProbe()
+        {
+            IntegerField probe = new IntegerField("probe") { value = DragProbeStartValue };
+            probe.style.position = Position.Absolute;
+            probe.style.left = 8f;
+            probe.style.bottom = 8f;
+            probe.style.width = 200f;
+            _window.rootVisualElement.Add(probe);
+            return probe;
+        }
+
+        /// <summary>
+        /// Kéo NGANG trên nhãn của một ô số — đúng cử chỉ của dragger <c>IntegerField</c> (vùng kéo là nhãn, không phải ô nhập).
+        /// </summary>
+        private IEnumerator DragFieldLabel(IntegerField field)
+        {
+            Vector2 from = field.labelElement.worldBound.center;
+            yield return UxEventSender.Drag(_window, from, from + new Vector2(DragDistancePixels, 0f), DragSteps,
+                EventModifiers.None);
         }
 
         private TextField AddFocusTarget()
@@ -539,11 +797,21 @@ namespace DreamTech.LiveOps.Editor.Tests
         }
 
         /// <summary>
-        /// Không TextElement nào trong cây cần nhiều chỗ hơn phần chữ thật sự được vẽ.
+        /// Không TextElement nào ĐANG HIỆN trong cây cần nhiều chỗ hơn phần chữ thật sự được vẽ.
         /// <para>
         /// Chữ MỘT DÒNG đo theo bề rộng; chữ ĐÃ CHO xuống dòng (<c>white-space: normal</c>) đo theo CHIỀU CAO ở đúng bề rộng
-        /// đang có. Bản trước bỏ qua hẳn nhánh xuống dòng, mà chính cách sửa UX-09 là gắn <c>white-space: normal</c> — test
-        /// được thoả nhờ CƠ CHẾ của bản sửa chứ không phải nhờ chữ hiện đủ, nên nút cao cứng 18px nuốt dòng thứ hai vẫn xanh.
+        /// đang có. Bản trước bỏ qua hẳn nhánh xuống dòng, mà chính cách sửa UX-09 là gắn <c>white-space: normal</c>, nên test
+        /// được thoả nhờ CƠ CHẾ của bản sửa chứ không phải nhờ chữ hiện đủ, và nút cao cứng 18px nuốt dòng thứ hai vẫn xanh.
+        /// </para>
+        /// <para>
+        /// Phép lọc đi theo CHUỖI CHA chứ không chỉ đọc <c>display</c> của chính element (<see cref="IsInsideShownSubtree"/>):
+        /// thanh công cụ luôn giữ cả bản đầy đủ lẫn bản rút gọn trong cây và chỉ đổi class, nên chữ của khối đang ẩn vẫn bị đo,
+        /// với bề rộng 0, và mọi lần đo thanh đều đỏ vì một nhãn KHÔNG AI THẤY. Phần tử bị bóp còn 0px mà cha vẫn hiện thì
+        /// KHÔNG bỏ qua — đó đúng là thứ phép đo này đi tìm.
+        /// </para>
+        /// <para>
+        /// (R-09 lượt soát 2) MỘT luật đo chữ duy nhất cho mọi chỗ gọi. Trước đó thanh công cụ dùng một bản sao riêng đánh rơi
+        /// nhánh xuống dòng: hai luật lệch nhau, và bản sao ấy vừa đỏ giả vừa không bắt được dòng bị cắt ở cây có nhãn wrap.
         /// </para>
         /// </summary>
         private static void AssertNoCutText(VisualElement root, string place)
@@ -551,10 +819,14 @@ namespace DreamTech.LiveOps.Editor.Tests
             Assert.IsNotNull(root, "không tìm thấy cây để đo: " + place);
             List<TextElement> texts = new List<TextElement>();
             root.Query<TextElement>().ToList(texts);
+            int measuredCount = 0;
             for (int index = 0; index < texts.Count; index++)
             {
                 TextElement text = texts[index];
-                if (!IsDisplayed(text) || string.IsNullOrEmpty(text.text)) continue;
+                if (string.IsNullOrEmpty(text.text)) continue;
+                if (!IsInsideShownSubtree(text)) continue;
+                if (float.IsNaN(text.layout.width) || float.IsNaN(text.layout.height)) continue;
+                measuredCount++;
                 if (text.resolvedStyle.whiteSpace == WhiteSpace.Normal)
                 {
                     float width = text.contentRect.width;
@@ -574,6 +846,8 @@ namespace DreamTech.LiveOps.Editor.Tests
                     place + ": chữ \"" + text.text + "\" cần " + needed.ToString("0.#", CultureInfo.InvariantCulture)
                     + "px, chỗ có " + available.ToString("0.#", CultureInfo.InvariantCulture) + "px — người dùng đọc được nửa câu");
             }
+
+            Assert.Greater(measuredCount, 0, place + ": không đo được nhãn nào — phép lọc hỏng thì ca này thành lời khai suông");
         }
 
         /// <summary>
@@ -657,6 +931,18 @@ namespace DreamTech.LiveOps.Editor.Tests
             Assert.Greater(element.layout.height, 0f, place + " cao 0 — biến mất khỏi màn hình" + where);
             Assert.LessOrEqual(element.worldBound.xMax, container.worldBound.xMax + BoundsTolerance,
                 place + " nằm ngoài pane — trên máy người dùng nó biến mất" + where);
+        }
+
+        /// <summary>Chính nó và MỌI tổ tiên đều đang chiếm chỗ (không display:none, không visibility:hidden). Không xét kích thước.</summary>
+        private static bool IsInsideShownSubtree(VisualElement element)
+        {
+            for (VisualElement current = element; current != null; current = current.hierarchy.parent)
+            {
+                if (current.panel == null) return false;
+                if (current.resolvedStyle.display == DisplayStyle.None) return false;
+                if (current.resolvedStyle.visibility == Visibility.Hidden) return false;
+            }
+            return true;
         }
 
         /// <summary>
