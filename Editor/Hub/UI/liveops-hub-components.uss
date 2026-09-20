@@ -182,8 +182,13 @@
     border-color: var(--liveops-hub-color-quiet);
 }
 
+/* (W10-06, lượt sửa 2) Đọc TOKEN chứ không --unity-colors-default-text. Vì sao: biến của Unity giải theo skin ĐANG
+   CHẠY của Editor chứ không theo class .liveops-hub--skin-light, nên luật này (a) trả màu skin tối cho mọi phép đo
+   chạy trên root mang class skin sáng và (b) nằm NGOÀI bảng token nên không phép đo nào nhìn thấy nó. Giá trị cũ
+   #D2D2D2 đúng là màu sinh ra phiếu W10-06: nhân opacity 0,7 của khối cha rồi hợp thành lên nền thẻ #3C3C3C chỉ còn
+   4,48:1, dưới bậc chữ thường. */
 .liveops-hub-text--ok {
-    color: var(--unity-colors-default-text);
+    color: var(--liveops-hub-color-text);
 }
 
 /* Chữ trạng thái luôn opacity 1 — × 0,7 thì blocked-text trên toolbar còn 3,00:1 ([FD §2.3]). */

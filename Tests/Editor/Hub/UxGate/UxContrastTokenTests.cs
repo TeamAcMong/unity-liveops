@@ -132,6 +132,11 @@ namespace DreamTech.LiveOps.Editor.Tests
         /// </summary>
         private static readonly UxColorTokenRule[] TextTokenRules =
         {
+            // (W10-06) Màu chữ nền tảng của hub: .liveops-hub-root của liveops-hub-shell.uss khai `color:` bằng token này, nên
+            // MỌI chữ không tự khai màu đều kế thừa nó. Trước W10 chỗ này dùng thẳng --unity-colors-default-text và vì thế
+            // không token nào của bảng nói được về màu chữ thường — bảng đo mọi màu phụ mà bỏ trống màu chính.
+            new UxColorTokenRule("--liveops-hub-color-text", TextContrastRatio, UxColorTokenBackdrop.WindowBackground,
+                "màu chữ nền tảng, kế thừa xuống mọi chữ không tự khai màu"),
             new UxColorTokenRule("--liveops-hub-color-blocked-text", TextContrastRatio, UxColorTokenBackdrop.WindowBackground,
                 "câu lỗi và tag 'bị bỏ'"),
             new UxColorTokenRule("--liveops-hub-color-warning-text", TextContrastRatio, UxColorTokenBackdrop.WindowBackground,
@@ -467,7 +472,7 @@ namespace DreamTech.LiveOps.Editor.Tests
         /// GIỚI HẠN ĐÃ BIẾT — skin SÁNG CHƯA ĐO (phiếu W9-27). Cửa sổ hub thật chạy ở skin ĐANG CHẠY của Editor, mà mọi lượt
         /// cổng của đợt này chạy ở skin TỐI (đổi <c>EditorPrefs UserSkin</c> là việc riêng của <c>capture.sh</c>, SP-4), nên
         /// luật màu-đã-hợp-thành mới chỉ có số đo ở skin tối. KHÔNG được suy sang skin sáng từ bảng token: token
-        /// <c>--liveops-hub-color-quiet</c> khác hẳn hai bên (#A3A3A3 tối / #4F4F4F sáng), và bảng token đo TRƯỚC khi nhân
+        /// <c>--liveops-hub-color-quiet</c> khác hẳn hai bên (#AAAAAA tối / #4F4F4F sáng), và bảng token đo TRƯỚC khi nhân
         /// opacity — đúng thứ ca này chứng minh là không đủ. Lời khai cũ ("lượt cổng ở skin còn lại phủ nửa kia") là sai: lượt
         /// đó chưa tồn tại.
         /// </para>
