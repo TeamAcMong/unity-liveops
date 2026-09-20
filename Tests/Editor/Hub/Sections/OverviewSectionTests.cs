@@ -32,6 +32,13 @@ namespace DreamTech.LiveOps.Editor.Tests
         /// <summary>Sai số một pixel khi so mép: layout UI Toolkit làm tròn theo dpi, so bằng == sẽ đỏ giả.</summary>
         private const float LayoutTolerance = 1f;
 
+        /// <summary>
+        /// Nghịch đảo của ngưỡng "chữ chiếm quá 95% bề rộng ô" (W9-25, <c>UxLayoutAuditor.TextFillWarningRatio</c>): vùng
+        /// nội dung phải rộng hơn chữ ít nhất 1/0,95 lần. Khai ở đây chứ không nhắc tới hằng của cổng vì cổng nằm trong
+        /// nhánh test khác; hai con số cùng nói một luật và cùng đổi khi luật đổi.
+        /// </summary>
+        private const float TextFillCeilingRatio = 1f / 0.95f;
+
         private LiveOpsHubWindow _window;
 
         [TearDown]
@@ -107,6 +114,47 @@ namespace DreamTech.LiveOps.Editor.Tests
             Assert.AreEqual(250f, view.Q(className: LiveOpsHubClassNames.OverviewUpcomingCellEvent).resolvedStyle.width, 0.5f);
             Assert.AreEqual(140f, view.Q(className: LiveOpsHubClassNames.OverviewUpcomingCellType).resolvedStyle.width, 0.5f);
             Assert.AreEqual(130f, view.Q(className: LiveOpsHubClassNames.OverviewUpcomingCellKind).resolvedStyle.width, 0.5f);
+            LogAssert.NoUnexpectedReceived();
+        }
+
+        /// <summary>
+        /// (W9-25 chỗ 3) Ô giờ của bảng "7 ngày tới" phải còn KHOẢNG DƯ, không chỉ "chưa cắt". Chuỗi dài nhất của bảng
+        /// ("14/9 00:00 → 20/9 00:00") cần 157px; trước khi sửa, nhãn mono tự co đúng bằng chữ mình trong một ô 170px đã
+        /// trừ 6px đệm ô và 3px đệm mặc định của chính nhãn — còn 161px, dư 4px, tức 2,5%: chưa cắt, nhưng một đổi metric
+        /// font (bản Unity khác, DPI khác, cỡ chữ Editor khác) là cắt IM LẶNG, đúng loại hỏng mà W9-25 dựng lên để bắt.
+        /// <para>
+        /// Ca này đo trên NHÃN, đúng chỗ luật của cổng đo: ô rộng mà nhãn tự co thì chỗ dư của ô không thành chỗ dư của
+        /// chữ. Bề rộng cột giữ đúng 170px của Hình 4 (khoá ở ca ngay trên) — chỗ dư lấy từ đệm, không lấy từ cột.
+        /// </para>
+        /// </summary>
+        [UnityTest]
+        public IEnumerator UpcomingTimeCell_KeepsSlackForTheLongestTimeText()
+        {
+            LiveOpsHubServices services = LiveOpsHubTestServices.ForScenario(LiveOpsHubTestServices.DesignSampleScenario);
+            yield return OpenOverview(services);
+            VisualElement view = View();
+
+            List<VisualElement> timeCells = new List<VisualElement>();
+            view.Query<VisualElement>(className: LiveOpsHubClassNames.OverviewUpcomingCellTime).ToList(timeCells);
+            Assert.Greater(timeCells.Count, 1, "bảng 7 ngày của lịch mẫu phải có hàng dữ liệu, không chỉ hàng tiêu đề");
+
+            int measuredCount = 0;
+            for (int index = 0; index < timeCells.Count; index++)
+            {
+                Label time = timeCells[index].Q<Label>(className: LiveOpsHubClassNames.Mono);
+                if (time == null || string.IsNullOrEmpty(time.text)) continue;
+                if (time.resolvedStyle.whiteSpace != WhiteSpace.NoWrap) continue;
+                float needed = time.MeasureTextSize(time.text, 0f, VisualElement.MeasureMode.Undefined, 0f,
+                    VisualElement.MeasureMode.Undefined).x;
+                float available = time.contentRect.width;
+                measuredCount++;
+                Assert.GreaterOrEqual(available, needed * TextFillCeilingRatio,
+                    "ô giờ \"" + time.text + "\" cần " + needed.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture)
+                    + "px, chỗ có " + available.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture)
+                    + "px — chưa cắt nhưng dưới 5% dư, một đổi metric font là cắt im lặng (W9-25)");
+            }
+
+            Assert.Greater(measuredCount, 0, "không đo được ô giờ nào — phép lọc hỏng thì ca này thành lời khai suông");
             LogAssert.NoUnexpectedReceived();
         }
 
