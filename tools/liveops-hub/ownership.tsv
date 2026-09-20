@@ -940,3 +940,36 @@ file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/EventTypes/EventTypeTabl
 file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Sections/EventTypesSectionTests.cs	G-FIX-W9-1	W9-16 — ca thu hẹp cửa sổ thôi đếm ba khung hình; câu fail in kèm bề rộng bảng đo được
 file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Capture/**	G-FIX-W9-1	W9-01 — khung số đo header màn biết luật theo bề rộng cửa sổ (36 từ 1100px, 61 dưới mức đó)
 file	tools/liveops-hub/measure-capture.py	G-FIX-W9-1	W9-01 — khoá whenWindowNarrowerThan cho bảng khung mặc định + hai ca tự kiểm
+
+# (W10, ĐỢT VÉT CUỐI TRƯỚC PHÁT HÀNH 0.2.0-preview.1, 20/9/2026) Ba gói RỜI NHAU VỀ FILE. Vì sao chia đúng ba mảng này:
+#   W9-29 nằm hết trong vùng Timeline (dòng gợi ý + nhãn thước), W9-30/W9-31 nằm ở control ô giờ + bảng Loại event và đi kèm
+#   phần dọn "chữ chiếm > 95% bề rộng ô" của bốn màn còn lại, còn W9-25/27/28 + lỗ hổng ma trận chỉ đụng cây test và harness
+#   chụp. Không file nào có mặt ở hai gói, nên ba nhánh gộp được theo thứ tự nào cũng không va chạm văn bản.
+#   PHỤ THUỘC CÙNG ĐỢT CÓ THẬT: G-W10-MATRIX nâng "textTight" thành LỖI, mà chỗ vi phạm do G-W10-HINT và G-W10-FIELD dọn —
+#   nên bằng chứng xanh của việc nâng ngưỡng phải lấy trên bản đã gộp cả ba (cổng đợt), khai thẳng chứ không giấu.
+package	G-W10-MATRIX	W10	L	W9
+package	G-W10-HINT	W10	M	W9
+package	G-W10-FIELD	W10	M	W9
+
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/UxGate/**	G-W10-MATRIX	W9-25 nâng thành lỗi + W9-27 đo tương phản hợp thành ở theme SÁNG + W9-28 chữa test chập chờn + vá lỗ hổng ma trận (biến thể dữ liệu xấu nhất cho cả sáu màn)
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Capture/**	G-W10-MATRIX	W9-27 — lệnh đo trong Unity chạy dưới lượt chụp của capture.sh rồi ghi JSON số đo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Support/LiveOpsWorstCaseSample.cs	G-W10-MATRIX	FILE MỚI — tài liệu mẫu "dữ liệu xấu nhất" (id dài, chuỗi dài nhất, số lớn, danh sách rỗng, loại chưa khai). KHÔNG sửa LiveOpsDesignSample.cs: 1.601 byte của ExpectedFormat2Json ghim theo mẫu cũ
+file	tools/liveops-hub/capture.sh	G-W10-MATRIX	W9-27 — thêm lượt đo tương phản theo skin, dùng lại đúng khoá skin sẵn có (capture.sh vẫn là chỗ DUY NHẤT đặt EditorPrefs UserSkin)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Controls/Timeline/**	G-W10-HINT	W9-29 — dòng gợi ý đáy trục rút gọn theo BẬC CỠ, không bao giờ mất cụm phím; W9-25 dọn nhãn thước 'THÁNG 11 2026'
+file	Packages/com.dreamtech.liveops/Editor/Hub/UI/liveops-hub-timeline.uss	G-W10-HINT	W9-29 — bậc cỡ của dòng gợi ý (hai hàng hoặc bỏ vế giải thích) + khoảng dư của nhãn thước
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubClassNames.Timeline.cs	G-W10-HINT	W9-29 — hằng class của bậc cỡ dòng gợi ý (nếu cần)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubStrings.Timeline.cs	G-W10-HINT	W9-29 — khoá chuỗi biến thể NGẮN của dòng gợi ý (chỉ khi user duyệt chuỗi mới)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/Language/LiveOpsHubStringCatalog.Timeline.cs	G-W10-HINT	W9-29 — bản vi + en của biến thể ngắn (chỉ khi user duyệt chuỗi mới)
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Timeline/**	G-W10-HINT	W9-29 — test đơn vị: mọi biến thể dòng gợi ý giữ đủ cụm phím ở mọi bậc cỡ
+file	Packages/com.dreamtech.liveops/Editor/Hub/Controls/LiveOpsUtcDateTimeField.cs	G-W10-FIELD	W9-30 — biểu tượng lỗi 12px không còn bị đẩy ra ngoài mép phải hàng field
+file	Packages/com.dreamtech.liveops/Editor/Hub/UI/liveops-hub-controls.uss	G-W10-FIELD	W9-30 — chỗ của biểu tượng lỗi trong hàng ô ngày/giờ/UTC
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/EventTypes/**	G-W10-FIELD	W9-31 — cột 36px KHÔNG TÊN của bảng Loại event (cột "state", title rỗng) thôi đọc thành bảng vỡ cột
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Calendar/CalendarEventInspector.cs	G-W10-FIELD	W9-25 — nhãn "Dời cả hai (giờ)" / "Shift both (hours)" chiếm 98,9% ô ở cả bảy cỡ bản tiếng Anh
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Calendar/CalendarSection.uss	G-W10-FIELD	W9-25 — khoảng dư của hàng "Dời cả hai (giờ)" trong inspector chọn nhiều
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Overview/OverviewUpcomingTable.cs	G-W10-FIELD	W9-25 — ô giờ mono '14/9 00:00 → 20/9 00:00' chiếm 97,5% ô (2022.3)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Overview/OverviewSection.uss	G-W10-FIELD	W9-25 — bề rộng cột giờ của bảng "Sắp diễn ra"
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/RecurringRules/RecurringRuleSentence.cs	G-W10-FIELD	W9-25 — ba mảnh câu luật (', mỗi đợt chạy ', ', anchored at ', ', each occurrence runs ') chiếm 95,8-97,6% ô
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/RecurringRules/RecurringRulesSection.uss	G-W10-FIELD	W9-25 — khoảng dư của mảnh chữ trong câu luật
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Controls/**	G-W10-FIELD	W9-30 — test đơn vị của ô giờ UTC ở trạng thái gõ hỏng
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Sections/**	G-W10-FIELD	W9-31 + W9-25 — test đơn vị của bảng Loại event, inspector chọn nhiều, bảng "Sắp diễn ra", câu luật
+file	tools/liveops-hub/ownership.tsv	G-W10-MATRIX	W10 — chính khối đăng ký này (ghi ở bước kế hoạch, ba gói KHÔNG đụng lại file này)
