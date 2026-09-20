@@ -484,11 +484,18 @@
 
 /* ---------------------------------------------------------------- Section header 36px — [FD §3.6] */
 
+/*
+ * W9-01: cao THEO NỘI DUNG với sàn 36px thay vì khoá cứng 36. Vì sao: phụ đề màn Xuất JSON dài 225px (vi) / 266px (en) —
+ * ở mọi cỡ dưới 1100 nó không còn chỗ trên một dòng. Khoá cứng chiều cao thì lựa chọn duy nhất còn lại là CẮT chữ; mở
+ * sàn ra thì phụ đề xuống dòng và không mất chữ nào. Ở 1280 nội dung vẫn vừa một dòng nên chiều cao đo được y hệt 36
+ * (HubLayoutTests.Shell_1280x760_Measurements canh đúng số đó).
+ */
 .liveops-hub-section-header {
-    height: 36px;
+    min-height: 36px;
     flex-shrink: 0;
     flex-direction: row;
     align-items: center;
+    align-content: center;
     padding: 0 10px;
     background-color: var(--unity-colors-toolbar-background);
     border-bottom-width: 1px;
@@ -509,14 +516,17 @@
     -unity-font-style: bold;
 }
 
+/*
+ * W9-01: phụ đề XUỐNG DÒNG thay vì rút bằng "…". Phụ đề là câu nói màn này đang làm gì với dữ liệu nào ("JSON cho key
+ * liveops_calendar, so với lần đăng gần nhất") — rút nó đi là bỏ đúng nửa mang thông tin. Ellipsis chỉ đúng khi phần bị
+ * bỏ đoán được; ở đây không đoán được.
+ */
 .liveops-hub-section-subtitle {
     margin: 0;
     padding: 0;
     font-size: 10px;
     opacity: 0.82;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    white-space: normal;
 }
 
 .liveops-hub-section-actions {
@@ -528,6 +538,24 @@
 
 .liveops-hub-section-actions--empty {
     display: none;
+}
+
+/*
+ * W9-01, dưới 1100px: tiêu đề + phụ đề chiếm TRỌN dòng đầu, nhóm nút xuống dòng hai. Vì sao đặt ở --medium chứ không ở
+ * --narrow: ô đo được của phụ đề màn Xuất JSON là 191px ở 1024 và 117px ở 950 trong khi chữ cần 266 — dải 900…1099 cũng
+ * đã chật, lùi tới --narrow là để hai cỡ đó cắt chữ trong im lặng. Ở 1280 nhóm nút vẫn nằm cùng dòng nên chiều cao
+ * header giữ đúng 36px.
+ */
+.liveops-hub--medium .liveops-hub-section-header {
+    flex-direction: column;
+    align-items: stretch;
+    padding-top: 4px;
+    padding-bottom: 4px;
+}
+
+.liveops-hub--medium .liveops-hub-section-actions {
+    margin-left: 0;
+    margin-top: 4px;
 }
 
 /* ---------------------------------------------------------------- Note đầu thân (đang biên dịch — Hình 28 khung 3) */

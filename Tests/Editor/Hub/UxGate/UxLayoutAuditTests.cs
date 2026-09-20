@@ -83,13 +83,15 @@ namespace DreamTech.LiveOps.Editor.Tests
         /// Danh sách duyệt của USER chỉ NGẮN LẠI, không dài thêm — tức cổng chặt hơn trước, không lỏng hơn; phần còn nợ là
         /// W9-01 (màn Xuất JSON, gói G-W9-EXPORT).
         /// </remarks>
-        private static readonly string[] ApprovedDeferralIds = { "W9-01" };
+        // Đợt W9 đã đóng phiếu cuối cùng (W9-01, màn Xuất JSON) nên tập này RỖNG: từ đây không màn nào được hoãn. Thêm một
+        // mã vào đây lại là mở lại cửa hoãn — phải có câu trả lời của USER trước, đúng như câu chốt 18/9/2026 ở trên.
+        private static readonly string[] ApprovedDeferralIds = new string[0];
 
         /// <summary>
         /// Năm màn NGOÀI đợt đi kèm năm phiếu trên. Khoá cả MÀN chứ không chỉ mã phiếu: chặn đúng đường lách "thêm một
         /// mã phiếu mới cho một màn TRONG đợt", thứ mà kiểm từng mục không nhìn ra.
         /// </summary>
-        private static readonly string[] ApprovedDeferralScreens = { "export" };
+        private static readonly string[] ApprovedDeferralScreens = new string[0];
 
         private static readonly UxWindowSize Narrow700 = new UxWindowSize(700, 560);
         private static readonly UxWindowSize Medium820 = new UxWindowSize(820, 560);
