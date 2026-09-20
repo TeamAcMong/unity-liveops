@@ -5,9 +5,14 @@ using UnityEngine.UIElements;
 namespace DreamTech.LiveOps.Editor
 {
     /// <summary>
-    /// Ô giờ UTC của inspector đợt, popover Thêm đợt và Neo luật lặp ([FD §2.15], [SD1 §3.1]): ô ngày 76px <c>yyyy-MM-dd</c> + ô giờ
-    /// 44px <c>HH:mm</c> + nhãn "UTC" + dòng phụ giờ máy ("19:00 16/9 giờ máy"). Hai ô riêng thay cho một hộp chuỗi ISO vì chuỗi ISO
-    /// mời lỗi "2026-10-3" và không cho thấy đang gõ giờ UTC hay giờ máy ([FD] bảng lỗi hệ cũ #7).
+    /// Ô giờ UTC của inspector đợt, popover Thêm đợt và Neo luật lặp ([FD §2.15], [SD1 §3.1]): HÀNG GIÁ TRỊ (ô ngày 88px
+    /// <c>yyyy-MM-dd</c> + ô giờ 44px <c>HH:mm</c> + nhãn "UTC"), rồi dòng phụ giờ máy ("19:00 16/9 giờ máy"), rồi DÒNG LỖI (biểu
+    /// tượng 12px + câu lỗi). Hai ô riêng thay cho một hộp chuỗi ISO vì chuỗi ISO mời lỗi "2026-10-3" và không cho thấy đang gõ giờ
+    /// UTC hay giờ máy ([FD] bảng lỗi hệ cũ #7).
+    ///
+    /// (W9-30) Biểu tượng lỗi thuộc DÒNG LỖI, không thuộc hàng giá trị: hàng giá trị đã dùng 161px trong 168px mà cột field của pane
+    /// 280px cho, và mọi phần tử trong hàng đều <c>flex-shrink: 0</c> — thêm 16px biểu tượng là hàng tràn và mép cửa sổ cắt đúng nửa
+    /// biểu tượng. Hệ quả cần giữ: bề rộng hàng giá trị KHÔNG đổi giữa trạng thái sạch và trạng thái lỗi.
     ///
     /// Chuỗi không đọc được KHÔNG bị nuốt hay tự sửa: ô giữ nguyên chữ người dùng gõ ("2026-10-3"), viền blocked-fill, dòng lỗi 10px
     /// nêu dạng đúng, và <see cref="TextCommitted"/> đưa chuỗi thô cho phiên lịch ghi nguyên văn vào asset — để luật
@@ -60,6 +65,7 @@ namespace DreamTech.LiveOps.Editor
             VisualElement row = new VisualElement();
             row.AddToClassList(LiveOpsHubClassNames.UtcFieldRow);
             input.Add(row);
+            ValueRow = row;
 
             DateInput = CreatePart(LiveOpsHubClassNames.UtcFieldDate);
             TimeInput = CreatePart(LiveOpsHubClassNames.UtcFieldTime);
@@ -72,18 +78,28 @@ namespace DreamTech.LiveOps.Editor
             ZoneLabel.AddToClassList(LiveOpsHubClassNames.UtcFieldZone);
             row.Add(ZoneLabel);
 
-            ErrorIcon = LiveOpsHubIcons.CreateImage(ErrorIconName, ErrorIconSize);
-            ErrorIcon.AddToClassList(LiveOpsHubClassNames.UtcFieldErrorIcon);
-            row.Add(ErrorIcon);
-
             DeviceTimeLabel = new Label();
             DeviceTimeLabel.AddToClassList(LiveOpsHubClassNames.UtcFieldDeviceLine);
             input.Add(DeviceTimeLabel);
 
+            // (W9-30) Biểu tượng lỗi nằm ở DÒNG LỖI, không nằm cuối hàng ô ngày/ô giờ/"UTC". Đo ở cửa sổ 1280x760: hàng ấy
+            // đã dùng 161px (88 + 4 + 44 + 4 + 21) trong 168px mà cột field của pane 280px cho, và mọi phần tử trong hàng đều
+            // flex-shrink: 0 — nên thêm 4 + 12px biểu tượng là hàng cần 177px, tràn 9px và mép cửa sổ cắt đúng nửa biểu
+            // tượng. Trạng thái "đẹp" không bao giờ thấy vì biểu tượng chỉ hiện khi có lỗi.
+            // Dời xuống dòng lỗi vừa trả lại 16px cho hàng vừa đặt biểu tượng ngay cạnh CÂU giải thích nó; hàng vẫn còn dấu
+            // riêng của mình là viền blocked-fill trên đúng ô không đọc được, nên không mất tín hiệu nào.
+            ErrorRow = new VisualElement();
+            ErrorRow.AddToClassList(LiveOpsHubClassNames.UtcFieldRow);
+            input.Add(ErrorRow);
+
+            ErrorIcon = LiveOpsHubIcons.CreateImage(ErrorIconName, ErrorIconSize);
+            ErrorIcon.AddToClassList(LiveOpsHubClassNames.UtcFieldErrorIcon);
+            ErrorRow.Add(ErrorIcon);
+
             ErrorLabel = new Label();
             ErrorLabel.AddToClassList(LiveOpsHubClassNames.UtcFieldError);
             ErrorLabel.AddToClassList(LiveOpsHubClassNames.TextBlocked);
-            input.Add(ErrorLabel);
+            ErrorRow.Add(ErrorLabel);
 
             DateInput.RegisterValueChangedCallback(OnPartCommitted);
             TimeInput.RegisterValueChangedCallback(OnPartCommitted);
@@ -153,6 +169,13 @@ namespace DreamTech.LiveOps.Editor
         internal TextField TimeInput { get; }
         internal VisualElement InputContainer { get; }
         internal Label ZoneLabel { get; }
+
+        /// <summary>Hàng ô ngày + ô giờ + nhãn "UTC" — hàng GIÁ TRỊ, không bao giờ chứa biểu tượng lỗi (W9-30).</summary>
+        internal VisualElement ValueRow { get; }
+
+        /// <summary>Dòng lỗi: biểu tượng 12px + câu lỗi xuống dòng được. Ẩn cả dòng khi ô không có lỗi nào.</summary>
+        internal VisualElement ErrorRow { get; }
+
         internal Image ErrorIcon { get; }
         internal Label DeviceTimeLabel { get; }
         internal Label ErrorLabel { get; }
@@ -483,6 +506,9 @@ namespace DreamTech.LiveOps.Editor
             TimeInput.EnableInClassList(LiveOpsHubClassNames.UtcFieldPartError, timeBroken);
             ErrorIcon.EnableInClassList(LiveOpsHubClassNames.UtcFieldHidden, !showError);
             ErrorLabel.EnableInClassList(LiveOpsHubClassNames.UtcFieldHidden, !showError || string.IsNullOrEmpty(ErrorLabel.text));
+            // Ẩn CẢ dòng lỗi khi không có lỗi: dòng còn trong cây mà cao 0 là đúng dạng "đang bày ra mà không vẽ gì" mà phép
+            // đo AssertNoZeroSize đi tìm, và nó vẫn ăn margin-top của câu lỗi.
+            ErrorRow.EnableInClassList(LiveOpsHubClassNames.UtcFieldHidden, !showError);
 
             bool showDeviceLine = _showDeviceTimeLine && _hasValue && !_hasParseError;
             DeviceTimeLabel.text = showDeviceLine ? new LiveOpsHubFormat(_deviceOffset).DeviceTimeLine(value) : string.Empty;
