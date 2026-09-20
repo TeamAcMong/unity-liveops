@@ -55,5 +55,14 @@ namespace DreamTech.LiveOps.Editor.Tests
         internal const string UxRecurringEnglish1280 = "ux-recurring-en-1280x760";
         internal const string UxRecurringEnglish1440 = "ux-recurring-en-1440x900";
         internal const string UxRecurringEnglish1920 = "ux-recurring-en-1920x1040";
+
+        /// <summary>
+        /// W9-22(b): màn Lịch đang chọn NHIỀU đợt, ở 1024x700, hai ngôn ngữ. Bộ ảnh cũ chỉ có "chưa chọn" và "chọn một" —
+        /// không ảnh nào cho thấy thanh hành động hàng loạt và dải tag của nhiều đợt cùng lúc, đúng trạng thái mà
+        /// <c>Calendar_LayoutIsUsable_AtEverySize_MultiSelection</c> kiểm bằng máy.
+        /// </summary>
+        internal const string UxCalendarMulti1024 = "ux-calendar-multi-1024x700";
+
+        internal const string UxCalendarMultiEnglish1024 = "ux-calendar-multi-en-1024x700";
     }
 }

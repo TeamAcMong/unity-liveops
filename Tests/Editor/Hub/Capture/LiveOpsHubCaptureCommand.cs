@@ -220,6 +220,12 @@ namespace DreamTech.LiveOps.Editor.Tests
             private EditorWindow _window;
             private int _frames;
             // Ghim ngôn ngữ quanh từng kịch bản: mở TRƯỚC khi dựng cửa sổ (chữ đọc lúc dựng), đóng sau khi đóng cửa sổ.
+            /// <summary>Khung chờ thêm sau khi chạy <c>AfterLayout</c> — cuộn hay mở một card đều kéo theo một lượt dựng lại.</summary>
+            private const int AfterLayoutSettleFrames = 4;
+
+            /// <summary>Khung mà <c>AfterLayout</c> của kịch bản hiện tại đã chạy; âm = chưa chạy.</summary>
+            private int _afterLayoutFrame = -1;
+
             private LiveOpsHubLanguageScope _languageScope;
 
             public CaptureRun(CaptureOptions options, List<LiveOpsHubCaptureScenario> scenarios)
@@ -249,6 +255,7 @@ namespace DreamTech.LiveOps.Editor.Tests
                 _languageScope = LiveOpsHubLanguage.Override(Current.Language);
                 try
                 {
+                    _afterLayoutFrame = -1;
                     _window = Current.OpenWindow();
                     if (_window == null) throw new InvalidOperationException("OpenWindow trả null");
                     // SP-16: đặt kích thước SAU Show — đặt trước bị kẹp ≈ 401×202.
@@ -278,6 +285,23 @@ namespace DreamTech.LiveOps.Editor.Tests
                 }
 
                 bool ready = target != null && LiveOpsHubWindowTestScope.HasLayout(target) && _frames >= Current.MinimumSettleFrames;
+                if (ready && Current.AfterLayout != null && _afterLayoutFrame < 0)
+                {
+                    // Chạy ĐÚNG MỘT LẦN, ngay khi có layout thật, rồi chờ thêm để lượt dựng lại do nó gây ra kịp xong.
+                    _afterLayoutFrame = _frames;
+                    try
+                    {
+                        Current.AfterLayout(_window);
+                    }
+                    catch (Exception exception)
+                    {
+                        FailScenario("việc sau-layout ném " + exception.Message);
+                        OpenNext();
+                        return;
+                    }
+                }
+
+                if (ready && _afterLayoutFrame >= 0 && _frames < _afterLayoutFrame + AfterLayoutSettleFrames) ready = false;
                 if (!ready)
                 {
                     if (_frames > MaximumLayoutFrames)
@@ -421,6 +445,7 @@ namespace DreamTech.LiveOps.Editor.Tests
                         json.Append(index == 0 ? "\n    " : ",\n    ").Append("{\"element\": ").Append(Quote(frame.Element));
                         if (frame.Width > 0) json.Append(", \"width\": ").Append(Number(frame.Width));
                         if (frame.Height > 0) json.Append(", \"height\": ").Append(Number(frame.Height));
+                        if (frame.Tolerance > 0) json.Append(", \"tolerance\": ").Append(Number(frame.Tolerance));
                         json.Append('}');
                     }
                     json.Append("\n  ]");
