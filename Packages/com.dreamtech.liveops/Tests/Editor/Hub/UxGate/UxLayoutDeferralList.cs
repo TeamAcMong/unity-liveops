@@ -17,7 +17,8 @@ namespace DreamTech.LiveOps.Editor.Tests
     /// </summary>
     internal sealed class UxLayoutDeferralEntry
     {
-        public UxLayoutDeferralEntry(string deferralId, string screenId, int findingCount, string reason)
+        public UxLayoutDeferralEntry(string deferralId, string screenId, int findingCount, string reason,
+            params string[] deferredSizes)
         {
             if (string.IsNullOrEmpty(deferralId)) throw new ArgumentNullException(nameof(deferralId));
             if (string.IsNullOrEmpty(screenId)) throw new ArgumentNullException(nameof(screenId));
@@ -26,6 +27,7 @@ namespace DreamTech.LiveOps.Editor.Tests
             ScreenId = screenId;
             FindingCount = findingCount;
             Reason = reason;
+            DeferredSizes = deferredSizes ?? new string[0];
         }
 
         /// <summary>Mã phiếu của đợt W9 (dạng <c>W9-NN</c>) — chỗ duy nhất nối test đỏ với việc đã hẹn làm.</summary>
@@ -39,6 +41,28 @@ namespace DreamTech.LiveOps.Editor.Tests
 
         public string Reason { get; }
 
+        /// <summary>
+        /// Nhãn các cỡ cửa sổ ("700x560") còn hoãn. RỖNG = hoãn CẢ màn ở mọi cỡ (W9-18).
+        /// <para>
+        /// Vì sao hoãn theo cỡ chứ không theo màn: một mục hoãn theo màn dừng luôn những cặp cỡ × ngôn ngữ đang SẠCH của
+        /// màn đó. Màn Loại event là ví dụ nặng nhất — lỗi chỉ ở ba cỡ hẹp, nhưng hoãn cả test làm 6/12 cặp đang xanh
+        /// ngừng được kiểm, tức là một lần sửa làm hỏng ba cỡ rộng cũng sẽ KHÔNG ai thấy cho tới hết đợt W9.
+        /// </para>
+        /// </summary>
+        public IReadOnlyList<string> DeferredSizes { get; }
+
+        /// <summary>Cỡ <paramref name="sizeLabel"/> ("950x700") có đang được hoãn không; mục hoãn cả màn thì mọi cỡ đều có.</summary>
+        public bool IsDeferredAt(string sizeLabel)
+        {
+            if (DeferredSizes.Count == 0) return true;
+            for (int index = 0; index < DeferredSizes.Count; index++)
+            {
+                if (string.Equals(DeferredSizes[index], sizeLabel, StringComparison.Ordinal)) return true;
+            }
+
+            return false;
+        }
+
         /// <summary>Câu người chạy test đọc được: mã phiếu đứng đầu để lọc, rồi số chỗ, rồi lý do.</summary>
         public string IgnoreMessage
         {
@@ -46,8 +70,12 @@ namespace DreamTech.LiveOps.Editor.Tests
             {
                 // InvariantCulture vì đây là chuỗi MÁY đọc (người soát grep theo mã phiếu + con số), không phải chuỗi hiển
                 // thị: máy chạy cổng đổi ngôn ngữ hệ thống thì con số phải vẫn y nguyên. Cùng quy ước với UxLayoutAuditor.
+                string scope = DeferredSizes.Count == 0
+                    ? " ở MỌI cỡ"
+                    : " ở " + DeferredSizes.Count.ToString(CultureInfo.InvariantCulture) + " cỡ ("
+                      + string.Join(", ", DeferredSizes as string[] ?? new List<string>(DeferredSizes).ToArray()) + ")";
                 return DeferralId + " — màn '" + ScreenId + "' còn " + FindingCount.ToString(CultureInfo.InvariantCulture)
-                    + " chỗ không dùng được. " + Reason;
+                    + " chỗ không dùng được" + scope + ". " + Reason;
             }
         }
     }
@@ -76,29 +104,51 @@ namespace DreamTech.LiveOps.Editor.Tests
     /// </summary>
     internal static class UxLayoutDeferralList
     {
+        /// <summary>Nhãn cỡ của ma trận bố cục — viết một chỗ để mục hoãn không gõ sai "1024x700" thành "1024x760".</summary>
+        private const string Size700 = "700x560";
+
+        private const string Size820 = "820x560";
+        /// <summary>Cỡ MỚI của W9-20. Nó nằm trong danh sách hoãn của mọi màn đang đỏ ở 820 và 1024 vì chưa ai đo nó,
+        /// và coi một cỡ CHƯA ĐO là sạch thì mục hoãn lại thành chỗ trốn kiểm. Gói màn đo xong thì gỡ.</summary>
+        private const string Size950 = "950x700";
+        private const string Size1024 = "1024x700";
+        private const string Size1280 = "1280x760";
+        private const string Size1440 = "1440x900";
+
         private static readonly UxLayoutDeferralEntry[] Entries =
         {
-            new UxLayoutDeferralEntry("W9-01", "export", 245,
-                "Màn Xuất JSON nằm NGOÀI phạm vi đợt W8 (USER chốt 18/9/2026). 245 chỗ là khối lượng của một đợt riêng, "
-                + "không phải việc kèm theo của một gói sửa hành trình. MẤT ĐỘ PHỦ: hoãn cả test nên 3/12 cặp cỡ × ngôn "
-                + "ngữ đang SẠCH (1440x900 vi, 1920x1040 vi, 1920x1040 en) cũng ngừng được kiểm tới W9."),
-            new UxLayoutDeferralEntry("W9-03", "overview", 126,
-                "Màn Tổng quan nằm NGOÀI phạm vi đợt W8 (USER chốt 18/9/2026). 126 chỗ là bố cục của cả màn ở 6 cỡ × 2 "
-                + "ngôn ngữ, phải đo lại và chia việc ở đợt riêng. MẤT ĐỘ PHỦ: 2/12 cặp đang SẠCH (1440x900 vi, "
-                + "1920x1040 vi) cũng ngừng được kiểm tới W9."),
-            new UxLayoutDeferralEntry("W9-04", "shell-rail-status", 126,
-                "Khung chung (rail + status bar) nằm NGOÀI phạm vi đợt W8 theo chốt của USER 18/9/2026, dù sửa khung "
-                + "đụng MỌI màn nên phải là đợt riêng. NGHIỆM THU CÒN NỢ: đây đúng là test 'L' của đầu việc UX-20 "
-                + "(UX-FIX-PLAN.md:56, tên cũ Shell_StatusBar_NoOverlap) — gói E coi UX-20 là xong nhưng tiêu chí chưa "
-                + "bao giờ xanh. MẤT ĐỘ PHỦ: 2/12 cặp đang SẠCH (1440x900 vi, 1920x1040 vi) ngừng được kiểm tới W9."),
-            new UxLayoutDeferralEntry("W9-05", "event-types", 104,
-                "Màn Loại event nằm NGOÀI phạm vi đợt W8 (USER chốt 18/9/2026). 104 chỗ là bố cục của cả màn, phải đo "
-                + "lại và chia việc ở đợt riêng. MẤT ĐỘ PHỦ nặng nhất nhóm: lỗi chỉ ở ba cỡ hẹp, nên hoãn cả test làm "
-                + "6/12 cặp đang SẠCH (1280x760, 1440x900, 1920x1040 — cả vi lẫn en) ngừng được kiểm tới W9."),
-            new UxLayoutDeferralEntry("W9-06", "validation", 76,
-                "Màn Kiểm lịch nằm NGOÀI phạm vi đợt W8 (USER chốt 18/9/2026). 76 chỗ là bố cục của cả màn ở 6 cỡ × 2 "
-                + "ngôn ngữ, phải đo lại và chia việc ở đợt riêng. MẤT ĐỘ PHỦ: 0/12 cặp sạch — mọi cỡ đều đang đỏ nên "
-                + "hoãn không che mất cặp nào đang xanh."),
+            new UxLayoutDeferralEntry("W9-01", "export", 241,
+                "Màn Xuất JSON nằm NGOÀI phạm vi đợt W8 (USER chốt 18/9/2026) và là việc của gói G-W9-EXPORT. Số chỗ đo "
+                + "lại trên 6d73130 là 241 (sổ W9 ghi 245 theo lượt 2; lượt 3 sửa USS dùng chung nên kéo theo màn này). "
+                + "HOÃN THEO CỠ từ đợt W9: 1920x1040 đo được 0 chỗ ở cả hai ngôn ngữ nên cỡ đó CHẠY ĐẦY ĐỦ ngay lượt này "
+                + "— một lần sửa làm hỏng cỡ rộng sẽ đỏ ngay, không phải đợi hết đợt.",
+                Size700, Size820, Size950, Size1024, Size1280, Size1440),
+            new UxLayoutDeferralEntry("W9-03", "overview", 118,
+                "Màn Tổng quan nằm NGOÀI phạm vi đợt W8 (USER chốt 18/9/2026) và là việc của gói G-W9-SCREENS. Gốc lỗi "
+                + "R1: bảng 'đợt tới' đặt bề rộng cột cố định nên ở cỡ hẹp cột bị đẩy RA NGOÀI cửa sổ (ô đo được ở x=745 "
+                + "trên cửa sổ rộng 700). KHÔNG cỡ nào sạch — đo lại trên 6d73130 thấy đỏ ở cả sáu cỡ (1920 còn 3 chỗ) — "
+                + "nên mục này vẫn hoãn cả màn; hoãn theo cỡ ở đây không cứu được cặp nào.",
+                new string[0]),
+            new UxLayoutDeferralEntry("W9-04", "shell-rail-status", 118,
+                "Khung chung (rail + status bar) nằm NGOÀI phạm vi đợt W8 theo chốt của USER 18/9/2026. NGHIỆM THU CÒN "
+                + "NỢ, và nợ NẶNG HƠN sổ cũ ghi: trước W9-26 test này mở màn Tổng quan rồi để auditor duyệt CẢ cây, nên "
+                + "118 chỗ của nó trùng 100% với 118 chỗ của màn Tổng quan và KHÔNG chỗ nào thuộc rail hay status bar — "
+                + "tức UX-20 chưa từng có tiêu chí nghiệm thu thật. W9-26 đã thu phạm vi về đúng hai nhánh đó; con số 118 "
+                + "vì vậy là số CŨ và phải đo lại, nên mục này giữ hoãn cả màn cho tới lượt đo của G-W9-SCREENS.",
+                new string[0]),
+            new UxLayoutDeferralEntry("W9-05", "event-types", 100,
+                "Màn Loại event nằm NGOÀI phạm vi đợt W8 (USER chốt 18/9/2026) và là việc của gói G-W9-SCREENS. Gốc lỗi "
+                + "R4/R5: ô bảng và tiêu đề cột rộng cố định 25–35px trong khi chữ cần 35–119px. ĐÃ THỬ hoãn theo cỡ và "
+                + "PHẢI RÚT LẠI: bảng đo của W9-PLAN chỉ chạy trên 6000.6, nơi ba cỡ rộng đo được 0 chỗ — nhưng lượt kiểm "
+                + "thật trên 2022.3 thấy 30 chỗ childOverflow ở ĐÚNG ba cỡ đó (ô nhập của form tràn khỏi hàng chứa). Không "
+                + "cỡ nào sạch trên CẢ HAI bản Unity, nên hoãn cả màn. Đây là phát hiện của đợt W9, không phải của bảng đo: "
+                + "mọi con số 'cỡ này sạch' của W9-PLAN đều là số 6000.6 và phải đo lại trên 2022.3 trước khi tin.",
+                new string[0]),
+            new UxLayoutDeferralEntry("W9-06", "validation", 40,
+                "Màn Kiểm lịch nằm NGOÀI phạm vi đợt W8 (USER chốt 18/9/2026) và là việc của gói G-W9-SCREENS. Gốc lỗi "
+                + "R8 đáng chú ý nhất: nút 'Kiểm lại' chật 4px ở MỌI cỡ kể cả 1920, tức là một nút dựng sai ngay từ đầu "
+                + "chứ không phải lỗi của cửa sổ hẹp — nên KHÔNG cỡ nào sạch và hoãn theo cỡ không cứu được cặp nào.",
+                new string[0]),
         };
 
         /// <summary>Mọi mục — dùng cho test gác danh sách và cho báo cáo của cổng người.</summary>
@@ -119,13 +169,13 @@ namespace DreamTech.LiveOps.Editor.Tests
         }
 
         /// <summary>
-        /// Dừng test với trạng thái Ignored kèm mã phiếu W9 nếu màn <paramref name="screenId"/> đang được hoãn; không
-        /// được hoãn thì trả về và test chạy tiếp bình thường. Gọi ở ĐẦU thân test để không tốn một lượt mở hub.
+        /// Dừng test với trạng thái Ignored kèm mã phiếu W9 nếu màn <paramref name="screenId"/> đang được hoãn ở MỌI cỡ;
+        /// hoãn theo cỡ thì trả về và <c>UxLayoutAuditTests.RunScreen</c> tự bỏ đúng những cỡ đó.
         /// </summary>
         public static void IgnoreWhenDeferred(string screenId)
         {
             UxLayoutDeferralEntry entry = Find(screenId);
-            if (entry == null) return;
+            if (entry == null || entry.DeferredSizes.Count > 0) return;
             Assert.Ignore(entry.IgnoreMessage);
         }
     }

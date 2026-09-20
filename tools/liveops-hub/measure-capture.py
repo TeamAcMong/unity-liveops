@@ -12,6 +12,7 @@ gốc (mục 9.5). Script chỉ dùng thư viện chuẩn Python 3 (đọc PNG b
     "elements": [ {"name": "liveops-hub-rail", "classes": ["liveops-hub-rail"],
                    "worldBound": {"x": 0, "y": 26, "width": 196, "height": 714}} ],
     "expectedFrames": [ {"element": "liveops-hub-rail", "width": 196} ],          (tuỳ chọn — ghi đè bảng mặc định)
+                        mỗi khung nhận thêm "tolerance" riêng (tuỳ chọn) khi số đo là số của font, không phải số thiết kế
     "colorAnchors": [ {"name": "rail-blocked-text", "point": {"x": 40, "y": 100}, "expected": "#FF8080",
                        "maximumDeltaE": 3, "background": {"x": 12, "y": 100}, "minimumContrast": 4.54} ]
   }
@@ -256,8 +257,12 @@ def measure_frame(image, element, expectation, scale, tolerance):
             continue
         expected = float(expectation[dimension])
         reported = float(bound[dimension])
-        entry = {"element": element.get("name"), "dimension": dimension, "expected": expected, "reported": reported}
-        entry["reportedPass"] = abs(reported - expected) <= tolerance
+        # Sai số RIÊNG của khung, nếu kịch bản khai (W9-17). Mặc định vẫn là sai số chung --tolerance; khai riêng chỉ để
+        # nói được "chiều này là số của FONT, không phải số thiết kế" cho đúng một khung, thay vì nới sai số cho cả bộ ảnh.
+        tolerance_here = float(expectation.get("tolerance", tolerance))
+        entry = {"element": element.get("name"), "dimension": dimension, "expected": expected, "reported": reported,
+                 "tolerance": tolerance_here}
+        entry["reportedPass"] = abs(reported - expected) <= tolerance_here
         horizontal = dimension == "width"
         start = (bound["x"] if horizontal else bound["y"]) * scale
         end = start + reported * scale
@@ -273,7 +278,7 @@ def measure_frame(image, element, expectation, scale, tolerance):
                 continue
             samples.append((second_edge - first_edge) / scale)
         entry["measuredSamples"] = samples
-        agreeing = [sample for sample in samples if abs(sample - expected) <= tolerance]
+        agreeing = [sample for sample in samples if abs(sample - expected) <= tolerance_here]
         if len(samples) >= 2:
             entry["measured"] = sorted(samples)[len(samples) // 2]
             entry["measuredPass"] = len(agreeing) >= 2

@@ -55,11 +55,37 @@ namespace DreamTech.LiveOps.Editor.Tests
         private const string DefaultDiagnosticsLabel = "local";
         private const string DiagnosticsRelativeDirectory = ".cache/unity-liveops/ux-gate";
 
-        /// <summary>Sáu cỡ user chốt 17/9/2026 cho MỌI màn.</summary>
+        /// <summary>
+        /// Sáu cỡ user chốt 17/9/2026. Test hành trình trỏ vào bộ này THEO CHỈ MỤC (<c>AllSizes[4]</c> = 1440x900 là cỡ
+        /// "rộng rãi" mà mọi ca inspector đứng trên), nên thứ tự và chỉ mục của sáu dòng dưới đây là HỢP ĐỒNG: chen một cỡ
+        /// vào giữa sẽ dời im lặng khoảng hai chục lời gọi sang một cỡ khác mà không test nào đỏ. Cỡ mới của ma trận bố
+        /// cục vì vậy vào <see cref="AllLayoutSizes"/>, không vào đây (W9-20).
+        /// </summary>
         internal static readonly UxWindowSize[] AllSizes =
         {
             new UxWindowSize(700, 560),
             new UxWindowSize(820, 560),
+            new UxWindowSize(1024, 700),
+            new UxWindowSize(1280, 760),
+            new UxWindowSize(1440, 900),
+            new UxWindowSize(1920, 1040),
+        };
+
+        /// <summary>
+        /// Bộ cỡ của MA TRẬN KIỂM BỐ CỤC: sáu cỡ trên cộng 950x700 (W9-20).
+        /// <para>
+        /// Vì sao thêm 950: breakpoint "--medium" trải 900…1099px mà ma trận cũ chỉ thử ĐÚNG MỘT điểm trong khoảng đó
+        /// (1024). Toolbar màn Lịch nhường chỗ theo CỠ nên luật nhường áp cho cả bản tiếng Anh, và thanh tiếng Anh ở 1024
+        /// còn 113px trống — nghĩa là menu "Bắt lưới" bản en (đo được 112px) vừa đủ ở 1024 và hết chỗ ngay dưới ~1000px.
+        /// Khoảng 900–1099 vì thế là một khoảng MÙ: cổng xanh ở 1024 không nói gì về 950. Đây là cỡ kiểm, không phải cỡ
+        /// thiết kế mới — nó nằm giữa 820 và 1024 đúng chỗ bậc breakpoint mới.
+        /// </para>
+        /// </summary>
+        internal static readonly UxWindowSize[] AllLayoutSizes =
+        {
+            new UxWindowSize(700, 560),
+            new UxWindowSize(820, 560),
+            new UxWindowSize(950, 700),
             new UxWindowSize(1024, 700),
             new UxWindowSize(1280, 760),
             new UxWindowSize(1440, 900),
