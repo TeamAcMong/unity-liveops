@@ -338,14 +338,19 @@ namespace DreamTech.LiveOps.Editor
         }
 
         /// <summary>
-        /// (UX-31, UJ-24) Chữ của tag: thanh đủ rộng để tự mang nhãn id thì tag chỉ nói trạng thái; thanh hẹp (nhãn trong thân
-        /// rỗng) thì tag phải nói luôn id, nếu không người dùng chỉ thấy "một đợt nào đó bị bỏ".
+        /// (UX-31, UJ-24) Chữ của tag: thanh tự mang ĐỦ id trong thân thì tag chỉ nói trạng thái; còn lại tag phải nói luôn
+        /// id, nếu không người dùng chỉ thấy "một đợt nào đó bị bỏ".
+        /// <para>
+        /// (W9-UX31-NUMERIC) Điều kiện là "nhãn thân CHỨA đủ id", không phải "nhãn thân khác rỗng". Nhãn thanh rút gọn
+        /// ("…09b", "hunt…") khác rỗng nhưng KHÔNG nói ra id — bản cũ gặp mẩu đó là im luôn, và id không còn đọc được ở đâu.
+        /// </para>
         /// </summary>
         private static string DroppedTagTextFor(LiveOpsTimelineBar bar, bool willDrop)
         {
             string state = willDrop ? LiveOpsHubStrings.TimelineWillDropTag : LiveOpsHubStrings.TimelineDroppedTag;
-            if (bar.Label.text.Length > 0 || bar.Model.EventId.Length == 0) return state;
-            return string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.TimelineDroppedTagWithIdFormat, bar.Model.EventId, state);
+            string eventId = bar.Model.EventId;
+            if (eventId.Length == 0 || bar.Label.text.IndexOf(eventId, StringComparison.Ordinal) >= 0) return state;
+            return string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.TimelineDroppedTagWithIdFormat, eventId, state);
         }
 
         private VisualElement DroppedTagAt(int index)
