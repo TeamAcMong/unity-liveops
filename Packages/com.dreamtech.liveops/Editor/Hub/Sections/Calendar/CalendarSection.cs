@@ -73,6 +73,11 @@ namespace DreamTech.LiveOps.Editor
             _services = services ?? throw new ArgumentNullException(nameof(services));
             _presenter = new CalendarTimelinePresenter(services);
             _presenter.SelectionChanged += OnSelectionChanged;
+            // (W10 — lỗi thật) Chọn NHIỀU thanh đi đường SelectionSetChanged, không đi SelectionChanged. Trước bản này người
+            // nghe duy nhất của nó là CalendarEventInspector, nên ở bậc --medium (cửa sổ hẹp hơn
+            // LiveOpsHubBreakpoints.MediumBelowWidth = 1100) ApplyInspectorDrawerLayout không chạy lại và drawer giữ nguyên
+            // display:none: người dùng ctrl-click hai thanh ở BỐN trong bảy cỡ của cổng (700, 820, 950, 1024) thì pane chọn
+            // nhiều không bao giờ hiện ra.
             _presenter.SelectionSetChanged += OnSelectionSetChanged;
             _presenter.NavigationRequested += RaiseNavigation;
             _presenter.ToastRequested += toast => _services.Bus.ShowToast(toast);

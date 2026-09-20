@@ -48,6 +48,9 @@ namespace DreamTech.LiveOps.Editor.Tests
         private const int WindowWidth = 1280;
         private const int WindowHeight = 760;
 
+        /// <summary>Cỡ hẹp nhất của cổng — nằm sâu dưới bậc <c>--medium</c> (1100px).</summary>
+        private static readonly UxWindowSize MediumWidthSize = new UxWindowSize(700, 560);
+
         /// <summary>
         /// Cỡ hẹp nhất của cổng — nằm sâu dưới bậc <c>--medium</c> (1100px). Khai báo TRƯỚC hai mảng dùng nó: field
         /// <c>static readonly</c> khởi tạo theo thứ tự khai báo, nên đứng sau thì mảng nhận một cỡ 0×0 mà không ai báo.
