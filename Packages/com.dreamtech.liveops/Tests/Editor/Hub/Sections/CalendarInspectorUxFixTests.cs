@@ -49,24 +49,56 @@ namespace DreamTech.LiveOps.Editor.Tests
         private const int WindowHeight = 760;
 
         /// <summary>
-        /// (soát W10 F1) Hai cỡ cho ca nhãn đã wrap: cỡ ảnh hành trình và cỡ HẸP NHẤT mà pane chọn nhiều còn bày ra được.
+        /// Cỡ hẹp nhất của cổng — nằm sâu dưới bậc <c>--medium</c> (1100px). Khai báo TRƯỚC hai mảng dùng nó: field
+        /// <c>static readonly</c> khởi tạo theo thứ tự khai báo, nên đứng sau thì mảng nhận một cỡ 0×0 mà không ai báo.
+        /// </summary>
+        private static readonly UxWindowSize MediumWidthSize = new UxWindowSize(700, 560);
+
+        /// <summary>
+        /// (soát W10 F1) Bộ cỡ cho ca nhãn đã wrap: cỡ HẸP NHẤT của cổng, cỡ ảnh hành trình và cỡ rộng rãi.
         /// Nhãn wrap ra khỏi luật dư bề rộng nên chỗ nó có thể hỏng là chiều cao, mà chiều cao chỉ đổi khi bề rộng khả dụng
         /// đổi — đo một cỡ thì không biết gì về cỡ kia.
         /// <para>
-        /// Vì sao KHÔNG có cỡ nào hẹp hơn: <c>LiveOpsHubBreakpoints.MediumBelowWidth</c> = <b>1100</b>, nên bốn trong bảy
-        /// cỡ của cổng (700, 820, 950, 1024) đều ở bậc <c>--medium</c>, nơi inspector Lịch là DRAWER — và chọn NHIỀU thanh
-        /// hôm nay không mở được drawer ấy, xem <see cref="MultiSelectDrawer_AtMediumWidth_StaysHidden_KnownGap"/>. Pane
-        /// mang <c>display: none</c> nên không có layout nào để đo; đo ở đó là đo một cây chết. 1280 và 1440 là hai cỡ
-        /// KHÔNG-medium duy nhất mà bộ cỡ còn lại có bề rộng khác nhau.
+        /// (G-W10-CAL2) 700×560 ĐÃ TRỞ LẠI bộ này. Trước đó nó bị bỏ ra vì ở bậc <c>--medium</c> (dưới 1100px) pane chọn
+        /// nhiều mang <c>display: none</c> — không có layout nào để đo, đo ở đó là đo một cây chết. Lỗi ấy nay đã chữa
+        /// (xem <see cref="MultiSelectDrawer_AtEveryMediumWidth_OpensAndClosesWithEscape"/>), nên cỡ HẸP NHẤT của cổng
+        /// đo được thật và phải có mặt: chiều cao wrap chỉ đổi khi bề rộng khả dụng đổi.
         /// </para>
         /// </summary>
         private static readonly UxWindowSize[] MultiSelectLabelSizes =
         {
-            new UxWindowSize(WindowWidth, WindowHeight), new UxWindowSize(1440, 900),
+            MediumWidthSize, new UxWindowSize(WindowWidth, WindowHeight), new UxWindowSize(1440, 900),
         };
 
-        /// <summary>Cỡ hẹp nhất của cổng — nằm sâu dưới bậc <c>--medium</c> (1100px).</summary>
-        private static readonly UxWindowSize MediumWidthSize = new UxWindowSize(700, 560);
+        /// <summary>
+        /// BỐN cỡ của cổng nằm dưới mốc <c>LiveOpsHubBreakpoints.MediumBelowWidth</c> = 1100px, tức bốn cỡ mà inspector Lịch
+        /// là DRAWER. Ca drawer chọn nhiều đi hết bộ này: lỗi nó khoá là lỗi chỉ xuất hiện ở bậc <c>--medium</c>, nên đo một
+        /// cỡ rồi suy ra ba cỡ kia là đúng cái lỗ hổng ma trận mà đợt W10 được mở ra để vá.
+        /// </summary>
+        private static readonly UxWindowSize[] MediumWidthSizes =
+        {
+            MediumWidthSize, new UxWindowSize(820, 560), new UxWindowSize(SnugProbeWidth, SnugProbeHeight),
+            new UxWindowSize(1024, 700),
+        };
+
+        /// <summary>
+        /// Số tài liệu mà ca drawer chọn nhiều chạy qua: mẫu thiết kế và tài liệu XẤU NHẤT. Hai bản, vì pane này vừa được
+        /// làm cho HIỆN RA ở bốn cỡ hẹp nên từ nay nó là pane người dùng đọc thật, mà chữ chỉ chạm mép khi dữ liệu xấu.
+        /// </summary>
+        private const int MultiSelectDocumentCount = 2;
+
+        /// <summary>
+        /// Quãng cách hai bên mốc --medium của ca dò mốc. Lớn hơn mức kẹp cửa sổ mà cổng còn chấp nhận (4px) nên một pixel
+        /// lệch của hệ điều hành không lật kết luận; nhỏ hơn nửa quãng 100px giữa --snug (1000) và --medium (1100) nên mốc
+        /// trôi về 1000 vẫn làm ca đỏ.
+        /// </summary>
+        private const int BreakpointProbeMargin = 24;
+
+        /// <summary>Chiều cao cửa sổ của ca dò mốc — mốc này chỉ theo BỀ RỘNG, chiều cao chỉ cần đủ để màn dựng đủ khối.</summary>
+        private const int BreakpointProbeHeight = 760;
+
+        /// <summary>Ký tự của phím Esc trong sự kiện phím: UIElements mang cả ký tự lẫn mã phím, nhánh Esc đọc cả hai.</summary>
+        private const char EscapeCharacter = '\u001b';
 
         /// <summary>Cỡ dò của bậc --snug (W9-20): 950 nằm giữa 900 và 1000, tức trong khoảng mù cũ của ma trận cổng.</summary>
         private const int SnugProbeWidth = 950;
@@ -817,44 +849,208 @@ namespace DreamTech.LiveOps.Editor.Tests
         }
 
         /// <summary>
-        /// (soát W10 — phát hiện MỚI, chưa chữa được ở gói này) GHI NHẬN HIỆN TRẠNG SAI, không phải ca khoá đúng.
+        /// (soát W10 → G-W10-CAL2) Chọn NHIỀU đợt ở cửa sổ hẹp hơn <c>LiveOpsHubBreakpoints.MediumBelowWidth</c> = 1100px
+        /// PHẢI mở được drawer inspector — y như chọn một đợt.
         /// <para>
-        /// Dưới <c>LiveOpsHubBreakpoints.MediumBelowWidth</c> = 1100px hub ở bậc <c>--medium</c> và inspector Lịch thành
-        /// drawer "mở khi chọn"
-        /// (<c>CalendarSection.ApplyInspectorDrawerLayout</c>). Nhưng chọn NHIỀU thanh phát
-        /// <c>CalendarTimelinePresenter.SelectionSetChanged</c>, mà người nghe DUY NHẤT của sự kiện ấy là
-        /// <c>CalendarEventInspector</c> — <c>CalendarSection</c> không nghe, nên <c>ApplyInspectorDrawerLayout</c> không
-        /// chạy lại và pane giữ nguyên <c>liveops-hub-calendar--hidden</c> (<c>display: none</c>). Người dùng ctrl-click
-        /// hai thanh ở cửa sổ hẹp hơn 1100px thì pane chọn nhiều KHÔNG hiện ra — tức BỐN trong bảy cỡ của cổng
-        /// (700, 820, 950, 1024). Đường ý định của click thật đi qua đúng hàm
-        /// <c>SetSelectedBarKeys</c> mà ca này gọi, nên đây là lỗi người dùng gặp được, không phải hiện tượng của test.
+        /// Lỗi đã chữa: <c>CalendarTimelinePresenter.SetSelectedBarKeys</c> cố ý chỉ phát <c>SelectionSetChanged</c>, mà
+        /// người nghe duy nhất của sự kiện ấy là <c>CalendarEventInspector</c> — nó dựng lại NỘI DUNG pane, còn
+        /// <c>CalendarSection.ApplyInspectorDrawerLayout</c> không chạy lại nên pane giữ nguyên
+        /// <c>liveops-hub-calendar--hidden</c> (<c>display: none</c>). Người dùng ctrl-click hai thanh và không thấy gì
+        /// hiện ra, ở BỐN trong bảy cỡ của cổng. Nay <c>CalendarSection</c> nghe thẳng <c>SelectionSetChanged</c>.
         /// </para>
         /// <para>
-        /// Chữa nằm trong <c>Editor/Hub/Sections/Calendar/CalendarSection.cs</c> — file KHÔNG thuộc quyền ghi của
-        /// G-W10-FIELD (bảng quyền ghi chỉ cho gói này <c>CalendarEventInspector.cs</c> và <c>CalendarSection.uss</c>).
-        /// Ca này tồn tại để không ai đọc bộ kiểm rồi tưởng cỡ hẹp đã được đo. <b>XOÁ ca này khi phiếu được chữa</b> —
-        /// lúc đó nó đỏ, và cái đỏ ấy là lời nhắc đưa 700×560 trở lại <see cref="MultiSelectLabelSizes"/>.
+        /// Vì sao ca này đo cả BỐN cỡ chứ không một cỡ: đây đúng là hạng lỗi "lỗ hổng ma trận" của đợt W10 — bộ kiểm cũ chỉ
+        /// dựng pane chọn nhiều ở cỡ RỘNG, nên một pane không hiện ra ở bốn cỡ hẹp vẫn xanh suốt chín đợt. Ca cũng chốt
+        /// trạng thái ĐÓNG trước khi chọn: không có vế ấy thì một pane hiện SẴN ở mọi lúc cũng làm ca xanh, và lời khai
+        /// "drawer mở khi chọn" không còn được chứng minh.
+        /// </para>
+        /// <para>
+        /// (soát vòng 2 · CAL2-R2-01) Vế "pane mở ra là pane CHỌN NHIỀU" chốt bằng NHÃN của ô số và bằng CHỮ trên nút xoá,
+        /// chứ không bằng riêng lớp <c>liveops-hub-calendar-inspector-field--number</c>: lớp ấy còn nằm trên ô "Dài" của
+        /// pane MỘT ĐỢT (cả bản chỉ-đọc lẫn bản sửa được) và trên popover Thêm đợt, nên đúng cái hồi quy mà vế này hứa bắt
+        /// — màn vẽ pane một đợt thay vì pane chọn nhiều — sẽ đi lọt nếu chỉ hỏi "có IntegerField mang lớp ấy không".
+        /// </para>
+        /// <para>
+        /// (soát vòng 2 · CAL2-R2-03) Ca chạy trên HAI tài liệu: mẫu thiết kế và <see cref="LiveOpsWorstCaseSample"/>. Bản
+        /// vá làm một pane 280px HIỆN RA ở bốn cỡ mà trước đây nó <c>display: none</c> — từ nay nó là pane người dùng thật
+        /// sự đọc, mà pane chưa ai đo trên dữ liệu xấu nhất là pane chưa ai biết có cắt chữ hay không. Pane chọn nhiều dùng
+        /// CÙNG lớp tiêu đề và CÙNG nút đóng trong CÙNG bề rộng 280px với pane một đợt — chỗ mà lượt audit đã đo được chữ
+        /// bị cắt trên chính tài liệu ấy — nên <c>AssertNoCutText</c> chạy thẳng trên cây inspector đang mở.
+        /// </para>
+        /// <para>
+        /// (soát vòng 2 · CAL2-R2-08) Vế cuối bơm Esc vào nhánh phím của gốc màn QUA <c>HandleRootKeyDownForTest</c>: nhánh
+        /// XỬ LÝ là nhánh thật, nhưng ĐƯỜNG tới nó (dispatch theo focus của panel) thì bị bỏ qua, nên gỡ mất
+        /// <c>RegisterCallback&lt;KeyDownEvent&gt;</c> ở gốc màn sẽ KHÔNG làm ca này đỏ. Lối tắt ấy có từ trước và có lý do
+        /// ghi rõ (bẫy dispatch theo focus ở 2022.3); ghi ra đây để lời khai không rộng hơn phép đo. Điều ca này chốt được
+        /// là: <c>IsInspectorDrawerOpen</c> đọc <c>SelectedBarKey</c> (khoá MỐC của tập), nên nếu tập chọn nhiều để khoá
+        /// mốc rỗng thì drawer mở ra mà không phím nào đóng lại được.
         /// </para>
         /// </summary>
         [UnityTest]
-        public IEnumerator MultiSelectDrawer_AtMediumWidth_StaysHidden_KnownGap()
+        public IEnumerator MultiSelectDrawer_AtEveryMediumWidth_OpensAndClosesWithEscape()
         {
-            _fixture = UxHubWindowFixture.Open(LiveOpsHubSections.Ids.Calendar, MediumWidthSize,
-                LiveOpsHubLanguageId.Vietnamese);
-            yield return _fixture.WaitForLayout();
+            for (int documentIndex = 0; documentIndex < MultiSelectDocumentCount; documentIndex++)
+            {
+                for (int sizeIndex = 0; sizeIndex < MediumWidthSizes.Length; sizeIndex++)
+                {
+                    UxWindowSize size = MediumWidthSizes[sizeIndex];
+                    string place = "cửa sổ " + size + " (bậc --medium, inspector là drawer) trên "
+                        + MultiSelectDocumentLabel(documentIndex);
+                    _fixture = UxHubWindowFixture.Open(LiveOpsHubSections.Ids.Calendar, size,
+                        LiveOpsHubLanguageId.Vietnamese, MultiSelectServices(documentIndex));
+                    yield return _fixture.WaitForLayout();
 
-            _fixture.Calendar.Presenter.SetSelectedBarKeys(
-                new[] { LiveOpsDesignSample.HuntBonusEntryKey, LiveOpsDesignSample.HuntEarlyEntryKey },
-                LiveOpsDesignSample.HuntBonusEntryKey);
-            yield return _fixture.WaitForLayout();
+                    CalendarSection section = _fixture.Calendar;
+                    VisualElement inspector = _fixture.Root.Q(className: LiveOpsHubClassNames.Inspector);
+                    Assert.IsNotNull(inspector, "màn Lịch phải có cây inspector — " + place);
+                    Assert.AreEqual(DisplayStyle.None, inspector.resolvedStyle.display,
+                        "chưa chọn đợt nào thì drawer phải ĐÓNG — không có vế này thì một pane hiện sẵn cũng làm ca xanh — "
+                        + place);
 
-            Assert.Greater(_fixture.Calendar.Presenter.SelectedBarKey.Length, 0,
-                "tập chọn nhiều phải có thanh mốc — không có thì ca này ghi nhận nhầm chuyện khác");
+                    string[] barKeys = MultiSelectBarKeys(documentIndex);
+                    section.Presenter.SetSelectedBarKeys(barKeys, barKeys[0]);
+                    yield return _fixture.WaitForLayout();
+
+                    Assert.AreEqual(2, section.Presenter.SelectedBarKeys.Count,
+                        "ca này chỉ nói được điều nó khai khi tập chọn thật sự có hai đợt — " + place);
+                    for (int keyIndex = 0; keyIndex < barKeys.Length; keyIndex++)
+                    {
+                        Assert.IsNotNull(section.Presenter.FindBar(barKeys[keyIndex]),
+                            "đợt \"" + barKeys[keyIndex] + "\" phải là thanh CÓ THẬT trên trục — "
+                            + "SetSelectedBarKeys nhận cả khoá không tồn tại, nên thiếu vế này thì ca vẫn xanh với hai "
+                            + "khoá ma và tiêu đề pane chỉ ghép được câu \"0 loại\", tức đo một pane không phải pane "
+                            + "người dùng gặp — " + place);
+                    }
+                    Assert.AreEqual(DisplayStyle.Flex, inspector.resolvedStyle.display,
+                        "ctrl-click hai thanh ở cửa sổ hẹp phải MỞ drawer inspector; pane còn display:none nghĩa là "
+                        + "ApplyInspectorDrawerLayout không chạy lại sau SelectionSetChanged — " + place);
+                    Assert.Greater(inspector.contentRect.width, 0f,
+                        "drawer mở phải có bề rộng thật để vẽ được nội dung — " + place);
+
+                    IntegerField shiftField = inspector.Q<IntegerField>(className: LiveOpsHubClassNames.CalendarInspectorFieldNumber);
+                    Assert.IsNotNull(shiftField,
+                        "drawer mở ra phải là pane CHỌN NHIỀU (có ô \"Dời cả hai (giờ)\"), không phải pane một đợt — " + place);
+                    Assert.AreEqual(LiveOpsHubStrings.TimelineMultiSelectShiftFieldLabel, shiftField.label,
+                        "ô số của pane chọn nhiều là ô DỜI GIỜ; lớp \"--number\" còn nằm trên ô \"Dài\" của pane một đợt nên "
+                        + "riêng nó không phân biệt được hai pane — " + place);
+                    string deleteButtonText = LiveOpsHubStringCatalog.Format(
+                        nameof(LiveOpsHubStrings.TimelineMultiSelectDeleteButtonFormat), barKeys.Length);
+                    Assert.IsNotNull(FindButtonWithText(inspector, deleteButtonText),
+                        "pane chọn nhiều phải có nút \"" + deleteButtonText + "\" — chỉ pane chọn nhiều dựng nút này, nên nó "
+                        + "là dấu riêng thật sự của pane — " + place);
+                    Assert.IsTrue(section.IsInspectorDrawerOpen, "drawer đang mở thì màn phải tự nhận là đang mở — " + place);
+
+                    AssertNoCutText(inspector, "drawer chọn nhiều ở " + place);
+
+                    using (KeyDownEvent escape = KeyDownEvent.GetPooled(EscapeCharacter, KeyCode.Escape, EventModifiers.None))
+                    {
+                        section.HandleRootKeyDownForTest(escape);
+                    }
+                    yield return _fixture.WaitForLayout();
+
+                    Assert.IsFalse(section.IsInspectorDrawerOpen, "Esc phải đóng được drawer chọn nhiều — " + place);
+                    Assert.AreEqual(DisplayStyle.None, inspector.resolvedStyle.display,
+                        "đóng drawer = pane giấu hẳn, không để một pane rỗng 280px cạnh trục — " + place);
+
+                    _fixture.Dispose();
+                    _fixture = null;
+                }
+            }
+        }
+
+        /// <summary>
+        /// (soát vòng 2 · CAL2-R2-07) Mốc <see cref="UxHubWindowFixture.MediumBreakpointWidth"/> phải là mốc THẬT mà hub
+        /// đổi inspector Lịch từ pane cố định thành drawer.
+        /// <para>
+        /// Vì sao cần ca này: hằng của cổng từng chép tay 1000 trong khi sản phẩm dùng 1100 — 1000 lại trùng đúng
+        /// <c>LiveOpsHubBreakpoints.SnugBelowWidth</c> nên rất dễ lệch lần nữa. Cho hằng đọc thẳng hằng sản phẩm là đúng
+        /// nhưng CHƯA đủ: không ca nào đứng trên hằng ấy thì nó lệch lại cũng không ai đỏ, tức một hằng đúng mà chết. Ca
+        /// này đo HÀNH VI ở hai bên mốc — hẹp hơn mốc thì gốc hub mang lớp <c>--medium</c> và inspector giấu hẳn khi chưa
+        /// chọn đợt nào; rộng hơn mốc thì không lớp ấy và inspector vẫn hiện — nên mốc trôi 100px là ca đỏ ngay.
+        /// </para>
+        /// <para>
+        /// <see cref="BreakpointProbeMargin"/> px mỗi bên lớn hơn mức kẹp cửa sổ mà cổng còn chấp nhận (4px) để một pixel
+        /// lệch của hệ điều hành không lật kết luận, và nhỏ hơn nửa quãng 100px giữa hai mốc --snug và --medium để mốc trôi
+        /// về 1000 vẫn bị bắt. Ca cũng dùng chính <c>UxWindowSize.IsMedium</c> — phép phân bậc của cổng — nên phép ấy
+        /// không còn là mã chết.
+        /// </para>
+        /// </summary>
+        [UnityTest]
+        public IEnumerator MediumBreakpoint_MatchesTheWidthWhereTheInspectorBecomesADrawer()
+        {
+            int breakpointWidth = (int)UxHubWindowFixture.MediumBreakpointWidth;
+            UxWindowSize narrow = new UxWindowSize(breakpointWidth - BreakpointProbeMargin, BreakpointProbeHeight);
+            UxWindowSize wide = new UxWindowSize(breakpointWidth + BreakpointProbeMargin, BreakpointProbeHeight);
+
+            Assert.IsTrue(narrow.IsMedium, "cỡ dò hẹp phải nằm DƯỚI mốc theo chính phép phân bậc của cổng — " + narrow);
+            Assert.IsFalse(wide.IsMedium, "cỡ dò rộng phải nằm TRÊN mốc theo chính phép phân bậc của cổng — " + wide);
+
+            yield return AssertInspectorDrawerMode(narrow, true);
+            yield return AssertInspectorDrawerMode(wide, false);
+        }
+
+        /// <summary>
+        /// Mở màn Lịch ở <paramref name="size"/> mà KHÔNG chọn đợt nào, rồi chốt hai điều: gốc hub có/không lớp
+        /// <c>--medium</c>, và inspector giấu hẳn hay vẫn hiện. Hai điều ấy là hai đầu của cùng một mốc, nên đo cả hai thì
+        /// lệch giữa lớp và hành vi cũng không đi lọt.
+        /// </summary>
+        private IEnumerator AssertInspectorDrawerMode(UxWindowSize size, bool expectDrawer)
+        {
+            string place = "cửa sổ " + size + " (mốc --medium = "
+                + UxHubWindowFixture.MediumBreakpointWidth.ToString("0", CultureInfo.InvariantCulture) + "px)";
+            _fixture = UxHubWindowFixture.Open(LiveOpsHubSections.Ids.Calendar, size, LiveOpsHubLanguageId.Vietnamese);
+            yield return _fixture.WaitForLayout();
+            Assert.IsFalse(_fixture.IsClamped,
+                "cỡ dò bị hệ điều hành kẹp thì phép đo không còn của cỡ ấy — " + _fixture.ClampNote);
+
+            VisualElement hubRoot = _fixture.Root.Q(className: LiveOpsHubClassNames.Root);
+            Assert.IsNotNull(hubRoot, "cửa sổ hub phải có gốc mang lớp khung — " + place);
+            Assert.AreEqual(expectDrawer, hubRoot.ClassListContains(LiveOpsHubClassNames.Medium),
+                "lớp --medium của gốc hub phải khớp mốc mà cổng đang khai; lệch nghĩa là hằng của cổng không còn là mốc "
+                + "thật của sản phẩm — " + place);
+
             VisualElement inspector = _fixture.Root.Q(className: LiveOpsHubClassNames.Inspector);
-            Assert.IsNotNull(inspector, "cây inspector phải còn trong màn dù đang ẩn");
-            Assert.AreEqual(DisplayStyle.None, inspector.resolvedStyle.display,
-                "pane inspector nay HIỆN ở bậc --medium khi chọn nhiều: lỗi đã được chữa. Hãy XOÁ ca ghi nhận này và đưa "
-                + MediumWidthSize + " trở lại MultiSelectLabelSizes để cỡ hẹp thật sự được đo.");
+            Assert.IsNotNull(inspector, "màn Lịch phải có cây inspector — " + place);
+            Assert.AreEqual(expectDrawer ? DisplayStyle.None : DisplayStyle.Flex, inspector.resolvedStyle.display,
+                expectDrawer
+                    ? "dưới mốc inspector là DRAWER: chưa chọn đợt nào thì phải giấu hẳn — " + place
+                    : "trên mốc inspector là PANE cố định: chưa chọn đợt nào vẫn phải hiện — " + place);
+
+            _fixture.Dispose();
+            _fixture = null;
+        }
+
+        /// <summary>Nhãn tài liệu của vòng lặp ca drawer chọn nhiều — vào thẳng câu assert nên đọc được ngay trong log.</summary>
+        private static string MultiSelectDocumentLabel(int documentIndex)
+        {
+            return documentIndex == 0 ? "mẫu thiết kế" : "tài liệu XẤU NHẤT";
+        }
+
+        /// <summary>
+        /// Services của vòng lặp: chỉ số 0 = mẫu thiết kế (trả null để fixture tự dựng), chỉ số 1 = tài liệu xấu nhất.
+        /// Lượt kiểm chạy tới cùng để màn có phát hiện thật, giống hệt cách lượt audit dựng services xấu nhất.
+        /// </summary>
+        private static LiveOpsHubServices MultiSelectServices(int documentIndex)
+        {
+            if (documentIndex == 0) return null;
+            LiveOpsHubServices services = LiveOpsHubTestServices.Build(
+                LiveOpsHubTestServices.CreateBuilder(LiveOpsHubTestServices.CreateClock())
+                    .WithCalendarAsset(LiveOpsHubTestServices.CreateMemoryAsset(LiveOpsWorstCaseSample.Document)));
+            services.Session.RunCheckToCompletion();
+            return services;
+        }
+
+        /// <summary>
+        /// Hai đợt được chọn của mỗi tài liệu. Bản xấu nhất lấy đợt có id DÀI NHẤT ghép với đợt trỏ tới loại CHƯA KHAI: hai
+        /// đợt khác loại nên tiêu đề pane phải ghép câu "2 loại" thay vì một tên loại, tức nhánh ghép chữ của pane này.
+        /// </summary>
+        private static string[] MultiSelectBarKeys(int documentIndex)
+        {
+            if (documentIndex == 0)
+            {
+                return new[] { LiveOpsDesignSample.HuntBonusEntryKey, LiveOpsDesignSample.HuntEarlyEntryKey };
+            }
+            return new[] { LiveOpsWorstCaseSample.LongEntryKey, LiveOpsWorstCaseSample.UndeclaredEntryKey };
         }
 
         // ============================================================================================ hạ tầng test

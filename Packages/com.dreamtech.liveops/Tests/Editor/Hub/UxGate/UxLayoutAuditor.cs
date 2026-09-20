@@ -19,9 +19,15 @@ namespace DreamTech.LiveOps.Editor.Tests
         internal const string ZeroSizeNamed = "zeroSizeNamed";
         internal const string TextCut = "textCut";
 
-        /// <summary>Chữ CHƯA cắt nhưng chiếm gần hết bề rộng ô — cảnh báo sớm của W9-25, xem <see cref="UxLayoutAuditor.TextFillWarningRatio"/>.</summary>
+        /// <summary>Chữ CHƯA cắt nhưng chiếm gần hết bề rộng ô — LỖI của W9-25, xem <see cref="UxLayoutAuditor.TextFillLimitRatio"/>.</summary>
         internal const string TextTight = "textTight";
         internal const string ChildOverflow = "childOverflow";
+
+        /// <summary>
+        /// Một cột của bảng (<c>MultiColumnListView</c>) đang hiện mà đầu cột KHÔNG có chữ — xem
+        /// <see cref="UxLayoutAuditor.CheckColumnHeaderTitle"/>. Đây là lưới bắt hạng lỗi của phiếu W9-31.
+        /// </summary>
+        internal const string UntitledColumn = "untitledColumn";
         internal const string ScrollViews = "scrollViews";
         internal const string AbsoluteOverText = "absoluteOverText";
         internal const string SiblingOverlap = "siblingOverlap";
@@ -205,6 +211,9 @@ namespace DreamTech.LiveOps.Editor.Tests
         public List<UxLayoutFinding> TextTight { get; } = new List<UxLayoutFinding>();
         public List<UxLayoutFinding> ChildOverflow { get; } = new List<UxLayoutFinding>();
 
+        /// <summary>Cột bảng đang hiện mà đầu cột không có chữ (W9-31).</summary>
+        public List<UxLayoutFinding> UntitledColumn { get; } = new List<UxLayoutFinding>();
+
         /// <summary>MỌI ScrollView của màn (chẩn đoán), kể cả cái không có vấn đề — chỉ dòng mang dấu hiệu mới tính là lỗi.</summary>
         public List<UxLayoutFinding> ScrollViews { get; } = new List<UxLayoutFinding>();
 
@@ -264,7 +273,15 @@ namespace DreamTech.LiveOps.Editor.Tests
         private void AppendGeneralProblems(List<string> problems, IReadOnlyList<VisualElement> subtreeRoots)
         {
             AppendProblems(problems, UxLayoutFindingKinds.TextCut, TextCut, subtreeRoots);
+            // W9-25 (USER chốt 20/9/2026): "chữ chiếm hơn 95% bề rộng ô" nay là LỖI, không còn là cảnh báo in ra rồi thôi.
+            // Vì sao nâng: bảy chỗ của bản cũ đều thiếu 1–6px khoảng dư, tức chúng CHƯA cắt chỉ nhờ metric font của đúng
+            // hai bản Unity đang chạy — một đổi DPI, đổi cỡ chữ Editor hay đổi bản Unity là cắt IM LẶNG, đúng cách W9-19
+            // đã lọt. Một cảnh báo không ai buộc phải đọc thì không phải là một cái lưới.
+            AppendProblems(problems, UxLayoutFindingKinds.TextTight, TextTight, subtreeRoots);
             AppendProblems(problems, UxLayoutFindingKinds.ChildOverflow, ChildOverflow, subtreeRoots);
+            // W9-31: cột không tên là lỗi CẤU TRÚC của bảng, không phải lỗi của một chuỗi — nó nằm ở đây cùng các phát hiện
+            // chung để MỌI màn có bảng đều đi qua lưới, chứ không chỉ màn nào nhớ khai luật.
+            AppendProblems(problems, UxLayoutFindingKinds.UntitledColumn, UntitledColumn, subtreeRoots);
             AppendProblems(problems, UxLayoutFindingKinds.AbsoluteOverText, AbsoluteOverText, subtreeRoots);
             AppendProblems(problems, UxLayoutFindingKinds.SiblingOverlap, SiblingOverlap, subtreeRoots);
             foreach (UxLayoutFinding finding in ScrollViews)
@@ -273,19 +290,6 @@ namespace DreamTech.LiveOps.Editor.Tests
                 if (!UxLayoutAuditor.IsInsideAny(finding.Owner, subtreeRoots)) continue;
                 problems.Add(UxLayoutFindingKinds.ScrollViews + ": " + finding.Text);
             }
-        }
-
-        /// <summary>
-        /// Dòng CẢNH BÁO của màn: chữ chưa cắt nhưng ô gần hết chỗ (W9-25). KHÔNG đi vào câu assert — phiếu W9-25 nói
-        /// "cảnh báo", và biến nó thành test đỏ là đổi luật bố cục giữa chừng cho những màn đã nghiệm thu xong: đo trên
-        /// 2022.3 thấy luật này bắt thêm 31 chỗ ở màn Luật lặp và 12 chỗ ở nhãn thước — cả hai đang XANH và thuộc gói khác,
-        /// nên làm chúng đỏ là gói này tự lấn sang phạm vi người khác bằng một ngưỡng mới.
-        /// </summary>
-        public List<string> Warnings(IReadOnlyList<VisualElement> subtreeRoots)
-        {
-            List<string> warnings = new List<string>();
-            AppendProblems(warnings, UxLayoutFindingKinds.TextTight, TextTight, subtreeRoots);
-            return warnings;
         }
 
         private static void AppendProblems(List<string> problems, string kind, List<UxLayoutFinding> entries,
@@ -346,7 +350,8 @@ namespace DreamTech.LiveOps.Editor.Tests
         private const float OverlapTolerance = 2f;
 
         /// <summary>
-        /// Chữ chiếm quá tỉ lệ này của bề rộng ô thì báo <see cref="UxLayoutFindingKinds.TextTight"/> (W9-25).
+        /// Chữ chiếm quá tỉ lệ này của bề rộng ô thì báo <see cref="UxLayoutFindingKinds.TextTight"/> (W9-25) — từ 20/9/2026
+        /// đây là LỖI làm đỏ cổng, không còn là cảnh báo.
         /// <para>
         /// Vì sao cần một luật RIÊNG bên cạnh "đã cắt chưa": lượt 3 của đợt W8 chữa ô id bị cắt bằng cách nhường đệm ngang
         /// về 0, nên chuỗi mono <c>2026-09-10</c> (75px trên 2022.3) còn ĐÚNG 0,5px dư mỗi bên trong ô pin 76px. Cổng cũ
@@ -357,14 +362,27 @@ namespace DreamTech.LiveOps.Editor.Tests
         /// 95% chọn theo [SD1]: ô nào cũng còn ít nhất một nửa đệm thiết kế mỗi bên thì còn chịu được một lần đổi metric.
         /// Dưới ngưỡng này KHÔNG báo gì — đây là cảnh báo về khoảng dư, không phải một ngưỡng bố cục mới.
         /// </para>
+        /// <para>
+        /// LƯỚI NÀY HẸP HƠN TÊN CỦA NÓ, khai thẳng để lần sau không ai đọc thành "mọi chữ sát mép ô đều bị bắt" (soát W10
+        /// R-06). Nó CHỈ nói về ô rộng từ <see cref="TextFillMinimumWidth"/> px trở lên, chữ KHÔNG xuống dòng, CHƯA rút gọn
+        /// (không có "…", không <c>isElided</c>), và khoảng dư LỚN HƠN <see cref="TextFillMinimumSlack"/> px. Nghĩa là nhãn
+        /// ôm KHÍT chữ (dư 0, lấp đúng 100%) KHÔNG làm đỏ — đó là nhãn TỰ CO, chữ dài thêm thì ô dài theo. Khoảng bắt thật
+        /// của luật vì vậy là 95%–~99% của một ô rộng ≥ 60px. Muốn bắt cả nhãn tự co thì phải hỏi một câu KHÁC ("ô có chỗ
+        /// để nở không"), không phải hạ ba ngưỡng này.
+        /// </para>
         /// </summary>
-        internal const float TextFillWarningRatio = 0.95f;
+        internal const float TextFillLimitRatio = 0.95f;
 
         /// <summary>
         /// Ô hẹp hơn mức này không áp luật dư 5%: 5% của một ô 20px là 1px, mỏng hơn cả sai số của <c>MeasureTextSize</c>
         /// (<see cref="TextMeasureTolerance"/> = 3px), nên mọi icon và mọi ô một ký tự sẽ báo "chật" mà không nói lên điều gì.
+        /// <para>
+        /// (cổng đợt W10, G-FIX-W10-1) Mở từ <c>private</c> thành <c>internal</c>: hai ca của G-W10-FIELD
+        /// (<c>EventTypesSectionTests</c>, <c>OverviewSectionTests</c>) đang CHÉP LẠI con số này vì lúc viết chúng không có
+        /// quyền ghi vào file này. Hai con số chép tay trôi khỏi nhau mà không gì báo — đúng thứ luật W9-25 sinh ra để chặn.
+        /// </para>
         /// </summary>
-        private const float TextFillMinimumWidth = 60f;
+        internal const float TextFillMinimumWidth = 60f;
 
         /// <summary>
         /// Khoảng dư phải LỚN HƠN ngần này pixel thì mới được coi là "ô rộng hơn chữ". Dưới mức đó nghĩa là ô đang ôm khít
@@ -386,8 +404,12 @@ namespace DreamTech.LiveOps.Editor.Tests
         /// 0,5px vì <c>MeasureTextSize</c> và layout đều làm tròn theo pixelsPerPoint: dưới nửa pixel thì "dư" là nhiễu của
         /// phép đo chứ không phải chỗ trống có thật.
         /// </para>
+        /// <para>
+        /// (cổng đợt W10, G-FIX-W10-1) Mở thành <c>internal</c> cùng lý do với <see cref="TextFillMinimumWidth"/>: ba bản
+        /// chép tay trong test của G-W10-FIELD nay đọc thẳng hằng này.
+        /// </para>
         /// </summary>
-        private const float TextFillMinimumSlack = 0.5f;
+        internal const float TextFillMinimumSlack = 0.5f;
 
         /// <summary>
         /// Ký tự "…" mà hub tự đặt vào một nhãn ĐÃ RÚT GỌN (nhãn thanh trục rút id theo bề rộng thanh). Chuỗi đã rút thì
@@ -403,6 +425,9 @@ namespace DreamTech.LiveOps.Editor.Tests
 
         /// <summary>Hàm nội bộ của UI Toolkit trả lời "element này có cắt con của nó không" — có ở CẢ 2022.3 lẫn 6000.6.</summary>
         private const string ShouldClipMethodName = "ShouldClip";
+
+        /// <summary>Kiểu nội bộ của UI Toolkit cho ĐẦU MỘT CỘT của <c>MultiColumnListView</c> — có ở CẢ 2022.3 lẫn 6000.6.</summary>
+        private const string MultiColumnHeaderColumnTypeName = "MultiColumnHeaderColumn";
 
         private static MethodInfo _measureTextSize;
         private static PropertyInfo _isElided;
@@ -538,6 +563,7 @@ namespace DreamTech.LiveOps.Editor.Tests
             AppendArray(json, UxLayoutFindingKinds.TextCut, result.TextCut);
             AppendArray(json, UxLayoutFindingKinds.TextTight, result.TextTight);
             AppendArray(json, UxLayoutFindingKinds.ChildOverflow, result.ChildOverflow);
+            AppendArray(json, UxLayoutFindingKinds.UntitledColumn, result.UntitledColumn);
             AppendArray(json, UxLayoutFindingKinds.ScrollViews, result.ScrollViews);
             AppendArray(json, UxLayoutFindingKinds.AbsoluteOverText, result.AbsoluteOverText);
             AppendArray(json, UxLayoutFindingKinds.SiblingOverlap, result.SiblingOverlap);
@@ -650,6 +676,69 @@ namespace DreamTech.LiveOps.Editor.Tests
             }
             if (element is TextElement text && !string.IsNullOrEmpty(text.text) && bound.width > 0f) CheckTextCut(text, bound, result);
             if (element is ScrollView scrollView) CheckScrollView(scrollView, result);
+            if (IsTableColumnHeader(element)) CheckColumnHeaderTitle(element, bound, result);
+        }
+
+        /// <summary>
+        /// Element này có phải ĐẦU MỘT CỘT của <c>MultiColumnListView</c> không. Nhận theo TÊN KIỂU chứ không theo class USS:
+        /// <c>MultiColumnHeaderColumn</c> có ở cả 2022.3 lẫn 6000.6, còn class <c>unity-multi-column-header__column</c> CHỈ có
+        /// ở 6000.6 (2022.3 đặt tên khác), nên bắt theo class là mất nửa lưới ở đúng bản Unity mà 55 trong 62 chỗ của W9-25
+        /// từng sống.
+        /// </summary>
+        private static bool IsTableColumnHeader(VisualElement element)
+        {
+            return string.Equals(element.GetType().Name, MultiColumnHeaderColumnTypeName, StringComparison.Ordinal);
+        }
+
+        /// <summary>
+        /// (W9-31) Cột đang HIỆN thì đầu cột phải có chữ. Một cột không tên là một cột người đọc không giải thích được: nó có
+        /// đường kẻ chia cột riêng, chiếm bề rộng của các cột khác, và ở mẫu dữ liệu nào không vẽ ô nào thì nó đọc thành
+        /// "bảng vỡ cột" — đúng thứ báo cáo hành trình W9 thấy trên ảnh mà 24 màn của ma trận không hề đỏ.
+        /// <para>
+        /// Vì sao là LƯỚI chứ không phải luật khai theo màn: cột không tên dựng được ở bất kỳ bảng nào (hub có bốn
+        /// <c>MultiColumnListView</c>), nên luật phải đi theo CẤU TRÚC bảng, không theo trí nhớ của người viết màn. Chỗ cắt
+        /// có chủ đích vẫn khai ở <see cref="UxLayoutAllowList"/> như mọi loại khác.
+        /// </para>
+        /// <para>
+        /// Đầu cột thường mang thêm icon sắp xếp, nên câu hỏi đúng là "có đoạn chữ NÀO đọc được trong đầu cột không", không
+        /// phải "Label thứ nhất có chữ không".
+        /// </para>
+        /// </summary>
+        private static void CheckColumnHeaderTitle(VisualElement columnHeader, Rect bound, UxLayoutAuditResult result)
+        {
+            if (bound.width < 0.5f || bound.height < 0.5f) return;
+            if (HasAnyReadableText(columnHeader)) return;
+            Add(result, result.UntitledColumn, UxLayoutFindingKinds.UntitledColumn, columnHeader,
+                Describe(columnHeader) + " cột bảng đang hiện nhưng đầu cột KHÔNG có chữ @" + RectText(bound, result.RootBound));
+        }
+
+        /// <summary>Có đoạn chữ khác rỗng nào trong cây con này không (kể cả chính element).</summary>
+        private static bool HasAnyReadableText(VisualElement element)
+        {
+            if (element is TextElement self && !string.IsNullOrEmpty(self.text) && self.text.Trim().Length > 0) return true;
+            int childCount = element.hierarchy.childCount;
+            for (int index = 0; index < childCount; index++)
+            {
+                if (HasAnyReadableText(element.hierarchy[index])) return true;
+            }
+            return false;
+        }
+
+        /// <summary>
+        /// Số đầu cột bảng ĐẾM ĐƯỢC trong một cây — <see cref="UxGateSelfCheckTests"/> đọc để khẳng định lưới W9-31 còn nhìn
+        /// thấy bảng thật. Tên kiểu nội bộ của UI Toolkit đổi thì phép đếm về 0 và lưới IM LẶNG biến mất, đúng hạng lỗi
+        /// "cổng hỏng thành cổng xanh" mà tự kiểm sinh ra để chặn.
+        /// </summary>
+        internal static int CountTableColumnHeaders(VisualElement root)
+        {
+            if (root == null) return 0;
+            int count = IsTableColumnHeader(root) ? 1 : 0;
+            int childCount = root.hierarchy.childCount;
+            for (int index = 0; index < childCount; index++)
+            {
+                count += CountTableColumnHeaders(root.hierarchy[index]);
+            }
+            return count;
         }
 
         private static void CheckTextCut(TextElement text, Rect bound, UxLayoutAuditResult result)
@@ -690,7 +779,7 @@ namespace DreamTech.LiveOps.Editor.Tests
         }
 
         /// <summary>
-        /// W9-25: chữ CHƯA cắt nhưng khoảng dư của ô đã mỏng hơn <see cref="TextFillWarningRatio"/>. Chỉ áp cho chữ KHÔNG
+        /// W9-25: chữ CHƯA cắt nhưng khoảng dư của ô đã mỏng hơn <see cref="TextFillLimitRatio"/>. Chỉ áp cho chữ KHÔNG
         /// xuống dòng (chữ xuống dòng thì bề rộng không còn là cái quyết định đọc được hay không) và cho ô đủ rộng để 5%
         /// còn là một con số có nghĩa.
         /// </summary>
@@ -701,7 +790,7 @@ namespace DreamTech.LiveOps.Editor.Tests
             if (content.width < TextFillMinimumWidth) return;
             if (text.text.IndexOf(EllipsisCharacter.ToString(), StringComparison.Ordinal) >= 0 || IsElided(text)) return;
             float fill = naturalWidth / content.width;
-            if (fill <= TextFillWarningRatio) return;
+            if (fill <= TextFillLimitRatio) return;
             float slack = content.width - naturalWidth;
             if (slack <= TextFillMinimumSlack) return;
             Add(result, result.TextTight, UxLayoutFindingKinds.TextTight, text,
@@ -936,9 +1025,33 @@ namespace DreamTech.LiveOps.Editor.Tests
         /// </summary>
         internal static Color BackdropOf(VisualElement element)
         {
-            for (VisualElement ancestor = element.hierarchy.parent; ancestor != null; ancestor = ancestor.hierarchy.parent)
+            return OpaqueBackgroundFrom(element.hierarchy.parent);
+        }
+
+        /// <summary>
+        /// Nền mà CHỮ của <paramref name="element"/> nằm trên: tính CẢ nền của chính element, rồi mới tới tổ tiên.
+        /// <para>
+        /// Khác <see cref="BackdropOf"/> đúng một bước đầu, và bước ấy là bước quyết định. <see cref="BackdropOf"/> sinh ra
+        /// cho DẤU MÀU (ô màu chú giải): ở đó nền của chính element CHÍNH LÀ thứ đang được đo, nên phải bỏ qua. Với CHỮ thì
+        /// ngược lại — một <c>Label</c> tự khai <c>background-color</c> vẽ nền ấy ngay dưới nét chữ của mình.
+        /// </para>
+        /// <para>
+        /// Đo được ở lượt skin SÁNG đầu tiên (W9-27): cờ "bây giờ" của thước (<c>.liveops-hub-timeline-ruler-now-flag</c>) là
+        /// một Label nền #1A1A1A chữ #C8C8C8 — đọc rất rõ, tương phản thật ≈ 11:1. Dùng <see cref="BackdropOf"/> thì bước đầu
+        /// nhảy qua chính nó, rơi lên nền sáng của thước và ra 1,03:1, tức cổng sẽ đỏ vì một chỗ KHÔNG hỏng. Một cổng báo
+        /// nhầm cũng vô dụng như một cổng im lặng.
+        /// </para>
+        /// </summary>
+        internal static Color TextBackdropOf(VisualElement element)
+        {
+            return OpaqueBackgroundFrom(element);
+        }
+
+        private static Color OpaqueBackgroundFrom(VisualElement start)
+        {
+            for (VisualElement current = start; current != null; current = current.hierarchy.parent)
             {
-                Color color = ancestor.resolvedStyle.backgroundColor;
+                Color color = current.resolvedStyle.backgroundColor;
                 if (color.a > 0.95f) return color;
             }
             return WindowBackground(EditorGUIUtility.isProSkin);

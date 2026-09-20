@@ -994,3 +994,24 @@ file	Packages/com.dreamtech.liveops/Editor/Hub/UI/liveops-hub-components.uss	G-W
 file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/UxGate/UxComposedTokenContrastTests.cs	G-W10-THEME	FILE MỚI — cổng tương phản cho màu ĐÃ HỢP THÀNH, chạy cho CẢ HAI theme trong một lượt; hằng nền đối chiếu số đo thật của skin đang chạy
 file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/UxGate/UxContrastTokenTests.cs	G-W10-THEME	W10-06 — khai token màu chữ nền tảng vào bảng token (trước W10 bảng đo mọi màu phụ mà bỏ trống màu chính)
 file	tools/liveops-hub/ownership.tsv	G-W10-THEME	W10 — chính khối đăng ký G-W10-THEME ở trên (USER mở quyền 21/9); gói không đụng dòng nào của ba gói W10 cũ
+# (W10, CỔNG ĐỢT — G-FIX-W10-1, 21/9/2026) VA CHẠM NGỮ NGHĨA có thật khi gộp: G-W10-MATRIX đổi tên hằng ngưỡng
+#   TextFillWarningRatio → TextFillLimitRatio (W9-25 nâng cảnh báo thành LỖI) trong khi hai ca của G-W10-FIELD gọi tên CŨ,
+#   và hai ca ấy còn CHÉP TAY hai hằng TextFillMinimumWidth/TextFillMinimumSlack vì lúc viết chúng không có quyền ghi vào
+#   Tests/Editor/Hub/UxGate/** (nợ F7 mà báo cáo gói G-W10-FIELD đã tự khai). Ba nhánh rời nhau thì compile được; gộp lại
+#   là lỗi CS0117. Ở cổng đợt rào quyền ghi không còn, nên sửa tại đây: mở hai hằng thành internal, xoá bản chép tay.
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/UxGate/UxLayoutAuditor.cs	G-FIX-W10-1	mở TextFillMinimumWidth + TextFillMinimumSlack thành internal để test của Sections đọc MỘT nguồn duy nhất
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Sections/EventTypesSectionTests.cs	G-FIX-W10-1	đổi TextFillWarningRatio → TextFillLimitRatio; hai bản chép tay đọc thẳng hằng của auditor (trả nợ F7)
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Sections/OverviewSectionTests.cs	G-FIX-W10-1	như trên, một bản chép tay
+file	tools/liveops-hub/ownership.tsv	G-FIX-W10-1	khối đăng ký của chính gói sửa ở cổng đợt
+
+# (W10 tiếp theo, 21/9/2026) G-W10-CAL2 — lỗi THẬT mà chính lưới W10 bày ra: chọn NHIỀU thanh không mở được drawer inspector
+#   ở cửa sổ hẹp hơn 1100px (CalendarSection không nghe SelectionSetChanged nên ApplyInspectorDrawerLayout không chạy lại),
+#   kèm hai hằng "medium" của repo lệch nhau 100px. Gói này nền trên NHÁNH CỔNG wt/G-W10-WAVE chứ không trên
+#   feature/liveops-hub-p1: ca ghi nhận hiện trạng sai (MultiSelectDrawer_AtMediumWidth_StaysHidden_KnownGap) và hằng
+#   MediumBreakpointWidth chỉ tồn tại SAU khi ba gói W10 đã gộp — nền d797065 không có gì để đảo.
+#   Ba file dưới đây từng thuộc G-W10-FIELD / G-W10-MATRIX; hai gói ấy đã gộp xong nên không còn ai ghi song song.
+package	G-W10-CAL2	W10-CAL2	M	G-W10-FIELD,G-W10-MATRIX,G-W10-HINT
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Calendar/CalendarSection.cs	G-W10-CAL2	nghe SelectionSetChanged → chạy lại ApplyInspectorDrawerLayout (drawer chọn nhiều ở bậc --medium)
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Sections/CalendarInspectorUxFixTests.cs	G-W10-CAL2	đảo ca ghi nhận hiện trạng sai thành ca khoá hành vi ĐÚNG ở bốn cỡ --medium
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/UxGate/UxHubWindowFixture.cs	G-W10-CAL2	MediumBreakpointWidth thôi chép tay 1000, đọc thẳng LiveOpsHubBreakpoints.MediumBelowWidth
+file	tools/liveops-hub/ownership.tsv	G-W10-CAL2	chính khối đăng ký này

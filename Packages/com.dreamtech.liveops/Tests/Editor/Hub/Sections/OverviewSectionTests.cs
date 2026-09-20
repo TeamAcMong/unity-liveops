@@ -41,26 +41,25 @@ namespace DreamTech.LiveOps.Editor.Tests
         /// <summary>
         /// Nghịch đảo của ngưỡng "chữ chiếm quá 95% bề rộng ô" (W9-25): vùng nội dung phải rộng hơn chữ ít nhất 1/0,95 lần.
         /// <para>
-        /// (soát W10 F7) Lấy THẲNG <see cref="UxLayoutAuditor.TextFillWarningRatio"/>. Bản trước chép lại số 0,95 kèm lời
+        /// (soát W10 F7) Lấy THẲNG <see cref="UxLayoutAuditor.TextFillLimitRatio"/>. Bản trước chép lại số 0,95 kèm lời
         /// khai "cổng nằm trong nhánh test khác" — lời khai ấy SAI: auditor cùng namespace
         /// <c>DreamTech.LiveOps.Editor.Tests</c> và cùng asmdef <c>DreamTech.LiveOps.Editor.Tests.asmdef</c> với ca này,
         /// hằng lại <c>internal</c>, nên gọi thẳng được. Chép lại thì hai con số trôi khỏi nhau mà không gì báo.
         /// </para>
         /// </summary>
-        private const float TextFillCeilingRatio = 1f / UxLayoutAuditor.TextFillWarningRatio;
+        private const float TextFillCeilingRatio = 1f / UxLayoutAuditor.TextFillLimitRatio;
 
         /// <summary>
-        /// Khoảng dư TỐI THIỂU (px) để một ô được coi là "rộng hơn chữ" — bản chép của
-        /// <c>UxLayoutAuditor.TextFillMinimumSlack</c>, hằng bên đó còn <c>private</c> và file
-        /// <c>Tests/Editor/Hub/UxGate/**</c> thuộc quyền ghi của gói khác trong đợt này (mở thành <c>internal</c> rồi xoá
-        /// bản chép: việc của cổng đợt).
+        /// Khoảng dư TỐI THIỂU (px) để một ô được coi là "rộng hơn chữ" — đọc THẲNG
+        /// <c>UxLayoutAuditor.TextFillMinimumSlack</c> (cổng đợt W10, G-FIX-W10-1 đã mở hằng ấy thành <c>internal</c> và
+        /// xoá bản chép tay, nợ F7 của G-W10-FIELD).
         /// <para>
         /// Cổng dùng con số này để BỎ QUA nhãn tự co. Ca dưới đây dùng nó NGƯỢC LẠI — nhãn tự co trong một ô còn rộng
         /// chính là lỗi của W9-25 chỗ 3 — nên nó assert thay vì bỏ qua. Ca vì thế nghiêm hơn cổng, và cố ý: một ca bỏ qua
         /// nhãn tự co sẽ XANH trên đúng cái mã chưa sửa.
         /// </para>
         /// </summary>
-        private const float TextFillMinimumSlack = 0.5f;
+        private const float TextFillMinimumSlack = UxLayoutAuditor.TextFillMinimumSlack;
 
         private LiveOpsHubWindow _window;
 
