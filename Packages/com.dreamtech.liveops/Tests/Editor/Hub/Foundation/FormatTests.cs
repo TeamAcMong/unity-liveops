@@ -50,6 +50,58 @@ namespace DreamTech.LiveOps.Editor.Tests
             Assert.AreEqual("0 phút", format.Duration(TimeSpan.FromSeconds(20), false));
         }
 
+        /// <summary>
+        /// (W9-24) Đơn vị thời lượng chia số ít/số nhiều ở bản TIẾNG ANH (luật Q-W5-2). Ba hàm <c>…UnitOf</c> là lối vào
+        /// DUY NHẤT của ba đơn vị, nên đo chúng là đo cả ba chỗ gọi (<see cref="LiveOpsHubFormat.Duration"/>, meta làn của
+        /// trục, readout lúc kéo). Bản tiếng Việt không chia số — hai vế phải ra y hệt nhau, đó cũng là một điều phải gác.
+        /// </summary>
+        [Test]
+        public void DurationUnits_EnglishPicksSingularForExactlyOne()
+        {
+            using (LiveOpsHubLanguage.Override(LiveOpsHubLanguageId.English))
+            {
+                Assert.AreEqual("days", LiveOpsHubFormat.DayUnitOf(0L));
+                Assert.AreEqual("day", LiveOpsHubFormat.DayUnitOf(1L));
+                Assert.AreEqual("days", LiveOpsHubFormat.DayUnitOf(2L));
+                Assert.AreEqual("hour", LiveOpsHubFormat.HourUnitOf(1L));
+                Assert.AreEqual("hours", LiveOpsHubFormat.HourUnitOf(12L));
+                Assert.AreEqual("minute", LiveOpsHubFormat.MinuteUnitOf(1L));
+                Assert.AreEqual("minutes", LiveOpsHubFormat.MinuteUnitOf(0L));
+            }
+
+            using (LiveOpsHubLanguage.Override(LiveOpsHubLanguageId.Vietnamese))
+            {
+                Assert.AreEqual(LiveOpsHubFormat.DayUnitOf(2L), LiveOpsHubFormat.DayUnitOf(1L), "tiếng Việt không chia số");
+                Assert.AreEqual(LiveOpsHubFormat.HourUnitOf(2L), LiveOpsHubFormat.HourUnitOf(1L), "tiếng Việt không chia số");
+                Assert.AreEqual(LiveOpsHubFormat.MinuteUnitOf(2L), LiveOpsHubFormat.MinuteUnitOf(1L), "tiếng Việt không chia số");
+            }
+        }
+
+        /// <summary>
+        /// (W9-24) Đúng hai câu mà hành trình lượt 3 bắt được: ghi chú thời lượng của inspector in "= 1 days 12 hours", và
+        /// readout lúc kéo in "shift +1 days". Đo tận chỗ sinh chữ chứ không chỉ đo đơn vị lẻ.
+        /// </summary>
+        [Test]
+        public void Duration_And_DragLength_EnglishSingular()
+        {
+            using (LiveOpsHubLanguage.Override(LiveOpsHubLanguageId.English))
+            {
+                LiveOpsHubFormat format = CreateFormat();
+                Assert.AreEqual("1 day 12 hours", format.Duration(TimeSpan.FromHours(36), false),
+                    "ghi chú \"= …\" của inspector — bản cũ in \"1 days 12 hours\"");
+                Assert.AreEqual("3 days 18 hours", format.Duration(new TimeSpan(3, 18, 42, 0), false));
+                Assert.AreEqual("1 hour 1 minute", format.Duration(new TimeSpan(1, 1, 0), false));
+                Assert.AreEqual("0 minutes", format.Duration(TimeSpan.FromSeconds(20), false), "không có \"0 minute\"");
+
+                Assert.AreEqual("1 day", LiveOpsTimelineDragController.LengthText(TimeSpan.FromDays(1)),
+                    "readout lúc kéo — bản cũ in \"1 days\"");
+                Assert.AreEqual("3 days", LiveOpsTimelineDragController.LengthText(TimeSpan.FromDays(3)));
+                Assert.AreEqual("1 hour", LiveOpsTimelineDragController.LengthText(TimeSpan.FromHours(1)));
+                Assert.AreEqual("36 hours", LiveOpsTimelineDragController.LengthText(TimeSpan.FromHours(36)));
+                Assert.AreEqual("1 hour 1 minute", LiveOpsTimelineDragController.LengthText(new TimeSpan(1, 1, 0)));
+            }
+        }
+
         [Test]
         public void Relative_FutureAndPast()
         {
