@@ -95,16 +95,24 @@
     -unity-text-align: middle-right;
 }
 
-/* (W9-31) Ô căn giữa là HÀNG NGANG: ô màu nay chứa swatch 9x9 + dấu trạng thái 7px cạnh nhau. Để cột dọc mặc định thì hai
-   thứ chồng lên nhau trong hàng cao 22px. 4 + 9 + 4 + 7 + 4 = 28px, vẫn nằm gọn trong cột màu 44px. */
+/* (W9-31) Ô căn giữa là HÀNG NGANG và chỉ căn giữa SWATCH: ô màu 44px chứa swatch 9x9 ở đúng tâm cột, dấu trạng thái 8x8
+   đứng ở mép phải. Để cột dọc mặc định thì hai thứ chồng lên nhau trong hàng cao 22px. */
 .liveops-hub-event-types-cell--center {
     flex-direction: row;
     align-items: center;
     justify-content: center;
 }
 
+/* (soát W10 F5) Dấu nằm NGOÀI dòng chảy (position: absolute), không đứng cạnh swatch trong hàng. Lý do: dấu luôn có trong
+   cây và chỉ ẩn bằng `visible` — ẩn kiểu đó vẫn CHIẾM CHỖ, nên nếu nó nằm trong hàng thì phép căn giữa đang căn giữa cụm
+   "swatch + dấu" chứ không căn giữa swatch, và swatch lệch trái ~6px ở MỌI hàng, kể cả hàng đã khai nơi dấu không hề được
+   vẽ. Tách ra khỏi dòng chảy thì swatch về đúng tâm cột, mà tính chất "hàng không nhảy một pixel khi đổi trạng thái" còn
+   chặt hơn trước (dấu hiện/ẩn không đụng tới layout của swatch).
+   `right` của Yoga đo từ mép VIỀN của ô, không trừ đệm: 4px ở đây bằng đúng đệm ngang 4px của ô, nên dấu thẳng hàng với
+   mép chữ của các cột khác. Dấu 8x8 (Blocked không có bản nhỏ) + 4px lề phải = 12px, còn cách swatch 5,5px trong 44px. */
 .liveops-hub-event-types-cell--center > .liveops-hub-state-mark {
-    margin-left: var(--liveops-hub-space-4);
+    position: absolute;
+    right: var(--liveops-hub-space-4);
 }
 
 /* Hàng loại chưa khai báo (Hình 10b): mờ 0,7 để đọc được mà vẫn khác hẳn hàng thật, KHÔNG ẩn — hàng này là thứ phải xử lý. */
