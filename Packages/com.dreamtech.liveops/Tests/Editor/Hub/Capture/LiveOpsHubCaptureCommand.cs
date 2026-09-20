@@ -446,6 +446,11 @@ namespace DreamTech.LiveOps.Editor.Tests
                         if (frame.Width > 0) json.Append(", \"width\": ").Append(Number(frame.Width));
                         if (frame.Height > 0) json.Append(", \"height\": ").Append(Number(frame.Height));
                         if (frame.Tolerance > 0) json.Append(", \"tolerance\": ").Append(Number(frame.Tolerance));
+                        if (frame.NarrowWindowWidth > 0)
+                        {
+                            json.Append(", \"whenWindowNarrowerThan\": {\"windowWidth\": ").Append(Number(frame.NarrowWindowWidth))
+                                .Append(", \"height\": ").Append(Number(frame.NarrowHeight)).Append('}');
+                        }
                         json.Append('}');
                     }
                     json.Append("\n  ]");

@@ -38,7 +38,11 @@ import zlib
 DEFAULT_FRAME_EXPECTATIONS = [
     {"element": "liveops-hub-rail", "width": 196},
     {"element": "liveops-hub-header", "height": 26},
-    {"element": "liveops-hub-section-header", "height": 36},
+    # W9-01: header màn cao 36 khi nội dung vừa MỘT dòng, tức từ 1100px trở lên. Dưới mức đó phụ đề xuống dòng và nhóm
+    # nút xuống dòng riêng (liveops-hub-shell.uss, luật .liveops-hub--medium) nên chiều cao thiết kế là 61 — đo được y hệt
+    # trên cả 42 ảnh hẹp của hai bản Unity. Khai thành HAI số thiết kế chứ không nới sai số: 36 và 61 đều là số phải đúng,
+    # chỉ khác nhau ở bên nào của ngưỡng 1100.
+    {"element": "liveops-hub-section-header", "height": 36, "whenWindowNarrowerThan": {"windowWidth": 1100, "height": 61}},
     {"element": "liveops-hub-status", "height": 20},
     {"element": "liveops-hub-content", "width": 1084},
 ]
@@ -249,6 +253,22 @@ def matching_elements(elements, key):
     return [element for element in elements if element.get("name") == key or key in (element.get("classes") or [])]
 
 
+def resolve_expectation(expectation, window):
+    """Số thiết kế của một khung có thể đổi theo BỀ RỘNG CỬA SỔ (W9-01). Khai `whenWindowNarrowerThan` thì dưới ngưỡng ấy
+    dùng số trong đó, từ ngưỡng trở lên dùng số ngoài — hai số THIẾT KẾ, không phải một số với sai số rộng ra."""
+    override = expectation.get("whenWindowNarrowerThan")
+    if not override or not window:
+        return expectation
+    if float(window.get("width", 0)) >= float(override["windowWidth"]):
+        return expectation
+    resolved = dict(expectation)
+    for dimension in ("width", "height"):
+        if dimension in override:
+            resolved[dimension] = override[dimension]
+    resolved.pop("whenWindowNarrowerThan", None)
+    return resolved
+
+
 def measure_frame(image, element, expectation, scale, tolerance):
     results = []
     bound = element["worldBound"]
@@ -333,7 +353,8 @@ def measure_capture(json_path, tolerance, maximum_delta_e):
                 image.width, image.height, expected_width, expected_height))
     elements = description.get("elements") or []
     expectations = description.get("expectedFrames") or DEFAULT_FRAME_EXPECTATIONS
-    for expectation in expectations:
+    for declared in expectations:
+        expectation = resolve_expectation(declared, window)
         for element in matching_elements(elements, expectation["element"]):
             for entry in measure_frame(image, element, expectation, scale, tolerance):
                 report["frames"].append(entry)
@@ -394,7 +415,7 @@ def self_test_thin_borders(directory):
     """Ca viền 1 px (CC-FEEDBACK-1, L-1): số màu chép từ ảnh chụp thật, mong đợi là số thiết kế đọc tay trên pixel gốc."""
     failures = 0
 
-    def measured_samples(stem, height, rows, elements, expected_frames):
+    def measured_samples(stem, height, rows, elements, expected_frames, window_width=400):
         # rows: danh sách (hàng đầu, hàng cuối, màu) — hàng không phủ lấy màu cửa sổ của ca.
         def pixel(column, row):
             for first_row, last_row, color in rows:
@@ -403,9 +424,10 @@ def self_test_thin_borders(directory):
             return bytes(rows[0][2])
         case_directory = os.path.join(directory, stem)
         os.makedirs(case_directory)
-        write_png(os.path.join(case_directory, stem + ".png"), 400, height, pixel)
+        write_png(os.path.join(case_directory, stem + ".png"), window_width, height, pixel)
         description = {"scenario": stem, "skin": "self-test", "unityVersion": "self-test", "pixelsPerPoint": 1,
-                       "window": {"width": 400, "height": height}, "elements": elements, "expectedFrames": expected_frames}
+                       "window": {"width": window_width, "height": height}, "elements": elements,
+                       "expectedFrames": expected_frames}
         json_path = os.path.join(case_directory, stem + ".json")
         with open(json_path, "w", encoding="utf-8") as handle:
             json.dump(description, handle)
@@ -445,15 +467,34 @@ def self_test_thin_borders(directory):
         {"name": "hub-section-header", "classes": ["liveops-hub-section-header"], "worldBound": {"x": 0, "y": 26, "width": 400, "height": 36}},
         {"name": "hub-status", "classes": ["liveops-hub-status"], "worldBound": {"x": 0, "y": 740, "width": 400, "height": 20}},
     ]
-    frames, _ = measured_samples("shell-light", 760, rows, elements, DEFAULT_FRAME_EXPECTATIONS)
+    # Cửa sổ 1280 (≥ 1100) nên bảng mặc định đòi section header cao ĐÚNG 36 — vế "rộng" của luật W9-01.
+    frames, _ = measured_samples("shell-light", 760, rows, elements, DEFAULT_FRAME_EXPECTATIONS, 1280)
     for element, expected in (("hub-header", 26.0), ("hub-section-header", 36.0), ("hub-status", 20.0)):
         samples = frames[(element, "height")]["measuredSamples"]
         if samples != [expected] * 3:
             print("FAIL %s viền 1 px đo %s (pixel gốc %.0f)" % (element, samples, expected))
             failures += 1
+    # Vế "hẹp" của cùng luật: cửa sổ 820 thì 61 là ĐẠT và 36 là LỆCH. Không có ca này thì `whenWindowNarrowerThan` gõ sai
+    # cũng không ai biết — bảng lặng lẽ quay về đòi 36 và 42 ảnh hẹp báo lệch trở lại.
+    narrow_rows = [(0, 24, header_background), (25, 25, border), (26, 85, header_background), (86, 86, border),
+                   (87, 739, content), (740, 740, border), (741, 759, header_background)]
+    narrow_elements = [
+        {"name": "hub-section-header", "classes": ["liveops-hub-section-header"],
+         "worldBound": {"x": 0, "y": 26, "width": 820, "height": 61}},
+    ]
+    frames, report = measured_samples("shell-light-narrow", 760, narrow_rows, narrow_elements, DEFAULT_FRAME_EXPECTATIONS, 820)
+    if report["errors"] or frames[("hub-section-header", "height")]["measuredSamples"] != [61.0] * 3:
+        print("FAIL section header 61 px ở cửa sổ 820 phải ĐẠT, nhận %s / %s"
+              % (frames[("hub-section-header", "height")]["measuredSamples"], report["errors"]))
+        failures += 1
+    narrow_elements[0]["worldBound"]["height"] = 36
+    _, report = measured_samples("shell-light-narrow-wrong", 760, narrow_rows, narrow_elements, DEFAULT_FRAME_EXPECTATIONS, 820)
+    if not report["errors"]:
+        print("FAIL section header 36 px ở cửa sổ 820 phải LỆCH (luật hẹp đòi 61) nhưng không bị bắt")
+        failures += 1
     # h28b: header viền hàng 25 kề nền cửa sổ #C8C8C8 (không có section header).
     frames, _ = measured_samples("header-over-window", 760, [(0, 24, header_background), (25, 25, border), (26, 759, content)],
-                                 elements[:1], DEFAULT_FRAME_EXPECTATIONS)
+                                 elements[:1], DEFAULT_FRAME_EXPECTATIONS, 1280)
     if frames[("hub-header", "height")]["measuredSamples"] != [26.0] * 3:
         print("FAIL header kề nền cửa sổ đo %s (pixel gốc 26)" % frames[("hub-header", "height")]["measuredSamples"])
         failures += 1

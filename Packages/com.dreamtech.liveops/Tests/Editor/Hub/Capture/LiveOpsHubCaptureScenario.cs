@@ -128,5 +128,27 @@ namespace DreamTech.LiveOps.Editor.Tests
         /// </para>
         /// </summary>
         public float Tolerance { get; }
+
+        /// <summary>Ngưỡng bề rộng CỬA SỔ mà dưới đó khung có số thiết kế khác; 0 = khung không đổi theo cỡ cửa sổ.</summary>
+        public float NarrowWindowWidth { get; private set; }
+
+        /// <summary>Chiều cao thiết kế khi cửa sổ hẹp hơn <see cref="NarrowWindowWidth"/>.</summary>
+        public float NarrowHeight { get; private set; }
+
+        /// <summary>
+        /// Khai luật "dưới bề rộng cửa sổ này thì chiều cao thiết kế là số khác" (W9-01). Đây là HAI số thiết kế, không
+        /// phải một số với sai số rộng ra: cả hai đều phải đúng, chỉ khác nhau ở bên nào của ngưỡng. Header màn là chỗ
+        /// đầu tiên cần nó — dưới 1100px phụ đề xuống dòng và nhóm nút xuống dòng riêng nên header cao 61 thay vì 36.
+        /// </summary>
+        public LiveOpsHubCaptureExpectedFrame WithHeightBelowWindowWidth(float windowWidth, float height)
+        {
+            if (windowWidth <= 0f) throw new ArgumentOutOfRangeException(nameof(windowWidth));
+            if (height <= 0f) throw new ArgumentOutOfRangeException(nameof(height));
+            return new LiveOpsHubCaptureExpectedFrame(Element, Width, Height, Tolerance)
+            {
+                NarrowWindowWidth = windowWidth,
+                NarrowHeight = height,
+            };
+        }
     }
 }

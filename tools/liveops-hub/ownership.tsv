@@ -938,3 +938,5 @@ file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/UxGate/UxLayoutDeferralList
 file	tools/liveops-hub/ownership.tsv	G-FIX-W9-1	khối đăng ký của chính gói sửa ở cổng đợt
 file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/EventTypes/EventTypeTable.cs	G-FIX-W9-1	W9-16 — mở đọc "đã áp xong bộ cột nào" để test chờ theo ĐIỀU KIỆN thay vì đếm khung hình
 file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Sections/EventTypesSectionTests.cs	G-FIX-W9-1	W9-16 — ca thu hẹp cửa sổ thôi đếm ba khung hình; câu fail in kèm bề rộng bảng đo được
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Capture/**	G-FIX-W9-1	W9-01 — khung số đo header màn biết luật theo bề rộng cửa sổ (36 từ 1100px, 61 dưới mức đó)
+file	tools/liveops-hub/measure-capture.py	G-FIX-W9-1	W9-01 — khoá whenWindowNarrowerThan cho bảng khung mặc định + hai ca tự kiểm

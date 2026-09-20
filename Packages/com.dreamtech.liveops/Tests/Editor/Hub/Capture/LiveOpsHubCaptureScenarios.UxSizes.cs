@@ -134,12 +134,19 @@ namespace DreamTech.LiveOps.Editor.Tests
         /// Ba khung thiết kế KHÔNG đổi theo cỡ cửa sổ — đo được trên mọi ảnh của ma trận. Chiều rộng để 0 (= không đo chiều đó)
         /// vì bề rộng là cái đang thay đổi có chủ đích ở bộ ảnh này.
         /// </summary>
+        /// <summary>
+        /// Chiều cao header màn ở cửa sổ hẹp hơn <see cref="LiveOpsHubBreakpoints.MediumBelowWidth"/> (W9-01): phụ đề
+        /// xuống dòng và nhóm nút xuống dòng riêng. Đo được 61 trên CẢ 42 ảnh hẹp của hai bản Unity.
+        /// </summary>
+        private const float UxSectionHeaderHeightBelowMedium = 61f;
+
         private static LiveOpsHubCaptureExpectedFrame[] UxSizeInvariantFrames()
         {
             return new[]
             {
                 new LiveOpsHubCaptureExpectedFrame("liveops-hub-header", 0f, UxHeaderHeight),
-                new LiveOpsHubCaptureExpectedFrame("liveops-hub-section-header", 0f, UxSectionHeaderHeight),
+                new LiveOpsHubCaptureExpectedFrame("liveops-hub-section-header", 0f, UxSectionHeaderHeight)
+                    .WithHeightBelowWindowWidth(LiveOpsHubBreakpoints.MediumBelowWidth, UxSectionHeaderHeightBelowMedium),
                 new LiveOpsHubCaptureExpectedFrame("liveops-hub-status", 0f, UxStatusBarHeight),
             };
         }
