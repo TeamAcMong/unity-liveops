@@ -73,6 +73,7 @@ namespace DreamTech.LiveOps.Editor
             _services = services ?? throw new ArgumentNullException(nameof(services));
             _presenter = new CalendarTimelinePresenter(services);
             _presenter.SelectionChanged += OnSelectionChanged;
+            _presenter.SelectionSetChanged += OnSelectionSetChanged;
             _presenter.NavigationRequested += RaiseNavigation;
             _presenter.ToastRequested += toast => _services.Bus.ShowToast(toast);
             _presenter.AddEventRequested += OnAddEventRequestedAt;
@@ -663,6 +664,26 @@ namespace DreamTech.LiveOps.Editor
             _inspector?.Refresh(barKey);
             _timeline?.Select(barKey, false);
             // (UX-07) Drawer "mở khi chọn": bỏ chọn ở --medium phải giấu hẳn pane, không để một pane rỗng 280px cạnh trục.
+            ApplyInspectorDrawerLayout();
+        }
+
+        /// <summary>
+        /// (soát W10) Tập chọn NHIỀU đợt cũng là "có đợt đang chọn", nên drawer phải mở lại y như lần chọn một đợt.
+        /// <para>
+        /// Vì sao cần một người nghe RIÊNG ở màn: <see cref="CalendarTimelinePresenter.SetSelectedBarKeys"/> cố ý KHÔNG phát
+        /// <c>SelectionChanged</c> (phát là tự tay thu tập về một thanh), và người nghe duy nhất của
+        /// <c>SelectionSetChanged</c> trước đây là <see cref="CalendarEventInspector"/> — nó dựng lại NỘI DUNG pane nhưng
+        /// không ai chạy lại <see cref="ApplyInspectorDrawerLayout"/>, nên ở cửa sổ hẹp hơn
+        /// <see cref="LiveOpsHubBreakpoints.MediumBelowWidth"/> pane giữ nguyên <c>liveops-hub-calendar--hidden</c>: người
+        /// dùng ctrl-click hai thanh và KHÔNG thấy gì hiện ra, ở bốn trong bảy cỡ của cổng (700, 820, 950, 1024).
+        /// </para>
+        /// <para>
+        /// Chỉ chạy lại phần BỐ CỤC: nội dung pane do inspector tự vẽ (nó nghe cùng sự kiện), và các thanh sáng trên trục do
+        /// chính cử chỉ vừa rồi đặt — gọi lại <c>SelectMany</c> ở đây là vẽ đè lên thứ vừa đúng.
+        /// </para>
+        /// </summary>
+        private void OnSelectionSetChanged(IReadOnlyList<string> barKeys)
+        {
             ApplyInspectorDrawerLayout();
         }
 

@@ -34,26 +34,25 @@ namespace DreamTech.LiveOps.Editor.Tests
         /// <summary>
         /// Nghịch đảo của ngưỡng "chữ chiếm quá 95% bề rộng ô" (W9-25): vùng nội dung phải rộng hơn chữ ít nhất 1/0,95 lần.
         /// <para>
-        /// (soát W10 F7) Lấy THẲNG <see cref="UxLayoutAuditor.TextFillWarningRatio"/> chứ không chép lại con số 0,95:
+        /// (soát W10 F7) Lấy THẲNG <see cref="UxLayoutAuditor.TextFillLimitRatio"/> chứ không chép lại con số 0,95:
         /// auditor cùng namespace và cùng asmdef với ca này, hằng ấy <c>internal</c> nên gọi được. Chép lại thì hai con số
         /// trôi khỏi nhau mà không gì báo — đúng thứ ca này sinh ra để chặn.
         /// </para>
         /// </summary>
-        private const float TextFillCeilingRatio = 1f / UxLayoutAuditor.TextFillWarningRatio;
+        private const float TextFillCeilingRatio = 1f / UxLayoutAuditor.TextFillLimitRatio;
 
         /// <summary>
         /// Ô hẹp hơn mức này không áp luật dư 5% — 5% của một ô 20px mỏng hơn cả sai số của <c>MeasureTextSize</c>.
         /// <para>
-        /// (soát W10 F7) Đây là BẢN CHÉP của <c>UxLayoutAuditor.TextFillMinimumWidth</c>, vì hằng bên đó còn
-        /// <c>private</c> và file <c>Tests/Editor/Hub/UxGate/**</c> thuộc quyền ghi của gói khác trong đợt này. Việc phải
-        /// làm ở cổng đợt: mở hằng ấy thành <c>internal</c> rồi xoá bản chép này — ghi trong báo cáo soát của gói.
+        /// (cổng đợt W10, G-FIX-W10-1) Nợ F7 của G-W10-FIELD đã trả: hằng bên auditor nay <c>internal</c>, bản chép tay
+        /// đã xoá, ca này đọc THẲNG một nguồn duy nhất.
         /// </para>
         /// </summary>
-        private const float TextFillMinimumWidth = 60f;
+        private const float TextFillMinimumWidth = UxLayoutAuditor.TextFillMinimumWidth;
 
         /// <summary>
-        /// Khoảng dư TỐI THIỂU (px) để một ô được coi là "rộng hơn chữ" — bản chép của
-        /// <c>UxLayoutAuditor.TextFillMinimumSlack</c> (cũng <c>private</c>, cũng chờ cổng đợt mở).
+        /// Khoảng dư TỐI THIỂU (px) để một ô được coi là "rộng hơn chữ" — đọc THẲNG
+        /// <c>UxLayoutAuditor.TextFillMinimumSlack</c> (cổng đợt W10, G-FIX-W10-1 đã mở hằng ấy thành <c>internal</c>).
         /// <para>
         /// Cổng dùng con số này để BỎ QUA nhãn tự co (dư 0). Ca này dùng nó ngược lại: ô bảng không bao giờ được phép tự
         /// co — nó là ô của một cột có bề rộng khai sẵn — nên "dư 0" ở đây là LỖI, không phải chỗ để bỏ qua. Ca vì thế
@@ -61,7 +60,7 @@ namespace DreamTech.LiveOps.Editor.Tests
         /// một ca bỏ qua nhãn tự co sẽ xanh trên đúng cái mã chưa sửa.
         /// </para>
         /// </summary>
-        private const float TextFillMinimumSlack = 0.5f;
+        private const float TextFillMinimumSlack = UxLayoutAuditor.TextFillMinimumSlack;
 
         /// <summary>Ký tự "…" của nhãn ĐÃ rút gọn — bản chép của <c>UxLayoutAuditor.EllipsisCharacter</c>.</summary>
         private const char EllipsisCharacter = '\u2026';
