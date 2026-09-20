@@ -138,6 +138,7 @@ namespace DreamTech.LiveOps.Editor
             usageTitle.AddToClassList(LiveOpsHubClassNames.Caption);
             _usageCard.Add(usageTitle);
             _usageText = new Label { name = UsageTextElementName };
+            _usageText.AddToClassList(LiveOpsHubClassNames.EventTypesUsageText);
             _usageCard.Add(_usageText);
             _showInCalendarButton = new Button(OnShowInCalendarClicked)
             {

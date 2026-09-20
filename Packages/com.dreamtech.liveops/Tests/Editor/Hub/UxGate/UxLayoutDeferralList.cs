@@ -123,32 +123,6 @@ namespace DreamTech.LiveOps.Editor.Tests
                 + "HOÃN THEO CỠ từ đợt W9: 1920x1040 đo được 0 chỗ ở cả hai ngôn ngữ nên cỡ đó CHẠY ĐẦY ĐỦ ngay lượt này "
                 + "— một lần sửa làm hỏng cỡ rộng sẽ đỏ ngay, không phải đợi hết đợt.",
                 Size700, Size820, Size950, Size1024, Size1280, Size1440),
-            new UxLayoutDeferralEntry("W9-03", "overview", 118,
-                "Màn Tổng quan nằm NGOÀI phạm vi đợt W8 (USER chốt 18/9/2026) và là việc của gói G-W9-SCREENS. Gốc lỗi "
-                + "R1: bảng 'đợt tới' đặt bề rộng cột cố định nên ở cỡ hẹp cột bị đẩy RA NGOÀI cửa sổ (ô đo được ở x=745 "
-                + "trên cửa sổ rộng 700). KHÔNG cỡ nào sạch — đo lại trên 6d73130 thấy đỏ ở cả sáu cỡ (1920 còn 3 chỗ) — "
-                + "nên mục này vẫn hoãn cả màn; hoãn theo cỡ ở đây không cứu được cặp nào.",
-                new string[0]),
-            new UxLayoutDeferralEntry("W9-04", "shell-rail-status", 118,
-                "Khung chung (rail + status bar) nằm NGOÀI phạm vi đợt W8 theo chốt của USER 18/9/2026. NGHIỆM THU CÒN "
-                + "NỢ, và nợ NẶNG HƠN sổ cũ ghi: trước W9-26 test này mở màn Tổng quan rồi để auditor duyệt CẢ cây, nên "
-                + "118 chỗ của nó trùng 100% với 118 chỗ của màn Tổng quan và KHÔNG chỗ nào thuộc rail hay status bar — "
-                + "tức UX-20 chưa từng có tiêu chí nghiệm thu thật. W9-26 đã thu phạm vi về đúng hai nhánh đó; con số 118 "
-                + "vì vậy là số CŨ và phải đo lại, nên mục này giữ hoãn cả màn cho tới lượt đo của G-W9-SCREENS.",
-                new string[0]),
-            new UxLayoutDeferralEntry("W9-05", "event-types", 100,
-                "Màn Loại event nằm NGOÀI phạm vi đợt W8 (USER chốt 18/9/2026) và là việc của gói G-W9-SCREENS. Gốc lỗi "
-                + "R4/R5: ô bảng và tiêu đề cột rộng cố định 25–35px trong khi chữ cần 35–119px. ĐÃ THỬ hoãn theo cỡ và "
-                + "PHẢI RÚT LẠI: bảng đo của W9-PLAN chỉ chạy trên 6000.6, nơi ba cỡ rộng đo được 0 chỗ — nhưng lượt kiểm "
-                + "thật trên 2022.3 thấy 30 chỗ childOverflow ở ĐÚNG ba cỡ đó (ô nhập của form tràn khỏi hàng chứa). Không "
-                + "cỡ nào sạch trên CẢ HAI bản Unity, nên hoãn cả màn. Đây là phát hiện của đợt W9, không phải của bảng đo: "
-                + "mọi con số 'cỡ này sạch' của W9-PLAN đều là số 6000.6 và phải đo lại trên 2022.3 trước khi tin.",
-                new string[0]),
-            new UxLayoutDeferralEntry("W9-06", "validation", 40,
-                "Màn Kiểm lịch nằm NGOÀI phạm vi đợt W8 (USER chốt 18/9/2026) và là việc của gói G-W9-SCREENS. Gốc lỗi "
-                + "R8 đáng chú ý nhất: nút 'Kiểm lại' chật 4px ở MỌI cỡ kể cả 1920, tức là một nút dựng sai ngay từ đầu "
-                + "chứ không phải lỗi của cửa sổ hẹp — nên KHÔNG cỡ nào sạch và hoãn theo cỡ không cứu được cặp nào.",
-                new string[0]),
         };
 
         /// <summary>Mọi mục — dùng cho test gác danh sách và cho báo cáo của cổng người.</summary>

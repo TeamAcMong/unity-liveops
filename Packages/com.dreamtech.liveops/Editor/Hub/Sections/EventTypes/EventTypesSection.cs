@@ -28,6 +28,8 @@ namespace DreamTech.LiveOps.Editor
         private VisualElement _content;
         private Label _footer;
         private VisualElement _unknownBar;
+        private VisualElement _columnsHiddenNote;
+        private Label _columnsHiddenNoteText;
         private VisualElement _referenceCard;
         private EventTypeTable _table;
         private EventTypeInspector _inspector;
@@ -121,9 +123,18 @@ namespace DreamTech.LiveOps.Editor
             _unknownBar = _root.Q(LiveOpsHubPaths.EventTypesElementNames.UnknownBar);
             _referenceCard = _root.Q(LiveOpsHubPaths.EventTypesElementNames.ReferenceCard);
 
+            _columnsHiddenNote = _root.Q(ColumnsHiddenNoteName);
+            _columnsHiddenNoteText = _root.Q<Label>(ColumnsHiddenNoteTextName);
+            // Icon dựng từ C# vì UXML không với tới LiveOpsHubIcons; chèn ở đầu hàng để nó đứng TRƯỚC câu chữ.
+            Image columnsHiddenIcon = LiveOpsHubIcons.CreateImage(ColumnsHiddenNoteIconName, 14);
+            columnsHiddenIcon.AddToClassList(LiveOpsHubClassNames.EventTypesColumnsHiddenNoteIcon);
+            _columnsHiddenNote.Insert(0, columnsHiddenIcon);
+
             _table = new EventTypeTable();
             _table.SelectionChanged += OnTableSelectionChanged;
+            _table.HiddenColumnsChanged += RefreshColumnsHiddenNote;
             _root.Q(LiveOpsHubPaths.EventTypesElementNames.TableHost).Add(_table.View);
+            RefreshColumnsHiddenNote();
 
             _inspector = new EventTypeInspector(_root.Q(LiveOpsHubPaths.EventTypesElementNames.Inspector));
             _inspector.TypeIdCommitted += OnTypeIdCommitted;
@@ -210,6 +221,14 @@ namespace DreamTech.LiveOps.Editor
         /// <summary>Icon err 16px của hàng phát hiện trong card tham chiếu ([SD1 §2.2] "sọc Blocked, icon err").</summary>
         internal const string ReferenceIconName = "console.erroricon.sml";
 
+        /// <summary>Icon info 14px của dòng khai báo cột bị ẩn (W9-05, soát R-01).</summary>
+        internal const string ColumnsHiddenNoteIconName = "console.infoicon.sml";
+
+        /// <summary>Dòng khai báo cột bị ẩn và câu chữ của nó — test đọc theo tên này để chứng minh thu gọn KHÔNG im lặng.</summary>
+        internal const string ColumnsHiddenNoteName = "event-types-columns-hidden-note";
+
+        internal const string ColumnsHiddenNoteTextName = "event-types-columns-hidden-note-text";
+
         /// <summary>Nút chính "Thêm loại" và hai con của nó — test đo icon đứng TRƯỚC chữ và không đè lên chữ.</summary>
         internal const string AddButtonName = "event-types-add";
         internal const string AddButtonIconName = "event-types-add-icon";
@@ -273,9 +292,46 @@ namespace DreamTech.LiveOps.Editor
             _selectedTypeId = _table.SelectedTypeId;
 
             _footer.text = _model.FooterText;
+            // Vẽ lại cả dòng khai báo cột bị ẩn: đổi ngôn ngữ dựng lại thân màn nhưng KHÔNG đổi bề rộng bảng, nên sự kiện
+            // hình học không bắn và câu chữ sẽ kẹt ở ngôn ngữ cũ nếu chỉ trông vào HiddenColumnsChanged.
+            RefreshColumnsHiddenNote();
             BuildUnknownBar();
             BuildReferenceCard();
             _inspector.Show(_model, _selectedTypeId, _services.Clock.UtcNow, _services.Format);
+        }
+
+        /// <summary>
+        /// Vẽ lại dòng "bảng đang ẩn cột: …" theo bộ cột bảng vừa dựng (W9-05, soát R-01).
+        /// <para>
+        /// Vì sao là dòng chữ chứ không chỉ tooltip: tooltip chỉ hiện khi người dùng đã NGỜ có gì đó rồi rê chuột lên đúng
+        /// chỗ, mà ở đây người dùng không có lý do để ngờ — bảng trông như một bảng bốn cột bình thường. Tooltip vẫn được
+        /// đặt thêm trên chính dòng đó, cho người muốn đọc lại danh sách khi câu đã xuống nhiều dòng.
+        /// </para>
+        /// </summary>
+        private void RefreshColumnsHiddenNote()
+        {
+            if (_columnsHiddenNote == null || _table == null) return;
+            IReadOnlyList<string> hidden = _table.HiddenColumnTitles;
+            EventTypesVisibility.SetHidden(_columnsHiddenNote, hidden.Count == 0);
+            if (hidden.Count == 0)
+            {
+                _columnsHiddenNoteText.text = string.Empty;
+                _columnsHiddenNote.tooltip = string.Empty;
+                return;
+            }
+
+            string names = string.Join(LiveOpsHubStrings.EventTypesListSeparator, CopyToArray(hidden));
+            string note = string.Format(CultureInfo.CurrentCulture, LiveOpsHubStrings.EventTypesHiddenColumnsNoteFormat, names);
+            _columnsHiddenNoteText.text = note;
+            _columnsHiddenNote.tooltip = note;
+        }
+
+        /// <summary><c>string.Join</c> không nhận <c>IReadOnlyList</c> ở C# 9 — chép ra mảng; danh sách nhiều nhất bốn tên.</summary>
+        private static string[] CopyToArray(IReadOnlyList<string> values)
+        {
+            string[] result = new string[values.Count];
+            for (int index = 0; index < values.Count; index++) result[index] = values[index];
+            return result;
         }
 
         private void BuildEmptyState(bool hasAsset)
