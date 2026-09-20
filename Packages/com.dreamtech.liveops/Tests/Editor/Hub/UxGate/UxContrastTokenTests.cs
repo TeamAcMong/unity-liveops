@@ -108,6 +108,9 @@ namespace DreamTech.LiveOps.Editor.Tests
         /// </summary>
         private const string UnityHighlightBackgroundProperty = "--unity-colors-highlight-background";
 
+        /// <summary>Thanh của đợt sinh từ luật trong lịch mẫu — chọn nó thì inspector dựng pane CHỈ ĐỌC (W9-21).</summary>
+        private const string RecurringBarKey = "weekly-pass#35";
+
         /// <summary>Số khung chờ cho lượt style của element probe mới gắn vào cây hub.</summary>
         private const int ProbeResolveFrames = 2;
 
@@ -429,7 +432,101 @@ namespace DreamTech.LiveOps.Editor.Tests
                 "nền đo thật của một hàng đang chọn (" + UnityHighlightBackgroundProperty + ")");
         }
 
+        /// <summary>
+        /// (W9-21) Tương phản của màu ĐÃ HỢP THÀNH — gồm <c>opacity</c> của TỔ TIÊN — trên cây hub thật.
+        /// <para>
+        /// Vì sao bảng token ở trên không đủ: nó đo TOKEN, tức màu trước khi Unity nhân opacity vào. Pane chỉ đọc của inspector
+        /// Lịch khai màu chữ đạt chuẩn rồi bị <c>opacity</c> của <c>:disabled</c> kéo xuống 2,51–3,25:1 — không token nào sai,
+        /// mà chữ vẫn không đọc nổi. Ca này đi ngược lại từ thứ người dùng NHÌN THẤY: màu chữ × mọi opacity của tổ tiên, hợp
+        /// thành lên nền đục gần nhất.
+        /// </para>
+        /// <para>
+        /// Miễn trừ DUY NHẤT: phần tử không hoạt động (<c>enabledInHierarchy == false</c>) — WCAG 2.1 §1.4.3 nói thẳng chữ của
+        /// "thành phần giao diện không hoạt động" không có yêu cầu tương phản. Chính vì miễn trừ đó mà ca này khẳng định RIÊNG
+        /// một điều trước khi đo: pane chỉ đọc KHÔNG được là thành phần không hoạt động, vì nó là chỗ duy nhất đọc được giờ của
+        /// lần lặp đang chọn. Thiếu khẳng định ấy thì chỉ cần khoá pane lại là đủ xanh — đúng cái lỗi W9-21 mở phiếu.
+        /// </para>
+        /// <para>
+        /// Giới hạn đã khai: cửa sổ hub thật chạy ở skin ĐANG CHẠY của Editor, nên một lượt chạy phủ một skin (cùng giới hạn
+        /// với <see cref="BackdropConstants_MatchMeasuredBackdrops_InRunningSkin"/>); lượt cổng ở skin còn lại phủ nửa kia.
+        /// </para>
+        /// </summary>
+        [UnityTest]
+        public IEnumerator ComposedTextColor_MeetsWcagContrast_InCalendarReadOnlyPane()
+        {
+            _fixture = UxHubWindowFixture.Open(LiveOpsHubSections.Ids.Calendar, UxHubWindowFixture.AllSizes[3],
+                LiveOpsHubLanguageId.Vietnamese);
+            yield return _fixture.WaitForLayout();
+            _fixture.Calendar.Presenter.SetSelectedBarKey(RecurringBarKey);
+            yield return null;
+            yield return _fixture.WaitForLayout();
+
+            VisualElement readOnlyPane = _fixture.Root.Q(className: LiveOpsHubClassNames.CalendarInspectorReadOnlyPane);
+            Assert.IsNotNull(readOnlyPane,
+                "không tìm thấy khối field chỉ đọc của đợt sinh từ luật — không có chỗ nào để đo, và ca này thành lời khai suông");
+            Assert.IsTrue(readOnlyPane.enabledInHierarchy,
+                "khối field chỉ đọc đang là thành phần KHÔNG HOẠT ĐỘNG. WCAG 2.1 §1.4.3 miễn tương phản cho thứ không hoạt "
+                + "động, nên khoá khối này lại là cách làm cho phép đo dưới đây im lặng — trong khi đây là chỗ DUY NHẤT đọc "
+                + "được id, giờ lần lặp và độ dài của đợt đang chọn. Không sửa được phải giữ bằng isReadOnly + viền + ghi chú "
+                + "(W9-21)");
+
+            List<string> failures = new List<string>();
+            CollectComposedTextFailures(readOnlyPane, "khối field chỉ đọc của inspector Lịch", failures);
+            CollectComposedTextFailures(_fixture.Root.Q(className: LiveOpsHubClassNames.CalendarInspectorBody),
+                "thân inspector màn Lịch", failures);
+
+            Assert.IsEmpty(failures,
+                "màu chữ ĐÃ HỢP THÀNH (nhân opacity của tổ tiên) không đạt " + Number(TextContrastRatio) + ":1 ở skin "
+                + (UnityEditor.EditorGUIUtility.isProSkin ? DarkSkinName : LightSkinName) + ":" + Environment.NewLine
+                + string.Join(Environment.NewLine, failures.ToArray()));
+        }
+
         // ------------------------------------------------------------------------------------------------- trợ giúp
+
+        /// <summary>
+        /// Mọi chữ ĐANG HIỆN trong <paramref name="root"/> phải đạt bậc chữ sau khi nhân opacity của tổ tiên. Phần tử không
+        /// hoạt động được bỏ qua theo WCAG 2.1 §1.4.3 — ca gọi hàm này có trách nhiệm khẳng định riêng rằng thứ nó quan tâm
+        /// KHÔNG nằm trong diện miễn trừ đó.
+        /// </summary>
+        private static void CollectComposedTextFailures(VisualElement root, string place, List<string> failures)
+        {
+            if (root == null) return;
+            List<TextElement> texts = new List<TextElement>();
+            root.Query<TextElement>().ToList(texts);
+            for (int index = 0; index < texts.Count; index++)
+            {
+                TextElement text = texts[index];
+                if (string.IsNullOrEmpty(text.text)) continue;
+                if (!UxLayoutAuditor.IsShownOnScreen(text)) continue;
+                if (!text.enabledInHierarchy) continue;
+
+                Color declared = text.resolvedStyle.color;
+                float opacity = EffectiveOpacity(text);
+                Color faded = new Color(declared.r, declared.g, declared.b, declared.a * opacity);
+                Color background = UxLayoutAuditor.BackdropOf(text);
+                Color seen = UxLayoutAuditor.CompositeOver(faded, background);
+                float ratio = UxLayoutAuditor.ContrastRatio(seen, background);
+                if (ratio >= TextContrastRatio) continue;
+                failures.Add(place + " · \"" + text.text + "\": " + Number(ratio) + ":1 — màu " + HexText(declared)
+                    + " nhân opacity " + Number(opacity) + " hợp thành ra " + HexText(seen) + " trên nền "
+                    + HexText(background) + " (cần ≥ " + Number(TextContrastRatio) + ":1)");
+            }
+        }
+
+        /// <summary>
+        /// Opacity mà mắt người thật sự thấy trên một phần tử: tích opacity của chính nó và của MỌI tổ tiên. UI Toolkit nhân
+        /// opacity theo từng lớp lúc vẽ, nên đọc mỗi <c>resolvedStyle.opacity</c> của element là đọc thiếu đúng phần mà
+        /// <c>:disabled</c> của Unity đặt lên khối cha.
+        /// </summary>
+        private static float EffectiveOpacity(VisualElement element)
+        {
+            float opacity = 1f;
+            for (VisualElement current = element; current != null; current = current.hierarchy.parent)
+            {
+                opacity *= Mathf.Clamp01(current.resolvedStyle.opacity);
+            }
+            return opacity;
+        }
 
         private static void CollectFailures(VisualElement root, string skinName, bool proSkin, List<string> failures)
         {

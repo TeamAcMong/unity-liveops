@@ -99,6 +99,23 @@
     flex-shrink: 0;
 }
 
+/* (W9-20) Bậc --snug (dưới 1000px) — bậc thứ hai của dải mà trước đây chỉ có --medium.
+   Số đo, không phải suy đoán: ở 950×700 tiếng Việt, khi CHƯA có bậc này, nhãn khoảng "6/9/2026 – 27/9/2026" cần 126px mà chỗ
+   trên thanh chỉ còn 116px — thanh đã nhường menu "Bắt lưới" từ --medium rồi vẫn thiếu 10px (đo ở 6000.6 ngày 20/9).
+   Nhường tiếp ĐÚNG MỘT control: công tắc "So với đã đăng (n)". Vì sao nó chứ không phải cái khác — lệnh của nó đã nằm sẵn
+   trong menu ⋮ đang hiện từ --medium, nên nhường nó không cắt đường vào nào; còn dải tab zoom và ô tìm KHÔNG đụng tới vì 10px
+   thiếu đã được trả dư. Nhãn lý do in cạnh nút đi theo nút: nhãn nói vì sao NÚT ĐÓ khoá, để lại một mình trên thanh là một câu
+   không còn chủ ngữ.
+   Vì sao không đợi tới --narrow: dải 900…999 khi ấy không có bậc nào của riêng nó, mà ma trận cổng trước W9-20 chỉ thử 1024
+   trong cả dải 900…1099 — chỗ cắt chữ ở 950 nằm trong đúng khoảng mù đó. */
+.liveops-hub--snug .liveops-hub-calendar-compare-toggle {
+    display: none;
+}
+
+.liveops-hub--snug .liveops-hub-calendar-disabled-reason {
+    display: none;
+}
+
 /* Dải chú giải: ẩn khi hẹp (chỗ của nó là menu ⋮), hiện lại khi người dùng bật mục đó. Luật hai class nên nó thắng luật ẩn
    một class ở trên mà không cần !important. */
 .liveops-hub--narrow .liveops-hub-timeline-legend {
@@ -226,6 +243,16 @@
 
 .liveops-hub-calendar-inspector-issues {
     margin-top: var(--liveops-hub-space-4);
+}
+
+/* (W9-21) Khối field CHỈ ĐỌC của đợt sinh từ luật. Dấu hiệu "không sửa ở đây" là VIỀN TRÁI + câu ghi chú ngay dưới khối, KHÔNG
+   phải độ mờ: độ mờ của :disabled nhân vào màu đã hợp thành nên kéo chính những con số người dùng cần đọc (id, giờ lần lặp,
+   độ dài) xuống 2,28–3,54:1 — đo 12 đoạn chữ của khối ở skin tối, 20/9 — dưới xa 4,5:1 mà user chốt 19/9. Viền dùng token quiet — token này đã ở bậc chữ 4,5:1 nên thừa
+   bậc 3:1 của hình khối. */
+.liveops-hub-calendar-inspector-read-only-pane {
+    border-left-width: 2px;
+    border-left-color: var(--liveops-hub-color-quiet);
+    padding-left: var(--liveops-hub-space-4);
 }
 
 .liveops-hub-calendar-field-row {
