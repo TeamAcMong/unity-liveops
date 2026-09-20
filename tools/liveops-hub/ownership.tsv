@@ -999,6 +999,10 @@ file	tools/liveops-hub/ownership.tsv	G-W10-THEME	W10 — chính khối đăng k�
 #   và hai ca ấy còn CHÉP TAY hai hằng TextFillMinimumWidth/TextFillMinimumSlack vì lúc viết chúng không có quyền ghi vào
 #   Tests/Editor/Hub/UxGate/** (nợ F7 mà báo cáo gói G-W10-FIELD đã tự khai). Ba nhánh rời nhau thì compile được; gộp lại
 #   là lỗi CS0117. Ở cổng đợt rào quyền ghi không còn, nên sửa tại đây: mở hai hằng thành internal, xoá bản chép tay.
+# (CỔNG ĐỢT W10 — G-FIX-W10-2 bổ sung) Gói G-FIX-W10-1 ghi file nhưng THIẾU dòng package; bảng phải khai đủ gói
+#   nào đã ghi, không thì --wave-deps không có gì để xếp thứ tự cho nó. Đợt W10-FIX1 xếp sau phần gốc W10 (hậu tố
+#   rỗng < "FIX1") nên nó đứng sau hai gói nó sửa, đúng thứ tự thật.
+package	G-FIX-W10-1	W10-FIX1	S	G-W10-MATRIX,G-W10-FIELD
 file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/UxGate/UxLayoutAuditor.cs	G-FIX-W10-1	mở TextFillMinimumWidth + TextFillMinimumSlack thành internal để test của Sections đọc MỘT nguồn duy nhất
 file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Sections/EventTypesSectionTests.cs	G-FIX-W10-1	đổi TextFillWarningRatio → TextFillLimitRatio; hai bản chép tay đọc thẳng hằng của auditor (trả nợ F7)
 file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Sections/OverviewSectionTests.cs	G-FIX-W10-1	như trên, một bản chép tay
@@ -1021,7 +1025,14 @@ file	tools/liveops-hub/ownership.tsv	G-W10-CAL2	chính khối đăng ký này
 #   - ca khoá HÀNH VI SAI phải đảo (MultiSelectDrawer_AtMediumWidth_StaysHidden_KnownGap) nằm trong file của G-W10-FIELD;
 #   - bằng chứng của luật rút gọn có điều kiện chỉ có nghĩa trên bản đã dọn bảy chỗ textTight của HINT/FIELD.
 # Quyền ghi của gói vì vậy đo theo nền 309b4ed (đỉnh nhánh cổng), khai thẳng ở báo cáo G-W10-MATRIX2-build.md.
-package	G-W10-MATRIX2	W10	L	G-W10-MATRIX
+# (CỔNG ĐỢT W10 — G-FIX-W10-2, 21/9/2026) Đợt của gói khai SAI sự thật: gói này KHÔNG chạy song song với
+#   G-W10-MATRIX mà đứng TRÊN nó (wt/G-W10-MATRIX là tổ tiên của wt/G-W10-MATRIX2, nền đo quyền ghi là
+#   309b4ed = đỉnh wt/G-W10-WAVE chứa HINT + FIELD + MATRIX). Khai đợt "W10" cho một gói phụ thuộc gói W10 khác
+#   nên --wave-deps báo lỗi, đúng ra nó phải báo. Đặt đợt riêng cho gói vét tiếp, y như W9 đã làm (W9.5 / W9.7)
+#   và y như G-W10-CAL2 ở ngay trên (W10-CAL2). Đây là sửa cho BẢN GHI khớp sự thật, không phải nới luật:
+#   số lỗi --wave-deps của đợt W10 về 0, 17 lỗi còn lại là nợ có sẵn từ W1–W6 trên chính d797065.
+#   Phụ thuộc khai đủ ba gói của nhánh cổng chứ không mỗi G-W10-MATRIX, vì gói đứng trên cả ba.
+package	G-W10-MATRIX2	W10-MATRIX2	L	G-W10-MATRIX,G-W10-HINT,G-W10-FIELD
 
 file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/UxGate/**	G-W10-MATRIX2	Luật rút gọn CÓ ĐIỀU KIỆN (user chốt 21/9) + W9-25 sau khi áp luật + W10-07 (biến thể dữ liệu xấu nhất cho 12 màn còn nợ) + bỏ chờ bằng đếm khung
 file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Sections/CalendarInspectorUxFixTests.cs	G-W10-MATRIX2	Đảo ca MultiSelectDrawer_AtMediumWidth_* từ khoá HIỆN TRẠNG SAI sang khoá HÀNH VI ĐÚNG, và đưa 700x560 trở lại bộ cỡ
@@ -1030,3 +1041,9 @@ file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Calendar/CalendarSection
 file	Packages/com.dreamtech.liveops/Editor/Hub/Controls/LiveOpsTableCellTooltip.cs	G-W10-MATRIX2	FILE MỚI — điều kiện (a) của luật rút gọn có điều kiện: ô bảng không chứa hết chữ thì mang tooltip đủ chữ
 file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/EventTypes/EventTypeTable.cs	G-W10-MATRIX2	Ô bảng mang tên cột (để miễn trừ khai theo TỪNG cột) và đi qua LiveOpsTableCellTooltip
 file	tools/liveops-hub/ownership.tsv	G-W10-MATRIX2	W10 — chính khối đăng ký này
+
+# (CỔNG ĐỢT W10 — G-FIX-W10-2) Gói sửa tại cổng, chỉ chạm đúng bảng quyền ghi.
+# Đợt W10.5 chứ không "W10-GATE": wave_sort_key so bằng tuple (số, hậu tố CHỮ), nên "GATE" < "MATRIX2" theo thứ tự
+#   chuỗi và gói cổng sẽ bị coi là đứng TRƯỚC gói nó gộp. W9 đã gặp đúng chỗ này và đặt W9.5 cho gói cổng — theo y vậy.
+package	G-FIX-W10-2	W10.5	S	G-W10-MATRIX2,G-W10-CAL2,G-W10-THEME
+file	tools/liveops-hub/ownership.tsv	G-FIX-W10-2	đặt lại đợt của G-W10-MATRIX2 cho khớp thứ tự thật + khai đủ phụ thuộc
