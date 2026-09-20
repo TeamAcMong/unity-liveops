@@ -310,17 +310,18 @@ namespace DreamTech.LiveOps.Editor
             if (absolute.Ticks >= TimeSpan.TicksPerDay && absolute.Ticks % TimeSpan.TicksPerDay == 0)
             {
                 long days = absolute.Ticks / TimeSpan.TicksPerDay;
-                return days.ToString(CultureInfo.InvariantCulture) + " " + LiveOpsHubStrings.DurationDayUnit;
+                // (W9-24) Đơn vị chọn vế theo chính con số đứng trước nó — readout in "shift +1 day" chứ không "+1 days".
+                return days.ToString(CultureInfo.InvariantCulture) + " " + LiveOpsHubFormat.DayUnitOf(days);
             }
             int hours = (int)Math.Floor(absolute.TotalHours);
             int minutes = absolute.Minutes;
             if (hours == 0 && minutes == 0)
             {
-                return "0" + " " + LiveOpsHubStrings.DurationMinuteUnit;
+                return "0" + " " + LiveOpsHubFormat.MinuteUnitOf(0L);
             }
-            string text = hours > 0 ? hours.ToString(CultureInfo.InvariantCulture) + " " + LiveOpsHubStrings.DurationHourUnit : string.Empty;
+            string text = hours > 0 ? hours.ToString(CultureInfo.InvariantCulture) + " " + LiveOpsHubFormat.HourUnitOf(hours) : string.Empty;
             if (minutes == 0) return text;
-            string minutesText = minutes.ToString(CultureInfo.InvariantCulture) + " " + LiveOpsHubStrings.DurationMinuteUnit;
+            string minutesText = minutes.ToString(CultureInfo.InvariantCulture) + " " + LiveOpsHubFormat.MinuteUnitOf(minutes);
             return text.Length == 0 ? minutesText : text + " " + minutesText;
         }
 
