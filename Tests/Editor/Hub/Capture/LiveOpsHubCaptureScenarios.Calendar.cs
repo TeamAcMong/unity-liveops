@@ -52,22 +52,19 @@ namespace DreamTech.LiveOps.Editor.Tests
             scenarios.Add(new LiveOpsHubCaptureScenario(LiveOpsHubCaptureScenarioIds.H08aConfirmShortenRunning,
                     (int)LiveOpsConfirmWindow.Width, (int)LiveOpsConfirmWindow.Level1Height, OpenShortenRunningConfirm,
                     window => ((LiveOpsConfirmWindow)window).Content)
-                .WithExpectedFrames(new LiveOpsHubCaptureExpectedFrame(LiveOpsConfirmContent.RootElementName,
-                    LiveOpsConfirmWindow.Width, LiveOpsConfirmWindow.Level1Height)));
+                .WithExpectedFrames(ConfirmRootExpectedFrame()));
 
             // Biến thể "không có số" của Hình 8: ở P1 hub CHƯA đọc bản ghi người chơi (7.0) nên hộp luôn ở dạng này —
             // hai id chụp cùng một thân hộp cho tới khi có LiveOpsStateReader (ghi ở contract-changes-G-CALENDAR.md).
             scenarios.Add(new LiveOpsHubCaptureScenario(LiveOpsHubCaptureScenarioIds.H08fConfirmShortenRunningNoNumber,
                     (int)LiveOpsConfirmWindow.Width, (int)LiveOpsConfirmWindow.Level1Height, OpenShortenRunningConfirm,
                     window => ((LiveOpsConfirmWindow)window).Content)
-                .WithExpectedFrames(new LiveOpsHubCaptureExpectedFrame(LiveOpsConfirmContent.RootElementName,
-                    LiveOpsConfirmWindow.Width, LiveOpsConfirmWindow.Level1Height)));
+                .WithExpectedFrames(ConfirmRootExpectedFrame()));
 
             scenarios.Add(new LiveOpsHubCaptureScenario(LiveOpsHubCaptureScenarioIds.H08bConfirmDeletePublished,
                     (int)LiveOpsConfirmWindow.Width, (int)LiveOpsConfirmWindow.Level1Height, OpenDeletePublishedConfirm,
                     window => ((LiveOpsConfirmWindow)window).Content)
-                .WithExpectedFrames(new LiveOpsHubCaptureExpectedFrame(LiveOpsConfirmContent.RootElementName,
-                    LiveOpsConfirmWindow.Width, LiveOpsConfirmWindow.Level1Height)));
+                .WithExpectedFrames(ConfirmRootExpectedFrame()));
 
             scenarios.Add(new LiveOpsHubCaptureScenario(LiveOpsHubCaptureScenarioIds.H13bAddEventStep1, AddEventPopoverWindowWidth,
                     AddEventPopoverWindowHeight, () => OpenAddEventPopover(AddEventFlowModel.StepChooseType), AddEventPopoverRootOf)
@@ -83,6 +80,14 @@ namespace DreamTech.LiveOps.Editor.Tests
 
             scenarios.Add(new LiveOpsHubCaptureScenario(LiveOpsHubCaptureScenarioIds.H13bAddEventOverlap, AddEventPopoverWindowWidth,
                     AddEventPopoverWindowHeight, OpenAddEventPopoverWithOverlap, AddEventPopoverRootOf)
+                .WithExpectedFrames(AddEventPopoverExpectedFrame()));
+
+            // W9-22(a): bước 1 bản TIẾNG ANH. Popover rộng CỐ ĐỊNH 320px [SD1 §3.11] trong khi nhãn loại và hai nút của bản
+            // en dài hơn bản vi, nên đây là bản dễ tràn hơn — mà ca nghiệm thu RC-08 của UX-10 cũng đúng là bản en. Không có
+            // ảnh này thì UX-10 chỉ nghiệm thu được "MỘT PHẦN" dù cổng bố cục đã xanh.
+            scenarios.Add(new LiveOpsHubCaptureScenario(LiveOpsHubCaptureScenarioIds.H13bAddEventStep1English, AddEventPopoverWindowWidth,
+                    AddEventPopoverWindowHeight, () => OpenAddEventPopover(AddEventFlowModel.StepChooseType), AddEventPopoverRootOf)
+                .WithLanguage(LiveOpsHubLanguageId.English)
                 .WithExpectedFrames(AddEventPopoverExpectedFrame()));
 
             RegisterCalendarFrames(scenarios);

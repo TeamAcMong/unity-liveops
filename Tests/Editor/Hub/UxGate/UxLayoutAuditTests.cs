@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Globalization;
@@ -186,7 +187,22 @@ namespace DreamTech.LiveOps.Editor.Tests
                 .WithNoOverlapRules(StatusBarNoOverlapRules()));
         }
 
-        /// <summary>UX-20/UX-27: rail và status bar là lối đi chung — ở cỡ hẹp chúng vẫn phải bấm và đọc được, và không đè nhau.</summary>
+        /// <summary>
+        /// UX-20/UX-27: rail và status bar là lối đi chung — ở cỡ hẹp chúng vẫn phải bấm và đọc được, và không đè nhau.
+        /// <para>
+        /// W9-26 — test này KHÔNG soi khung cho tới lượt W9. Nó mở section Tổng quan rồi để auditor duyệt CẢ cây cửa sổ, còn
+        /// <see cref="UxLayoutScreen.WithRequiredElements"/> chỉ đòi rail/status CÓ MẶT chứ không thu hẹp phạm vi đo. Hệ quả đo
+        /// được trên <c>6d73130</c>: tập chỗ lỗi của test này trùng 100% với tập của <see cref="Overview_LayoutIsUsable_AtEverySize"/>
+        /// (118 = 118, so từng dòng cỡ × ngôn ngữ × loại × mô tả, 0 dòng riêng mỗi bên) và KHÔNG một chỗ nào thuộc rail hay
+        /// status bar. Tức là kể cả khi nó xanh, nó xanh vì màn Tổng quan sạch — UX-20 chưa bao giờ có tiêu chí nghiệm thu thật.
+        /// </para>
+        /// <para>
+        /// Bản vá: <c>WithScreenRulesOnly</c> giới hạn phát hiện chung vào ĐÚNG hai nhánh rail và status bar, và luật không-đè
+        /// nay nói về chính hai nhánh đó (rail ↔ status bar) thay vì về thân section. Mở ở section Tổng quan vẫn giữ nguyên:
+        /// khung phải dùng được KHI đang có một màn thật bên trong, và màn nào cũng được — nội dung của nó không còn lọt vào
+        /// câu assert nữa.
+        /// </para>
+        /// </summary>
         [UnityTest]
         public IEnumerator Shell_RailAndStatusBar_AreUsable_AtEverySize()
         {
@@ -198,7 +214,9 @@ namespace DreamTech.LiveOps.Editor.Tests
                 .WithRequiredElements(LiveOpsHubPaths.ShellElementNames.Rail, LiveOpsHubPaths.ShellElementNames.Content,
                     LiveOpsHubPaths.ShellElementNames.SectionBody, LiveOpsHubPaths.ShellElementNames.StatusBar,
                     LiveOpsHubPaths.ShellElementNames.StatusLeftText, LiveOpsHubPaths.ShellElementNames.StatusRight)
-                .WithNoOverlapRules(StatusBarNoOverlapRules()));
+                .WithNoOverlapRules(new UxLayoutNoOverlapRule(LiveOpsHubPaths.ShellElementNames.Rail,
+                    LiveOpsHubPaths.ShellElementNames.StatusBar))
+                .WithScreenRulesOnly(LiveOpsHubPaths.ShellElementNames.Rail, LiveOpsHubPaths.ShellElementNames.StatusBar));
         }
 
         // ================================================================================================ tách một nguyên nhân
@@ -287,6 +305,13 @@ namespace DreamTech.LiveOps.Editor.Tests
         public IEnumerator Calendar_Toast_DoesNotOverlapFooter()
         {
             yield return RunScreen(new UxLayoutScreen("calendar-toast", LiveOpsHubSections.Ids.Calendar)
+                // SÁU cỡ thiết kế, KHÔNG có 950x700 của W9-20 — phiếu W9-28, khai ở G-W9-GATE-build.md mục 5.4.
+                // Màn này khai ReapplyAfterResize nên cú kéo chạy lại sau MỖI lần đổi cỡ TRÊN CÙNG MỘT phiên: đợt bị dời
+                // thêm 60px mỗi lượt và trôi dần khỏi khoảng ngày trục đang vẽ. Sáu lượt còn trong tầm, bảy lượt thì đợt
+                // rơi khỏi trục ("trục không vẽ thanh 'entry-hunt-0914'") và test đỏ vì lý do KHÔNG liên quan tới UX-11.
+                // Chữa đúng gốc là dựng lại phiên cho mỗi cỡ, tức thêm một lựa chọn vào UxLayoutScreen — file ngoài quyền
+                // ghi của gói này. Giữ sáu cỡ là giữ nguyên độ phủ của đường nền W8, không bớt một cỡ nào đang được kiểm.
+                .WithSizes(UxHubWindowFixture.AllSizes)
                 .WithAfterOpen(DragBarToRaiseToast, true)
                 .WithRequiredElements("." + LiveOpsHubClassNames.Toast, LiveOpsHubPaths.ShellElementNames.StatusBar)
                 .WithNoOverlapRules(new UxLayoutNoOverlapRule("." + LiveOpsHubClassNames.Toast,
@@ -413,6 +438,7 @@ namespace DreamTech.LiveOps.Editor.Tests
                     "mục hoãn '" + entry.DeferralId + "' khai 0 chỗ không dùng được — màn đã xanh thì bỏ hoãn, đừng giữ lại");
                 Assert.Greater(entry.Reason.Length, 40,
                     "mục hoãn '" + entry.DeferralId + "' có lý do quá ngắn — phải nói RÕ vì sao đợt này không sửa");
+                AssertDeferredSizesAreReal(entry);
                 actualDeferralIds.Add(entry.DeferralId);
                 actualScreenIds.Add(entry.ScreenId);
             }
@@ -425,6 +451,37 @@ namespace DreamTech.LiveOps.Editor.Tests
                 + "sửa, hoãn nó là tự cấp phép cho chính mình");
         }
 
+        /// <summary>
+        /// Gác phần HOÃN THEO CỠ của W9-18: nhãn cỡ phải là cỡ có thật trong ma trận, không được khai trùng, và không được
+        /// khai đủ CẢ ma trận.
+        /// <para>
+        /// Ba câu này chặn ba đường lách khác nhau. Nhãn gõ sai ("1024x760") không khớp cỡ nào nên mục hoãn im lặng KHÔNG
+        /// hoãn gì — người viết tưởng đã hẹn sửa, cổng thì đỏ mãi. Khai trùng làm số cỡ trong câu Ignored sai. Và khai đủ
+        /// cả ma trận là hoãn cả màn bằng đường vòng: nó qua được mọi câu assert ở trên mà vẫn giấu được một màn đỏ, đúng
+        /// loại "xanh giả" mà danh sách hoãn sinh ra để diệt — hoãn cả màn thì phải khai RỖNG, để câu Ignored nói thẳng
+        /// "ở MỌI cỡ".
+        /// </para>
+        /// </summary>
+        private static void AssertDeferredSizesAreReal(UxLayoutDeferralEntry entry)
+        {
+            if (entry.DeferredSizes.Count == 0) return;
+            HashSet<string> matrixSizes = new HashSet<string>();
+            foreach (UxWindowSize size in UxHubWindowFixture.AllLayoutSizes) matrixSizes.Add(size.ToString());
+            HashSet<string> seen = new HashSet<string>();
+            foreach (string label in entry.DeferredSizes)
+            {
+                Assert.IsTrue(matrixSizes.Contains(label),
+                    "mục hoãn '" + entry.DeferralId + "' khai cỡ '" + label + "' không có trong ma trận kiểm — nhãn gõ sai "
+                    + "thì mục hoãn KHÔNG hoãn cỡ nào cả mà vẫn trông như đã hẹn sửa");
+                Assert.IsTrue(seen.Add(label),
+                    "mục hoãn '" + entry.DeferralId + "' khai cỡ '" + label + "' hai lần — số cỡ trong câu Ignored sẽ sai");
+            }
+
+            Assert.Less(entry.DeferredSizes.Count, matrixSizes.Count,
+                "mục hoãn '" + entry.DeferralId + "' khai đủ CẢ ma trận cỡ — hoãn cả màn thì khai danh sách RỖNG để câu "
+                + "Ignored nói thẳng 'ở MỌI cỡ', đừng liệt kê từng cỡ rồi để nó trông như hoãn một phần");
+        }
+
         // ================================================================================================ chạy một màn
 
         private LiveOpsConfirmWindow _confirmWindow;
@@ -434,7 +491,21 @@ namespace DreamTech.LiveOps.Editor.Tests
             List<string> problems = new List<string>();
             List<string> jsonPaths = new List<string>();
             List<string> clampedSizes = new List<string>();
-            IReadOnlyList<UxWindowSize> sizes = screen.Sizes ?? UxHubWindowFixture.AllSizes;
+            List<string> warnings = new List<string>();
+            Dictionary<string, int> problemsPerSize = new Dictionary<string, int>();
+            UxLayoutDeferralEntry deferral = UxLayoutDeferralList.Find(screen.Id);
+            IReadOnlyList<UxWindowSize> declaredSizes = screen.Sizes ?? UxHubWindowFixture.AllLayoutSizes;
+            List<UxWindowSize> sizes = new List<UxWindowSize>();
+            List<string> deferredSizeLabels = new List<string>();
+            foreach (UxWindowSize declared in declaredSizes)
+            {
+                if (deferral != null && deferral.IsDeferredAt(declared.ToString())) deferredSizeLabels.Add(declared.ToString());
+                else sizes.Add(declared);
+            }
+
+            // Mọi cỡ đều hoãn ⇒ Ignored kèm mã phiếu, như bản cũ. Còn cỡ nào chưa hoãn thì test CHẠY THẬT ở đúng những cỡ
+            // đó — đây là cái mà mục hoãn theo MÀN của đợt W8 làm mất (W9-18).
+            if (sizes.Count == 0) Assert.Ignore(deferral.IgnoreMessage);
             foreach (LiveOpsHubLanguageId language in UxHubWindowFixture.AllLanguages)
             {
                 _fixture = UxHubWindowFixture.Open(screen.SectionId, sizes[0], language);
@@ -456,7 +527,15 @@ namespace DreamTech.LiveOps.Editor.Tests
                     foreach (string problem in result.AssertProblems(rules, subtreeRoots))
                     {
                         problems.Add(screen.Id + " " + size + " " + LanguageTag(language) + " — " + problem);
+                        string sizeKey = size + " " + LanguageTag(language);
+                        problemsPerSize.TryGetValue(sizeKey, out int already);
+                        problemsPerSize[sizeKey] = already + 1;
                     }
+                    foreach (string warning in result.Warnings(subtreeRoots))
+                    {
+                        warnings.Add(screen.Id + " " + size + " " + LanguageTag(language) + " — " + warning);
+                    }
+
                     foreach (KeyValuePair<string, int> truncated in result.TruncatedCounts)
                     {
                         problems.Add(screen.Id + " " + size + " " + LanguageTag(language) + " — loại '" + truncated.Key
@@ -474,10 +553,44 @@ namespace DreamTech.LiveOps.Editor.Tests
                 Debug.LogWarning("UxLayoutAuditTests '" + screen.Id + "': máy chạy không đủ chỗ cho "
                     + string.Join("; ", clampedSizes.ToArray()) + " — lượt kiểm vẫn chạy nhưng cỡ đó chưa được đo đúng.");
             }
+            if (warnings.Count > 0)
+            {
+                // W9-25: in ra để người soát đọc được nợ "ô sắp hết chỗ", nhưng KHÔNG làm test đỏ — xem UxLayoutAuditResult.Warnings.
+                Debug.LogWarning("UxLayoutAuditTests '" + screen.Id + "': " + warnings.Count
+                    + " chỗ chữ chiếm > 95% bề rộng ô (cảnh báo W9-25, không tính là lỗi):\n - "
+                    + string.Join("\n - ", warnings.ToArray()));
+            }
+
+            if (deferredSizeLabels.Count > 0)
+            {
+                Debug.LogWarning("UxLayoutAuditTests '" + screen.Id + "': " + deferral.DeferralId + " còn hoãn "
+                    + deferredSizeLabels.Count + " cỡ (" + string.Join(", ", deferredSizeLabels.ToArray())
+                    + "); lượt này kiểm ĐẦY ĐỦ " + sizes.Count + " cỡ còn lại.");
+            }
             Assert.IsEmpty(problems, "Kiểm bố cục màn '" + screen.Id + "' thấy " + problems.Count + " chỗ người dùng không dùng được."
+                + "\nTheo cỡ: " + SizeTally(problemsPerSize)
                 + "\nJSON chẩn đoán: " + jsonPaths[0] + " (và " + (jsonPaths.Count - 1) + " file cùng thư mục)"
+                + (deferredSizeLabels.Count > 0 ? "\nCỡ đang HOÃN (" + deferral.DeferralId + "), không tính ở đây: "
+                    + string.Join(", ", deferredSizeLabels.ToArray()) : string.Empty)
                 + (clampedSizes.Count > 0 ? "\nCỡ chưa đo đúng trên máy này: " + string.Join("; ", clampedSizes.ToArray()) : string.Empty)
                 + "\n - " + string.Join("\n - ", problems.ToArray()));
+        }
+
+        /// <summary>
+        /// Một dòng "cỡ × ngôn ngữ = số chỗ" đứng TRƯỚC danh sách chi tiết (W9-18). Với 617 chỗ chia trên 7 cỡ × 2 ngôn ngữ,
+        /// người đọc cần biết ngay "đỏ ở đâu" trước khi đọc dòng thứ nhất của 617 dòng; bản cũ chỉ in tổng rồi đổ thẳng chi tiết.
+        /// </summary>
+        private static string SizeTally(Dictionary<string, int> problemsPerSize)
+        {
+            if (problemsPerSize.Count == 0) return "(không cỡ nào đỏ)";
+            List<string> parts = new List<string>();
+            foreach (KeyValuePair<string, int> pair in problemsPerSize)
+            {
+                parts.Add(pair.Key + "=" + pair.Value.ToString(CultureInfo.InvariantCulture));
+            }
+
+            parts.Sort(StringComparer.Ordinal);
+            return string.Join("  ", parts.ToArray());
         }
 
         private void CloseSecondaryWindows(UxLayoutScreen screen)
@@ -605,11 +718,14 @@ namespace DreamTech.LiveOps.Editor.Tests
         /// 'entry-lava-quest-2026-09b'"). hunt-0914 nằm sát mốc "bây giờ" nên được vẽ ở mọi cỡ của ma trận.
         /// </para>
         /// </summary>
+        /// <summary>Bề ngang một cú kéo dựng toast (px) — giá trị gốc của cổng W8, giữ nguyên.</summary>
+        private const float ToastDragDistance = 60f;
+
         private static IEnumerator DragBarToRaiseToast(UxHubWindowFixture fixture)
         {
             LiveOpsTimelineBar bar = fixture.BarOf(LiveOpsDesignSample.HuntEarlyEntryKey);
             Vector2 from = bar.worldBound.center;
-            yield return UxEventSender.Drag(fixture.Window, from, from + new Vector2(60f, 0f),
+            yield return UxEventSender.Drag(fixture.Window, from, from + new Vector2(ToastDragDistance, 0f),
                 UxEventSender.MinimumDragSteps, EventModifiers.None);
         }
 
@@ -619,13 +735,32 @@ namespace DreamTech.LiveOps.Editor.Tests
             yield return UxEventSender.Wheel(fixture.Window, timeline.worldBound.center, notches, UxEventSender.ActionModifier);
         }
 
+        /// <summary>Hạn giờ chờ popover mở sau một cú bấm, trước khi thử bấm lại.</summary>
+        private const int PopoverOpenTimeoutMilliseconds = 800;
+
         private static IEnumerator OpenAddEventPopover(UxHubWindowFixture fixture)
+        {
+            // W9-16: bấm rồi chờ THEO ĐIỀU KIỆN, và nếu hết hạn thì truy lại nút MỘT lần nữa. Cú bấm đầu có thể rơi vào một
+            // khung mà header đang dựng lại, nên toạ độ tâm nút đã cũ và con trỏ hạ xuống chỗ trống — đo được ở lượt 4: chờ
+            // 9 giây, 60 khung, popover không bao giờ mở, còn lượt 3 và lượt 5 cùng cây thì xanh. Truy lại nút (chứ không
+            // bấm lại toạ độ cũ) là cách duy nhất tự chữa được đúng nguyên nhân đó.
+            yield return ClickAddEventButton(fixture);
+            if (IsAddEventPopoverOpen()) yield break;
+            yield return ClickAddEventButton(fixture);
+            Assert.IsTrue(IsAddEventPopoverOpen(), "bấm Thêm đợt hai lần vẫn không mở popover nào (UX-10)");
+        }
+
+        private static IEnumerator ClickAddEventButton(UxHubWindowFixture fixture)
         {
             Button add = fixture.AddEventButton();
             Assert.IsNotNull(add, "màn Lịch không có nút Thêm đợt trong phần hành động của header (UX-10)");
             yield return UxEventSender.Click(fixture.Window, add);
-            yield return UxEventSender.WaitUntil(() => LiveOpsPopoverContent.Current != null && LiveOpsPopoverContent.Current.IsOpen,
-                "bấm Thêm đợt không mở popover nào (UX-10)");
+            yield return UxEventSender.WaitUntilOrTimeout(IsAddEventPopoverOpen, PopoverOpenTimeoutMilliseconds);
+        }
+
+        private static bool IsAddEventPopoverOpen()
+        {
+            return LiveOpsPopoverContent.Current != null && LiveOpsPopoverContent.Current.IsOpen;
         }
 
         private static EditorWindow PopoverWindow(UxHubWindowFixture fixture)
