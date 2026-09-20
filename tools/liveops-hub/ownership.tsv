@@ -973,3 +973,13 @@ file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/RecurringRules/Recurring
 file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Controls/**	G-W10-FIELD	W9-30 — test đơn vị của ô giờ UTC ở trạng thái gõ hỏng
 file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Sections/**	G-W10-FIELD	W9-31 + W9-25 — test đơn vị của bảng Loại event, inspector chọn nhiều, bảng "Sắp diễn ra", câu luật
 file	tools/liveops-hub/ownership.tsv	G-W10-MATRIX	W10 — chính khối đăng ký này (ghi ở bước kế hoạch, ba gói KHÔNG đụng lại file này)
+
+# (W10, CỔNG ĐỢT — G-FIX-W10-1, 21/9/2026) VA CHẠM NGỮ NGHĨA có thật khi gộp: G-W10-MATRIX đổi tên hằng ngưỡng
+#   TextFillWarningRatio → TextFillLimitRatio (W9-25 nâng cảnh báo thành LỖI) trong khi hai ca của G-W10-FIELD gọi tên CŨ,
+#   và hai ca ấy còn CHÉP TAY hai hằng TextFillMinimumWidth/TextFillMinimumSlack vì lúc viết chúng không có quyền ghi vào
+#   Tests/Editor/Hub/UxGate/** (nợ F7 mà báo cáo gói G-W10-FIELD đã tự khai). Ba nhánh rời nhau thì compile được; gộp lại
+#   là lỗi CS0117. Ở cổng đợt rào quyền ghi không còn, nên sửa tại đây: mở hai hằng thành internal, xoá bản chép tay.
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/UxGate/UxLayoutAuditor.cs	G-FIX-W10-1	mở TextFillMinimumWidth + TextFillMinimumSlack thành internal để test của Sections đọc MỘT nguồn duy nhất
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Sections/EventTypesSectionTests.cs	G-FIX-W10-1	đổi TextFillWarningRatio → TextFillLimitRatio; hai bản chép tay đọc thẳng hằng của auditor (trả nợ F7)
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Sections/OverviewSectionTests.cs	G-FIX-W10-1	như trên, một bản chép tay
+file	tools/liveops-hub/ownership.tsv	G-FIX-W10-1	khối đăng ký của chính gói sửa ở cổng đợt

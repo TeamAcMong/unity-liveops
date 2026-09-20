@@ -377,7 +377,12 @@ namespace DreamTech.LiveOps.Editor.Tests
         /// Ô hẹp hơn mức này không áp luật dư 5%: 5% của một ô 20px là 1px, mỏng hơn cả sai số của <c>MeasureTextSize</c>
         /// (<see cref="TextMeasureTolerance"/> = 3px), nên mọi icon và mọi ô một ký tự sẽ báo "chật" mà không nói lên điều gì.
         /// </summary>
-        private const float TextFillMinimumWidth = 60f;
+        /// <para>
+        /// (cổng đợt W10, G-FIX-W10-1) Mở từ <c>private</c> thành <c>internal</c>: hai ca của G-W10-FIELD
+        /// (<c>EventTypesSectionTests</c>, <c>OverviewSectionTests</c>) đang CHÉP LẠI con số này vì lúc viết chúng không có
+        /// quyền ghi vào file này. Hai con số chép tay trôi khỏi nhau mà không gì báo — đúng thứ luật W9-25 sinh ra để chặn.
+        /// </para>
+        internal const float TextFillMinimumWidth = 60f;
 
         /// <summary>
         /// Khoảng dư phải LỚN HƠN ngần này pixel thì mới được coi là "ô rộng hơn chữ". Dưới mức đó nghĩa là ô đang ôm khít
@@ -400,7 +405,11 @@ namespace DreamTech.LiveOps.Editor.Tests
         /// phép đo chứ không phải chỗ trống có thật.
         /// </para>
         /// </summary>
-        private const float TextFillMinimumSlack = 0.5f;
+        /// <para>
+        /// (cổng đợt W10, G-FIX-W10-1) Mở thành <c>internal</c> cùng lý do với <see cref="TextFillMinimumWidth"/>: ba bản
+        /// chép tay trong test của G-W10-FIELD nay đọc thẳng hằng này.
+        /// </para>
+        internal const float TextFillMinimumSlack = 0.5f;
 
         /// <summary>
         /// Ký tự "…" mà hub tự đặt vào một nhãn ĐÃ RÚT GỌN (nhãn thanh trục rút id theo bề rộng thanh). Chuỗi đã rút thì
