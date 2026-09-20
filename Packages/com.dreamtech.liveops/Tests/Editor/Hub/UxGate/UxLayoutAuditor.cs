@@ -22,6 +22,12 @@ namespace DreamTech.LiveOps.Editor.Tests
         /// <summary>Chữ CHƯA cắt nhưng chiếm gần hết bề rộng ô — LỖI của W9-25, xem <see cref="UxLayoutAuditor.TextFillLimitRatio"/>.</summary>
         internal const string TextTight = "textTight";
         internal const string ChildOverflow = "childOverflow";
+
+        /// <summary>
+        /// Một cột của bảng (<c>MultiColumnListView</c>) đang hiện mà đầu cột KHÔNG có chữ — xem
+        /// <see cref="UxLayoutAuditor.CheckColumnHeaderTitle"/>. Đây là lưới bắt hạng lỗi của phiếu W9-31.
+        /// </summary>
+        internal const string UntitledColumn = "untitledColumn";
         internal const string ScrollViews = "scrollViews";
         internal const string AbsoluteOverText = "absoluteOverText";
         internal const string SiblingOverlap = "siblingOverlap";
@@ -205,6 +211,9 @@ namespace DreamTech.LiveOps.Editor.Tests
         public List<UxLayoutFinding> TextTight { get; } = new List<UxLayoutFinding>();
         public List<UxLayoutFinding> ChildOverflow { get; } = new List<UxLayoutFinding>();
 
+        /// <summary>Cột bảng đang hiện mà đầu cột không có chữ (W9-31).</summary>
+        public List<UxLayoutFinding> UntitledColumn { get; } = new List<UxLayoutFinding>();
+
         /// <summary>MỌI ScrollView của màn (chẩn đoán), kể cả cái không có vấn đề — chỉ dòng mang dấu hiệu mới tính là lỗi.</summary>
         public List<UxLayoutFinding> ScrollViews { get; } = new List<UxLayoutFinding>();
 
@@ -270,6 +279,9 @@ namespace DreamTech.LiveOps.Editor.Tests
             // đã lọt. Một cảnh báo không ai buộc phải đọc thì không phải là một cái lưới.
             AppendProblems(problems, UxLayoutFindingKinds.TextTight, TextTight, subtreeRoots);
             AppendProblems(problems, UxLayoutFindingKinds.ChildOverflow, ChildOverflow, subtreeRoots);
+            // W9-31: cột không tên là lỗi CẤU TRÚC của bảng, không phải lỗi của một chuỗi — nó nằm ở đây cùng các phát hiện
+            // chung để MỌI màn có bảng đều đi qua lưới, chứ không chỉ màn nào nhớ khai luật.
+            AppendProblems(problems, UxLayoutFindingKinds.UntitledColumn, UntitledColumn, subtreeRoots);
             AppendProblems(problems, UxLayoutFindingKinds.AbsoluteOverText, AbsoluteOverText, subtreeRoots);
             AppendProblems(problems, UxLayoutFindingKinds.SiblingOverlap, SiblingOverlap, subtreeRoots);
             foreach (UxLayoutFinding finding in ScrollViews)
@@ -350,6 +362,14 @@ namespace DreamTech.LiveOps.Editor.Tests
         /// 95% chọn theo [SD1]: ô nào cũng còn ít nhất một nửa đệm thiết kế mỗi bên thì còn chịu được một lần đổi metric.
         /// Dưới ngưỡng này KHÔNG báo gì — đây là cảnh báo về khoảng dư, không phải một ngưỡng bố cục mới.
         /// </para>
+        /// <para>
+        /// LƯỚI NÀY HẸP HƠN TÊN CỦA NÓ, khai thẳng để lần sau không ai đọc thành "mọi chữ sát mép ô đều bị bắt" (soát W10
+        /// R-06). Nó CHỈ nói về ô rộng từ <see cref="TextFillMinimumWidth"/> px trở lên, chữ KHÔNG xuống dòng, CHƯA rút gọn
+        /// (không có "…", không <c>isElided</c>), và khoảng dư LỚN HƠN <see cref="TextFillMinimumSlack"/> px. Nghĩa là nhãn
+        /// ôm KHÍT chữ (dư 0, lấp đúng 100%) KHÔNG làm đỏ — đó là nhãn TỰ CO, chữ dài thêm thì ô dài theo. Khoảng bắt thật
+        /// của luật vì vậy là 95%–~99% của một ô rộng ≥ 60px. Muốn bắt cả nhãn tự co thì phải hỏi một câu KHÁC ("ô có chỗ
+        /// để nở không"), không phải hạ ba ngưỡng này.
+        /// </para>
         /// </summary>
         internal const float TextFillLimitRatio = 0.95f;
 
@@ -396,6 +416,9 @@ namespace DreamTech.LiveOps.Editor.Tests
 
         /// <summary>Hàm nội bộ của UI Toolkit trả lời "element này có cắt con của nó không" — có ở CẢ 2022.3 lẫn 6000.6.</summary>
         private const string ShouldClipMethodName = "ShouldClip";
+
+        /// <summary>Kiểu nội bộ của UI Toolkit cho ĐẦU MỘT CỘT của <c>MultiColumnListView</c> — có ở CẢ 2022.3 lẫn 6000.6.</summary>
+        private const string MultiColumnHeaderColumnTypeName = "MultiColumnHeaderColumn";
 
         private static MethodInfo _measureTextSize;
         private static PropertyInfo _isElided;
@@ -531,6 +554,7 @@ namespace DreamTech.LiveOps.Editor.Tests
             AppendArray(json, UxLayoutFindingKinds.TextCut, result.TextCut);
             AppendArray(json, UxLayoutFindingKinds.TextTight, result.TextTight);
             AppendArray(json, UxLayoutFindingKinds.ChildOverflow, result.ChildOverflow);
+            AppendArray(json, UxLayoutFindingKinds.UntitledColumn, result.UntitledColumn);
             AppendArray(json, UxLayoutFindingKinds.ScrollViews, result.ScrollViews);
             AppendArray(json, UxLayoutFindingKinds.AbsoluteOverText, result.AbsoluteOverText);
             AppendArray(json, UxLayoutFindingKinds.SiblingOverlap, result.SiblingOverlap);
@@ -643,6 +667,69 @@ namespace DreamTech.LiveOps.Editor.Tests
             }
             if (element is TextElement text && !string.IsNullOrEmpty(text.text) && bound.width > 0f) CheckTextCut(text, bound, result);
             if (element is ScrollView scrollView) CheckScrollView(scrollView, result);
+            if (IsTableColumnHeader(element)) CheckColumnHeaderTitle(element, bound, result);
+        }
+
+        /// <summary>
+        /// Element này có phải ĐẦU MỘT CỘT của <c>MultiColumnListView</c> không. Nhận theo TÊN KIỂU chứ không theo class USS:
+        /// <c>MultiColumnHeaderColumn</c> có ở cả 2022.3 lẫn 6000.6, còn class <c>unity-multi-column-header__column</c> CHỈ có
+        /// ở 6000.6 (2022.3 đặt tên khác), nên bắt theo class là mất nửa lưới ở đúng bản Unity mà 55 trong 62 chỗ của W9-25
+        /// từng sống.
+        /// </summary>
+        private static bool IsTableColumnHeader(VisualElement element)
+        {
+            return string.Equals(element.GetType().Name, MultiColumnHeaderColumnTypeName, StringComparison.Ordinal);
+        }
+
+        /// <summary>
+        /// (W9-31) Cột đang HIỆN thì đầu cột phải có chữ. Một cột không tên là một cột người đọc không giải thích được: nó có
+        /// đường kẻ chia cột riêng, chiếm bề rộng của các cột khác, và ở mẫu dữ liệu nào không vẽ ô nào thì nó đọc thành
+        /// "bảng vỡ cột" — đúng thứ báo cáo hành trình W9 thấy trên ảnh mà 24 màn của ma trận không hề đỏ.
+        /// <para>
+        /// Vì sao là LƯỚI chứ không phải luật khai theo màn: cột không tên dựng được ở bất kỳ bảng nào (hub có bốn
+        /// <c>MultiColumnListView</c>), nên luật phải đi theo CẤU TRÚC bảng, không theo trí nhớ của người viết màn. Chỗ cắt
+        /// có chủ đích vẫn khai ở <see cref="UxLayoutAllowList"/> như mọi loại khác.
+        /// </para>
+        /// <para>
+        /// Đầu cột thường mang thêm icon sắp xếp, nên câu hỏi đúng là "có đoạn chữ NÀO đọc được trong đầu cột không", không
+        /// phải "Label thứ nhất có chữ không".
+        /// </para>
+        /// </summary>
+        private static void CheckColumnHeaderTitle(VisualElement columnHeader, Rect bound, UxLayoutAuditResult result)
+        {
+            if (bound.width < 0.5f || bound.height < 0.5f) return;
+            if (HasAnyReadableText(columnHeader)) return;
+            Add(result, result.UntitledColumn, UxLayoutFindingKinds.UntitledColumn, columnHeader,
+                Describe(columnHeader) + " cột bảng đang hiện nhưng đầu cột KHÔNG có chữ @" + RectText(bound, result.RootBound));
+        }
+
+        /// <summary>Có đoạn chữ khác rỗng nào trong cây con này không (kể cả chính element).</summary>
+        private static bool HasAnyReadableText(VisualElement element)
+        {
+            if (element is TextElement self && !string.IsNullOrEmpty(self.text) && self.text.Trim().Length > 0) return true;
+            int childCount = element.hierarchy.childCount;
+            for (int index = 0; index < childCount; index++)
+            {
+                if (HasAnyReadableText(element.hierarchy[index])) return true;
+            }
+            return false;
+        }
+
+        /// <summary>
+        /// Số đầu cột bảng ĐẾM ĐƯỢC trong một cây — <see cref="UxGateSelfCheckTests"/> đọc để khẳng định lưới W9-31 còn nhìn
+        /// thấy bảng thật. Tên kiểu nội bộ của UI Toolkit đổi thì phép đếm về 0 và lưới IM LẶNG biến mất, đúng hạng lỗi
+        /// "cổng hỏng thành cổng xanh" mà tự kiểm sinh ra để chặn.
+        /// </summary>
+        internal static int CountTableColumnHeaders(VisualElement root)
+        {
+            if (root == null) return 0;
+            int count = IsTableColumnHeader(root) ? 1 : 0;
+            int childCount = root.hierarchy.childCount;
+            for (int index = 0; index < childCount; index++)
+            {
+                count += CountTableColumnHeaders(root.hierarchy[index]);
+            }
+            return count;
         }
 
         private static void CheckTextCut(TextElement text, Rect bound, UxLayoutAuditResult result)

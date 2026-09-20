@@ -218,6 +218,7 @@ namespace DreamTech.LiveOps.Editor.Tests
                     sourceDigest = UxContrastEvidence.ComputeSourceDigest(),
                     measuredCount = _measuredCount,
                     sceneCount = _scenes.Count,
+                    scenes = SceneNames(),
                     minimumRatio = UxComposedContrast.TextContrastRatio,
                     failures = _failures.ToArray(),
                 };
@@ -234,6 +235,14 @@ namespace DreamTech.LiveOps.Editor.Tests
 
                 Finish(LiveOpsHubCaptureCommand.SuccessExitCode, "đã ghi " + path + " — " + _measuredCount + " đoạn chữ trên "
                     + _scenes.Count + " cảnh, " + _failures.Count + " dòng trượt, dấu nguồn " + data.sourceDigest);
+            }
+
+            /// <summary>Tên đọc được của từng cảnh, đúng thứ tự đo — cổng đối chiếu danh sách này (soát W10 R-02).</summary>
+            private string[] SceneNames()
+            {
+                string[] names = new string[_scenes.Count];
+                for (int index = 0; index < _scenes.Count; index++) names[index] = _scenes[index].Place;
+                return names;
             }
 
             private void CloseWindow()

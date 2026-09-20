@@ -216,6 +216,9 @@ namespace DreamTech.LiveOps.Editor.Tests
         // mẫu (đợt BỊ BỎ, đợt có giờ KHÔNG ĐỌC ĐƯỢC) — chỉ là chưa màn nào CHỌN tới nó.
         // Luật từ đây: mỗi màn phải có ít nhất một biến thể "ngày tồi tệ nhất" (chuỗi dài nhất, giờ không đọc được, id dài,
         // số lớn, danh sách rỗng) trong ma trận BỐ CỤC, không chỉ trong test hành vi.
+        // Và luật ấy KHÔNG nằm trong khối chú thích này nữa (soát W10 R-04): UxLayoutScreenCatalog kê từng màn cùng cách nó
+        // chạm dữ liệu xấu, RunScreen đối chiếu mọi màn đang chạy với bảng kê, còn UxLayoutScreenCatalogTests khoá "mỗi
+        // section phải có ít nhất một màn dữ liệu xấu nhất" và khoá TẬP màn còn nợ. Chú thích không chặn được màn thứ 39.
 
         /// <summary>
         /// (W9-29) Chọn đợt BỊ BỎ — biến thể DÀI NHẤT của dòng gợi ý đáy trục, vì nó cộng thêm câu phát hiện
@@ -459,12 +462,14 @@ namespace DreamTech.LiveOps.Editor.Tests
         /// TOÀN BỘ).
         /// </para>
         /// <para>
-        /// Nay chữa đúng gốc bằng hai vế, không vế nào bớt độ phủ: <see cref="UxLayoutScreen.WithRebuildPerSize"/> dựng lại
-        /// phiên cho mỗi cỡ (mỗi cỡ kéo đúng MỘT lần trên tài liệu nguyên vẹn, hết cộng dồn), và
-        /// <see cref="UxLayoutScreen.WithReadyCondition"/> chờ TOAST THẬT hiện ra theo điều kiện + hạn giờ thay vì tin là nó
-        /// còn sống — toast tự tắt sau <c>LiveOpsToast.VisibleSeconds</c> giây đồng hồ THẬT, nên máy bận là nó biến mất
-        /// trước lượt đo. Vì cả hai nguyên nhân đã hết, màn trở lại ĐỦ BẢY cỡ của ma trận (gồm 950x700): cổng rộng hơn bản
-        /// W9 chứ không hẹp đi.
+        /// Nay là MỘT nguyên nhân đã chứng minh cộng MỘT hàng rào phòng xa — khai đúng như thế, không nói quá (soát W10
+        /// R-08). Nguyên nhân đã chứng minh: cú kéo CỘNG DỒN trên cùng một phiên, chữa bằng
+        /// <see cref="UxLayoutScreen.WithRebuildPerSize"/> (mỗi cỡ kéo đúng MỘT lần trên tài liệu nguyên vẹn) — đây là thứ
+        /// khớp với mẫu đỏ duy nhất từng thấy. Hàng rào phòng xa: <see cref="UxLayoutScreen.WithReadyCondition"/> chờ TOAST
+        /// THẬT theo điều kiện + hạn giờ, vì toast tự tắt sau <c>LiveOpsToast.VisibleSeconds</c> giây đồng hồ THẬT. Hàng rào
+        /// ấy CHƯA một lần nào kích hoạt trong các lượt đã chạy (không log nào có câu "dựng trạng thái hai lần vẫn không đạt
+        /// điều kiện đo"), nên nó là phòng xa cho máy bận, chưa phải một gốc đã đo được. Với nguyên nhân thứ nhất đã hết,
+        /// màn trở lại ĐỦ BẢY cỡ của ma trận (gồm 950x700): cổng rộng hơn bản W9 chứ không hẹp đi.
         /// </para>
         /// </summary>
         [UnityTest]
@@ -649,6 +654,7 @@ namespace DreamTech.LiveOps.Editor.Tests
 
         private IEnumerator RunScreen(UxLayoutScreen screen)
         {
+            AssertScreenIsRegistered(screen);
             List<string> problems = new List<string>();
             List<string> jsonPaths = new List<string>();
             List<string> clampedSizes = new List<string>();
@@ -722,6 +728,11 @@ namespace DreamTech.LiveOps.Editor.Tests
                 _fixture = null;
                 UxHubWindowFixture.CloseStrayWindows();
             }
+            // GIỚI HẠN ĐÃ BIẾT, không phải lỗi của gói này (soát W10 R-10): trên máy đang chạy, hai cỡ rộng nhất bị hệ điều
+            // hành kẹp chiều cao (1440x900 → 1440x895, 1920x1040 → 1920x895), nên biến thể dữ liệu xấu nhất ở cỡ RỘNG NHẤT
+            // chưa thật sự được đo. Đây là CẢNH BÁO chứ không phải lỗi vì làm đỏ ở đây là làm đỏ theo máy chạy, không theo mã
+            // — nhưng nó cũng có nghĩa là một phần ma trận đang khai 7 cỡ mà chỉ đo đúng 5. Muốn đóng thì cần một máy/chế độ
+            // đo đủ chiều cao, hoặc một cách đo khác cho hai cỡ đó; phiếu ghi ở báo cáo đợt W10.
             if (clampedSizes.Count > 0)
             {
                 Debug.LogWarning("UxLayoutAuditTests '" + screen.Id + "': máy chạy không đủ chỗ cho "
@@ -740,6 +751,36 @@ namespace DreamTech.LiveOps.Editor.Tests
                     + string.Join(", ", deferredSizeLabels.ToArray()) : string.Empty)
                 + (clampedSizes.Count > 0 ? "\nCỡ chưa đo đúng trên máy này: " + string.Join("; ", clampedSizes.ToArray()) : string.Empty)
                 + "\n - " + string.Join("\n - ", problems.ToArray()));
+        }
+
+        /// <summary>
+        /// Mọi màn đang chạy phải có một dòng trong <see cref="UxLayoutScreenCatalog"/>, và dòng ấy phải nói ĐÚNG về màn.
+        /// <para>
+        /// Vì sao ở đây chứ không chỉ trong ca tự kiểm bảng kê (soát W10 R-04): bảng kê một mình chỉ chứng minh những dòng
+        /// ĐÃ KHAI là hợp lệ — nó không biết có màn nào chạy mà không khai. Câu này đóng nốt chiều còn lại: thêm một màn vào
+        /// ma trận mà quên trả lời "màn này nhìn thấy dữ liệu xấu ở đâu" là ĐỎ ngay lượt đầu, chứ không im lặng thành một lỗ
+        /// hổng mới của ma trận.
+        /// </para>
+        /// <para>
+        /// Đối chiếu HAI CHIỀU với <c>WithServices</c>: khai "đứng trên services xấu nhất" mà màn không dựng services (hoặc
+        /// ngược lại) cũng đỏ, kẻo lời khai trôi khỏi mã và bảng kê thành một tờ giấy nói về một ma trận khác.
+        /// </para>
+        /// </summary>
+        private static void AssertScreenIsRegistered(UxLayoutScreen screen)
+        {
+            UxLayoutScreenRegistration registration = UxLayoutScreenCatalog.Find(screen.Id);
+            Assert.IsNotNull(registration,
+                "màn '" + screen.Id + "' chưa có dòng nào trong UxLayoutScreenCatalog — mỗi màn của ma trận phải trả lời "
+                + "được 'nó nhìn thấy dữ liệu XẤU NHẤT ở đâu' (tự dựng services, chọn tới phần xấu của mẫu, được màn khác "
+                + "phủ hộ, hay còn nợ một phiếu). Đây là luật vá lỗ hổng ma trận của đợt W10, không phải thủ tục giấy tờ: "
+                + "ba lỗi W9-29/30/31 lọt lưới đúng vì màn nào cũng đứng trên tài liệu đẹp");
+            Assert.AreEqual(registration.SectionId, screen.SectionId,
+                "màn '" + screen.Id + "' chạy ở section '" + screen.SectionId + "' nhưng bảng kê khai '"
+                + registration.SectionId + "' — một trong hai chỗ nói sai về màn này");
+            Assert.AreEqual(registration.Coverage == UxWorstCaseCoverage.Services, screen.Services != null,
+                "màn '" + screen.Id + "' và bảng kê không đồng ý về services: bảng kê khai '" + registration.Coverage
+                + "', mã " + (screen.Services != null ? "CÓ" : "KHÔNG") + " dựng services riêng. Lời khai phủ dữ liệu xấu "
+                + "chỉ có giá trị khi nó nói về đúng thứ mã đang làm");
         }
 
         /// <summary>Mở hub với services của màn; màn không khai services thì dùng mẫu thiết kế như trước.</summary>
