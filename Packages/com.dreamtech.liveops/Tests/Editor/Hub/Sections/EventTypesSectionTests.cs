@@ -31,6 +31,18 @@ namespace DreamTech.LiveOps.Editor.Tests
         private const float ColorSlotSize = 18f;
         private const float ColorSwatchSize = 12f;
 
+        /// <summary>
+        /// Nghịch đảo của ngưỡng "chữ chiếm quá 95% bề rộng ô" (W9-25, <c>UxLayoutAuditor.TextFillWarningRatio</c>): vùng
+        /// nội dung phải rộng hơn chữ ít nhất 1/0,95 lần.
+        /// </summary>
+        private const float TextFillCeilingRatio = 1f / 0.95f;
+
+        /// <summary>
+        /// Ô hẹp hơn mức này không áp luật dư 5% — 5% của một ô 20px mỏng hơn cả sai số của <c>MeasureTextSize</c>. Cùng
+        /// con số <c>UxLayoutAuditor.TextFillMinimumWidth</c> của cổng đợt.
+        /// </summary>
+        private const float TextFillMinimumWidth = 60f;
+
         [SetUp]
         public void SetUp()
         {
@@ -389,9 +401,14 @@ namespace DreamTech.LiveOps.Editor.Tests
 
         /// <summary>
         /// Bậc cột theo bề rộng là một hàm thuần, nên khoá bằng test đơn vị chứ không chỉ bằng một lượt dựng cửa sổ.
-        /// Mốc: bốn cột luôn hiện tốn 44 + 128 + 120 + 36 = 328px, cộng 14px trừ sẵn cho thanh cuộn dọc = 342px. Mỗi cột
-        /// phụ tiếp theo cộng thêm đúng bề rộng tối thiểu ĐỌC ĐƯỢC của nó: 116 (Cách vào) → 140 (Khoá config) → 88
-        /// (Nguồn) → 56 (Đợt).
+        /// Mốc: ba cột luôn hiện tốn 44 + 128 + 128 = 300px, cộng 14px trừ sẵn cho thanh cuộn dọc = 314px. Mỗi cột phụ
+        /// tiếp theo cộng thêm đúng bề rộng tối thiểu ĐỌC ĐƯỢC của nó: 116 (Cách vào) → 140 (Khoá config) → 88 (Nguồn)
+        /// → 56 (Đợt).
+        /// <para>
+        /// (W9-31) Ba chứ không còn bốn: cột 36px không tên đã bị gỡ, dấu trạng thái dọn về ô màu. Mốc lùi 36px của cột
+        /// đã gỡ rồi tiến lại 8px vì bề rộng tối thiểu của cột "Tên hiển thị" nới từ 120 lên 128 — xem chú thích của
+        /// <c>DisplayNameColumnMinimumWidth</c>: gỡ cột trạng thái là lần đầu cột giãn ấy chạm đáy của chính nó.
+        /// </para>
         /// </summary>
         [Test]
         public void OptionalColumnCountThatFits_KeepsAsManyColumnsAsReallyFit()
@@ -399,12 +416,12 @@ namespace DreamTech.LiveOps.Editor.Tests
             Assert.AreEqual(-1, EventTypeTable.OptionalColumnCountThatFits(float.NaN), "chưa có số đo thì KHÔNG dựng lại cột");
             Assert.AreEqual(-1, EventTypeTable.OptionalColumnCountThatFits(0f), "bề rộng 0 là cây chưa layout, không phải bảng hẹp");
 
-            Assert.AreEqual(0, EventTypeTable.OptionalColumnCountThatFits(342f), "vừa đúng bốn cột luôn hiện");
-            Assert.AreEqual(0, EventTypeTable.OptionalColumnCountThatFits(457f), "thiếu 1px cho cột Cách vào thì KHÔNG lấy nó");
-            Assert.AreEqual(1, EventTypeTable.OptionalColumnCountThatFits(458f));
-            Assert.AreEqual(2, EventTypeTable.OptionalColumnCountThatFits(598f));
-            Assert.AreEqual(3, EventTypeTable.OptionalColumnCountThatFits(686f));
-            Assert.AreEqual(4, EventTypeTable.OptionalColumnCountThatFits(742f));
+            Assert.AreEqual(0, EventTypeTable.OptionalColumnCountThatFits(314f), "vừa đúng ba cột luôn hiện");
+            Assert.AreEqual(0, EventTypeTable.OptionalColumnCountThatFits(429f), "thiếu 1px cho cột Cách vào thì KHÔNG lấy nó");
+            Assert.AreEqual(1, EventTypeTable.OptionalColumnCountThatFits(430f));
+            Assert.AreEqual(2, EventTypeTable.OptionalColumnCountThatFits(570f));
+            Assert.AreEqual(3, EventTypeTable.OptionalColumnCountThatFits(658f));
+            Assert.AreEqual(4, EventTypeTable.OptionalColumnCountThatFits(714f));
             Assert.AreEqual(4, EventTypeTable.OptionalColumnCountThatFits(1600f), "rộng bao nhiêu cũng chỉ có bốn cột phụ");
         }
 
@@ -415,9 +432,9 @@ namespace DreamTech.LiveOps.Editor.Tests
         [Test]
         public void OptionalColumnCountThatFits_DropsBySuffix_NotByWhicheverFits()
         {
-            // 342 + 116 = 458 đủ cho cột Cách vào; thêm 56 nữa (514) vẫn KHÔNG đủ cho cột thứ hai (140) — và cột "Đợt"
+            // 314 + 116 = 430 đủ cho cột Cách vào; thêm 56 nữa (486) vẫn KHÔNG đủ cho cột thứ hai (140) — và cột "Đợt"
             // (56px, đứng thứ tư) vẫn không được nhảy cóc lên thay chỗ.
-            Assert.AreEqual(1, EventTypeTable.OptionalColumnCountThatFits(514f));
+            Assert.AreEqual(1, EventTypeTable.OptionalColumnCountThatFits(486f));
         }
 
         /// <summary>
@@ -434,7 +451,7 @@ namespace DreamTech.LiveOps.Editor.Tests
                 yield return scope.WaitForLayout();
 
                 IReadOnlyList<string> hidden = section.Table.HiddenColumnTitles;
-                Assert.Greater(hidden.Count, 0, "ở 700px bảng không thể chứa đủ tám cột — nếu không cột nào bị bỏ thì "
+                Assert.Greater(hidden.Count, 0, "ở 700px bảng không thể chứa đủ bảy cột — nếu không cột nào bị bỏ thì "
                     + "hoặc số đo đã đổi, hoặc bảng đang bóp cột thay vì bỏ cột");
 
                 VisualElement note = scope.View.Q(EventTypesSection.ColumnsHiddenNoteName);
@@ -462,7 +479,7 @@ namespace DreamTech.LiveOps.Editor.Tests
             {
                 yield return scope.WaitForLayout();
 
-                Assert.AreEqual(0, section.Table.HiddenColumnTitles.Count, "1280px chứa đủ tám cột");
+                Assert.AreEqual(0, section.Table.HiddenColumnTitles.Count, "1280px chứa đủ bảy cột");
                 VisualElement note = scope.View.Q(EventTypesSection.ColumnsHiddenNoteName);
                 Assert.IsTrue(note.ClassListContains(LiveOpsHubClassNames.EventTypesHidden),
                     "không bỏ cột nào thì dòng khai báo phải ẩn");
@@ -482,7 +499,7 @@ namespace DreamTech.LiveOps.Editor.Tests
             using (SectionTestScope scope = SectionTestScope.Open(section, 1280, 760))
             {
                 yield return scope.WaitForLayout();
-                Assert.AreEqual(0, section.Table.HiddenColumnTitles.Count, "nền của ca này là bảng ĐỦ tám cột");
+                Assert.AreEqual(0, section.Table.HiddenColumnTitles.Count, "nền của ca này là bảng ĐỦ bảy cột");
 
                 section.Table.View.sortColumnDescriptions.Add(
                     new SortColumnDescription(EventTypeTable.SourceColumnName, SortDirection.Descending));
@@ -581,6 +598,123 @@ namespace DreamTech.LiveOps.Editor.Tests
                 yield return scope.WaitForLayout();
                 Assert.DoesNotThrow(() => section.RestoreViewState("{ khong-phai-json"),
                     "(7.0) JSON của bản trước không được làm sập màn");
+            }
+        }
+
+        // ======================================================== W9-31: bảng không còn cột trống không tên
+
+        /// <summary>
+        /// Không cột nào của bảng được mang tiêu đề RỖNG. Cột 36px "state" cũ có tiêu đề rỗng và chỉ vẽ dấu cho loại CHƯA
+        /// KHAI — mà mẫu thiết kế không có loại nào chưa khai, nên ở mọi ảnh, mọi cỡ, nó là một cột trống có đường kẻ chia
+        /// cột riêng: người soát đọc thành "bảng vỡ cột" và đọc đúng cái mình thấy (W9-31).
+        /// <para>
+        /// Kiểm ĐẦU CỘT chứ không kiểm "bảng có bao nhiêu cột": con số cột còn đổi theo bề rộng cửa sổ, còn luật "cột nào
+        /// cũng phải tự giới thiệu được" thì đúng ở mọi cỡ.
+        /// </para>
+        /// </summary>
+        [UnityTest]
+        public IEnumerator Table_EveryColumnHasATitle()
+        {
+            LiveOpsHubServices services = LiveOpsHubTestServices.ForScenario(LiveOpsHubTestServices.DesignSampleScenario);
+            EventTypesSection section = new EventTypesSection(services);
+            using (SectionTestScope scope = SectionTestScope.Open(section, 1280, 760))
+            {
+                yield return scope.WaitForLayout();
+
+                Assert.Greater(section.Table.View.columns.Count, 0, "bảng phải có cột — không có thì ca này thành lời khai suông");
+                foreach (Column column in section.Table.View.columns)
+                {
+                    Assert.IsFalse(string.IsNullOrEmpty(column.title),
+                        "cột '" + column.name + "' không có tiêu đề: một cột không tự giới thiệu được thì người đọc chỉ thấy "
+                        + "một dải trống có đường kẻ riêng (W9-31)");
+                }
+            }
+        }
+
+        /// <summary>
+        /// (W9-25) Ô chữ của bảng phải còn KHOẢNG DƯ ở cỡ cửa sổ HẸP NHẤT của bộ ảnh — đúng chỗ mọi cột rơi xuống bề rộng
+        /// tối thiểu của chính nó, tức chỗ duy nhất các con số <c>*ColumnMinimumWidth</c> thật sự được thử.
+        /// <para>
+        /// Vì sao phải có ca này: bề rộng tối thiểu của cột "Tên hiển thị" khai 120px = 111px chữ dài nhất + 8px đệm ô,
+        /// quên mất phần dư — nhưng cột ấy GIÃN nên trước W9-31 nó không bao giờ chạm đáy, và con số sai nằm im suốt chín
+        /// đợt. Gỡ cột trạng thái 36px trả chỗ cho một cột phụ nữa ở 700px, cột tên hiển thị rơi xuống 120 và chữ lập tức
+        /// chiếm 99,1% ô. Ca này đo ở đúng cỡ đó nên lần sau con số ấy lệch là đỏ ngay, không đợi tới lượt ảnh.
+        /// </para>
+        /// </summary>
+        [UnityTest]
+        public IEnumerator Table_AtNarrowWindow_KeepsSlackInEveryCell()
+        {
+            LiveOpsHubServices services = LiveOpsHubTestServices.ForScenario(LiveOpsHubTestServices.DesignSampleScenario);
+            EventTypesSection section = new EventTypesSection(services);
+            using (SectionTestScope scope = SectionTestScope.Open(section, 700, 560))
+            {
+                yield return scope.WaitForLayout();
+                yield return scope.WaitForLayout();
+
+                List<Label> cells = new List<Label>();
+                scope.View.Query<Label>(className: LiveOpsHubClassNames.EventTypesCell).ToList(cells);
+                int measuredCount = 0;
+                for (int index = 0; index < cells.Count; index++)
+                {
+                    Label cell = cells[index];
+                    if (string.IsNullOrEmpty(cell.text)) continue;
+                    if (cell.resolvedStyle.whiteSpace != WhiteSpace.NoWrap) continue;
+                    if (cell.contentRect.width < TextFillMinimumWidth) continue;
+                    float needed = cell.MeasureTextSize(cell.text, 0f, VisualElement.MeasureMode.Undefined, 0f,
+                        VisualElement.MeasureMode.Undefined).x;
+                    measuredCount++;
+                    Assert.GreaterOrEqual(cell.contentRect.width, needed * TextFillCeilingRatio,
+                        "ô \"" + cell.text + "\" cần "
+                        + needed.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture) + "px, chỗ có "
+                        + cell.contentRect.width.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture)
+                        + "px — chưa cắt nhưng dưới 5% dư, một đổi metric font là cắt im lặng (W9-25)");
+                }
+
+                Assert.Greater(measuredCount, 0, "không đo được ô nào — phép lọc hỏng thì ca này thành lời khai suông");
+            }
+        }
+
+        /// <summary>
+        /// Biến thể dữ liệu XẤU NHẤT của màn: bản dán có loại CHƯA KHAI. Đây là trạng thái duy nhất vẽ ra dấu trạng thái,
+        /// và nó phải nằm trong ô MÀU — cạnh swatch rỗng viền quiet vốn đã nói "hub chưa biết màu vì loại chưa khai".
+        /// Mẫu thiết kế không bao giờ ở trạng thái này, nên không dựng riêng thì dấu ấy không bao giờ được đo (W9-31).
+        /// </summary>
+        [UnityTest]
+        public IEnumerator Table_UndeclaredType_DrawsStateMarkInsideTheColorCell()
+        {
+            LiveOpsHubServices services = LiveOpsHubTestServices.ForScenario(LiveOpsHubTestServices.DesignSampleScenario);
+            services.Session.Remote.Set(RemoteJsonWithLuckySpin(), LiveOpsDesignSample.NowUtc);
+            services.Session.RunCheckToCompletion();
+            EventTypesSection section = new EventTypesSection(services);
+            using (SectionTestScope scope = SectionTestScope.Open(section, 1280, 760))
+            {
+                yield return scope.WaitForLayout();
+                yield return scope.WaitForLayout();
+
+                List<VisualElement> colorCells = new List<VisualElement>();
+                scope.View.Query<VisualElement>(className: LiveOpsHubClassNames.EventTypesCellCenter).ToList(colorCells);
+                Assert.Greater(colorCells.Count, 0, "bảng phải dựng ô màu cho từng hàng");
+
+                int undeclaredMarkCount = 0;
+                int declaredMarkCount = 0;
+                for (int index = 0; index < colorCells.Count; index++)
+                {
+                    VisualElement cell = colorCells[index];
+                    LiveOpsStateMark mark = cell.Q<LiveOpsStateMark>();
+                    Assert.IsNotNull(mark, "ô màu nào cũng giữ sẵn dấu trạng thái để hàng không nhảy khi đổi trạng thái");
+                    bool undeclared = cell.ClassListContains(LiveOpsHubClassNames.EventTypesRowUndeclared);
+                    if (undeclared) undeclaredMarkCount++;
+                    else if (mark.visible) declaredMarkCount++;
+                    Assert.AreEqual(undeclared, mark.visible,
+                        "dấu Blocked chỉ vẽ cho loại CHƯA KHAI — loại đã khai mà cũng có dấu thì dấu thôi nói được gì");
+                    if (!undeclared) continue;
+                    Assert.Greater(mark.worldBound.width, 0f, "dấu của loại chưa khai phải có chỗ vẽ thật trong ô màu 44px");
+                    Assert.IsTrue(cell.worldBound.Contains(mark.worldBound.center),
+                        "dấu phải nằm TRONG ô màu, không tràn sang cột id loại");
+                }
+
+                Assert.AreEqual(1, undeclaredMarkCount, "bản dán này khai đúng một loại chưa có trong nháp (lucky-spin)");
+                Assert.AreEqual(0, declaredMarkCount, "loại đã khai không được mang dấu Blocked");
             }
         }
 

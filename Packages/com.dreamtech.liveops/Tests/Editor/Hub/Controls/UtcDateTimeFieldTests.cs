@@ -331,6 +331,60 @@ namespace DreamTech.LiveOps.Editor.Tests
             Assert.AreEqual(LiveOpsHubStrings.UtcFieldTimeEmpty, LiveOpsUtcDateTimeField.DescribeParseError("2026-10-03", string.Empty));
         }
 
+        /// <summary>
+        /// (W9-30) Hàng giá trị (ô ngày + ô giờ + "UTC") phải rộng Y HỆT ở trạng thái sạch và trạng thái lỗi, và biểu
+        /// tượng lỗi phải nằm ở DÒNG LỖI.
+        /// <para>
+        /// Vì sao đo bề rộng hàng chứ chỉ nhìn cây: hàng nở thêm khi có lỗi là đúng cơ chế đã đẩy biểu tượng ra khỏi pane
+        /// 280px của inspector (đo ở 1280×760: hàng cần 177px trong 168px chỗ có). Mọi phần tử trong hàng đều
+        /// <c>flex-shrink: 0</c> nên hàng nở ra là tràn, không phải bóp. Ca ở cấp control này khoá đúng nguyên nhân; ca
+        /// trong pane thật (<c>CalendarInspectorUxFixTests</c>) khoá hậu quả.
+        /// </para>
+        /// </summary>
+        [UnityTest]
+        public IEnumerator UtcField_ErrorState_DoesNotWidenTheValueRow()
+        {
+            LiveOpsUtcDateTimeField field = CreateField(false);
+            yield return ControlsTestPanel.WaitForLayout(field);
+            field.SetRawTextWithoutNotify("2026-09-16", "12:00");
+            yield return ControlsTestPanel.WaitForLayout(field);
+
+            Assert.IsFalse(field.HasParseError, "mốc đầu của ca này là ô đọc được");
+            Assert.IsTrue(field.ValueRow.Contains(field.ZoneLabel), "nhãn UTC thuộc hàng giá trị");
+            Assert.IsTrue(field.ErrorRow.Contains(field.ErrorIcon),
+                "biểu tượng lỗi thuộc DÒNG LỖI — để nó cuối hàng giá trị là dựng lại đúng chỗ tràn của W9-30");
+            Assert.IsTrue(field.ErrorRow.Contains(field.ErrorLabel), "câu lỗi đứng cạnh biểu tượng của chính nó");
+            Assert.IsFalse(field.ValueRow.Contains(field.ErrorIcon), "hàng giá trị không bao giờ chứa biểu tượng lỗi");
+            Assert.AreEqual(DisplayStyle.None, field.ErrorRow.resolvedStyle.display,
+                "không có lỗi thì cả dòng lỗi phải biến mất, không để lại một hàng cao 0 ăn lề");
+
+            float cleanRowWidth = ContentWidthOf(field.ValueRow);
+            Assert.Greater(cleanRowWidth, 0f, "hàng giá trị phải có phần tử — không thì ca này thành lời khai suông");
+
+            field.SetRawTextWithoutNotify("2026-10-3", string.Empty);
+            yield return ControlsTestPanel.WaitForLayout(field);
+
+            Assert.IsTrue(field.HasParseError, "\"2026-10-3\" phải là chuỗi không đọc được");
+            Assert.AreEqual(DisplayStyle.Flex, field.ErrorRow.resolvedStyle.display, "có lỗi thì dòng lỗi phải hiện");
+            Assert.AreEqual(DisplayStyle.Flex, field.ErrorIcon.resolvedStyle.display);
+            Assert.AreEqual(cleanRowWidth, ContentWidthOf(field.ValueRow), 0.5f,
+                "hàng giá trị nở thêm khi có lỗi = đúng cơ chế đẩy biểu tượng ra ngoài pane 280px (W9-30)");
+            LogAssert.NoUnexpectedReceived();
+        }
+
+        /// <summary>Mép phải xa nhất mà con của <paramref name="row"/> chiếm tới, tính từ mép trái của chính hàng.</summary>
+        private static float ContentWidthOf(VisualElement row)
+        {
+            float rightEdge = 0f;
+            for (int index = 0; index < row.childCount; index++)
+            {
+                VisualElement child = row[index];
+                if (child.resolvedStyle.display == DisplayStyle.None) continue;
+                if (child.layout.xMax > rightEdge) rightEdge = child.layout.xMax;
+            }
+            return rightEdge;
+        }
+
         private LiveOpsUtcDateTimeField CreateField(bool lightSkin)
         {
             _panel = ControlsTestPanel.Open();

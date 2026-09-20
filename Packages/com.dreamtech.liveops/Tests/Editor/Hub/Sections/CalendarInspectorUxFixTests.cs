@@ -680,6 +680,97 @@ namespace DreamTech.LiveOps.Editor.Tests
             }
         }
 
+        // ============================================================================================ W9-30 · biểu tượng lỗi
+
+        /// <summary>
+        /// (W9-30) Biến thể dữ liệu XẤU NHẤT của inspector: đợt có giờ KẾT THÚC không đọc được ("2026-10-3"). Đây là trạng
+        /// thái DUY NHẤT hiện biểu tượng lỗi 12px, và ma trận bố cục chưa bao giờ dựng nó — nên ở ảnh hành trình 1280×760
+        /// biểu tượng bị mép cửa sổ cắt đôi mà không cổng nào đỏ.
+        /// <para>
+        /// Đo được trước khi sửa: hàng giá trị (ô ngày 88 + 4 + ô giờ 44 + 4 + "UTC" 21) đã dùng 161px trong 168px mà cột
+        /// field của pane 280px cho; cộng 4 + 12px biểu tượng là cần 177px, và mọi phần tử trong hàng đều
+        /// <c>flex-shrink: 0</c> nên không ai nhường — hàng tràn 9px ra ngoài. Cách chữa là ĐƯA BIỂU TƯỢNG XUỐNG DÒNG LỖI,
+        /// nên ca này khoá cả ba điều: biểu tượng nằm trong dòng lỗi, mọi phần nhìn thấy được nằm trong pane, và bề rộng
+        /// hàng giá trị KHÔNG đổi giữa trạng thái sạch và trạng thái lỗi.
+        /// </para>
+        /// </summary>
+        [UnityTest]
+        public IEnumerator W9_30_UnreadableEndTime_KeepsErrorIconInsidePane()
+        {
+            yield return OpenCalendarWithSelection(LiveOpsDesignSample.LavaQuestLateEntryKey);
+            ScrollView body = InspectorBody();
+            yield return WaitForLayout(body);
+
+            LiveOpsUtcDateTimeField endField = TimeFieldOf(LiveOpsHubStrings.CalendarFieldEndLabel);
+            LiveOpsUtcDateTimeField startField = TimeFieldOf(LiveOpsHubStrings.CalendarFieldStartLabel);
+            Assert.IsNotNull(endField, "inspector phải có ô giờ Kết thúc");
+            Assert.IsNotNull(startField, "inspector phải có ô giờ Bắt đầu để so hàng sạch với hàng lỗi");
+            Assert.IsTrue(endField.HasParseError, "lịch mẫu giữ giờ kết thúc hỏng cố ý \"2026-10-3\" — không còn thì ca này vô nghĩa");
+            Assert.AreEqual(DisplayStyle.Flex, endField.ErrorIcon.resolvedStyle.display, "trạng thái hỏng phải hiện biểu tượng lỗi");
+
+            Assert.IsTrue(endField.ErrorRow.Contains(endField.ErrorIcon),
+                "biểu tượng lỗi thuộc DÒNG LỖI; để nó cuối hàng giá trị là dựng lại đúng chỗ tràn của W9-30");
+            Assert.IsFalse(endField.ValueRow.Contains(endField.ErrorIcon), "hàng giá trị không bao giờ chứa biểu tượng lỗi");
+
+            AssertVisibleInside(endField.ErrorIcon, body, "biểu tượng lỗi của ô giờ Kết thúc");
+            AssertVisibleInside(endField.ErrorLabel, body, "dòng lỗi của ô giờ Kết thúc");
+            AssertVisibleInside(endField.ZoneLabel, body, "nhãn UTC của ô giờ Kết thúc");
+            AssertVisibleInside(endField.DateInput, body, "ô ngày của ô giờ Kết thúc");
+            AssertVisibleInside(endField.TimeInput, body, "ô giờ của ô giờ Kết thúc");
+
+            float valueRowRightEdge = endField.ZoneLabel.worldBound.xMax;
+            Assert.LessOrEqual(valueRowRightEdge, endField.ValueRow.worldBound.xMax + BoundsTolerance,
+                "phần tử cuối hàng giá trị không được thò ra ngoài chính hàng của nó");
+            Assert.AreEqual(startField.ValueRow.worldBound.xMax, valueRowRightEdge, BoundsTolerance,
+                "hàng giá trị phải rộng y hệt nhau ở trạng thái sạch và trạng thái lỗi — bề rộng đổi theo trạng thái là "
+                + "cách chắc chắn nhất để một trong hai trạng thái tràn pane");
+
+            AssertNoCutText(body, "inspector của đợt có giờ kết thúc không đọc được");
+        }
+
+        // ============================================================================================ W9-25 · chữ sát mép ô
+
+        /// <summary>
+        /// (W9-25 chỗ 1) Nhãn ô "Dời cả hai (giờ)" của pane chọn nhiều. Bản tiếng Anh "Shift both (hours)" cần 92px chữ
+        /// trong vùng nội dung 93px của cột nhãn 96px — dư đúng 1px ở CẢ BẢY cỡ, tức "chưa cắt nhưng một đổi metric font
+        /// là cắt", đúng thứ luật dư 5% của W9-25 dựng lên để bắt.
+        /// <para>
+        /// Cột nhãn 96px KHÔNG nới được: đo ở 1280×760, hàng ô giờ UTC đã dùng 161px trong 168px mà cột field còn lại, nới
+        /// nhãn thêm 8px là đẩy nhãn "UTC" ra ngoài pane — tức chữa chỗ này bằng cách làm hỏng chỗ W9-30 vừa chữa. Cách
+        /// chữa là cho NHÃN CỦA RIÊNG Ô NÀY xuống dòng: chữ không còn bị cắt theo bề rộng ở bất kỳ metric nào, mà hôm nay
+        /// nó vẫn nằm một dòng (92 &lt; 93) nên hàng không đổi một pixel.
+        /// </para>
+        /// </summary>
+        [UnityTest]
+        public IEnumerator W9_25_MultiSelectShiftLabel_WrapsInsteadOfBeingCut()
+        {
+            foreach (LiveOpsHubLanguageId language in UxHubWindowFixture.AllLanguages)
+            {
+                _fixture = UxHubWindowFixture.Open(LiveOpsHubSections.Ids.Calendar,
+                    new UxWindowSize(WindowWidth, WindowHeight), language);
+                yield return _fixture.WaitForLayout();
+
+                _fixture.Calendar.Presenter.SetSelectedBarKeys(
+                    new[] { LiveOpsDesignSample.HuntBonusEntryKey, LiveOpsDesignSample.HuntEarlyEntryKey },
+                    LiveOpsDesignSample.HuntBonusEntryKey);
+                yield return _fixture.WaitForLayout();
+
+                IntegerField shiftField = _fixture.Root.Q<IntegerField>(className: LiveOpsHubClassNames.CalendarInspectorFieldNumber);
+                Assert.IsNotNull(shiftField, "pane chọn nhiều phải có ô \"Dời cả hai (giờ)\" (" + language + ")");
+                Assert.AreEqual(LiveOpsHubStrings.TimelineMultiSelectShiftFieldLabel, shiftField.label,
+                    "ô của pane chọn nhiều là ô dời giờ, không phải ô số nào khác (" + language + ")");
+                Assert.AreEqual(WhiteSpace.Normal, shiftField.labelElement.resolvedStyle.whiteSpace,
+                    "nhãn ô này phải được xuống dòng: cột nhãn 96px chỉ dư 1px cho bản tiếng Anh, và cột ấy không nới được "
+                    + "vì hàng ô giờ UTC đã dùng gần hết chỗ (" + language + ")");
+
+                AssertNoCutText(_fixture.Root.Q(className: LiveOpsHubClassNames.Inspector),
+                    "pane chọn nhiều ở " + WindowWidth + "×" + WindowHeight + " (" + language + ")");
+
+                _fixture.Dispose();
+                _fixture = null;
+            }
+        }
+
         // ============================================================================================ hạ tầng test
 
         private LiveOpsHubServices Services()

@@ -95,9 +95,16 @@
     -unity-text-align: middle-right;
 }
 
+/* (W9-31) Ô căn giữa là HÀNG NGANG: ô màu nay chứa swatch 9x9 + dấu trạng thái 7px cạnh nhau. Để cột dọc mặc định thì hai
+   thứ chồng lên nhau trong hàng cao 22px. 4 + 9 + 4 + 7 + 4 = 28px, vẫn nằm gọn trong cột màu 44px. */
 .liveops-hub-event-types-cell--center {
+    flex-direction: row;
     align-items: center;
     justify-content: center;
+}
+
+.liveops-hub-event-types-cell--center > .liveops-hub-state-mark {
+    margin-left: var(--liveops-hub-space-4);
 }
 
 /* Hàng loại chưa khai báo (Hình 10b): mờ 0,7 để đọc được mà vẫn khác hẳn hàng thật, KHÔNG ẩn — hàng này là thứ phải xử lý. */

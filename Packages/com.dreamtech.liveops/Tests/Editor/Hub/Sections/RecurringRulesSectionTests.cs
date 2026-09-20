@@ -36,6 +36,12 @@ namespace DreamTech.LiveOps.Editor.Tests
 
         private const int DailyPresetActiveHours = 20;
 
+        /// <summary>
+        /// Sai số của PHÉP ĐO chữ: <c>MeasureTextSize</c> và lượt vẽ thật làm tròn lệch nhau vài phần mười px ở cả hai bản
+        /// Unity — cùng con số 3px mà <c>UxLayoutAuditor.TextMeasureTolerance</c> dùng cho mọi phép đo chữ của cổng đợt.
+        /// </summary>
+        private const float TextMeasureTolerance = 3f;
+
         /// <summary>Vòng chờ của test UI (V-23): chỉ fail khi quá CẢ 60 khung LẪN 5 giây.</summary>
         private const int MaximumWaitFrames = 60;
 
@@ -408,6 +414,39 @@ namespace DreamTech.LiveOps.Editor.Tests
             LiveOpsStateMark mark = tag.Q<LiveOpsStateMark>();
             Assert.IsNotNull(mark, "tag thiếu thoi Warning");
             Assert.IsTrue(mark.ClassListContains(LiveOpsHubClassNames.StateMarkWarning), "thoi phải là họ Warning");
+            LogAssert.NoUnexpectedReceived();
+        }
+
+        /// <summary>
+        /// (W9-25 chỗ 4, 5, 6) Mảnh chữ nối của câu luật phải được XUỐNG DÒNG. Ba mảnh ", mỗi đợt chạy ", ", anchored at "
+        /// và ", each occurrence runs " tự co đúng bằng chữ của mình, nên không có "ô" nào để nới: đo ở 2022.3, mảnh rộng
+        /// 77px mà phép đo lại chữ ra 74px — dư 3px, 96,1% bề rộng ô, tức "chưa cắt nhưng sắp cắt".
+        /// <para>
+        /// Mảnh KHÔNG wrap là thứ duy nhất trong câu có thể bị cắt theo bề rộng: cụm "chữ nối + token" đã
+        /// <c>flex-shrink: 0</c> nên không co, và câu thì xuống dòng theo CỤM. Cho mảnh wrap thì chỗ chật biến thành một
+        /// lần xuống dòng chứ không thành chữ cụt — chữ hôm nay vẫn nằm một dòng vì cụm không bị bóp.
+        /// </para>
+        /// </summary>
+        [UnityTest]
+        public IEnumerator SentenceText_CanWrapSoItIsNeverCutByWidth()
+        {
+            yield return OpenDesignSample(new ScriptedLiveOpsHubConfirmationPresenter());
+
+            List<Label> fragments = new List<Label>();
+            _scope.View.Query<Label>(className: LiveOpsHubClassNames.RecurringSentenceText).ToList(fragments);
+            Assert.Greater(fragments.Count, 0, "câu luật phải có mảnh chữ nối — không có thì ca này thành lời khai suông");
+            for (int index = 0; index < fragments.Count; index++)
+            {
+                Assert.AreEqual(WhiteSpace.Normal, fragments[index].resolvedStyle.whiteSpace,
+                    "mảnh \"" + fragments[index].text + "\" bị khoá một dòng: chỗ chật của nó sẽ thành chữ cụt chứ không "
+                    + "thành một lần xuống dòng (W9-25)");
+                float needed = fragments[index].MeasureTextSize(fragments[index].text, fragments[index].contentRect.width,
+                    VisualElement.MeasureMode.Exactly, 0f, VisualElement.MeasureMode.Undefined).y;
+                Assert.GreaterOrEqual(fragments[index].contentRect.height + TextMeasureTolerance, needed,
+                    "mảnh \"" + fragments[index].text + "\" wrap rồi thì phải CÓ CHỖ cho dòng nó cần — cao "
+                    + fragments[index].contentRect.height.ToString("0.#", CultureInfo.InvariantCulture) + "px, cần "
+                    + needed.ToString("0.#", CultureInfo.InvariantCulture) + "px");
+            }
             LogAssert.NoUnexpectedReceived();
         }
 
