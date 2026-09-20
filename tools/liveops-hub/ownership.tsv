@@ -983,3 +983,19 @@ file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/UxGate/UxLayoutAuditor.cs	G
 file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Sections/EventTypesSectionTests.cs	G-FIX-W10-1	đổi TextFillWarningRatio → TextFillLimitRatio; hai bản chép tay đọc thẳng hằng của auditor (trả nợ F7)
 file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Sections/OverviewSectionTests.cs	G-FIX-W10-1	như trên, một bản chép tay
 file	tools/liveops-hub/ownership.tsv	G-FIX-W10-1	khối đăng ký của chính gói sửa ở cổng đợt
+
+# ---------------------------------------------------------------------------------------------------------------------
+# G-W10-MATRIX2 (21/9/2026) — gói VÉT TIẾP của đợt W10, làm nốt việc dở của G-W10-MATRIX sau khi USER chốt hai quyết định
+# thiết kế. Gói đứng trên NHÁNH CỔNG wt/G-W10-WAVE (HINT + FIELD + MATRIX + G-FIX-W10-1), không đứng trên d797065:
+#   - ca khoá HÀNH VI SAI phải đảo (MultiSelectDrawer_AtMediumWidth_StaysHidden_KnownGap) nằm trong file của G-W10-FIELD;
+#   - bằng chứng của luật rút gọn có điều kiện chỉ có nghĩa trên bản đã dọn bảy chỗ textTight của HINT/FIELD.
+# Quyền ghi của gói vì vậy đo theo nền 309b4ed (đỉnh nhánh cổng), khai thẳng ở báo cáo G-W10-MATRIX2-build.md.
+package	G-W10-MATRIX2	W10	L	G-W10-MATRIX
+
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/UxGate/**	G-W10-MATRIX2	Luật rút gọn CÓ ĐIỀU KIỆN (user chốt 21/9) + W9-25 sau khi áp luật + W10-07 (biến thể dữ liệu xấu nhất cho 12 màn còn nợ) + bỏ chờ bằng đếm khung
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Sections/CalendarInspectorUxFixTests.cs	G-W10-MATRIX2	Đảo ca MultiSelectDrawer_AtMediumWidth_* từ khoá HIỆN TRẠNG SAI sang khoá HÀNH VI ĐÚNG, và đưa 700x560 trở lại bộ cỡ
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Sections/RecurringUxFixTests.cs	G-W10-MATRIX2	Hai ca PrefixDraft_ClickLockedField* đỏ khi chạy song song trên 2022.3 — bỏ vế đếm khung, chờ theo điều kiện + hạn giờ, và tự cầm nhịp panel
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Calendar/CalendarSection.cs	G-W10-MATRIX2	LỖI THẬT: chọn NHIỀU thanh không mở được drawer inspector ở cửa sổ hẹp hơn 1100px (CalendarSection không nghe SelectionSetChanged)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Controls/LiveOpsTableCellTooltip.cs	G-W10-MATRIX2	FILE MỚI — điều kiện (a) của luật rút gọn có điều kiện: ô bảng không chứa hết chữ thì mang tooltip đủ chữ
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/EventTypes/EventTypeTable.cs	G-W10-MATRIX2	Ô bảng mang tên cột (để miễn trừ khai theo TỪNG cột) và đi qua LiveOpsTableCellTooltip
+file	tools/liveops-hub/ownership.tsv	G-W10-MATRIX2	W10 — chính khối đăng ký này

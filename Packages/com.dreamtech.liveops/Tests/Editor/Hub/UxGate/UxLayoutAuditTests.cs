@@ -198,13 +198,7 @@ namespace DreamTech.LiveOps.Editor.Tests
         [UnityTest]
         public IEnumerator Shell_RailAndStatusBar_AreUsable_AtEverySize()
         {
-            yield return RunScreen(new UxLayoutScreen("shell-rail-status", LiveOpsHubSections.Ids.Overview)
-                .WithRequiredElements(LiveOpsHubPaths.ShellElementNames.Rail, LiveOpsHubPaths.ShellElementNames.Content,
-                    LiveOpsHubPaths.ShellElementNames.SectionBody, LiveOpsHubPaths.ShellElementNames.StatusBar,
-                    LiveOpsHubPaths.ShellElementNames.StatusLeftText, LiveOpsHubPaths.ShellElementNames.StatusRight)
-                .WithNoOverlapRules(new UxLayoutNoOverlapRule(LiveOpsHubPaths.ShellElementNames.Rail,
-                    LiveOpsHubPaths.ShellElementNames.StatusBar))
-                .WithScreenRulesOnly(LiveOpsHubPaths.ShellElementNames.Rail, LiveOpsHubPaths.ShellElementNames.StatusBar));
+            yield return RunScreen(ShellRailStatusScreen("shell-rail-status"));
         }
 
         // ================================================================================================ màn DỮ LIỆU XẤU NHẤT
@@ -393,11 +387,7 @@ namespace DreamTech.LiveOps.Editor.Tests
         [UnityTest]
         public IEnumerator Calendar_LaneViewportHasHeight_NoSelection()
         {
-            yield return RunScreen(new UxLayoutScreen("calendar-lane-viewport", LiveOpsHubSections.Ids.Calendar)
-                .WithRequiredElements("." + LiveOpsHubClassNames.TimelineBody, "." + LiveOpsHubClassNames.TimelineLaneRow)
-                .WithStretchRules(new UxLayoutStretchRule("." + LiveOpsHubClassNames.TimelineBody,
-                    "." + LiveOpsHubClassNames.TimelineMain, true, TimelineBodyRatio))
-                .WithScreenRulesOnly());
+            yield return RunScreen(LaneViewportScreen("calendar-lane-viewport"));
         }
 
         /// <summary>
@@ -407,10 +397,7 @@ namespace DreamTech.LiveOps.Editor.Tests
         [UnityTest]
         public IEnumerator Timeline_RulerTrackFillsColumn_AtEverySize()
         {
-            yield return RunScreen(new UxLayoutScreen("timeline-ruler-track", LiveOpsHubSections.Ids.Calendar)
-                .WithRequiredElements("." + LiveOpsHubClassNames.TimelineRulerTrack)
-                .WithStretchRules(RulerTrackStretchRule())
-                .WithScreenRulesOnly());
+            yield return RunScreen(RulerTrackScreen("timeline-ruler-track"));
         }
 
         // ================================================================================================ lỗi theo nhánh cây
@@ -431,13 +418,7 @@ namespace DreamTech.LiveOps.Editor.Tests
         [UnityTest]
         public IEnumerator Calendar_Medium_DrawerOpen_AnchorsVisible()
         {
-            yield return RunScreen(new UxLayoutScreen("calendar-medium-drawer", LiveOpsHubSections.Ids.Calendar)
-                .WithSizes(Medium820)
-                .WithAfterOpen(SelectFirstBar, true)
-                .WithRequiredElements(LiveOpsHubPaths.CalendarElementNames.Inspector,
-                    LiveOpsHubPaths.CalendarElementNames.InspectorBody,
-                    LiveOpsHubPaths.CalendarDepthElementNames.InspectorDrawerClose)
-                .WithScreenRulesOnly(LiveOpsHubPaths.CalendarElementNames.Inspector));
+            yield return RunScreen(MediumDrawerScreen("calendar-medium-drawer").WithAfterOpen(SelectFirstBar, true));
         }
 
         /// <summary>
@@ -475,14 +456,7 @@ namespace DreamTech.LiveOps.Editor.Tests
         [UnityTest]
         public IEnumerator Calendar_Toast_DoesNotOverlapFooter()
         {
-            yield return RunScreen(new UxLayoutScreen("calendar-toast", LiveOpsHubSections.Ids.Calendar)
-                .WithAfterOpen(DragBarToRaiseToast, true)
-                .WithRebuildPerSize()
-                .WithReadyCondition(IsToastShown, ToastReadyTimeoutMilliseconds)
-                .WithRequiredElements("." + LiveOpsHubClassNames.Toast, LiveOpsHubPaths.ShellElementNames.StatusBar)
-                .WithNoOverlapRules(new UxLayoutNoOverlapRule("." + LiveOpsHubClassNames.Toast,
-                    LiveOpsHubPaths.ShellElementNames.StatusBar))
-                .WithScreenRulesOnly("." + LiveOpsHubClassNames.Toast));
+            yield return RunScreen(ToastScreen("calendar-toast").WithAfterOpen(DragBarToRaiseToast, true));
         }
 
         /// <summary>UX-16: dòng thông tin của làn (tên loại, số đợt) không được cắt ở cỡ nào, tiếng nào.</summary>
@@ -518,12 +492,7 @@ namespace DreamTech.LiveOps.Editor.Tests
         [UnityTest]
         public IEnumerator Timeline_LegendSamplesContrast()
         {
-            yield return RunScreen(new UxLayoutScreen("timeline-legend-contrast", LiveOpsHubSections.Ids.Calendar)
-                .WithSizes(Wide1440)
-                .WithRequiredElements("." + LiveOpsHubClassNames.TimelineLegend)
-                .WithContrastRules(new UxLayoutContrastRule("." + LiveOpsHubClassNames.TimelineLegendSample, LegendContrastRatio,
-                    LegendSampleVariantSelectors))
-                .WithScreenRulesOnly());
+            yield return RunScreen(LegendContrastScreen("timeline-legend-contrast"));
         }
 
         // ================================================================================================ cửa sổ PHỤ
@@ -535,13 +504,7 @@ namespace DreamTech.LiveOps.Editor.Tests
         [UnityTest]
         public IEnumerator AddEventPopover_ButtonsAndTagNotCut()
         {
-            yield return RunScreen(new UxLayoutScreen("add-event-popover", LiveOpsHubSections.Ids.Calendar)
-                .WithSizes(Narrow700, Wide1440)
-                .WithAfterOpen(OpenAddEventPopover, true)
-                .WithWindowPicker(PopoverWindow)
-                .WithRequiredElements(LiveOpsHubPaths.AddEventPopoverElementNames.Root,
-                    LiveOpsHubPaths.AddEventPopoverElementNames.Buttons,
-                    LiveOpsHubPaths.AddEventPopoverElementNames.TypeFilter));
+            yield return RunScreen(AddEventPopoverScreen("add-event-popover"));
         }
 
         /// <summary>
@@ -554,6 +517,144 @@ namespace DreamTech.LiveOps.Editor.Tests
             yield return RunScreen(new UxLayoutScreen("confirm-window", LiveOpsHubSections.Ids.Calendar)
                 .WithSizes(Wide1440)
                 .WithAfterOpen(OpenConfirmWindow, true)
+                .WithWindowPicker(fixture => _confirmWindow));
+        }
+
+        // ============================================================== W10-07: biến thể DỮ LIỆU XẤU NHẤT của 12 màn còn nợ
+
+        // Vì sao khối này tồn tại: đợt W10 đã vá lỗ hổng ma trận cho SÁU section nhưng để lại 12 màn "tách một nguyên nhân"
+        // và hai cửa sổ phụ đứng trên mẫu ĐẸP — chúng bị khoá trong UxLayoutScreenCatalog.ScreensWithoutWorstCaseVariant như
+        // một món nợ công khai (phiếu W10-07). Mười hai màn dưới đây trả món nợ ấy: mỗi màn giữ NGUYÊN luật đo của bản đẹp
+        // (cùng RequiredElements, cùng StretchRules, cùng ScreenRulesOnly) và chỉ đổi DỮ LIỆU, nên chênh lệch đỏ giữa hai
+        // bản đọc được thẳng thành "chỗ này chỉ vỡ khi dữ liệu xấu".
+
+        /// <summary>
+        /// (W10-07) Khung (rail + chân trang) khi tài liệu XẤU NHẤT: tên tài liệu dài, số phát hiện lớn, nên câu trạng thái
+        /// bên trái chân trang dài nhất mà hub sinh ra được.
+        /// </summary>
+        [UnityTest]
+        public IEnumerator Shell_RailAndStatusBar_AreUsable_WithWorstCaseData()
+        {
+            yield return RunScreen(ShellRailStatusScreen("shell-rail-status-worst-data")
+                .WithServices(WorstCaseServices));
+        }
+
+        /// <summary>
+        /// (W10-07) Chọn NHIỀU thanh trên tài liệu xấu nhất. Inspector ở trạng thái (c) in dòng GỘP của cả tập, nên tập có
+        /// một id dài nhất là câu dài nhất mà pane ấy vẽ.
+        /// </summary>
+        [UnityTest]
+        public IEnumerator Calendar_MultiSelection_LayoutIsUsable_WithWorstCaseData()
+        {
+            yield return RunScreen(CalendarScreen("calendar-multi-selection-worst-data")
+                .WithServices(WorstCaseServices)
+                .WithAfterOpen(SelectTwoWorstCaseBars));
+        }
+
+        /// <summary>
+        /// (W10-07) Chuỗi <c>calendar-root → calendar-main</c> khi lịch RỖNG. Trạng thái rỗng dựng một template KHÁC, và
+        /// đúng chỗ ấy chuỗi giãn dễ đứt nhất — tài liệu xấu nhất không đổi kết quả vì luật đang đo là luật GIÃN.
+        /// </summary>
+        [UnityTest]
+        public IEnumerator Calendar_BodyFillsSection_WhenEmpty()
+        {
+            yield return RunScreen(new UxLayoutScreen("calendar-body-fills-empty", LiveOpsHubSections.Ids.Calendar)
+                .WithServices(EmptyServices)
+                .WithRequiredElements(LiveOpsHubPaths.CalendarElementNames.Root, LiveOpsHubPaths.CalendarElementNames.Main)
+                .WithStretchRules(CalendarStretchRules())
+                .WithScreenRulesOnly());
+        }
+
+        /// <summary>
+        /// (W10-07) Vùng làn khi số làn LỚN NHẤT. Tài liệu xấu nhất có cả loại CHƯA KHAI, nên nó sinh thêm một làn mà mẫu
+        /// đẹp không bao giờ có — và số làn là thứ quyết định chiều cao vùng làn.
+        /// </summary>
+        [UnityTest]
+        public IEnumerator Calendar_LaneViewportHasHeight_WithWorstCaseData()
+        {
+            yield return RunScreen(LaneViewportScreen("calendar-lane-viewport-worst-data")
+                .WithServices(WorstCaseServices));
+        }
+
+        /// <summary>(W10-07) Track thước trên tài liệu xấu nhất — bề rộng track bám cột timeline, và cột đổi theo số làn.</summary>
+        [UnityTest]
+        public IEnumerator Timeline_RulerTrackFillsColumn_WithWorstCaseData()
+        {
+            yield return RunScreen(RulerTrackScreen("timeline-ruler-track-worst-data")
+                .WithServices(WorstCaseServices));
+        }
+
+        /// <summary>
+        /// (W10-07) Ngăn kéo inspector ở 820 khi đợt đang chọn có id DÀI NHẤT. Ngăn kéo hẹp hơn pane thường, nên đúng chỗ ấy
+        /// chữ dài mới chạm mép.
+        /// </summary>
+        [UnityTest]
+        public IEnumerator Calendar_Medium_DrawerOpen_WithWorstCaseData()
+        {
+            yield return RunScreen(MediumDrawerScreen("calendar-medium-drawer-worst-data")
+                .WithServices(WorstCaseServices)
+                .WithAfterOpen(SelectLongestBar, true));
+        }
+
+        /// <summary>
+        /// (W10-07) Toast trên tài liệu xấu nhất. Kéo đợt <c>ShortEntryKey</c> (14/9 → 15/9, CHƯA bắt đầu ở mốc 13/9) chứ
+        /// không kéo đợt id dài: đợt id dài đang CHẠY, và luật chia thanh cấm ca phải GHI đứng trên một thanh đang chạy —
+        /// hub sẽ hỏi xác nhận thay vì bật toast.
+        /// </summary>
+        [UnityTest]
+        public IEnumerator Calendar_Toast_DoesNotOverlapFooter_WithWorstCaseData()
+        {
+            yield return RunScreen(ToastScreen("calendar-toast-worst-data")
+                .WithServices(WorstCaseServices)
+                .WithAfterOpen(DragWorstCaseBarToRaiseToast, true));
+        }
+
+        /// <summary>
+        /// (W10-07) Nhãn thước ở hai mức thu phóng trên tài liệu xấu nhất — mức phóng to sinh nhãn DÀY nhất, mức thu nhỏ
+        /// sinh nhãn THÁNG (chuỗi dài nhất của thước).
+        /// </summary>
+        [UnityTest]
+        public IEnumerator Timeline_RulerLabels_NotCutNotOverlapped_WithWorstCaseData()
+        {
+            yield return RunScreen(RulerLabelScreen("timeline-ruler-labels-zoom-in-worst-data", RulerZoomInNotches)
+                .WithServices(WorstCaseServices));
+            yield return RunScreen(RulerLabelScreen("timeline-ruler-labels-zoom-out-worst-data", RulerZoomOutNotches)
+                .WithServices(WorstCaseServices));
+        }
+
+        /// <summary>
+        /// (W10-07) Chú giải khi có loại CHƯA KHAI: dấu màu của loại chưa khai là dấu DUY NHẤT khai màu có alpha, đúng loại
+        /// dấu từng lọt lưới tương phản trước bản vá màu đã hợp thành.
+        /// </summary>
+        [UnityTest]
+        public IEnumerator Timeline_LegendSamplesContrast_WithWorstCaseData()
+        {
+            yield return RunScreen(LegendContrastScreen("timeline-legend-contrast-worst-data")
+                .WithServices(WorstCaseServices));
+        }
+
+        /// <summary>
+        /// (W10-07) Popover Thêm đợt khi dropdown tên loại mang TÊN DÀI NHẤT. Popover rộng cố định 320px nên tên loại dài là
+        /// chỗ duy nhất nó có thể vỡ.
+        /// </summary>
+        [UnityTest]
+        public IEnumerator AddEventPopover_ButtonsAndTagNotCut_WithWorstCaseData()
+        {
+            yield return RunScreen(AddEventPopoverScreen("add-event-popover-worst-data")
+                .WithServices(WorstCaseServices));
+        }
+
+        /// <summary>
+        /// (W10-07) Hộp xác nhận khi câu hỏi IN ID ĐỢT dài nhất. Hộp rộng cố định, nên id dài là chỗ duy nhất chữ của nó
+        /// chạm mép.
+        /// </summary>
+        [UnityTest]
+        public IEnumerator ConfirmWindow_TextNotCut_WithWorstCaseData()
+        {
+            yield return RunScreen(new UxLayoutScreen("confirm-window-worst-data", LiveOpsHubSections.Ids.Calendar)
+                .WithSizes(Wide1440)
+                .WithServices(WorstCaseServices)
+                .WithAfterOpen(OpenWorstCaseConfirmWindow, true)
                 .WithWindowPicker(fixture => _confirmWindow));
         }
 
@@ -851,6 +952,82 @@ namespace DreamTech.LiveOps.Editor.Tests
 
         // ================================================================================================ bảng màn
 
+        // ------------------------------------------------------------------ khuôn màn dùng chung cho bản ĐẸP và bản XẤU NHẤT
+
+        // Mỗi khuôn dưới đây sinh ra ĐÚNG một bộ luật đo. Bản dữ liệu đẹp và bản dữ liệu xấu nhất của cùng một màn phải
+        // dùng chung khuôn, nếu không thì chênh lệch đỏ giữa hai bản có thể là do LUẬT khác nhau chứ không do dữ liệu —
+        // và cả phép so ấy mất nghĩa (W10-07).
+
+        private static UxLayoutScreen ShellRailStatusScreen(string screenId)
+        {
+            return new UxLayoutScreen(screenId, LiveOpsHubSections.Ids.Overview)
+                .WithRequiredElements(LiveOpsHubPaths.ShellElementNames.Rail, LiveOpsHubPaths.ShellElementNames.Content,
+                    LiveOpsHubPaths.ShellElementNames.SectionBody, LiveOpsHubPaths.ShellElementNames.StatusBar,
+                    LiveOpsHubPaths.ShellElementNames.StatusLeftText, LiveOpsHubPaths.ShellElementNames.StatusRight)
+                .WithNoOverlapRules(new UxLayoutNoOverlapRule(LiveOpsHubPaths.ShellElementNames.Rail,
+                    LiveOpsHubPaths.ShellElementNames.StatusBar))
+                .WithScreenRulesOnly(LiveOpsHubPaths.ShellElementNames.Rail, LiveOpsHubPaths.ShellElementNames.StatusBar);
+        }
+
+        private static UxLayoutScreen LaneViewportScreen(string screenId)
+        {
+            return new UxLayoutScreen(screenId, LiveOpsHubSections.Ids.Calendar)
+                .WithRequiredElements("." + LiveOpsHubClassNames.TimelineBody, "." + LiveOpsHubClassNames.TimelineLaneRow)
+                .WithStretchRules(new UxLayoutStretchRule("." + LiveOpsHubClassNames.TimelineBody,
+                    "." + LiveOpsHubClassNames.TimelineMain, true, TimelineBodyRatio))
+                .WithScreenRulesOnly();
+        }
+
+        private static UxLayoutScreen RulerTrackScreen(string screenId)
+        {
+            return new UxLayoutScreen(screenId, LiveOpsHubSections.Ids.Calendar)
+                .WithRequiredElements("." + LiveOpsHubClassNames.TimelineRulerTrack)
+                .WithStretchRules(RulerTrackStretchRule())
+                .WithScreenRulesOnly();
+        }
+
+        private static UxLayoutScreen MediumDrawerScreen(string screenId)
+        {
+            return new UxLayoutScreen(screenId, LiveOpsHubSections.Ids.Calendar)
+                .WithSizes(Medium820)
+                .WithRequiredElements(LiveOpsHubPaths.CalendarElementNames.Inspector,
+                    LiveOpsHubPaths.CalendarElementNames.InspectorBody,
+                    LiveOpsHubPaths.CalendarDepthElementNames.InspectorDrawerClose)
+                .WithScreenRulesOnly(LiveOpsHubPaths.CalendarElementNames.Inspector);
+        }
+
+        private static UxLayoutScreen ToastScreen(string screenId)
+        {
+            return new UxLayoutScreen(screenId, LiveOpsHubSections.Ids.Calendar)
+                .WithRebuildPerSize()
+                .WithReadyCondition(IsToastShown, ToastReadyTimeoutMilliseconds)
+                .WithRequiredElements("." + LiveOpsHubClassNames.Toast, LiveOpsHubPaths.ShellElementNames.StatusBar)
+                .WithNoOverlapRules(new UxLayoutNoOverlapRule("." + LiveOpsHubClassNames.Toast,
+                    LiveOpsHubPaths.ShellElementNames.StatusBar))
+                .WithScreenRulesOnly("." + LiveOpsHubClassNames.Toast);
+        }
+
+        private static UxLayoutScreen LegendContrastScreen(string screenId)
+        {
+            return new UxLayoutScreen(screenId, LiveOpsHubSections.Ids.Calendar)
+                .WithSizes(Wide1440)
+                .WithRequiredElements("." + LiveOpsHubClassNames.TimelineLegend)
+                .WithContrastRules(new UxLayoutContrastRule("." + LiveOpsHubClassNames.TimelineLegendSample, LegendContrastRatio,
+                    LegendSampleVariantSelectors))
+                .WithScreenRulesOnly();
+        }
+
+        private static UxLayoutScreen AddEventPopoverScreen(string screenId)
+        {
+            return new UxLayoutScreen(screenId, LiveOpsHubSections.Ids.Calendar)
+                .WithSizes(Narrow700, Wide1440)
+                .WithAfterOpen(OpenAddEventPopover, true)
+                .WithWindowPicker(PopoverWindow)
+                .WithRequiredElements(LiveOpsHubPaths.AddEventPopoverElementNames.Root,
+                    LiveOpsHubPaths.AddEventPopoverElementNames.Buttons,
+                    LiveOpsHubPaths.AddEventPopoverElementNames.TypeFilter);
+        }
+
         private static UxLayoutScreen CalendarScreen(string screenId)
         {
             return new UxLayoutScreen(screenId, LiveOpsHubSections.Ids.Calendar)
@@ -977,6 +1154,27 @@ namespace DreamTech.LiveOps.Editor.Tests
         {
             LiveOpsTimelineBar bar = fixture.BarOf(LiveOpsDesignSample.LavaQuestEarlyEntryKey);
             yield return UxEventSender.Click(fixture.Window, bar);
+            yield return MovePointerOffTimeline(fixture);
+        }
+
+        /// <summary>
+        /// Đưa con trỏ RA KHỎI trục sau một cú bấm chọn. Đo được ở lượt W10 khi máy chạy ba Unity song song: con trỏ ảo nằm
+        /// lại trên thanh vừa bấm, hẹn giờ hover card (500 ms) chạy hết trước lúc lượt kiểm đọc cây, và HOVER CARD lọt vào
+        /// số đo — màn <c>calendar-worst-data</c> nhảy từ 178 lên 190 chỗ, sáu dòng của thẻ hover chỉ có ở bản tiếng Anh,
+        /// tức con số của màn phụ thuộc MÁY CHẠY NHANH HAY CHẬM.
+        /// <para>
+        /// Vì sao đây là chữa đúng chỗ chứ không phải giấu phát hiện: chủ ngữ của những màn này là TRẠNG THÁI CHỌN, không
+        /// phải thẻ hover. Thẻ hover là một màn khác và cần luật riêng của nó (chỗ nợ đã ghi ở báo cáo gói) — để nó lọt vào
+        /// đây thì cả hai màn đều đo sai: màn chọn đếm thêm thứ không phải của mình, còn thẻ hover thì không ai đo nó một
+        /// cách có chủ đích.
+        /// </para>
+        /// </summary>
+        private static IEnumerator MovePointerOffTimeline(UxHubWindowFixture fixture)
+        {
+            VisualElement header = fixture.Root.Q(LiveOpsHubPaths.ShellElementNames.SectionHeader);
+            if (header == null) yield break;
+            UxEventSender.MouseMove(fixture.Window, header.worldBound.center, EventModifiers.None);
+            yield return UxEventSender.Settle(UxEventSender.SettleFrames, UxEventSender.SettleMilliseconds);
         }
 
         /// <summary>Chọn đợt BỊ BỎ (hunt-0916-bonus) — biến thể dài nhất của dòng gợi ý đáy trục (W9-29).</summary>
@@ -984,6 +1182,7 @@ namespace DreamTech.LiveOps.Editor.Tests
         {
             LiveOpsTimelineBar bar = fixture.BarOf(LiveOpsDesignSample.HuntBonusEntryKey);
             yield return UxEventSender.Click(fixture.Window, bar);
+            yield return MovePointerOffTimeline(fixture);
         }
 
         /// <summary>Chọn đợt có id DÀI NHẤT của tài liệu xấu nhất.</summary>
@@ -991,6 +1190,7 @@ namespace DreamTech.LiveOps.Editor.Tests
         {
             LiveOpsTimelineBar bar = fixture.BarOf(LiveOpsWorstCaseSample.LongEntryKey);
             yield return UxEventSender.Click(fixture.Window, bar);
+            yield return MovePointerOffTimeline(fixture);
         }
 
         /// <summary>
@@ -1003,11 +1203,37 @@ namespace DreamTech.LiveOps.Editor.Tests
             yield return fixture.WaitForLayout();
         }
 
+        /// <summary>
+        /// Chọn HAI thanh của tài liệu xấu nhất: thanh id dài nhất làm mốc, cộng một thanh ngắn. Tập trộn dài + ngắn là tập
+        /// bắt được cả câu gộp dài nhất lẫn chỗ hai dòng khác chiều dài xếp cạnh nhau.
+        /// </summary>
+        private static IEnumerator SelectTwoWorstCaseBars(UxHubWindowFixture fixture)
+        {
+            yield return SelectLongestBar(fixture);
+            LiveOpsTimelineBar second = fixture.BarOf(LiveOpsWorstCaseSample.ShortEntryKey);
+            yield return UxEventSender.Click(fixture.Window, second, UxEventSender.ActionModifier);
+            yield return MovePointerOffTimeline(fixture);
+        }
+
+        /// <summary>
+        /// Kéo một thanh của tài liệu xấu nhất để bật toast. Dùng <c>ShortEntryKey</c> (14/9 → 15/9, CHƯA bắt đầu ở mốc
+        /// 13/9 08:47) chứ không dùng thanh id dài: thanh ấy ĐANG CHẠY, mà kéo thanh đang chạy đi qua đường hỏi xác nhận
+        /// chứ không qua đường toast — cùng luật chia thanh mà <see cref="DragBarToRaiseToast"/> đã ghi.
+        /// </summary>
+        private static IEnumerator DragWorstCaseBarToRaiseToast(UxHubWindowFixture fixture)
+        {
+            LiveOpsTimelineBar bar = fixture.BarOf(LiveOpsWorstCaseSample.ShortEntryKey);
+            Vector2 from = bar.worldBound.center;
+            yield return UxEventSender.Drag(fixture.Window, from, from + new Vector2(ToastDragDistance, 0f),
+                UxEventSender.MinimumDragSteps, EventModifiers.None);
+        }
+
         private static IEnumerator SelectTwoBars(UxHubWindowFixture fixture)
         {
             yield return SelectFirstBar(fixture);
             LiveOpsTimelineBar second = fixture.BarOf(LiveOpsDesignSample.HuntEarlyEntryKey);
             yield return UxEventSender.Click(fixture.Window, second, UxEventSender.ActionModifier);
+            yield return MovePointerOffTimeline(fixture);
         }
 
         /// <summary>Kéo một thanh để hub bật toast "đã dời" — trạng thái mà UX-11 nói tới (toast đè chân trang).</summary>
@@ -1093,14 +1319,28 @@ namespace DreamTech.LiveOps.Editor.Tests
             return LiveOpsPopoverContent.Current == null ? null : LiveOpsPopoverContent.Current.editorWindow;
         }
 
+        /// <summary>
+        /// (W10-07) Hộp xác nhận in ID ĐỢT dài nhất của tài liệu xấu nhất. Hộp rộng cố định nên id dài là chỗ duy nhất chữ
+        /// của nó chạm mép — bản mẫu đẹp dùng id ngắn nên chỗ ấy chưa lần nào bị thử.
+        /// </summary>
+        private IEnumerator OpenWorstCaseConfirmWindow(UxHubWindowFixture fixture)
+        {
+            yield return OpenConfirmWindowWithEntryKey(LiveOpsWorstCaseSample.LongEntryKey);
+        }
+
         private IEnumerator OpenConfirmWindow(UxHubWindowFixture fixture)
+        {
+            yield return OpenConfirmWindowWithEntryKey(LiveOpsDesignSample.LavaQuestEarlyEntryKey);
+        }
+
+        private IEnumerator OpenConfirmWindowWithEntryKey(string entryKey)
         {
             if (_confirmWindow != null) _confirmWindow.Close();
             // Dựng đúng hộp mà đường kéo rút ngắn đợt đang chạy sinh ra (CalendarTimelinePresenter): cùng tiêu đề, cùng
             // thân cảnh báo, cùng cặp nhãn nút — để lượt kiểm nói về hộp THẬT chứ không về một hộp rỗng.
             _confirmWindow = LiveOpsConfirmWindow.OpenForTest(new LiveOpsConfirmRequest.Builder()
                 .WithTitle(string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.CalendarShortenConfirmTitleFormat,
-                    LiveOpsDesignSample.LavaQuestEarlyEntryKey))
+                    entryKey))
                 .WithBody(LiveOpsHubStrings.CalendarUnknownPlayerCountSentence)
                 .WithHelpBoxWarning()
                 .WithButtons(LiveOpsHubStrings.CalendarShortenDestructiveLabel, LiveOpsHubStrings.KitConfirmKeepLabel)

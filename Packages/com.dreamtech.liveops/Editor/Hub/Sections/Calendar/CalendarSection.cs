@@ -73,6 +73,12 @@ namespace DreamTech.LiveOps.Editor
             _services = services ?? throw new ArgumentNullException(nameof(services));
             _presenter = new CalendarTimelinePresenter(services);
             _presenter.SelectionChanged += OnSelectionChanged;
+            // (W10 — lỗi thật) Chọn NHIỀU thanh đi đường SelectionSetChanged, không đi SelectionChanged. Trước bản này người
+            // nghe duy nhất của nó là CalendarEventInspector, nên ở bậc --medium (cửa sổ hẹp hơn
+            // LiveOpsHubBreakpoints.MediumBelowWidth = 1100) ApplyInspectorDrawerLayout không chạy lại và drawer giữ nguyên
+            // display:none: người dùng ctrl-click hai thanh ở BỐN trong bảy cỡ của cổng (700, 820, 950, 1024) thì pane chọn
+            // nhiều không bao giờ hiện ra.
+            _presenter.SelectionSetChanged += OnSelectionSetChanged;
             _presenter.NavigationRequested += RaiseNavigation;
             _presenter.ToastRequested += toast => _services.Bus.ShowToast(toast);
             _presenter.AddEventRequested += OnAddEventRequestedAt;
@@ -663,6 +669,15 @@ namespace DreamTech.LiveOps.Editor
             _inspector?.Refresh(barKey);
             _timeline?.Select(barKey, false);
             // (UX-07) Drawer "mở khi chọn": bỏ chọn ở --medium phải giấu hẳn pane, không để một pane rỗng 280px cạnh trục.
+            ApplyInspectorDrawerLayout();
+        }
+
+        /// <summary>
+        /// Tập chọn đổi sang HAI thanh trở lên. Inspector tự vẽ lại trạng thái (c) qua đăng ký riêng của nó; phần màn phải
+        /// làm là mở drawer ở bậc --medium — đúng việc mà <see cref="OnSelectionChanged"/> làm cho tập một thanh.
+        /// </summary>
+        private void OnSelectionSetChanged(IReadOnlyList<string> barKeys)
+        {
             ApplyInspectorDrawerLayout();
         }
 

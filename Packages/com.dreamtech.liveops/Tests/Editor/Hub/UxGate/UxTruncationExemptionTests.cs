@@ -1,0 +1,198 @@
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.Globalization;
+using DreamTech.LiveOps.Tests;
+using NUnit.Framework;
+using UnityEngine.TestTools;
+using UnityEngine.UIElements;
+
+namespace DreamTech.LiveOps.Editor.Tests
+{
+    /// <summary>
+    /// CA CHỨNG MINH cho từng mục của <see cref="UxTruncationExemption"/>: mỗi mục miễn trừ phải có đúng một ca ở đây, và ca
+    /// ấy phải đo được CẢ HAI điều kiện user chốt 21/9/2026 — (a) tooltip hiện đủ chữ, (b) có chỗ khác trong màn hiện đủ chữ.
+    /// <para>
+    /// Vì sao ca nằm RIÊNG chứ không nhét vào <see cref="UxLayoutAuditTests"/>: ma trận bố cục đo 38 màn × 7 cỡ × 2 ngôn ngữ
+    /// và gom mọi phát hiện vào một câu assert — một miễn trừ hỏng ở đó chỉ làm con số đổi, không ai biết điều kiện nào trượt.
+    /// Ca ở đây dựng ĐÚNG trạng thái làm ô bị cắt rồi hỏi từng điều kiện một, nên khi đỏ thì câu assert nói thẳng thiếu gì.
+    /// </para>
+    /// <para>
+    /// Vì sao ca này KHÔNG thừa so với phép đo tại lượt kiểm: lượt kiểm chỉ đo được điều kiện (a) — tooltip là thứ đọc được
+    /// từ chính phần tử bị phát hiện. Điều kiện (b) đòi biết "chỗ khác" là chỗ nào và phải THAO TÁC để tới đó (chọn hàng cho
+    /// inspector vẽ), nên nó chỉ đo được ở một ca dựng trạng thái như ca này.
+    /// </para>
+    /// </summary>
+    [TestFixture]
+    [Category(LiveOpsHubTestCategories.UI)]
+    [Category(LiveOpsHubTestCategories.UxGate)]
+    public sealed class UxTruncationExemptionTests
+    {
+        /// <summary>
+        /// Cỡ cửa sổ của ca: rộng hơn bậc <c>--medium</c> để inspector Loại event là một CỘT luôn hiện — điều kiện (b) nói về
+        /// chỗ đọc đủ, nên chỗ ấy phải đang ở trên màn hình chứ không nằm sau một drawer đóng.
+        /// </summary>
+        private static readonly UxWindowSize WideSize = new UxWindowSize(1280, 760);
+
+        private UxHubWindowFixture _fixture;
+
+        [TearDown]
+        public void TearDown()
+        {
+            if (_fixture == null) return;
+            _fixture.Dispose();
+            _fixture = null;
+        }
+
+        /// <summary>
+        /// Ô cột "Id loại" của bảng Loại event. Cột khai cứng 140px (<c>EventTypeTable.AddColumns</c>) nên id 45 ký tự của
+        /// mẫu xấu nhất không thể vừa ô ở cỡ cửa sổ nào — đây đúng là chỗ user cho phép rút chữ CÓ ĐIỀU KIỆN.
+        /// </summary>
+        [UnityTest]
+        public IEnumerator EventTypesTypeIdCell_TruncatesWithTooltipAndInspectorShowsFullText()
+        {
+            yield return RunCellExemption(UxTruncationExemption.EventTypesTypeIdCellName,
+                LiveOpsWorstCaseSample.LongTypeId, UxTruncationExemption.EventTypeInspectorTypeIdSurface);
+        }
+
+        /// <summary>
+        /// Ô cột "Config key". Cột khai cứng 140px và là cột PHỤ — ở cửa sổ hẹp nó bị bỏ hẳn, nên chỗ đọc đủ ở inspector là
+        /// đường duy nhất người dùng còn lại kể cả khi cột không được vẽ.
+        /// </summary>
+        [UnityTest]
+        public IEnumerator EventTypesConfigKeyCell_TruncatesWithTooltipAndInspectorShowsFullText()
+        {
+            yield return RunCellExemption(UxTruncationExemption.EventTypesConfigKeyCellName,
+                LiveOpsWorstCaseSample.LongTypeConfigKey, UxTruncationExemption.EventTypeInspectorConfigKeySurface);
+        }
+
+        /// <summary>
+        /// Vế NGƯỢC của luật, đo trên chính bảng ấy: ô cột "Tên hiển thị" là cột GIÃN (<c>stretchable = true</c>), nên nó
+        /// KHÔNG thuộc hai loại ô user cho phép rút chữ. Không có ca này thì bảng miễn trừ đọc thành "ô bảng nào cũng được
+        /// tha", đúng cái tha rộng hơn ý định mà luật sinh ra để chặn.
+        /// </summary>
+        [UnityTest]
+        public IEnumerator EventTypesDisplayNameCell_IsNotExempt_BecauseItsColumnStretches()
+        {
+            yield return OpenEventTypes();
+
+            // Tìm theo CHỮ chứ không theo tên element: đúng vì ô của cột giãn CỐ Ý không mang tên — chỉ hai cột được miễn
+            // mới cần nhận ra được từ bên ngoài (EventTypeTable.IdentifiedCellColumnNames).
+            Label cell = CellWithText(LiveOpsWorstCaseSample.LongTypeDisplayName);
+            Assert.IsNotNull(cell, "bảng phải vẽ ô 'Tên hiển thị' của loại có tên dài nhất");
+            Assert.IsEmpty(cell.name, "ô của cột GIÃN không được mang tên element — tên chỉ dành cho cột được miễn");
+            Assert.IsFalse(
+                UxTruncationExemption.Allows("event-types-worst-data", UxLayoutFindingKinds.TextCut, cell, out _),
+                "cột 'Tên hiển thị' GIÃN theo bề rộng bảng nên chữ bị cắt ở đó là lỗi bố cục thật — luật rút gọn có điều "
+                + "kiện chỉ nói về cột đã khai bề rộng CỐ ĐỊNH");
+        }
+
+        /// <summary>
+        /// Gỡ tooltip khỏi ô được miễn thì miễn trừ phải BIẾN MẤT ngay trong cùng một lượt. Đây là vế làm luật này khác một
+        /// danh sách miễn trừ thường: mục vẫn còn trong bảng, nhưng điều kiện (a) không đạt nên phát hiện quay lại đỏ.
+        /// </summary>
+        [UnityTest]
+        public IEnumerator ExemptCell_LosesExemption_WhenTooltipIsRemoved()
+        {
+            yield return OpenEventTypes();
+
+            Label cell = CellNamed(UxTruncationExemption.EventTypesTypeIdCellName, LiveOpsWorstCaseSample.LongTypeId);
+            Assert.IsNotNull(cell, "bảng phải vẽ ô 'Id loại' của loại có id dài nhất");
+            Assert.IsTrue(UxTruncationExemption.Allows("event-types-worst-data", UxLayoutFindingKinds.TextCut, cell, out _),
+                "ô đang mang tooltip đủ chữ nên nó phải được miễn");
+
+            cell.tooltip = string.Empty;
+            bool allowed = UxTruncationExemption.Allows("event-types-worst-data", UxLayoutFindingKinds.TextCut, cell,
+                out string note);
+            Assert.IsFalse(allowed, "gỡ tooltip là mất điều kiện (a) — miễn trừ phải biến mất, không được sống bằng lời khai");
+            StringAssert.Contains("không mang tooltip", note,
+                "dòng chẩn đoán phải nói THIẾU GÌ, không chỉ nói 'lỗi' — người sửa cần biết điều kiện nào trượt");
+        }
+
+        // ============================================================================================ hạ tầng ca
+
+        /// <summary>
+        /// Một mục miễn trừ, đo đủ bốn vế: ô có thật · ô THẬT SỰ không chứa hết chữ · (a) tooltip đủ chữ · (b) chỗ khai ở
+        /// inspector giữ đủ chữ và đang hiện trên màn.
+        /// </summary>
+        private IEnumerator RunCellExemption(string cellName, string fullText, string surfaceName)
+        {
+            yield return OpenEventTypes();
+
+            Label cell = CellNamed(cellName, fullText);
+            Assert.IsNotNull(cell, "bảng Loại event phải vẽ ô '" + cellName + "' mang chuỗi dài nhất của mẫu xấu nhất");
+
+            float available = cell.contentRect.width;
+            float needed = cell.MeasureTextSize(cell.text, 0f, VisualElement.MeasureMode.Undefined, 0f,
+                VisualElement.MeasureMode.Undefined).x;
+            Assert.Greater(needed, available,
+                "ca này chỉ có nghĩa khi ô ĐANG không chứa hết chữ — ô '" + cellName + "' cần "
+                + needed.ToString("0.#", CultureInfo.InvariantCulture) + "px, có "
+                + available.ToString("0.#", CultureInfo.InvariantCulture) + "px");
+
+            Assert.AreEqual(fullText, cell.tooltip,
+                "điều kiện (a): ô bị rút chữ phải mang tooltip hiện ĐỦ chữ, không phải một câu tóm tắt khác");
+
+            yield return SelectTypeRow(cell);
+
+            TextField surface = _fixture.Root.Q<TextField>(surfaceName);
+            Assert.IsNotNull(surface, "điều kiện (b): màn phải có chỗ khai '" + surfaceName + "' để đọc đủ chữ");
+            Assert.IsTrue(UxLayoutAuditor.IsShownOnScreen(surface),
+                "điều kiện (b): chỗ đọc đủ phải đang HIỆN trên màn, không nằm sau một pane đóng");
+            Assert.AreEqual(fullText, surface.value,
+                "điều kiện (b): chỗ khai phải giữ đúng chuỗi ĐẦY ĐỦ, không phải bản đã rút");
+            LogAssert.NoUnexpectedReceived();
+        }
+
+        private IEnumerator OpenEventTypes()
+        {
+            _fixture = UxHubWindowFixture.Open(LiveOpsHubSections.Ids.EventTypes, WideSize,
+                LiveOpsHubLanguageId.Vietnamese, WorstCaseServices());
+            yield return _fixture.WaitForLayout();
+        }
+
+        /// <summary>
+        /// Chọn hàng của ô đang xét như người dùng BẤM vào nó — inspector chỉ vẽ loại đang chọn, nên không chọn thì điều
+        /// kiện (b) đo trên một inspector rỗng và ca sẽ xanh vì lý do sai.
+        /// </summary>
+        private IEnumerator SelectTypeRow(VisualElement cell)
+        {
+            yield return UxEventSender.Click(_fixture.Window, cell);
+            yield return UxEventSender.Settle(UxEventSender.SettleFrames * 2, UxEventSender.SettleMilliseconds * 2);
+        }
+
+        /// <summary>Ô bảng mang đúng tên cột và đúng chuỗi cần đo; null = bảng chưa vẽ ô ấy.</summary>
+        private Label CellNamed(string cellName, string text)
+        {
+            return FindCell(cellName, text);
+        }
+
+        /// <summary>Ô bảng mang đúng chuỗi cần đo, KHÔNG hỏi tên — dùng cho ô của cột không được đặt tên.</summary>
+        private Label CellWithText(string text)
+        {
+            return FindCell(null, text);
+        }
+
+        private Label FindCell(string cellName, string text)
+        {
+            List<Label> labels = new List<Label>();
+            if (cellName == null) _fixture.Root.Query<Label>(className: LiveOpsHubClassNames.EventTypesCell).ToList(labels);
+            else _fixture.Root.Query<Label>(cellName).ToList(labels);
+            for (int index = 0; index < labels.Count; index++)
+            {
+                if (!labels[index].ClassListContains(LiveOpsHubClassNames.EventTypesCell)) continue;
+                if (string.Equals(labels[index].text, text, StringComparison.Ordinal)) return labels[index];
+            }
+            return null;
+        }
+
+        private static LiveOpsHubServices WorstCaseServices()
+        {
+            LiveOpsHubServices services = LiveOpsHubTestServices.Build(
+                LiveOpsHubTestServices.CreateBuilder(LiveOpsHubTestServices.CreateClock())
+                    .WithCalendarAsset(LiveOpsHubTestServices.CreateMemoryAsset(LiveOpsWorstCaseSample.Document)));
+            services.Session.RunCheckToCompletion();
+            return services;
+        }
+    }
+}

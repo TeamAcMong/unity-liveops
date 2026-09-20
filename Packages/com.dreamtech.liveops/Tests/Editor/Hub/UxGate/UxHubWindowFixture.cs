@@ -26,7 +26,7 @@ namespace DreamTech.LiveOps.Editor.Tests
         public int Width { get; }
         public int Height { get; }
 
-        /// <summary>Breakpoint "--medium" của hub (inspector thành drawer) nằm ở 820 — cỡ này là nơi UX-07 hỏng.</summary>
+        /// <summary>Cỡ này nằm ở bậc <c>--medium</c> của hub (inspector Lịch thành drawer) — xem <see cref="UxHubWindowFixture.MediumBreakpointWidth"/>.</summary>
         public bool IsMedium => Width < UxHubWindowFixture.MediumBreakpointWidth;
 
         public override string ToString()
@@ -46,8 +46,13 @@ namespace DreamTech.LiveOps.Editor.Tests
     [NUnit.Framework.Category(LiveOpsHubTestCategories.UI)]
     internal sealed class UxHubWindowFixture : IDisposable
     {
-        /// <summary>Bề rộng dưới mốc này thì hub ở breakpoint "--medium" (inspector Lịch là drawer).</summary>
-        internal const int MediumBreakpointWidth = 1000;
+        /// <summary>
+        /// Bề rộng dưới mốc này thì hub ở breakpoint <c>--medium</c> (inspector Lịch là drawer). Đọc THẲNG từ
+        /// <see cref="LiveOpsHubBreakpoints.MediumBelowWidth"/> chứ không chép số: bản chép tay của cổng từng đứng ở 1000
+        /// trong khi hub đổi sang 1100, nên <see cref="UxWindowSize.IsMedium"/> trả SAI cho đúng ba cỡ 1024, 1050, 1099 —
+        /// tức cho cả cỡ 1024 mà ma trận đang đo. Một hằng chép tay của cổng là một chỗ cổng có thể nói dối về sản phẩm.
+        /// </summary>
+        internal const int MediumBreakpointWidth = (int)LiveOpsHubBreakpoints.MediumBelowWidth;
 
         /// <summary>Biến môi trường đặt nhãn lượt ghi JSON (tên gói hoặc tên đợt); không có thì "local".</summary>
         internal const string DiagnosticsLabelVariable = "LIVEOPS_UX_GATE_LABEL";
