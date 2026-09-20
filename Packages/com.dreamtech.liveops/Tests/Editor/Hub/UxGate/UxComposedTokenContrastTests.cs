@@ -80,8 +80,9 @@ namespace DreamTech.LiveOps.Editor.Tests
     /// <para>
     /// Cách bộ test này bịt khe: GIÁ TRỊ TOKEN lấy từ hai root dựng sẵn (một thường, một mang class skin sáng) nên hai theme
     /// cùng đọc được trong một lượt; NỀN lấy từ bảng hằng theo skin, và bảng hằng ấy bị
-    /// <see cref="ComposedBackdropConstants_MatchMeasuredBackdrops_InRunningSkin"/> đối chiếu với số đo thật mỗi lượt chạy —
-    /// lượt chạy ở skin tối khoá cột tối, lượt chạy dưới skin sáng (harness chụp) khoá cột sáng. Không lượt nào ghi
+    /// <see cref="ComposedBackdropConstants_MatchMeasuredBackdrops_InRunningSkin"/> đối chiếu với số đo thật mỗi lượt chạy.
+    /// Ca ấy khoá ĐÚNG cột của skin đang chạy, và mọi lượt cổng tới nay đều ở skin tối, nên cột skin sáng vẫn CHƯA có lượt
+    /// tự kiểm nào (F6 của soát 21/9) — cột sáng hiện chỉ có số đo pixel đếm tay trên ảnh chụp đỡ. Không lượt nào ghi
     /// <c>EditorPrefs</c>.
     /// </para>
     /// </summary>
@@ -90,7 +91,20 @@ namespace DreamTech.LiveOps.Editor.Tests
     [Category(LiveOpsHubTestCategories.UxGate)]
     public sealed class UxComposedTokenContrastTests
     {
-        /// <summary>Bậc WCAG 2.1 AA cho chữ thường.</summary>
+        /// <summary>
+        /// Bậc WCAG 2.1 AA cho chữ thường.
+        /// <para>
+        /// NỢ GỘP (F5 của soát 21/9): đây là lần khai thứ HAI của cùng một bậc trong bộ cổng —
+        /// <c>UxContrastTokenTests</c> cũng giữ một literal 4,5. Gói <c>G-W10-MATRIX</c> (chưa gộp) gom bậc ấy về một
+        /// hằng dùng chung <c>UxComposedContrast.TextContrastRatio</c>; lượt GỘP phải cho hằng dưới đây đọc hằng chung ấy
+        /// thay vì giữ literal riêng. Vì sao chưa làm ngay ở gói này: hằng chung chỉ tồn tại trên nhánh
+        /// <c>wt/G-W10-MATRIX</c>, tham chiếu sang là không compile được.
+        /// </para>
+        /// <para>
+        /// Mọi dòng của <see cref="Sites"/> đều là dòng CHỮ nên chỉ dùng bậc này. Nửa "chữ to và hình khối 3:1" của chốt
+        /// USER 19/9 CHƯA có phép đo hợp thành nào ở đây — xem chú thích của <see cref="Sites"/>.
+        /// </para>
+        /// </summary>
         private const float TextContrastRatio = 4.5f;
 
         /// <summary>Số khung chờ cho lượt style của root mới gắn vào panel.</summary>
@@ -99,6 +113,12 @@ namespace DreamTech.LiveOps.Editor.Tests
         private const string DarkSkinName = "skin tối";
         private const string LightSkinName = "skin sáng";
         private const string ThemeRelativePath = "Editor/Hub/UI/liveops-hub-theme.uss";
+
+        /// <summary>Thư mục gốc của mọi sheet hub — ca quét màu chữ duyệt đệ quy từ đây.</summary>
+        private const string HubRelativeDirectory = "Editor/Hub";
+
+        /// <summary>Khai màu chữ bằng biến Unity, đã bỏ hết khoảng trắng — xem <see cref="IsTextColorFromUnityVariable"/>.</summary>
+        private const string UnityDefaultTextColorDeclaration = "color:var(--unity-colors-default-text)";
 
         /// <summary>
         /// Nền header thẻ (<c>--unity-colors-toolbar-background</c>). Hai giá trị dưới đây đọc từ ẢNH CHỤP THẬT của cửa sổ hub
@@ -127,6 +147,21 @@ namespace DreamTech.LiveOps.Editor.Tests
         /// NHẤT trong bộ test được phép nói "chỗ này có opacity bao nhiêu" mà không đo — nên mỗi dòng phải đọc được ra một
         /// màn có thật, và dòng nào hết chỗ dùng thì xoá đi chứ không để lại cho đẹp bảng.
         /// </para>
+        /// <para>
+        /// BẢNG NÀY PHỦ ĐẾN ĐÂU, nói thẳng để không ai đọc nó rộng hơn thứ nó chứng minh (F2 + F3 của soát 21/9):
+        /// <list type="bullet">
+        /// <item>chỉ phủ những opacity XUẤT HIỆN TRONG 8 CẢNH ĐÃ CHỤP của đợt W10 — đúng bốn giá trị 1 · 0,70 · 0,82 ·
+        /// 0,85. KHÔNG dòng nào là TÍCH của nhiều khối cha, trong khi cây thật có tích: hàng "kết quả cũ" của màn Kiểm
+        /// lịch là <c>.liveops-hub-validation-row--stale</c> (0,82) bọc <c>.liveops-hub-validation-row-meta</c> (0,7) =
+        /// 0,574, và ở đó chữ nền tảng chỉ còn 3,83:1 (skin tối) / 4,10:1 (skin sáng). Trạng thái ấy KHÔNG có trong 8
+        /// cảnh chụp nên chưa lượt đo nào chạm tới; nó là phiếu <b>W10-07</b> (biến thể "dữ liệu xấu nhất") của
+        /// <c>G-W10-MATRIX</c>, không phải việc đã xong;</item>
+        /// <item>chỉ phủ bậc CHỮ 4,5:1. Bậc "chữ to và hình khối 3:1" của chốt USER 19/9 chưa có phép đo hợp thành nào,
+        /// và đã có ít nhất một chỗ trượt: viền swatch <c>.liveops-hub-event-types-swatch--undeclared</c> nằm trong cell
+        /// mờ 0,7 của màn Loại event, skin SÁNG đo 2,82:1 (skin tối 3,30:1 — đạt). File ấy thuộc quyền ghi
+        /// <c>G-W10-FIELD</c> nên gói này KHÔNG sửa; đã ghi thành phiếu.</item>
+        /// </list>
+        /// </para>
         /// </summary>
         private static readonly UxComposedSite[] Sites =
         {
@@ -138,6 +173,9 @@ namespace DreamTech.LiveOps.Editor.Tests
                 "chữ phụ đặt thẳng trên nền cửa sổ (chú thích, placeholder ô nhập)"),
             new UxComposedSite("--liveops-hub-color-text", 0.70f, UxComposedBackdrop.ChipBackground, TextContrastRatio,
                 "khoá phím trong chip header (.liveops-hub-chip-key)"),
+            new UxComposedSite("--liveops-hub-color-text", 1f, UxComposedBackdrop.CardBackground, TextContrastRatio,
+                "nhãn trạng thái Ok (." + LiveOpsHubClassNames.TextOk + ") trong thẻ — inspector Lịch, thẻ hiệu Xuất JSON, "
+                + "cổng Xuất, thẻ Tổng quan; trước lượt sửa 2 luật này còn đọc thẳng --unity-colors-default-text"),
             new UxComposedSite("--liveops-hub-color-quiet", 1f, UxComposedBackdrop.CardBackground, TextContrastRatio,
                 "số đếm của thẻ Tổng quan và nhãn 'Chưa kiểm' của màn Kiểm lịch — 4 dòng của W10-06"),
             new UxComposedSite("--liveops-hub-color-blocked-text", 0.85f, UxComposedBackdrop.WindowBackground, TextContrastRatio,
@@ -189,8 +227,13 @@ namespace DreamTech.LiveOps.Editor.Tests
         /// một lượt đổi biến nền của Unity (hoặc một lượt đổi class nền của header thẻ) sẽ làm mọi tỉ số ở trên nói về một
         /// cửa sổ khác cửa sổ người dùng thấy mà không ai biết.
         /// <para>
-        /// Skin còn lại không tự kiểm được ở đây — đó là giới hạn đã khai, và nó biến mất khi bộ test chạy dưới lượt chụp
-        /// skin sáng của <c>capture.sh</c>: cùng ca này, chạy ở skin sáng, khoá nốt cột còn lại.
+        /// GIỚI HẠN, nói đúng mức (F6 của soát 21/9): ca này khoá ĐÚNG MỘT cột — cột của skin đang chạy. Mọi lượt cổng
+        /// tới nay đều chạy ở skin tối, nên <b>cột skin sáng CHƯA có lượt tự kiểm nào</b>. Đừng đọc câu này thành
+        /// "capture.sh khoá nốt cột sáng": <c>capture.sh</c> chỉ CHỤP ẢNH, nó không chạy EditMode, nên lượt ấy không tồn
+        /// tại. Thứ duy nhất đang đỡ cột sáng là số đo pixel đếm tay trên ảnh <c>h04-overview-default-light.png</c>
+        /// (#C8C8C8 · #CBCBCB · #A5A5A5, ghi trong báo cáo soát) — bằng chứng thật nhưng KHÔNG phải cổng tự chạy. Muốn
+        /// khoá nốt cột sáng thì phải có một lượt EditMode chạy dưới skin sáng, và việc đổi <c>EditorPrefs UserSkin</c>
+        /// là độc quyền của <c>capture.sh</c> (SP-4) nên đó là việc của một gói có quyền ghi harness.
         /// </para>
         /// </summary>
         [UnityTest]
@@ -253,6 +296,68 @@ namespace DreamTech.LiveOps.Editor.Tests
 
             Assert.IsEmpty(missing,
                 "bảng chỗ dùng nhắc token mà theme không khai: " + string.Join(", ", missing.ToArray()));
+        }
+
+        /// <summary>
+        /// Không luật USS nào của hub được đặt màu CHỮ bằng <c>var(--unity-colors-default-text)</c>; màu chữ phải đi qua
+        /// token <c>--liveops-hub-color-text</c>.
+        /// <para>
+        /// Vì sao cần ca này chứ không chỉ sửa một dòng: đúng một luật như thế đã lọt qua cả bảng token lẫn bảng
+        /// <see cref="Sites"/> của chính gói W10-06 (<c>.liveops-hub-text--ok</c> trong
+        /// <c>liveops-hub-components.uss</c>, F1 của soát 21/9). Biến của Unity có HAI cái sai cùng lúc: nó giải theo
+        /// skin ĐANG CHẠY của Editor chứ không theo class <c>.liveops-hub--skin-light</c> (nên mọi phép đo skin sáng đọc
+        /// nhầm màu chữ skin tối), và giá trị skin tối của nó là <c>#D2D2D2</c> — đúng màu mà phiếu W10-06 kết tội.
+        /// Một dòng sửa thì hết một dòng; ca này thì bịt cả lối.
+        /// </para>
+        /// <para>
+        /// Phạm vi, nói rõ để không ai đọc rộng hơn: ca soi ĐÚNG thuộc tính <c>color</c> (thuộc tính duy nhất sinh ra màu
+        /// chữ). Các chỗ dùng biến ấy làm <c>background-color</c> / <c>border-color</c> là nét vẽ, không phải chữ, nên
+        /// không thuộc phạm vi ca này.
+        /// </para>
+        /// </summary>
+        [Test]
+        public void NoHubStyleSheet_PaintsTextWithUnityDefaultTextVariable()
+        {
+            string hubDirectory = Path.Combine(PackageDirectory(), HubRelativeDirectory);
+            Assert.IsTrue(Directory.Exists(hubDirectory), "không thấy thư mục " + HubRelativeDirectory + " trong package");
+            string[] styleSheetPaths = Directory.GetFiles(hubDirectory, "*.uss", SearchOption.AllDirectories);
+            Assert.IsNotEmpty(styleSheetPaths, "không tìm thấy file .uss nào dưới " + HubRelativeDirectory
+                + " — ca này sẽ xanh giả nếu để vòng lặp rỗng đi qua");
+
+            List<string> offenders = new List<string>();
+            for (int fileIndex = 0; fileIndex < styleSheetPaths.Length; fileIndex++)
+            {
+                string[] lines = File.ReadAllLines(styleSheetPaths[fileIndex]);
+                for (int lineIndex = 0; lineIndex < lines.Length; lineIndex++)
+                {
+                    if (!IsTextColorFromUnityVariable(lines[lineIndex])) continue;
+                    offenders.Add(FileNameOf(styleSheetPaths[fileIndex]) + ":" + (lineIndex + 1) + " · "
+                        + lines[lineIndex].Trim());
+                }
+            }
+
+            Assert.IsEmpty(offenders,
+                "luật màu CHỮ đọc thẳng biến của Unity thay vì token --liveops-hub-color-text — biến ấy theo skin ĐANG "
+                + "CHẠY của Editor chứ không theo class skin, và ở skin tối nó là #D2D2D2 (× opacity 0,7 trên nền thẻ "
+                + "còn 4,48:1, đúng phiếu W10-06):" + Environment.NewLine
+                + string.Join(Environment.NewLine, offenders.ToArray()));
+        }
+
+        /// <summary>
+        /// Một dòng USS có phải là khai <c>color: var(--unity-colors-default-text)</c> hay không. Bỏ hết khoảng trắng rồi
+        /// mới so đầu dòng: như thế <c>background-color:</c> và <c>border-left-color:</c> không lọt vào (chúng không bắt
+        /// đầu bằng <c>color:</c>), mà mọi kiểu thụt lề hay khoảng trắng quanh dấu hai chấm đều bắt được.
+        /// </summary>
+        private static bool IsTextColorFromUnityVariable(string line)
+        {
+            string condensed = line.Replace(" ", string.Empty).Replace("\t", string.Empty);
+            return condensed.StartsWith(UnityDefaultTextColorDeclaration, StringComparison.Ordinal);
+        }
+
+        /// <summary>Tên file để câu đỏ chỉ được tay vào đúng sheet, không in cả đường dẫn tuyệt đối của máy chạy.</summary>
+        private static string FileNameOf(string fullPath)
+        {
+            return Path.GetFileName(fullPath);
         }
 
         private static void CollectComposedFailures(VisualElement root, string skinName, bool proSkin, List<string> failures)
