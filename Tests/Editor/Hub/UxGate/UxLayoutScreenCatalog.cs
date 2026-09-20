@@ -65,33 +65,26 @@ namespace DreamTech.LiveOps.Editor.Tests
     internal static class UxLayoutScreenCatalog
     {
         /// <summary>
-        /// Mã phiếu của phần LỖ HỔNG ma trận còn nợ sau đợt W10: 12 màn dưới đây chưa có biến thể dữ liệu xấu nhất của riêng
-        /// chúng. (Mã W10-07 chứ không phải W10-04: W10-01…W10-05 đã được bàn giao ở plan/w10/G-W10-MATRIX-build.md §6.)
-        /// Dùng CHUNG một mã vì đây là một việc — "dựng trạng thái xấu cho nhóm màn tách nguyên nhân và hai cửa sổ
-        /// phụ" — chứ không phải 12 việc rời nhau; phần nào của nó còn thiếu thì đọc ở <see cref="UxLayoutScreenRegistration.Note"/>.
+        /// Mã phiếu của phần LỖ HỔNG ma trận từng nợ sau đợt W10. Phiếu ĐÃ ĐÓNG ở gói G-W10-MATRIX2: cả 12 màn nay có biến
+        /// thể dữ liệu xấu nhất của riêng chúng, và <see cref="ScreensWithoutWorstCaseVariant"/> về RỖNG.
+        /// <para>
+        /// Hằng và cả nhánh <see cref="UxWorstCaseCoverage.Ticket"/> giữ nguyên chứ không xoá: màn thứ 39 vẫn phải trả lời
+        /// câu "nhìn thấy dữ liệu xấu ở đâu", và nếu câu trả lời là "chưa có" thì nó phải khai một phiếu chứ không được
+        /// lặng lẽ đứng trên mẫu đẹp.
+        /// </para>
         /// </summary>
         internal const string WorstCaseGapTicketId = "W10-07";
 
         /// <summary>
-        /// Tập màn được phép CHƯA có biến thể dữ liệu xấu nhất, đúng như đợt W10 đã đếm. Khoá cả tập (không chỉ kiểm từng mục)
-        /// vì kiểm từng mục cho phép dòng thứ mười ba lặng lẽ xuất hiện với một câu ghi chú dài quá 40 ký tự — đúng đường lách
-        /// mà danh sách HOÃN của đợt W9 đã phải bịt.
+        /// Tập màn được phép CHƯA có biến thể dữ liệu xấu nhất. Từ G-W10-MATRIX2 tập này RỖNG — mọi màn của ma trận đều có
+        /// một bản đứng trên dữ liệu xấu nhất hoặc được một màn khác phủ.
+        /// <para>
+        /// Khoá cả TẬP (không chỉ kiểm từng mục) vì kiểm từng mục cho phép một dòng mới lặng lẽ xuất hiện với một câu ghi
+        /// chú dài quá 40 ký tự — đúng đường lách mà danh sách HOÃN của đợt W9 đã phải bịt. Tập rỗng nghĩa là thêm BẤT KỲ
+        /// màn nào khai <see cref="UxWorstCaseCoverage.Ticket"/> đều làm đỏ ngay.
+        /// </para>
         /// </summary>
-        internal static readonly string[] ScreensWithoutWorstCaseVariant =
-        {
-            "shell-rail-status",
-            "calendar-multi-selection",
-            "calendar-body-fills",
-            "calendar-lane-viewport",
-            "timeline-ruler-track",
-            "calendar-medium-drawer",
-            "calendar-toast",
-            "timeline-ruler-labels-zoom-in",
-            "timeline-ruler-labels-zoom-out",
-            "timeline-legend-contrast",
-            "add-event-popover",
-            "confirm-window",
-        };
+        internal static readonly string[] ScreensWithoutWorstCaseVariant = new string[0];
 
         private static readonly List<UxLayoutScreenRegistration> Entries = new List<UxLayoutScreenRegistration>
         {
@@ -104,18 +97,21 @@ namespace DreamTech.LiveOps.Editor.Tests
                 "cùng cửa sổ màn Lịch, bản kia đứng trên tài liệu xấu nhất ở đủ bảy cỡ"),
             Covered("calendar-selection", LiveOpsHubSections.Ids.Calendar, "calendar-worst-data",
                 "cùng cửa sổ màn Lịch khi ĐANG chọn một thanh, bản kia chọn thanh có id dài nhất"),
-            Ticket("calendar-multi-selection", LiveOpsHubSections.Ids.Calendar,
-                "còn thiếu: chọn NHIỀU thanh trên tài liệu xấu nhất — dòng gộp của nhiều đợt id dài là câu dài nhất mà "
-                + "màn này vẽ, và chưa lượt nào dựng nó"),
+            Covered("calendar-multi-selection", LiveOpsHubSections.Ids.Calendar, "calendar-multi-selection-worst-data",
+                "cùng pane chọn nhiều, bản kia chọn thanh id dài nhất cộng một thanh ngắn trên tài liệu xấu nhất"),
+            Services("calendar-multi-selection-worst-data", LiveOpsHubSections.Ids.Calendar,
+                "chọn NHIỀU thanh trên tài liệu xấu nhất: dòng gộp của tập trộn id dài + id ngắn là câu dài nhất pane vẽ"),
             Covered("recurring-default", LiveOpsHubSections.Ids.RecurringRules, "recurring-worst-data",
                 "cùng thân màn Luật lặp, bản kia đứng trên tiền tố id dài nhất và chu kỳ 8760 giờ"),
             Covered("validation", LiveOpsHubSections.Ids.Validation, "validation-worst-data",
                 "cùng thân màn Kiểm lịch, bản kia có phát hiện với câu dài nhất"),
             Covered("export", LiveOpsHubSections.Ids.Export, "export-worst-data",
                 "cùng thân màn Xuất JSON, bản kia đứng trên số byte bảy chữ số và sha 64 ký tự"),
-            Ticket("shell-rail-status", LiveOpsHubSections.Ids.Overview,
-                "còn thiếu: khung (rail + chân trang) khi câu trạng thái DÀI NHẤT — tên tài liệu dài, số phát hiện ba chữ "
-                + "số — vì chân trang là chỗ duy nhất chữ đó xuất hiện"),
+            Covered("shell-rail-status", LiveOpsHubSections.Ids.Overview, "shell-rail-status-worst-data",
+                "cùng hai nhánh rail + chân trang, bản kia đứng trên tài liệu xấu nhất nên câu trạng thái dài nhất"),
+            Services("shell-rail-status-worst-data", LiveOpsHubSections.Ids.Overview,
+                "khung (rail + chân trang) khi câu trạng thái DÀI NHẤT: tên tài liệu dài, số phát hiện lớn — chân trang là "
+                + "chỗ duy nhất chữ đó xuất hiện"),
 
             // ---------------------------------------------------------------------------------- màn đứng trên dữ liệu xấu
             Selection("calendar-selection-dropped", LiveOpsHubSections.Ids.Calendar,
@@ -146,48 +142,64 @@ namespace DreamTech.LiveOps.Editor.Tests
             Services("export-no-baseline", LiveOpsHubSections.Ids.Export, "CHƯA có bản đã đăng — không có bản nào để so"),
 
             // ---------------------------------------------------------------------------------- màn tách một nguyên nhân
-            Ticket("calendar-body-fills", LiveOpsHubSections.Ids.Calendar,
-                "còn thiếu: chuỗi calendar-root → calendar-main trên tài liệu xấu nhất; luật đang đo là luật GIÃN nên dữ "
-                + "liệu chưa đổi kết quả, nhưng lịch RỖNG dựng template khác và đó mới là chỗ chuỗi này dễ đứt"),
-            Ticket("calendar-lane-viewport", LiveOpsHubSections.Ids.Calendar,
-                "còn thiếu: vùng làn khi số làn LỚN NHẤT (mỗi loại một làn, gồm loại chưa khai) — số làn là thứ quyết định "
-                + "chiều cao vùng làn, và mẫu đẹp chỉ có năm làn"),
-            Ticket("timeline-ruler-track", LiveOpsHubSections.Ids.Calendar,
-                "còn thiếu: track thước khi khoảng ngày RỘNG NHẤT của tài liệu xấu nhất — bề rộng track theo khoảng ngày, "
-                + "nên mẫu đẹp đo đúng một khoảng duy nhất"),
+            Covered("calendar-body-fills", LiveOpsHubSections.Ids.Calendar, "calendar-body-fills-empty",
+                "cùng chuỗi giãn calendar-root → calendar-main, bản kia đứng trên lịch RỖNG (template khác)"),
+            Services("calendar-body-fills-empty", LiveOpsHubSections.Ids.Calendar,
+                "chuỗi calendar-root → calendar-main khi lịch RỖNG: luật đang đo là luật GIÃN nên dữ liệu xấu không đổi kết "
+                + "quả, còn trạng thái rỗng dựng template khác và đó mới là chỗ chuỗi này dễ đứt"),
+            Covered("calendar-lane-viewport", LiveOpsHubSections.Ids.Calendar, "calendar-lane-viewport-worst-data",
+                "cùng vùng làn, bản kia có thêm làn của loại CHƯA KHAI"),
+            Services("calendar-lane-viewport-worst-data", LiveOpsHubSections.Ids.Calendar,
+                "vùng làn khi số làn LỚN NHẤT (mỗi loại một làn, gồm loại chưa khai) — số làn quyết định chiều cao vùng làn"),
+            Covered("timeline-ruler-track", LiveOpsHubSections.Ids.Calendar, "timeline-ruler-track-worst-data",
+                "cùng track thước, bản kia đứng trên tài liệu xấu nhất (nhiều làn hơn nên cột timeline khác)"),
+            Services("timeline-ruler-track-worst-data", LiveOpsHubSections.Ids.Calendar,
+                "track thước trên tài liệu xấu nhất — bề rộng track bám cột timeline, mà cột đổi theo số làn"),
             Covered("calendar-medium-no-selection", LiveOpsHubSections.Ids.Calendar, "calendar-worst-data",
                 "cùng cửa sổ màn Lịch ở 820x560, bản kia chạy đủ bảy cỡ trong đó có 820x560"),
-            Ticket("calendar-medium-drawer", LiveOpsHubSections.Ids.Calendar,
-                "còn thiếu: ngăn kéo inspector ở 820 khi đợt được chọn có id dài nhất + giờ hỏng — ngăn kéo hẹp hơn pane "
-                + "thường nên đúng chỗ ấy chữ dài mới chạm mép"),
+            Covered("calendar-medium-drawer", LiveOpsHubSections.Ids.Calendar, "calendar-medium-drawer-worst-data",
+                "cùng ngăn kéo ở 820, bản kia chọn đợt có id dài nhất"),
+            Services("calendar-medium-drawer-worst-data", LiveOpsHubSections.Ids.Calendar,
+                "ngăn kéo inspector ở 820 khi đợt được chọn có id DÀI NHẤT — ngăn kéo hẹp hơn pane thường nên đúng chỗ ấy "
+                + "chữ dài mới chạm mép"),
             Covered("calendar-inspector", LiveOpsHubSections.Ids.Calendar, "calendar-inspector-fielderror",
                 "cùng nhánh inspector, bản kia chọn đợt có giờ không đọc được"),
-            Ticket("calendar-toast", LiveOpsHubSections.Ids.Calendar,
-                "còn thiếu: toast mang câu DÀI NHẤT (tên đợt id dài + số giờ bốn chữ số); câu ngắn thì toast không bao giờ "
-                + "đủ rộng để chạm chân trang, tức luật không-đè chưa từng bị thử thật"),
+            Covered("calendar-toast", LiveOpsHubSections.Ids.Calendar, "calendar-toast-worst-data",
+                "cùng luật toast không đè chân trang, bản kia dựng toast trên tài liệu xấu nhất"),
+            Services("calendar-toast-worst-data", LiveOpsHubSections.Ids.Calendar,
+                "toast dựng trên tài liệu xấu nhất bằng cú kéo một đợt CHƯA bắt đầu — kéo đợt đang chạy đi đường hỏi xác "
+                + "nhận chứ không đường toast, nên đó không phải cách dựng trạng thái này"),
             Covered("calendar-lane-meta", LiveOpsHubSections.Ids.Calendar, "calendar-worst-data",
                 "cùng dòng thông tin làn, bản kia có tên loại dài nhất và loại chưa khai"),
             Covered("calendar-toolbar-narrow", LiveOpsHubSections.Ids.Calendar, "calendar-worst-data",
                 "cùng toolbar màn Lịch ở cỡ hẹp, bản kia chạy 700 và 820 trên tài liệu xấu nhất"),
             Covered("timeline-ruler-labels-default", LiveOpsHubSections.Ids.Calendar, "calendar-worst-data",
                 "cùng nhãn thước ở mức thu phóng mặc định, bản kia quét cả cửa sổ trên tài liệu xấu nhất"),
-            Ticket("timeline-ruler-labels-zoom-in", LiveOpsHubSections.Ids.Calendar,
-                "còn thiếu: phóng to trên tài liệu xấu nhất — nhãn dày nhất sinh ra ở mức phóng to, và không màn nào vừa "
-                + "phóng to vừa đứng trên khoảng ngày rộng nhất"),
-            Ticket("timeline-ruler-labels-zoom-out", LiveOpsHubSections.Ids.Calendar,
-                "còn thiếu: thu nhỏ trên tài liệu xấu nhất — đây là mức sinh nhãn THÁNG (chuỗi dài nhất của thước) và là "
-                + "một trong bảy chỗ chữ sát mép ô mà W9-25 đếm"),
-            Ticket("timeline-legend-contrast", LiveOpsHubSections.Ids.Calendar,
-                "còn thiếu: chú giải khi có loại CHƯA KHAI — dấu màu của loại chưa khai là dấu duy nhất khai màu CÓ ALPHA, "
-                + "đúng loại dấu từng lọt lưới tương phản trước bản vá hợp thành"),
+            Covered("timeline-ruler-labels-zoom-in", LiveOpsHubSections.Ids.Calendar,
+                "timeline-ruler-labels-zoom-in-worst-data", "cùng nhãn thước ở mức phóng to, bản kia trên tài liệu xấu nhất"),
+            Services("timeline-ruler-labels-zoom-in-worst-data", LiveOpsHubSections.Ids.Calendar,
+                "phóng to trên tài liệu xấu nhất — mức phóng to sinh nhãn DÀY nhất của thước"),
+            Covered("timeline-ruler-labels-zoom-out", LiveOpsHubSections.Ids.Calendar,
+                "timeline-ruler-labels-zoom-out-worst-data", "cùng nhãn thước ở mức thu nhỏ, bản kia trên tài liệu xấu nhất"),
+            Services("timeline-ruler-labels-zoom-out-worst-data", LiveOpsHubSections.Ids.Calendar,
+                "thu nhỏ trên tài liệu xấu nhất — mức sinh nhãn THÁNG, chuỗi dài nhất mà thước vẽ"),
+            Covered("timeline-legend-contrast", LiveOpsHubSections.Ids.Calendar, "timeline-legend-contrast-worst-data",
+                "cùng luật tương phản của chú giải, bản kia có loại CHƯA KHAI"),
+            Services("timeline-legend-contrast-worst-data", LiveOpsHubSections.Ids.Calendar,
+                "chú giải khi có loại CHƯA KHAI — dấu màu của loại chưa khai là dấu duy nhất khai màu CÓ ALPHA, đúng loại "
+                + "dấu từng lọt lưới tương phản trước bản vá màu đã hợp thành"),
 
             // ---------------------------------------------------------------------------------- cửa sổ PHỤ
-            Ticket("add-event-popover", LiveOpsHubSections.Ids.Calendar,
-                "còn thiếu: popover Thêm đợt khi dropdown tên loại mang TÊN DÀI NHẤT — popover rộng cố định 320px nên tên "
-                + "loại dài là chỗ duy nhất nó có thể vỡ"),
-            Ticket("confirm-window", LiveOpsHubSections.Ids.Calendar,
-                "còn thiếu: hộp xác nhận khi câu hỏi IN ID ĐỢT dài nhất — hộp rộng cố định, nên id dài là chỗ duy nhất "
-                + "chữ của nó chạm mép"),
+            Covered("add-event-popover", LiveOpsHubSections.Ids.Calendar, "add-event-popover-worst-data",
+                "cùng popover Thêm đợt, bản kia có loại mang tên dài nhất trong dropdown"),
+            Services("add-event-popover-worst-data", LiveOpsHubSections.Ids.Calendar,
+                "popover Thêm đợt khi dropdown tên loại mang TÊN DÀI NHẤT — popover rộng cố định 320px nên tên loại dài là "
+                + "chỗ duy nhất nó có thể vỡ"),
+            Covered("confirm-window", LiveOpsHubSections.Ids.Calendar, "confirm-window-worst-data",
+                "cùng hộp xác nhận, bản kia in id đợt dài nhất vào tiêu đề"),
+            Services("confirm-window-worst-data", LiveOpsHubSections.Ids.Calendar,
+                "hộp xác nhận khi câu hỏi IN ID ĐỢT dài nhất — hộp rộng cố định, nên id dài là chỗ duy nhất chữ của nó "
+                + "chạm mép"),
         };
 
         internal static IReadOnlyList<UxLayoutScreenRegistration> All

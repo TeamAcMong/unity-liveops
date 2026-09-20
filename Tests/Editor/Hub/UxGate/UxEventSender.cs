@@ -345,6 +345,51 @@ namespace DreamTech.LiveOps.Editor.Tests
             pump.Invoke(null, null);
         }
 
+        /// <summary>Tên hàm nội bộ của UI Toolkit chạy hàng <c>element.schedule</c> của một panel — có ở CẢ 2022.3 lẫn 6000.6.</summary>
+        private const string PanelSchedulerPumpMethodName = "UpdateScheduledEvents";
+
+        private static MethodInfo _panelSchedulerPump;
+
+        /// <summary>
+        /// Chạy ngay hàng <c>schedule</c> của panel chứa <paramref name="element"/> — tức MÔ PHỎNG một nhịp vẽ của cửa sổ,
+        /// cùng họ với <see cref="PumpDelayCalls"/>.
+        /// <para>
+        /// Vì sao cần (W10 — gốc của hai ca 2022.3 đỏ khi chạy song song): panel chỉ chạy hàng <c>schedule</c> khi cửa sổ
+        /// được vẽ. Phiên tự động không điều khiển nhịp vẽ ấy, nên hai Unity chạy cùng lúc thì khoảng giữa hai nhịp panel
+        /// dài hơn 300 ms. Nút "Huỷ (Esc)" nháy bằng hai lượt schedule — lượt đầu THÊM class, lượt sau (+300 ms) GỠ nó —
+        /// nên cả hai lượt có thể chạy gọn trong MỘT nhịp panel, giữa hai lần test nhìn vào cây: class được thêm và gỡ mà
+        /// không lần quan sát nào thấy. Test đỏ vì nhịp vẽ của máy, không vì hành vi.
+        /// </para>
+        /// <para>
+        /// Bơm ở đây làm NGƯỜI QUAN SÁT cầm nhịp: mỗi vòng chờ chạy đúng một nhịp panel rồi mới đọc cây, nên lượt THÊM
+        /// class rơi vào vòng chờ kế tiếp chứ không rơi vào một khe không ai nhìn. Đây không phải cửa sau vào hub — hàm gọi
+        /// đúng cái hàng mà cửa sổ tự gọi mỗi lần vẽ, và lượt GỠ vẫn đúng 300 ms thật của nó.
+        /// </para>
+        /// </summary>
+        internal static void PumpPanelScheduler(VisualElement element)
+        {
+            IPanel panel = element == null ? null : element.panel;
+            if (panel == null) return;
+            if (_panelSchedulerPump == null || !_panelSchedulerPump.DeclaringType.IsInstanceOfType(panel))
+            {
+                _panelSchedulerPump = ResolvePanelSchedulerPump(panel.GetType());
+            }
+            if (_panelSchedulerPump == null) return;
+            _panelSchedulerPump.Invoke(panel, null);
+        }
+
+        private static MethodInfo ResolvePanelSchedulerPump(Type panelType)
+        {
+            for (Type type = panelType; type != null; type = type.BaseType)
+            {
+                MethodInfo method = type.GetMethod(PanelSchedulerPumpMethodName,
+                    BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly,
+                    null, Type.EmptyTypes, null);
+                if (method != null && !method.IsAbstract) return method;
+            }
+            return null;
+        }
+
         /// <summary>
         /// Tra được hàng <c>delayCall</c> trên bản Unity đang chạy không. <c>UxGateSelfCheckTests</c> hỏi câu này: mất nó thì
         /// hộp xác nhận hoãn bằng <c>delayCall</c> không bao giờ chạy trong một cử chỉ, hành trình UJ-11 xanh vì không có gì để

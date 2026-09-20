@@ -247,9 +247,55 @@ namespace DreamTech.LiveOps.Editor
             ApplyVisibleColumnCount(_optionalColumns.Count);
         }
 
+        /// <summary>
+        /// Cột mà Ô của nó phải NHẬN RA ĐƯỢC từ bên ngoài. Luật rút gọn có điều kiện (user chốt 21/9/2026) miễn theo TỪNG
+        /// CỘT: <c>type-id</c> và <c>config-key</c> khai bề rộng CỐ ĐỊNH và có chỗ đọc đủ ở inspector, còn <c>display-name</c>
+        /// là cột GIÃN nên không thuộc diện miễn. Mọi ô của bảng mang cùng một class <c>liveops-hub-event-types-cell</c>,
+        /// nên tên element là cách duy nhất phân biệt cột này với cột kia mà không đẻ thêm class vào bảng class ĐÓNG của
+        /// kế hoạch.
+        /// <para>
+        /// Chỉ đặt tên cho HAI cột ấy, không đặt cho cả bảy: lệnh chụp ghi MỌI element có tên vào JSON số đo, nên đặt tên
+        /// tràn lan là thêm năm dòng cảnh báo "không dò được cạnh rõ" vào mọi ảnh của màn này mà không đổi lấy gì.
+        /// </para>
+        /// </summary>
+        private static readonly string[] IdentifiedCellColumnNames = { TypeIdColumnName, ConfigKeyColumnName };
+
+        /// <summary>
+        /// Hậu tố tên Ô. Tên ô phải KHÁC tên cột: ma trận ảnh 9.5 đo bề rộng từng cột bằng chính tên cột
+        /// (<c>LiveOpsHubCaptureScenarios.EventTypes</c>), và <c>measure-capture.py</c> khớp theo tên hoặc class — đặt ô
+        /// trùng tên cột thì mỗi hàng của bảng thành một "khung" nữa phải đo, và mỗi ảnh của màn đẻ ra hơn hai chục dòng
+        /// cảnh báo "không dò được cạnh rõ" cho đúng thứ chưa bao giờ là một khung thiết kế.
+        /// </summary>
+        private const string CellNameSuffix = "-cell";
+
+        /// <summary>Cột này có cần ô mang tên không. So chuỗi theo Ordinal — tên cột là định danh, không phải chữ hiển thị.</summary>
+        private static bool IsIdentifiedCellColumn(string columnName)
+        {
+            for (int index = 0; index < IdentifiedCellColumnNames.Length; index++)
+            {
+                if (string.Equals(IdentifiedCellColumnNames[index], columnName, StringComparison.Ordinal)) return true;
+            }
+            return false;
+        }
+
+        /// <summary>Tên element của ô cột "Id loại" — <see cref="IdentifiedCellColumnNames"/> nói vì sao ô này có tên.</summary>
+        internal const string TypeIdCellName = TypeIdColumnName + CellNameSuffix;
+
+        /// <summary>Tên element của ô cột "Config key".</summary>
+        internal const string ConfigKeyCellName = ConfigKeyColumnName + CellNameSuffix;
+
         private static Column BuildColumn(string columnName, string title, float width, float minimumWidth,
             Func<VisualElement> makeCell, Action<VisualElement, int> bindCell, bool sortable)
         {
+            string cellName = IsIdentifiedCellColumn(columnName) ? columnName + CellNameSuffix : string.Empty;
+            Func<VisualElement> makeNamedCell = cellName.Length == 0
+                ? makeCell
+                : () =>
+                {
+                    VisualElement cell = makeCell();
+                    cell.name = cellName;
+                    return cell;
+                };
             return new Column
             {
                 name = columnName,
@@ -257,7 +303,7 @@ namespace DreamTech.LiveOps.Editor
                 width = width,
                 minWidth = minimumWidth,
                 sortable = sortable,
-                makeCell = makeCell,
+                makeCell = makeNamedCell,
                 bindCell = bindCell,
             };
         }
@@ -402,6 +448,7 @@ namespace DreamTech.LiveOps.Editor
         {
             Label cell = new Label();
             cell.AddToClassList(LiveOpsHubClassNames.EventTypesCell);
+            LiveOpsTableCellTooltip.Attach(cell);
             return cell;
         }
 
@@ -410,6 +457,7 @@ namespace DreamTech.LiveOps.Editor
             Label cell = new Label();
             cell.AddToClassList(LiveOpsHubClassNames.EventTypesCell);
             cell.AddToClassList(LiveOpsHubClassNames.Mono);
+            LiveOpsTableCellTooltip.Attach(cell);
             return cell;
         }
 
@@ -418,6 +466,7 @@ namespace DreamTech.LiveOps.Editor
             Label cell = new Label();
             cell.AddToClassList(LiveOpsHubClassNames.EventTypesCell);
             cell.AddToClassList(LiveOpsHubClassNames.EventTypesCellRight);
+            LiveOpsTableCellTooltip.Attach(cell);
             return cell;
         }
 
@@ -473,7 +522,9 @@ namespace DreamTech.LiveOps.Editor
         {
             EventTypeRow row = _visibleOrder[rowIndex];
             ApplyRowClasses(cell, row);
-            ((Label)cell).text = text;
+            // Chữ đi qua LiveOpsTableCellTooltip chứ không gán thẳng: ô nào không chứa hết chữ của mình thì mang luôn
+            // tooltip đủ chữ — điều kiện (a) của luật rút gọn có điều kiện.
+            LiveOpsTableCellTooltip.Bind((Label)cell, text);
         }
 
         private static void ApplyRowClasses(VisualElement cell, EventTypeRow row)
