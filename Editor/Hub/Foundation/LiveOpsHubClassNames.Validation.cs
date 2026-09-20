@@ -22,6 +22,16 @@ namespace DreamTech.LiveOps.Editor
 
         /// <summary>Icon search 10px trong ô tìm ([SD2 §2.1]): ô không có nhãn nên icon là thứ duy nhất nói ô để làm gì.</summary>
         internal const string ValidationSearchIcon = "liveops-hub-validation-search-icon";
+        /// <summary>
+        /// Nút "[Refresh] Kiểm lại" của section header (W9-06). Button LÀ một TextElement: thêm một Image con thì nút không
+        /// còn tự đo theo <c>text</c> nữa, nó co về <c>min-width: 54px</c> và chữ bị cắt ở MỌI cỡ cửa sổ. Class này xếp nút
+        /// thành hàng ngang để icon và Label chữ đứng cạnh nhau — cùng cách đã dùng cho nút "Kiểm lại tất cả" của Tổng quan.
+        /// </summary>
+        internal const string ValidationRecheckButton = "liveops-hub-validation-recheck-button";
+
+        /// <summary>Label chữ của nút "Kiểm lại" — xem <see cref="ValidationRecheckButton"/>.</summary>
+        internal const string ValidationRecheckButtonLabel = "liveops-hub-validation-recheck-button-label";
+
         internal const string ValidationSummary = "liveops-hub-validation-summary";
         internal const string ValidationSummaryItem = "liveops-hub-validation-summary-item";
         internal const string ValidationSummaryRight = "liveops-hub-validation-summary-right";

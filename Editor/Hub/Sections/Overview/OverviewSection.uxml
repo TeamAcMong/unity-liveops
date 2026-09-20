@@ -54,7 +54,7 @@
                     <ui:VisualElement name="overview-upcoming" class="liveops-hub-overview-upcoming-table" />
                 </ui:VisualElement>
 
-                <ui:Label name="overview-footer-note" class="liveops-hub-note" />
+                <ui:Label name="overview-footer-note" class="liveops-hub-note liveops-hub-overview-footer-note" />
             </ui:VisualElement>
         </ui:ScrollView>
     </ui:VisualElement>

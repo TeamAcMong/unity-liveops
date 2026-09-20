@@ -86,5 +86,12 @@ namespace DreamTech.LiveOps.Editor
 
         internal const string OverviewRecheckAllButton = "liveops-hub-overview-recheck-all";
         internal const string OverviewRecheckAllLabel = "liveops-hub-overview-recheck-all-label";
+
+        /// <summary>
+        /// Câu chú cuối thân màn (W9-03). Label đeo class khung <c>liveops-hub-note</c> — class đó vẽ khung hộp chú thích và
+        /// KHÔNG khai <c>white-space</c>, nên mặc định <c>nowrap</c> của UI Toolkit làm câu dài bị cắt ở mọi cửa sổ dưới
+        /// 1100px. Class riêng này chỉ bật xuống dòng; đổi ở class khung sẽ đụng mọi màn nên phải là class của màn.
+        /// </summary>
+        internal const string OverviewFooterNote = "liveops-hub-overview-footer-note";
     }
 }

@@ -77,16 +77,18 @@ namespace DreamTech.LiveOps.Editor.Tests
         /// Dãy số không liền vì giữ nguyên mã của bảng kế hoạch: W9-02 và W9-07…W9-15 là màn TRONG đợt, đã bị rút khỏi
         /// danh sách hoãn ngày 19/9/2026 và trả về cho một gói sửa bố cục riêng.
         /// </summary>
-        private static readonly string[] ApprovedDeferralIds = { "W9-01", "W9-03", "W9-04", "W9-05", "W9-06" };
+        /// <remarks>
+        /// (G-W9-SCREENS, 20/9/2026) Bốn phiếu W9-03/04/05/06 đã được RÚT khỏi danh sách hoãn vì bốn màn của chúng đã xanh.
+        /// Danh sách duyệt của USER chỉ NGẮN LẠI, không dài thêm — tức cổng chặt hơn trước, không lỏng hơn; phần còn nợ là
+        /// W9-01 (màn Xuất JSON, gói G-W9-EXPORT).
+        /// </remarks>
+        private static readonly string[] ApprovedDeferralIds = { "W9-01" };
 
         /// <summary>
         /// Năm màn NGOÀI đợt đi kèm năm phiếu trên. Khoá cả MÀN chứ không chỉ mã phiếu: chặn đúng đường lách "thêm một
         /// mã phiếu mới cho một màn TRONG đợt", thứ mà kiểm từng mục không nhìn ra.
         /// </summary>
-        private static readonly string[] ApprovedDeferralScreens =
-        {
-            "export", "overview", "shell-rail-status", "event-types", "validation",
-        };
+        private static readonly string[] ApprovedDeferralScreens = { "export" };
 
         private static readonly UxWindowSize Narrow700 = new UxWindowSize(700, 560);
         private static readonly UxWindowSize Medium820 = new UxWindowSize(820, 560);
@@ -107,10 +109,6 @@ namespace DreamTech.LiveOps.Editor.Tests
         [UnityTest]
         public IEnumerator Overview_LayoutIsUsable_AtEverySize()
         {
-            // Hoãn sang W9: màn này đỏ vì BỐ CỤC, ngoài phạm vi hành trình của đợt W8. Mọi câu assert bên dưới
-            // giữ nguyên — gỡ dòng của màn khỏi UxLayoutDeferralList là test chạy lại đầy đủ ngay lượt sau.
-            UxLayoutDeferralList.IgnoreWhenDeferred("overview");
-
             yield return RunScreen(new UxLayoutScreen("overview", LiveOpsHubSections.Ids.Overview)
                 .WithRequiredElements(WithShell(OverviewSection.BodyElementName, OverviewSection.MetricsElementName))
                 .WithStretchRules(SectionStretchRules(OverviewSection.BodyElementName))
@@ -120,10 +118,6 @@ namespace DreamTech.LiveOps.Editor.Tests
         [UnityTest]
         public IEnumerator EventTypes_LayoutIsUsable_AtEverySize()
         {
-            // Hoãn sang W9: màn này đỏ vì BỐ CỤC, ngoài phạm vi hành trình của đợt W8. Mọi câu assert bên dưới
-            // giữ nguyên — gỡ dòng của màn khỏi UxLayoutDeferralList là test chạy lại đầy đủ ngay lượt sau.
-            UxLayoutDeferralList.IgnoreWhenDeferred("event-types");
-
             yield return RunScreen(new UxLayoutScreen("event-types", LiveOpsHubSections.Ids.EventTypes)
                 .WithRequiredElements(WithShell(LiveOpsHubPaths.EventTypesElementNames.Body,
                     LiveOpsHubPaths.EventTypesElementNames.Content))
@@ -162,10 +156,6 @@ namespace DreamTech.LiveOps.Editor.Tests
         [UnityTest]
         public IEnumerator Validation_LayoutIsUsable_AtEverySize()
         {
-            // Hoãn sang W9: màn này đỏ vì BỐ CỤC, ngoài phạm vi hành trình của đợt W8. Mọi câu assert bên dưới
-            // giữ nguyên — gỡ dòng của màn khỏi UxLayoutDeferralList là test chạy lại đầy đủ ngay lượt sau.
-            UxLayoutDeferralList.IgnoreWhenDeferred("validation");
-
             yield return RunScreen(new UxLayoutScreen("validation", LiveOpsHubSections.Ids.Validation)
                 .WithRequiredElements(WithShell(LiveOpsHubPaths.ValidationElementNames.Body,
                     LiveOpsHubPaths.ValidationElementNames.Toolbar, LiveOpsHubPaths.ValidationElementNames.Content))
@@ -190,10 +180,6 @@ namespace DreamTech.LiveOps.Editor.Tests
         [UnityTest]
         public IEnumerator Shell_RailAndStatusBar_AreUsable_AtEverySize()
         {
-            // Hoãn sang W9: màn này đỏ vì BỐ CỤC, ngoài phạm vi hành trình của đợt W8. Mọi câu assert bên dưới
-            // giữ nguyên — gỡ dòng của màn khỏi UxLayoutDeferralList là test chạy lại đầy đủ ngay lượt sau.
-            UxLayoutDeferralList.IgnoreWhenDeferred("shell-rail-status");
-
             yield return RunScreen(new UxLayoutScreen("shell-rail-status", LiveOpsHubSections.Ids.Overview)
                 .WithRequiredElements(LiveOpsHubPaths.ShellElementNames.Rail, LiveOpsHubPaths.ShellElementNames.Content,
                     LiveOpsHubPaths.ShellElementNames.SectionBody, LiveOpsHubPaths.ShellElementNames.StatusBar,
