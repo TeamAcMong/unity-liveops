@@ -1,0 +1,368 @@
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.IO;
+using NUnit.Framework;
+using UnityEditor;
+using UnityEngine;
+using UnityEngine.TestTools;
+using UnityEngine.UIElements;
+
+namespace DreamTech.LiveOps.Editor.Tests
+{
+    /// <summary>
+    /// Nền đục mà một chỗ chữ nằm TRÊN. Ba nền này là ba biến nền của Unity mà hub thật sự đặt chữ lên; mỗi cái có giá trị
+    /// riêng cho từng skin, và <see cref="UxComposedTokenContrastTests.ComposedBackdropConstants_MatchMeasuredBackdrops_InRunningSkin"/>
+    /// đối chiếu hằng với số đo thật của skin đang chạy nên chúng không phải lời khai tay.
+    /// </summary>
+    internal enum UxComposedBackdrop
+    {
+        /// <summary>Nền cửa sổ hub — <c>--unity-colors-window-background</c>.</summary>
+        WindowBackground,
+
+        /// <summary>
+        /// Nền header của thẻ và của mọi dải công cụ — <c>--unity-colors-toolbar-background</c>. Ở skin tối nền này SÁNG HƠN
+        /// nền cửa sổ (#3C3C3C so với #383838), nên chữ phụ đạt chuẩn trên nền cửa sổ vẫn có thể trượt ở đây.
+        /// </summary>
+        CardBackground,
+
+        /// <summary>Nền của chip header — <c>--unity-colors-default-background</c>.</summary>
+        ChipBackground,
+    }
+
+    /// <summary>
+    /// Một CHỖ DÙNG có thật của một token màu chữ: token nào, nằm trong khối có opacity bao nhiêu, trên nền nào, phải đạt bậc
+    /// nào. Khác bảng token của <see cref="UxContrastTokenTests"/> ở đúng một điểm và đó là điểm sinh ra phiếu W10-03/W10-06:
+    /// bảng kia đo màu TRƯỚC khi nhân opacity và luôn đo trên nền CỬA SỔ, nên một token xanh ở bảng kia vẫn có thể là chữ
+    /// không đọc nổi ở màn thật.
+    /// </summary>
+    internal readonly struct UxComposedSite
+    {
+        public UxComposedSite(string tokenName, float ancestorOpacity, UxComposedBackdrop backdrop, float minimumRatio, string place)
+        {
+            TokenName = tokenName;
+            AncestorOpacity = ancestorOpacity;
+            Backdrop = backdrop;
+            MinimumRatio = minimumRatio;
+            Place = place;
+        }
+
+        /// <summary>Tên custom property, đúng như khai trong <c>liveops-hub-theme.uss</c>.</summary>
+        public string TokenName { get; }
+
+        /// <summary>Tích opacity của mọi khối cha bọc chỗ chữ ấy — 1 khi không khối nào làm mờ.</summary>
+        public float AncestorOpacity { get; }
+
+        /// <summary>Nền đục gần nhất phía sau chỗ chữ.</summary>
+        public UxComposedBackdrop Backdrop { get; }
+
+        /// <summary>Bậc phải đạt: 4,5:1 cho chữ thường (chốt của USER 19/9 theo WCAG 2.1).</summary>
+        public float MinimumRatio { get; }
+
+        /// <summary>Chỗ ấy ở đâu trong hub — để câu đỏ chỉ được tay vào màn phải mở ra xem.</summary>
+        public string Place { get; }
+    }
+
+    /// <summary>
+    /// Cổng tương phản cho màu ĐÃ HỢP THÀNH (token × opacity của tổ tiên × nền đục), chạy cho CẢ HAI theme trong MỘT lượt.
+    /// <para>
+    /// Vì sao cần bộ test này bên cạnh hai bộ đã có:
+    /// <list type="bullet">
+    /// <item><see cref="UxContrastTokenTests.EveryColorToken_MeetsWcagContrast_OnItsOwnBackdrop_InBothSkins"/> phủ cả hai skin
+    /// nhưng đo màu TRƯỚC opacity và chỉ trên nền CỬA SỔ.</item>
+    /// <item><see cref="UxContrastTokenTests.ComposedTextColor_MeetsWcagContrast_InCalendarInspectorPanes"/> đo đúng màu đã hợp
+    /// thành trên cây thật, nhưng cây thật chỉ giải ra được skin ĐANG CHẠY của Editor (đổi <c>EditorPrefs UserSkin</c> là việc
+    /// riêng của <c>capture.sh</c>, SP-4), nên nó chưa bao giờ nói được về theme còn lại.</item>
+    /// </list>
+    /// Ở giữa hai cái đó có một khe, và đúng 45 dòng trượt WCAG đã rơi vào khe ấy (37 dòng skin tối của phiếu W10-06 + 8 dòng
+    /// skin sáng của phiếu W10-03): token xanh, cây thật ở skin tối xanh, mà chữ người dùng nhìn thấy thì 3,34-4,48:1.
+    /// </para>
+    /// <para>
+    /// Cách bộ test này bịt khe: GIÁ TRỊ TOKEN lấy từ hai root dựng sẵn (một thường, một mang class skin sáng) nên hai theme
+    /// cùng đọc được trong một lượt; NỀN lấy từ bảng hằng theo skin, và bảng hằng ấy bị
+    /// <see cref="ComposedBackdropConstants_MatchMeasuredBackdrops_InRunningSkin"/> đối chiếu với số đo thật mỗi lượt chạy —
+    /// lượt chạy ở skin tối khoá cột tối, lượt chạy dưới skin sáng (harness chụp) khoá cột sáng. Không lượt nào ghi
+    /// <c>EditorPrefs</c>.
+    /// </para>
+    /// </summary>
+    [TestFixture]
+    [Category(LiveOpsHubTestCategories.UI)]
+    [Category(LiveOpsHubTestCategories.UxGate)]
+    public sealed class UxComposedTokenContrastTests
+    {
+        /// <summary>Bậc WCAG 2.1 AA cho chữ thường.</summary>
+        private const float TextContrastRatio = 4.5f;
+
+        /// <summary>Số khung chờ cho lượt style của root mới gắn vào panel.</summary>
+        private const int StyleResolveFrames = 4;
+
+        private const string DarkSkinName = "skin tối";
+        private const string LightSkinName = "skin sáng";
+        private const string ThemeRelativePath = "Editor/Hub/UI/liveops-hub-theme.uss";
+
+        /// <summary>
+        /// Nền header thẻ (<c>--unity-colors-toolbar-background</c>). Hai giá trị dưới đây đọc từ ẢNH CHỤP THẬT của cửa sổ hub
+        /// ở hai skin (nhãn chụp <c>w10theme-truoc</c>, màn <c>h04-overview-default</c>), rồi được
+        /// <see cref="ComposedBackdropConstants_MatchMeasuredBackdrops_InRunningSkin"/> đối chiếu lại với
+        /// <c>resolvedStyle.backgroundColor</c> của một header thẻ thật mỗi lượt chạy.
+        /// </summary>
+        private const string DarkCardBackgroundHex = "#3C3C3C";
+
+        private const string LightCardBackgroundHex = "#CBCBCB";
+
+        /// <summary>Nền chip header (<c>--unity-colors-default-background</c>) — cùng đường xác minh với nền header thẻ.</summary>
+        private const string DarkChipBackgroundHex = "#282828";
+
+        private const string LightChipBackgroundHex = "#A5A5A5";
+
+        /// <summary>Sai số so hằng nền với số đo thật: nền vẽ qua 8 bit/kênh nên 1 nấc là làm tròn, không phải lệch bảng.</summary>
+        private const float BackgroundToleranceChannels = 1.5f / 255f;
+
+        /// <summary>
+        /// Mọi chỗ dùng đã biết của màu chữ hub, gom từ phép đo 910 đoạn chữ × 8 màn × 2 skin của đợt W10 (bằng chứng
+        /// <c>~/.cache/unity-liveops/ux-contrast/&lt;bản Unity&gt;/composed-{dark,light}.json</c>). Bốn cặp đầu là bốn gốc của
+        /// 37 dòng trượt skin tối; cặp cuối là gốc của 8 dòng trượt skin sáng.
+        /// <para>
+        /// Vì sao khai thành bảng thay vì duyệt cây thật: cây thật chỉ giải ra được MỘT skin mỗi lượt. Bảng này là chỗ DUY
+        /// NHẤT trong bộ test được phép nói "chỗ này có opacity bao nhiêu" mà không đo — nên mỗi dòng phải đọc được ra một
+        /// màn có thật, và dòng nào hết chỗ dùng thì xoá đi chứ không để lại cho đẹp bảng.
+        /// </para>
+        /// </summary>
+        private static readonly UxComposedSite[] Sites =
+        {
+            new UxComposedSite("--liveops-hub-color-text", 0.70f, UxComposedBackdrop.CardBackground, TextContrastRatio,
+                "caption HOA và dòng meta trong thẻ (ĐANG CHẠY · CẦN XỬ LÝ · ĐÃ ĐĂNG · KÍCH THƯỚC · SHA…) — 28 dòng của W10-06"),
+            new UxComposedSite("--liveops-hub-color-text", 0.82f, UxComposedBackdrop.CardBackground, TextContrastRatio,
+                "dòng chân thẻ số đo (.liveops-hub-metric-foot) khi thẻ nằm trên dải header"),
+            new UxComposedSite("--liveops-hub-color-text", 0.70f, UxComposedBackdrop.WindowBackground, TextContrastRatio,
+                "chữ phụ đặt thẳng trên nền cửa sổ (chú thích, placeholder ô nhập)"),
+            new UxComposedSite("--liveops-hub-color-text", 0.70f, UxComposedBackdrop.ChipBackground, TextContrastRatio,
+                "khoá phím trong chip header (.liveops-hub-chip-key)"),
+            new UxComposedSite("--liveops-hub-color-quiet", 1f, UxComposedBackdrop.CardBackground, TextContrastRatio,
+                "số đếm của thẻ Tổng quan và nhãn 'Chưa kiểm' của màn Kiểm lịch — 4 dòng của W10-06"),
+            new UxComposedSite("--liveops-hub-color-blocked-text", 0.85f, UxComposedBackdrop.WindowBackground, TextContrastRatio,
+                "câu lỗi trong khối mờ 0,85 ('2 bị bỏ', 'dừng ở đây', 'bị chặn') — 3 dòng của W10-06"),
+            new UxComposedSite("--liveops-hub-color-blocked-text", 0.82f, UxComposedBackdrop.WindowBackground, TextContrastRatio,
+                "dòng lỗi màn Xuất JSON và màn Kiểm lịch trong khối mờ 0,82 — 2 dòng của W10-06"),
+            new UxComposedSite("--liveops-hub-color-blocked-text", 0.82f, UxComposedBackdrop.CardBackground, TextContrastRatio,
+                "cùng dòng lỗi ấy khi nó nằm trong một thẻ thay vì thẳng trên nền cửa sổ"),
+            new UxComposedSite("--liveops-hub-color-link", 1f, UxComposedBackdrop.ChipBackground, TextContrastRatio,
+                "chữ bấm được của chip asset ở header (tên calendar đang mở) — 8 dòng của W10-03"),
+        };
+
+        private TimelineTestPanel _panel;
+
+        [TearDown]
+        public void TearDown()
+        {
+            if (_panel != null) _panel.Dispose();
+            _panel = null;
+        }
+
+        /// <summary>
+        /// Mọi chỗ dùng trong bảng phải đạt bậc của nó SAU khi nhân opacity và hợp thành lên nền, ở CẢ HAI skin. Gom mọi chỗ
+        /// trượt vào một câu đỏ: người sửa màu cần thấy trọn danh sách trong một lượt, không phải bóc từng lớp hành.
+        /// </summary>
+        [UnityTest]
+        public IEnumerator ComposedTokenColor_MeetsWcagContrast_AtEverySite_InBothSkins()
+        {
+            _panel = TimelineTestPanel.Open();
+            VisualElement darkRoot = _panel.CreateRoot(false);
+            VisualElement lightRoot = _panel.CreateRoot(true);
+            yield return TimelineTestPanel.WaitUntil(
+                () => TimelineTestPanel.HasLayout(darkRoot) && TimelineTestPanel.HasLayout(lightRoot),
+                "hai root token chưa có layout");
+            for (int frame = 0; frame < StyleResolveFrames; frame++) yield return null;
+
+            List<string> failures = new List<string>();
+            CollectComposedFailures(darkRoot, DarkSkinName, true, failures);
+            CollectComposedFailures(lightRoot, LightSkinName, false, failures);
+
+            Assert.IsEmpty(failures,
+                "màu ĐÃ HỢP THÀNH của một chỗ dùng có thật không đạt bậc chữ thường "
+                + UxLayoutAuditor.Number(TextContrastRatio) + ":1 (chốt của USER 19/9):" + Environment.NewLine
+                + string.Join(Environment.NewLine, failures.ToArray()));
+        }
+
+        /// <summary>
+        /// Hằng nền của bảng phải khớp số đo thật ở skin ĐANG CHẠY. Không có ca này thì hai cột hằng nền là lời khai tay, và
+        /// một lượt đổi biến nền của Unity (hoặc một lượt đổi class nền của header thẻ) sẽ làm mọi tỉ số ở trên nói về một
+        /// cửa sổ khác cửa sổ người dùng thấy mà không ai biết.
+        /// <para>
+        /// Skin còn lại không tự kiểm được ở đây — đó là giới hạn đã khai, và nó biến mất khi bộ test chạy dưới lượt chụp
+        /// skin sáng của <c>capture.sh</c>: cùng ca này, chạy ở skin sáng, khoá nốt cột còn lại.
+        /// </para>
+        /// </summary>
+        [UnityTest]
+        public IEnumerator ComposedBackdropConstants_MatchMeasuredBackdrops_InRunningSkin()
+        {
+            bool proSkin = EditorGUIUtility.isProSkin;
+            string skinName = proSkin ? DarkSkinName : LightSkinName;
+
+            _panel = TimelineTestPanel.Open();
+            VisualElement root = _panel.CreateRoot(!proSkin);
+            StyleSheet shellSheet = AssetDatabase.LoadAssetAtPath<StyleSheet>(LiveOpsHubPaths.ShellUss);
+            Assert.IsNotNull(shellSheet, "thiếu " + LiveOpsHubPaths.ShellUss + " — không dựng được chip header để đo nền");
+            root.styleSheets.Add(shellSheet);
+
+            VisualElement cardHeaderProbe = new VisualElement();
+            cardHeaderProbe.AddToClassList(LiveOpsHubClassNames.CardHeader);
+            root.Add(cardHeaderProbe);
+
+            VisualElement chipProbe = new VisualElement();
+            chipProbe.AddToClassList(LiveOpsHubClassNames.Chip);
+            root.Add(chipProbe);
+
+            yield return TimelineTestPanel.WaitUntil(() => TimelineTestPanel.HasLayout(root), "root đo nền chưa có layout");
+            for (int frame = 0; frame < StyleResolveFrames; frame++) yield return null;
+
+            AssertSameColor(CardBackground(proSkin), cardHeaderProbe.resolvedStyle.backgroundColor, skinName,
+                "nền đo thật của một header thẻ (." + LiveOpsHubClassNames.CardHeader + ")");
+            AssertSameColor(ChipBackground(proSkin), chipProbe.resolvedStyle.backgroundColor, skinName,
+                "nền đo thật của một chip header (." + LiveOpsHubClassNames.Chip + ")");
+            AssertSameColor(UxLayoutAuditor.WindowBackground(proSkin), root.resolvedStyle.backgroundColor, skinName,
+                "nền đo thật của root hub");
+        }
+
+        /// <summary>
+        /// Mọi token nhắc trong bảng chỗ dùng phải còn tồn tại trong CẢ HAI khối skin của theme. Vì sao: một lượt đổi tên
+        /// token mà quên bảng này thì <c>TryGetValue</c> trả false, và nếu ca ở trên chỉ "bỏ qua khi không đọc được" thì cổng
+        /// im lặng thành vòng lặp rỗng — đúng kiểu xanh giả mà đợt này cấm.
+        /// </summary>
+        [Test]
+        public void EverySiteToken_IsDeclaredInBothSkinBlocksOfTheme()
+        {
+            // Bỏ chú thích TRƯỚC khi dò mốc khối skin sáng: lời tựa đầu file có nhắc NGUYÊN VĂN tên selector ấy, nên dò trên
+            // văn bản thô sẽ dừng ở câu văn xuôi và "khối skin tối" thu lại còn mỗi lời tựa — ca xanh giả đúng kiểu đợt này cấm
+            // (chính bẫy ấy đã bắt ca này đỏ ở lượt chạy đầu).
+            string themeText = StripBlockComments(File.ReadAllText(Path.Combine(PackageDirectory(), ThemeRelativePath)));
+            int skinLightIndex = themeText.IndexOf(".liveops-hub-root.liveops-hub--skin-light", StringComparison.Ordinal);
+            Assert.Greater(skinLightIndex, 0, "không tìm thấy khối skin sáng trong theme");
+            string darkBlock = themeText.Substring(0, skinLightIndex);
+            string lightBlock = themeText.Substring(skinLightIndex);
+
+            List<string> missing = new List<string>();
+            HashSet<string> checkedTokens = new HashSet<string>();
+            for (int index = 0; index < Sites.Length; index++)
+            {
+                string token = Sites[index].TokenName;
+                if (!checkedTokens.Add(token)) continue;
+                if (darkBlock.IndexOf(token + ":", StringComparison.Ordinal) < 0) missing.Add(token + " (khối skin tối)");
+                if (lightBlock.IndexOf(token + ":", StringComparison.Ordinal) < 0) missing.Add(token + " (khối skin sáng)");
+            }
+
+            Assert.IsEmpty(missing,
+                "bảng chỗ dùng nhắc token mà theme không khai: " + string.Join(", ", missing.ToArray()));
+        }
+
+        private static void CollectComposedFailures(VisualElement root, string skinName, bool proSkin, List<string> failures)
+        {
+            for (int index = 0; index < Sites.Length; index++)
+            {
+                UxComposedSite site = Sites[index];
+                CustomStyleProperty<Color> property = new CustomStyleProperty<Color>(site.TokenName);
+                if (!root.customStyle.TryGetValue(property, out Color declared))
+                {
+                    failures.Add(skinName + " · " + site.TokenName + " (" + site.Place
+                        + "): TryGetValue = false — theme không khai token này cho skin ấy");
+                    continue;
+                }
+
+                Color backdrop = BackdropFor(site.Backdrop, proSkin);
+                Color faded = new Color(declared.r, declared.g, declared.b, declared.a * site.AncestorOpacity);
+                Color seen = UxLayoutAuditor.CompositeOver(faded, backdrop);
+                float ratio = UxLayoutAuditor.ContrastRatio(seen, backdrop);
+                if (ratio >= site.MinimumRatio) continue;
+                failures.Add(skinName + " · " + site.Place + ": " + UxLayoutAuditor.Number(ratio) + ":1 — token "
+                    + site.TokenName + " = " + HexText(declared) + " nhân opacity " + UxLayoutAuditor.Number(site.AncestorOpacity)
+                    + " hợp thành ra " + HexText(seen) + " trên nền " + HexText(backdrop) + " ("
+                    + BackdropName(site.Backdrop) + ") — cần ≥ " + UxLayoutAuditor.Number(site.MinimumRatio) + ":1");
+            }
+        }
+
+        private static Color BackdropFor(UxComposedBackdrop backdrop, bool proSkin)
+        {
+            switch (backdrop)
+            {
+                case UxComposedBackdrop.CardBackground: return CardBackground(proSkin);
+                case UxComposedBackdrop.ChipBackground: return ChipBackground(proSkin);
+                default: return UxLayoutAuditor.WindowBackground(proSkin);
+            }
+        }
+
+        private static string BackdropName(UxComposedBackdrop backdrop)
+        {
+            switch (backdrop)
+            {
+                case UxComposedBackdrop.CardBackground: return "nền header thẻ";
+                case UxComposedBackdrop.ChipBackground: return "nền chip header";
+                default: return "nền cửa sổ";
+            }
+        }
+
+        private static Color CardBackground(bool proSkin)
+        {
+            return Hex(proSkin ? DarkCardBackgroundHex : LightCardBackgroundHex);
+        }
+
+        private static Color ChipBackground(bool proSkin)
+        {
+            return Hex(proSkin ? DarkChipBackgroundHex : LightChipBackgroundHex);
+        }
+
+        private static void AssertSameColor(Color expected, Color measured, string skinName, string sourceName)
+        {
+            string message = "hằng nền " + skinName + " của bộ test là " + HexText(expected) + " nhưng " + sourceName
+                + " là " + HexText(measured)
+                + " — mọi tỉ số ở bộ test này đang nói về một cửa sổ khác cửa sổ người dùng thấy";
+            Assert.AreEqual(expected.r, measured.r, BackgroundToleranceChannels, message + " (kênh đỏ)");
+            Assert.AreEqual(expected.g, measured.g, BackgroundToleranceChannels, message + " (kênh lục)");
+            Assert.AreEqual(expected.b, measured.b, BackgroundToleranceChannels, message + " (kênh lam)");
+        }
+
+        /// <summary>
+        /// Bỏ mọi chú thích khối <c>/* … *&#47;</c> của USS, giữ nguyên độ dài dòng không quan trọng — ca duy nhất dùng hàm này
+        /// chỉ cần biết token nào nằm trong khối skin nào.
+        /// </summary>
+        private static string StripBlockComments(string text)
+        {
+            System.Text.StringBuilder stripped = new System.Text.StringBuilder(text.Length);
+            int index = 0;
+            while (index < text.Length)
+            {
+                if (index + 1 < text.Length && text[index] == '/' && text[index + 1] == '*')
+                {
+                    int close = text.IndexOf("*/", index + 2, StringComparison.Ordinal);
+                    if (close < 0) break;
+                    index = close + 2;
+                    continue;
+                }
+
+                stripped.Append(text[index]);
+                index++;
+            }
+
+            return stripped.ToString();
+        }
+
+        private static Color Hex(string value)
+        {
+            Assert.IsTrue(ColorUtility.TryParseHtmlString(value, out Color parsed), "không đọc được màu " + value);
+            return parsed;
+        }
+
+        private static string HexText(Color color)
+        {
+            return "#" + ColorUtility.ToHtmlStringRGB(color);
+        }
+
+        private static string PackageDirectory()
+        {
+            UnityEditor.PackageManager.PackageInfo package =
+                UnityEditor.PackageManager.PackageInfo.FindForAssembly(typeof(UxComposedTokenContrastTests).Assembly);
+            Assert.IsNotNull(package,
+                "không hỏi được gốc package từ assembly test — bộ test này phải chạy như một phần của com.dreamtech.liveops");
+            return Path.GetFullPath(package.resolvedPath);
+        }
+    }
+}

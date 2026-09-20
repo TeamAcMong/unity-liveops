@@ -15,7 +15,10 @@
     flex-grow: 1;
     flex-direction: column;
     font-size: 11px;
-    color: var(--unity-colors-default-text);
+    /* (W10-06) Màu chữ nền tảng đi qua token của theme chứ không thẳng --unity-colors-default-text: chữ phụ khắp hub là
+       màu này NHÂN opacity của khối cha, và giá trị Unity cho skin tối (#D2D2D2 × 0,7) trượt bậc chữ thường trên nền
+       thẻ. Token nâng một chỗ, mọi chữ kế thừa theo — xem chú thích --liveops-hub-color-text của theme. */
+    color: var(--liveops-hub-color-text);
     background-color: var(--unity-colors-window-background);
 }
 
