@@ -376,12 +376,12 @@ namespace DreamTech.LiveOps.Editor.Tests
         /// <summary>
         /// Ô hẹp hơn mức này không áp luật dư 5%: 5% của một ô 20px là 1px, mỏng hơn cả sai số của <c>MeasureTextSize</c>
         /// (<see cref="TextMeasureTolerance"/> = 3px), nên mọi icon và mọi ô một ký tự sẽ báo "chật" mà không nói lên điều gì.
-        /// </summary>
         /// <para>
         /// (cổng đợt W10, G-FIX-W10-1) Mở từ <c>private</c> thành <c>internal</c>: hai ca của G-W10-FIELD
         /// (<c>EventTypesSectionTests</c>, <c>OverviewSectionTests</c>) đang CHÉP LẠI con số này vì lúc viết chúng không có
         /// quyền ghi vào file này. Hai con số chép tay trôi khỏi nhau mà không gì báo — đúng thứ luật W9-25 sinh ra để chặn.
         /// </para>
+        /// </summary>
         internal const float TextFillMinimumWidth = 60f;
 
         /// <summary>
@@ -404,11 +404,11 @@ namespace DreamTech.LiveOps.Editor.Tests
         /// 0,5px vì <c>MeasureTextSize</c> và layout đều làm tròn theo pixelsPerPoint: dưới nửa pixel thì "dư" là nhiễu của
         /// phép đo chứ không phải chỗ trống có thật.
         /// </para>
-        /// </summary>
         /// <para>
         /// (cổng đợt W10, G-FIX-W10-1) Mở thành <c>internal</c> cùng lý do với <see cref="TextFillMinimumWidth"/>: ba bản
         /// chép tay trong test của G-W10-FIELD nay đọc thẳng hằng này.
         /// </para>
+        /// </summary>
         internal const float TextFillMinimumSlack = 0.5f;
 
         /// <summary>
