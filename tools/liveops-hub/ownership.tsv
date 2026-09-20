@@ -973,3 +973,24 @@ file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/RecurringRules/Recurring
 file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Controls/**	G-W10-FIELD	W9-30 — test đơn vị của ô giờ UTC ở trạng thái gõ hỏng
 file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Sections/**	G-W10-FIELD	W9-31 + W9-25 — test đơn vị của bảng Loại event, inspector chọn nhiều, bảng "Sắp diễn ra", câu luật
 file	tools/liveops-hub/ownership.tsv	G-W10-MATRIX	W10 — chính khối đăng ký này (ghi ở bước kế hoạch, ba gói KHÔNG đụng lại file này)
+
+# (W10, BỔ SUNG 21/9/2026) G-W10-THEME — đóng W10-03 + W10-06: màu ĐÃ HỢP THÀNH (token × opacity của tổ tiên × nền đục)
+#   trượt bậc WCAG ở 37 chỗ skin tối và 8 chỗ skin sáng. USER chốt 19/9 (tương phản theo WCAG cho CẢ MÀU ĐÃ HỢP THÀNH) là
+#   luật đã có, nên đây là THI HÀNH luật chứ không phải quyết định thiết kế mới; USER mở quyền ghi liveops-hub-theme.uss cho
+#   gói này (vốn thuộc G-HUBBASE) ở chốt 21/9.
+#   Vì sao chạm được cả liveops-hub-shell.uss: token --liveops-hub-color-text chỉ có tác dụng khi .liveops-hub-root thôi khai
+#   `color: var(--unity-colors-default-text)` — một dòng, cùng lúc với token, kẻo token khai ra mà không ai đọc.
+#   (LƯỢT SỬA 2, 21/9) Thêm quyền ghi liveops-hub-components.uss: soát hoài nghi tìm ra .liveops-hub-text--ok vẫn đặt màu
+#   CHỮ bằng var(--unity-colors-default-text) — cùng cái sai mà chính gói này kết tội, chỉ khác chỗ. Sửa ĐÚNG MỘT luật
+#   color trong file ấy, cộng một ca cổng quét mọi sheet hub để lối ấy không mở lại.
+#   VA CHẠM VĂN BẢN ĐÃ BIẾT với G-W10-MATRIX: cả hai sửa UxContrastTokenTests.cs (gói này THÊM một dòng vào bảng token cho
+#   token mới + sửa một chú thích nhắc #A3A3A3). Khai thẳng chứ không giấu: gộp MATRIX trước thì lượt gộp gói này phải đọc lại
+#   bảng token, và ngược lại.
+package	G-W10-THEME	W10	S	W9
+
+file	Packages/com.dreamtech.liveops/Editor/Hub/UI/liveops-hub-theme.uss	G-W10-THEME	W10-03 + W10-06 — nâng token màu chữ cho đủ 4,5:1 SAU khi nhân opacity của tổ tiên, ở cả hai skin
+file	Packages/com.dreamtech.liveops/Editor/Hub/UI/liveops-hub-shell.uss	G-W10-THEME	W10-06 — .liveops-hub-root đọc màu chữ nền tảng qua token thay vì thẳng biến Unity (một dòng)
+file	Packages/com.dreamtech.liveops/Editor/Hub/UI/liveops-hub-components.uss	G-W10-THEME	W10-06 (lượt sửa 2, phát hiện F1 của soát 21/9) — luật .liveops-hub-text--ok còn đặt màu CHỮ bằng var(--unity-colors-default-text): ở skin tối là #D2D2D2, đúng màu sinh ra phiếu, và giải theo skin ĐANG CHẠY chứ không theo class skin. Đổi sang token, ĐÚNG MỘT luật color; không gói W10 nào khác giữ file này (G-W10-HINT giữ timeline.uss, G-W10-FIELD giữ controls.uss) nên không va chạm văn bản trong đợt
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/UxGate/UxComposedTokenContrastTests.cs	G-W10-THEME	FILE MỚI — cổng tương phản cho màu ĐÃ HỢP THÀNH, chạy cho CẢ HAI theme trong một lượt; hằng nền đối chiếu số đo thật của skin đang chạy
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/UxGate/UxContrastTokenTests.cs	G-W10-THEME	W10-06 — khai token màu chữ nền tảng vào bảng token (trước W10 bảng đo mọi màu phụ mà bỏ trống màu chính)
+file	tools/liveops-hub/ownership.tsv	G-W10-THEME	W10 — chính khối đăng ký G-W10-THEME ở trên (USER mở quyền 21/9); gói không đụng dòng nào của ba gói W10 cũ
