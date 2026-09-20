@@ -777,9 +777,11 @@ namespace DreamTech.LiveOps.Editor
             // "lặp mỗi 7 ngày" nhưng "lặp mỗi 24 giờ" [SD1 §3.2]: chỉ đổi sang ngày khi chẵn ngày và dài hơn một ngày.
             if (hours > HoursPerDay && hours % HoursPerDay == 0)
             {
-                return (hours / HoursPerDay).ToString(CultureInfo.InvariantCulture) + " " + LiveOpsHubStrings.DurationDayUnit;
+                int days = hours / HoursPerDay;
+                // (W9-24) Đơn vị chọn vế theo chính con số đứng trước nó — "1 hour" chứ không "1 hours" ở bản tiếng Anh.
+                return days.ToString(CultureInfo.InvariantCulture) + " " + LiveOpsHubFormat.DayUnitOf(days);
             }
-            return hours.ToString(CultureInfo.InvariantCulture) + " " + LiveOpsHubStrings.DurationHourUnit;
+            return hours.ToString(CultureInfo.InvariantCulture) + " " + LiveOpsHubFormat.HourUnitOf(hours);
         }
 
         internal static HealthState StateOf(LiveEventCalendarConsequence consequence)

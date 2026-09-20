@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
-using System.Text.RegularExpressions;
 
 namespace DreamTech.LiveOps.Editor
 {
@@ -78,7 +77,12 @@ namespace DreamTech.LiveOps.Editor
         public const float LabelMinimumBarWidth = 24f;
         public const float LabelFullIdMinimumBarWidth = 64f;
         public const float LabelMinimumRoom = 8f;
+
+        /// <summary>Số ký tự tối thiểu của mẩu id còn lại (chưa kể "…") — dưới ngần này thì mẩu không còn đọc ra được gì.</summary>
         private const int LabelMinimumKeptCharacters = 3;
+
+        /// <summary>Dấu phân cách đoạn của id đợt ("weekly-pass-35") — chỗ DUY NHẤT nhãn thanh được phép rút (W9-23).</summary>
+        private const char IdentifierSegmentSeparator = '-';
 
         // Bắt lưới tự động [SD1 §3.2 bảng zoom]: 15 phút ở zoom Ngày, 1 giờ ở 3 tuần, 1 ngày ở Tháng. Ngưỡng nằm giữa các preset
         // (Ngày ≈ 26 px/giờ, 3 tuần ≈ 1,26, Tháng ≈ 0,63) để cửa sổ hẹp 820px (3 tuần còn 1,22 px/giờ) vẫn giữ bước của preset.
@@ -90,7 +94,6 @@ namespace DreamTech.LiveOps.Editor
         public const float MonthZoomWeekLabelMinimumRoom = 44f;
         public const int HourTickStepHours = 3;
 
-        private static readonly Regex OrdinalSuffixPattern = new Regex("^[0-9]{1,4}[a-z]?$", RegexOptions.CultureInvariant);
         private static readonly TimeSpan QuarterHour = TimeSpan.FromMinutes(15);
 
         private readonly float _trackWidth;
@@ -165,9 +168,22 @@ namespace DreamTech.LiveOps.Editor
         }
 
         /// <summary>
-        /// Thuật toán barLabel [SD1 §3.5]: <c>room = w − 12 − (changed ? 8 : 0)</c>; <c>w &lt; 24</c> hoặc <c>room &lt; 8</c> → không nhãn;
-        /// <c>w &lt; 64</c> → số thứ tự (hậu tố sau dấu "-" cuối khớp <c>^\d{1,4}[a-z]?$</c>) nếu vừa, không thì trống — id như
-        /// hunt-0916-bonus dựa vào tooltip; còn lại id đầy đủ, dài quá thì cắt giữa giữ <c>ceil(k/2)</c> đầu + "…" + <c>floor(k/2)</c> cuối.
+        /// Thuật toán barLabel [SD1 §3.5] cùng hai phiếu W9: <c>room = w − 12 − (changed ? 8 : 0)</c>; <c>w &lt; 24</c> hoặc
+        /// <c>room &lt; 8</c> → không nhãn.
+        /// <para>
+        /// (W9-UX31-NUMERIC) MỘT luật chung cho mọi bề rộng, thôi chia hai nhánh. Bản cũ ở dải 24–64px in hậu tố số TRẦN
+        /// ("0914", "09b", "38") — không dấu nào nói đó là mẩu, nên người đọc tưởng mẩu ấy là cả id; và
+        /// <c>LiveOpsTimelineLane.DroppedTagTextFor</c> thấy nhãn thân khác rỗng nên bỏ id khỏi tag "bị bỏ", thành ra với
+        /// thanh bị bỏ trong dải đó id không đọc được ở đâu cả. Nay mẩu LUÔN mang "…" (xem
+        /// <see cref="ShortenedIdentifier"/>) và tag đòi nhãn thân chứa ĐỦ id mới thôi nhắc lại id.
+        /// <para>
+        /// <c>w &lt; 64</c> KHÔNG trừ 13px icon lặp vì dưới ngưỡng đó <c>LiveOpsTimelineBar.Bind</c> không vẽ icon nào —
+        /// đây là lý do nhãn có thể NGẮN lại đúng lúc thanh vượt 64px: icon xuất hiện và lấy mất chỗ. Đánh đổi này có từ
+        /// bản đầu, không phải mới.
+        /// </para>
+        /// <para>
+        /// (W9-23) Dài quá chỗ thì rút TẠI DẤU PHÂN CÁCH — xem <see cref="ShortenedIdentifier"/>.
+        /// </para>
         /// </summary>
         public static string BarLabel(string eventId, float width, bool isRecurring, bool isChanged)
         {
@@ -175,24 +191,42 @@ namespace DreamTech.LiveOps.Editor
             float room = width - LabelHorizontalPadding - (isChanged ? ChangedMarkerReserve : 0f);
             if (width < LabelMinimumBarWidth || room < LabelMinimumRoom || identifier.Length == 0) return string.Empty;
 
-            if (width < LabelFullIdMinimumBarWidth)
+            bool reservesRecurringIcon = isRecurring && width >= LabelFullIdMinimumBarWidth;
+            float textRoom = room - (reservesRecurringIcon ? RecurringIconReserve : 0f);
+            int maximumCharacters = (int)Math.Floor(textRoom / LabelCharacterWidth);
+            if (maximumCharacters <= 0) return string.Empty;
+            if (identifier.Length <= maximumCharacters) return identifier;
+            return ShortenedIdentifier(identifier, maximumCharacters);
+        }
+
+        /// <summary>
+        /// (W9-23) Mẩu id vừa <paramref name="maximumCharacters"/> ký tự, luôn mang "…" ở phía bị bỏ, và mẩu còn lại phải là
+        /// hậu tố hoặc tiền tố THẬT của id. Bản cũ cắt GIỮA theo ký tự nên "weekly-pass-35" ra "weekly…ass-35" — "ass-35"
+        /// không phải mẩu nào của id, đọc lên là một chữ lạ.
+        /// <para>
+        /// Ưu tiên HẬU TỐ: các đợt cùng một làn dùng chung phần đầu ("weekly-pass-35", "weekly-pass-36"), nên phần đuôi mới
+        /// là chỗ phân biệt chúng. Duyệt dấu phân cách từ TRÁI sang phải nên hậu tố nhận được là hậu tố DÀI NHẤT còn vừa chỗ.
+        /// Không hậu tố nào vừa (id chỉ một đoạn, hoặc đoạn cuối đã dài hơn chỗ còn lại) thì giữ tiền tố thật — "star-…" vẫn
+        /// đọc ra được đầu id, còn tên đầy đủ nằm ở tooltip và ở inspector.
+        /// </para>
+        /// </summary>
+        private static string ShortenedIdentifier(string identifier, int maximumCharacters)
+        {
+            string ellipsis = LiveOpsHubStrings.TimelineBarLabelEllipsis;
+            // Dừng trước ký tự cuối: dấu phân cách đứng cuối id không mở ra hậu tố nào.
+            for (int position = 0; position < identifier.Length - 1; position++)
             {
-                int separatorIndex = identifier.LastIndexOf('-');
-                string suffix = separatorIndex >= 0 ? identifier.Substring(separatorIndex + 1) : identifier;
-                if (!OrdinalSuffixPattern.IsMatch(suffix)) return string.Empty;
-                return suffix.Length * LabelCharacterWidth <= room ? suffix : string.Empty;
+                if (identifier[position] != IdentifierSegmentSeparator) continue;
+                int suffixStart = position + 1;
+                if (ellipsis.Length + identifier.Length - suffixStart <= maximumCharacters)
+                {
+                    return ellipsis + identifier.Substring(suffixStart);
+                }
             }
 
-            float textRoom = room - (isRecurring ? RecurringIconReserve : 0f);
-            int maximumCharacters = (int)Math.Floor(textRoom / LabelCharacterWidth);
-            if (identifier.Length <= maximumCharacters) return identifier;
-
-            int keptCharacters = Math.Max(LabelMinimumKeptCharacters, maximumCharacters - 1);
-            if (keptCharacters >= identifier.Length) return identifier;
-            int headLength = (keptCharacters + 1) / 2;
-            int tailLength = keptCharacters / 2;
-            return identifier.Substring(0, headLength) + LiveOpsHubStrings.TimelineBarLabelEllipsis +
-                   identifier.Substring(identifier.Length - tailLength);
+            int keptCharacters = maximumCharacters - ellipsis.Length;
+            if (keptCharacters < LabelMinimumKeptCharacters) return string.Empty;
+            return identifier.Substring(0, keptCharacters) + ellipsis;
         }
 
         /// <summary>Ngày: 00:00 hôm nay (khoảng 24 giờ, PD-18). 3 tuần/Tháng: 00:00 của 5 ngày trước hôm nay — mẫu 13/9 08:47 → 8/9.</summary>

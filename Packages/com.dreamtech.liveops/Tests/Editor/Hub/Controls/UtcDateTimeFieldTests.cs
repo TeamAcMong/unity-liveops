@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Reflection;
 using NUnit.Framework;
 using UnityEngine;
@@ -18,6 +19,35 @@ namespace DreamTech.LiveOps.Editor.Tests
     public sealed class UtcDateTimeFieldTests
     {
         private static readonly TimeSpan DeviceOffset = TimeSpan.FromHours(7);
+
+        /// <summary>
+        /// Bề rộng ô ngày sau W9-19: 88px = 78px vùng nội dung (chữ 75px ở 2022.3 + 1,5px dư mỗi bên) + 8px đệm "padding 0 4"
+        /// mà [SD1 §3.1] pin + 2px viền của chính TextInput. Hai px viền ấy là phần phiếu W9-19 chưa trừ khi đề nghị dải 80–84.
+        /// </summary>
+        private const float DateInputWidth = 88f;
+
+        /// <summary>
+        /// Ngày dài nhất ô phải chứa được. Mọi ngày của hub viết dạng <c>yyyy-MM-dd</c> bằng font mono nên 10 ký tự nào cũng
+        /// rộng như nhau; chọn đúng chuỗi mà lượt W8-UX3 đo được 75px trên 2022.3 để con số của test so được với con số ấy.
+        /// </summary>
+        private const string LongestDateText = "2026-09-10";
+
+        /// <summary>
+        /// Khe tối thiểu mỗi bên giữa chữ và mép vùng nội dung của ô. Vì sao phải có một con số: bản trước chỉ kiểm "đã cắt
+        /// chưa", mà ô 76px chứa chữ 75px thì chưa cắt — dư 0,5px mỗi bên, và một đổi metric font (bản Unity khác, DPI khác,
+        /// cỡ chữ Editor khác) là cắt lại mà không test nào đỏ (W9-19).
+        /// </summary>
+        private const float RequiredTextSlackPerSide = 1.5f;
+
+        /// <summary>
+        /// Sai số của PHÉP ĐO, tách bạch với ngưỡng thiết kế ở trên: <c>MeasureTextSize</c> và lượt vẽ thật làm tròn lệch nhau
+        /// vài phần mười px ở cả hai bản Unity (cùng con số 1,5px mà <c>CalendarInspectorUxFixTests</c> dùng cho mọi phép đo
+        /// chữ). Vì sao phải cộng vào: theo số của gói, 2022.3 đạt ngưỡng BẰNG ĐÚNG (chữ 75px, vùng nội dung 78px = 88 − 8 đệm
+        /// − 2 viền, tức dư đúng 1,5px mỗi bên) nên assert không dung sai sẽ đỏ vì một phần mười pixel làm tròn — thành ca chập
+        /// chờn tiếp theo, đúng chủng loại W9-16. NGƯỠNG là <see cref="RequiredTextSlackPerSide"/> × 2 = 3,0px; con số này CHỈ
+        /// bù sai số đo và KHÔNG phải một phần của khe hở.
+        /// </summary>
+        private const float TextMeasureTolerance = 1.5f;
 
         private ControlsTestPanel _panel;
 
@@ -62,7 +92,7 @@ namespace DreamTech.LiveOps.Editor.Tests
             CollectionAssert.AreEqual(new[] { "2026-09-16|12:00", "2026-09-16|00:00", "2026-09-18|00:00" }, commits,
                 "ba lần chốt chữ = ba lần báo, không lần nào lặng lẽ");
 
-            Assert.AreEqual(76f, field.DateInput.layout.width, 0.5f, "ô ngày 76px ([SD1 §3.1])");
+            Assert.AreEqual(DateInputWidth, field.DateInput.layout.width, 0.5f, "ô ngày 88px (W9-19: chữ + đệm 4+4 của [SD1 §3.1] + 2px viền TextInput)");
             Assert.AreEqual(44f, field.TimeInput.layout.width, 0.5f, "ô giờ 44px");
             LogAssert.NoUnexpectedReceived();
         }
@@ -371,6 +401,37 @@ namespace DreamTech.LiveOps.Editor.Tests
         public void UtcField_ToAssetText_UsesCanonicalOnlyWhenReadable(string dateText, string timeText, string expected)
         {
             Assert.AreEqual(expected, LiveOpsUtcDateTimeField.ToAssetText(dateText, timeText));
+        }
+
+        /// <summary>
+        /// (W9-19) Ô ngày phải còn KHE HỞ cho chữ dài nhất, không chỉ "chưa cắt". Đo bằng chính font của ô (class mono nằm trên
+        /// ô, nên <c>MeasureTextSize</c> ở đây trả đúng con số người dùng thấy) và so với vùng NỘI DUNG của TextInput — vùng
+        /// sau khi trừ đệm, tức đúng chỗ Unity cắt chữ.
+        /// </summary>
+        [UnityTest]
+        public IEnumerator UtcField_DateInput_KeepsSlackForTheLongestDateText()
+        {
+            LiveOpsUtcDateTimeField field = CreateField(false);
+            yield return ControlsTestPanel.WaitForLayout(field);
+            field.SetRawTextWithoutNotify(LongestDateText, "12:00");
+            yield return null;
+
+            VisualElement input = InputOf(field.DateInput);
+            Assert.IsNotNull(input, "không tìm thấy TextInput của ô ngày — không có chỗ nào đo được vùng nội dung thật");
+            float needed = field.DateInput.MeasureTextSize(LongestDateText, 0f, VisualElement.MeasureMode.Undefined,
+                0f, VisualElement.MeasureMode.Undefined).x;
+            float available = input.contentRect.width;
+
+            Assert.Greater(needed, 0f, "đo chữ trả 0px — phép đo hỏng thì ca này thành lời khai suông");
+            Assert.GreaterOrEqual(available + TextMeasureTolerance, needed + (2f * RequiredTextSlackPerSide),
+                "chữ ngày \"" + LongestDateText + "\" cần " + needed.ToString("0.#", CultureInfo.InvariantCulture)
+                + "px, vùng nội dung của ô có " + available.ToString("0.#", CultureInfo.InvariantCulture)
+                + "px — NGƯỠNG là dư " + RequiredTextSlackPerSide.ToString("0.#", CultureInfo.InvariantCulture)
+                + "px mỗi bên (tổng " + (2f * RequiredTextSlackPerSide).ToString("0.#", CultureInfo.InvariantCulture)
+                + "px) để một đổi metric font không cắt chữ trong im lặng, cộng "
+                + TextMeasureTolerance.ToString("0.#", CultureInfo.InvariantCulture)
+                + "px DUNG SAI ĐO của MeasureTextSize (W9-19)");
+            LogAssert.NoUnexpectedReceived();
         }
 
         private static VisualElement InputOf(TextField textField)

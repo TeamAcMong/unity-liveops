@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using DreamTech.LiveOps.Tests;
 using UnityEditor;
+using UnityEngine.UIElements;
 
 namespace DreamTech.LiveOps.Editor.Tests
 {
@@ -48,12 +49,24 @@ namespace DreamTech.LiveOps.Editor.Tests
             scenarios.Add(new LiveOpsHubCaptureScenario(LiveOpsHubCaptureScenarioIds.H14dRecurringActiveLonger, StandardWidth, StandardHeight,
                 OpenRecurringActiveLonger));
 
+            // W9-22(c): màn Luật lặp ở cỡ HẸP NHẤT của ma trận, đã cuộn tới card "đợt kế tiếp". Ở 700x560 card nằm dưới
+            // lằn cuộn nên không ảnh nào của màn này từng cho thấy nó — mà đây đúng là chỗ lượt 3 vừa sửa bố cục (cột "Lúc
+            // này" xuống dòng riêng dưới 1100px), tức là phần đang thiếu ảnh lại là phần vừa đổi nhiều nhất.
+            // Khai expectedFrames RIÊNG: bảng mặc định của measure-capture.py là bảng của MỘT cỡ cửa sổ thiết kế (1280x760)
+            // với rail rộng 196 và cột nội dung rộng 1084. Ảnh này cố tình chụp ở 700x560, nơi rail thu về bậc hẹp 36px theo
+            // thiết kế, nên hai con số bề RỘNG kia sai vai ở đây — để nguyên thì ảnh báo lệch dù giao diện đúng (đo được ở
+            // lượt chụp đầu: 2 dòng lệch, đúng hai dòng đó). Giữ ba con số KHÔNG phụ thuộc cỡ cửa sổ, cùng cách mà ma trận
+            // ux-sizes đã chốt ở G-FIX-UX-2.
+            scenarios.Add(new LiveOpsHubCaptureScenario(LiveOpsHubCaptureScenarioIds.H14fRecurringOccurrencesScrolled,
+                    RecurringOccurrencesNarrowWidth, RecurringOccurrencesNarrowHeight, OpenRecurringDefault)
+                .WithAfterLayout(ScrollToRecurringOccurrences)
+                .WithExpectedFrames(UxSizeInvariantFrames()));
+
             scenarios.Add(new LiveOpsHubCaptureScenario(LiveOpsHubCaptureScenarioIds.H08eConfirmPrefixTypeToConfirm,
                     (int)LiveOpsConfirmWindow.Width, (int)LiveOpsConfirmWindow.TypeToConfirmHeight,
                     () => OpenConfirm(ConfirmLevel2SampleRequest(), RecurringTypedPrefixText),
                     window => ((LiveOpsConfirmWindow)window).Content)
-                .WithExpectedFrames(new LiveOpsHubCaptureExpectedFrame(LiveOpsConfirmContent.RootElementName, LiveOpsConfirmWindow.Width,
-                    LiveOpsConfirmWindow.TypeToConfirmHeight)));
+                .WithExpectedFrames(ConfirmRootExpectedFrame()));
         }
 
         /// <summary>
@@ -72,7 +85,8 @@ namespace DreamTech.LiveOps.Editor.Tests
             {
                 new LiveOpsHubCaptureExpectedFrame(LiveOpsHubClassNames.Rail, ShellRailWidth, 0f),
                 new LiveOpsHubCaptureExpectedFrame(LiveOpsHubClassNames.Header, 0f, ShellHeaderHeight),
-                new LiveOpsHubCaptureExpectedFrame(LiveOpsHubClassNames.SectionHeader, 0f, ShellSectionHeaderHeight),
+                new LiveOpsHubCaptureExpectedFrame(LiveOpsHubClassNames.SectionHeader, 0f, ShellSectionHeaderHeight)
+                    .WithHeightBelowWindowWidth(LiveOpsHubBreakpoints.MediumBelowWidth, ShellSectionHeaderHeightBelowMedium),
                 new LiveOpsHubCaptureExpectedFrame(LiveOpsHubClassNames.Status, 0f, ShellStatusHeight),
                 new LiveOpsHubCaptureExpectedFrame(LiveOpsHubClassNames.Content, ShellContentWidth, 0f),
                 extraFrame,
@@ -82,11 +96,38 @@ namespace DreamTech.LiveOps.Editor.Tests
         private const float ShellRailWidth = 196f;
         private const float ShellHeaderHeight = 26f;
         private const float ShellSectionHeaderHeight = 36f;
+
+        /// <summary>Header màn ở cửa sổ hẹp hơn 1100px cao 61 (W9-01) — xem chú thích của UxSizeInvariantFrames.</summary>
+        private const float ShellSectionHeaderHeightBelowMedium = 61f;
         private const float ShellStatusHeight = 20f;
         private const float ShellContentWidth = 1084f;
 
         /// <summary>Mockup Hình 8 ô 5 đang gõ thiếu ký tự cuối của "weekly-pass-35".</summary>
         private const string RecurringTypedPrefixText = "weekly-pass-3";
+
+        /// <summary>Cỡ HẸP NHẤT của ma trận cỡ W8-UX — chỗ card "đợt kế tiếp" rơi xuống dưới lằn cuộn.</summary>
+        private const int RecurringOccurrencesNarrowWidth = 700;
+
+        private const int RecurringOccurrencesNarrowHeight = 560;
+
+        /// <summary>
+        /// Cuộn tới card "đợt kế tiếp" SAU khi cửa sổ có layout. Gọi trong lúc mở cửa sổ thì không làm gì: viewport của
+        /// ScrollView lúc đó còn cao 0 nên <c>ScrollTo</c> không có gì để cuộn. Không tìm thấy card hay không có ScrollView
+        /// nào bọc nó thì để nguyên — ảnh sẽ cho thấy đúng chỗ đó thiếu, còn ném ở đây chỉ làm hỏng cả lượt chụp.
+        /// </summary>
+        private static void ScrollToRecurringOccurrences(EditorWindow window)
+        {
+            VisualElement table = window.rootVisualElement.Q(RecurringNextOccurrencesTable.ElementName);
+            if (table == null) return;
+            for (VisualElement current = table.hierarchy.parent; current != null; current = current.hierarchy.parent)
+            {
+                if (current is ScrollView scrollView)
+                {
+                    scrollView.ScrollTo(table);
+                    return;
+                }
+            }
+        }
 
         private static EditorWindow OpenRecurringDefault()
         {

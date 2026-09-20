@@ -14,6 +14,13 @@
         <ui:VisualElement name="event-types-content" class="liveops-hub-event-types-content">
             <ui:VisualElement name="event-types-table-column" class="liveops-hub-event-types-table-column">
                 <ui:VisualElement name="event-types-table-host" class="liveops-hub-event-types-table-host" />
+                <!--
+                    (W9-05, soát R-01) Dòng khai báo cột bị ẩn. Bảng bỏ bớt cột phụ ở cửa sổ hẹp; giấu mà không nói là
+                    người đọc tưởng bảng chỉ có bấy nhiêu cột. Icon được C# chèn vào đầu hàng (icon lấy từ LiveOpsHubIcons).
+                -->
+                <ui:VisualElement name="event-types-columns-hidden-note" class="liveops-hub-event-types-columns-hidden-note liveops-hub-event-types-hidden">
+                    <ui:Label name="event-types-columns-hidden-note-text" class="liveops-hub-event-types-columns-hidden-note-text" />
+                </ui:VisualElement>
                 <ui:Label name="event-types-footer" class="liveops-hub-event-types-footer" />
                 <ui:VisualElement name="event-types-unknown-bar" class="liveops-hub-event-types-unknown-bar" />
                 <ui:VisualElement name="event-types-reference-card" class="liveops-hub-card liveops-hub-event-types-reference-card" />

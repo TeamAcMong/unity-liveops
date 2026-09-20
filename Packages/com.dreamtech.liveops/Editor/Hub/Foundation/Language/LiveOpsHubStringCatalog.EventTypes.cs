@@ -38,6 +38,10 @@ namespace DreamTech.LiveOps.Editor
                 vietnamese: "Đợt",
                 english: "Events");
 
+            table.Add(nameof(LiveOpsHubStrings.EventTypesHiddenColumnsNoteFormat),
+                vietnamese: "Cửa sổ hẹp nên bảng đang ẩn cột: {0}. Nới rộng cửa sổ để bảng hiện lại, hoặc đọc đủ mọi giá trị của loại đang chọn ở pane chi tiết bên phải.",
+                english: "The window is narrow, so the table is hiding these columns: {0}. Widen the window to bring them back, or read every value of the selected type in the detail pane on the right.");
+
             table.Add(nameof(LiveOpsHubStrings.EventTypesEntrySelfJoin),
                 vietnamese: "Tự vào",
                 english: "Joins automatically");

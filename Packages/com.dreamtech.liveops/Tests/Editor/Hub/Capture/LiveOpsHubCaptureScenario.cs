@@ -41,6 +41,22 @@ namespace DreamTech.LiveOps.Editor.Tests
         /// <summary>Việc dọn sau khi chụp xong (xoá asset tạm…); null = không có gì để dọn.</summary>
         public Action Cleanup { get; private set; }
 
+        /// <summary>
+        /// Việc chạy MỘT LẦN sau khi cửa sổ đã có layout và trước khi chụp; null = không có.
+        /// <para>
+        /// Cần cho trạng thái chỉ dựng được KHI ĐÃ BIẾT kích thước thật: cuộn tới một card nằm dưới lằn cuộn là ví dụ —
+        /// <c>ScrollView.ScrollTo</c> gọi trong <see cref="OpenWindow"/> không làm gì cả vì lúc đó viewport còn cao 0. Lệnh
+        /// chụp chờ thêm <c>AfterLayoutSettleFrames</c> khung sau khi chạy nó để lượt dựng lại do nó gây ra kịp xong.
+        /// </para>
+        /// </summary>
+        public Action<EditorWindow> AfterLayout { get; private set; }
+
+        public LiveOpsHubCaptureScenario WithAfterLayout(Action<EditorWindow> afterLayout)
+        {
+            AfterLayout = afterLayout;
+            return this;
+        }
+
         /// <summary>Số khung mong đợi riêng của kịch bản (ghi đè bảng mặc định của measure-capture.py); rỗng = bảng mặc định.</summary>
         public IReadOnlyList<LiveOpsHubCaptureExpectedFrame> ExpectedFrames { get; private set; }
 
@@ -87,14 +103,52 @@ namespace DreamTech.LiveOps.Editor.Tests
     internal sealed class LiveOpsHubCaptureExpectedFrame
     {
         public LiveOpsHubCaptureExpectedFrame(string element, float width, float height)
+            : this(element, width, height, 0f)
+        {
+        }
+
+        public LiveOpsHubCaptureExpectedFrame(string element, float width, float height, float tolerance)
         {
             Element = element ?? throw new ArgumentNullException(nameof(element));
             Width = width;
             Height = height;
+            Tolerance = tolerance;
         }
 
         public string Element { get; }
         public float Width { get; }
         public float Height { get; }
+
+        /// <summary>
+        /// Sai số RIÊNG của khung này (px); 0 = dùng sai số chung <c>--tolerance</c> của <c>measure-capture.py</c>.
+        /// <para>
+        /// Chỉ khai khi con số đo được là số của FONT chứ không phải số thiết kế — chiều cao một dòng chữ là ví dụ duy nhất
+        /// hiện có. Khai sai số riêng cho một khung như vậy vẫn giữ được câu khẳng định thật ("đúng MỘT dòng, và nó đang
+        /// hiện") trong khi không phải nới sai số chung cho cả bộ ảnh, thứ sẽ làm mọi khung thiết kế khác dễ dãi theo.
+        /// </para>
+        /// </summary>
+        public float Tolerance { get; }
+
+        /// <summary>Ngưỡng bề rộng CỬA SỔ mà dưới đó khung có số thiết kế khác; 0 = khung không đổi theo cỡ cửa sổ.</summary>
+        public float NarrowWindowWidth { get; private set; }
+
+        /// <summary>Chiều cao thiết kế khi cửa sổ hẹp hơn <see cref="NarrowWindowWidth"/>.</summary>
+        public float NarrowHeight { get; private set; }
+
+        /// <summary>
+        /// Khai luật "dưới bề rộng cửa sổ này thì chiều cao thiết kế là số khác" (W9-01). Đây là HAI số thiết kế, không
+        /// phải một số với sai số rộng ra: cả hai đều phải đúng, chỉ khác nhau ở bên nào của ngưỡng. Header màn là chỗ
+        /// đầu tiên cần nó — dưới 1100px phụ đề xuống dòng và nhóm nút xuống dòng riêng nên header cao 61 thay vì 36.
+        /// </summary>
+        public LiveOpsHubCaptureExpectedFrame WithHeightBelowWindowWidth(float windowWidth, float height)
+        {
+            if (windowWidth <= 0f) throw new ArgumentOutOfRangeException(nameof(windowWidth));
+            if (height <= 0f) throw new ArgumentOutOfRangeException(nameof(height));
+            return new LiveOpsHubCaptureExpectedFrame(Element, Width, Height, Tolerance)
+            {
+                NarrowWindowWidth = windowWidth,
+                NarrowHeight = height,
+            };
+        }
     }
 }

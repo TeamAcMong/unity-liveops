@@ -23,6 +23,14 @@ namespace DreamTech.LiveOps.Editor
         internal static string DurationDayUnit => LiveOpsHubStringCatalog.Text(nameof(DurationDayUnit));
         internal static string DurationHourUnit => LiveOpsHubStringCatalog.Text(nameof(DurationHourUnit));
         internal static string DurationMinuteUnit => LiveOpsHubStringCatalog.Text(nameof(DurationMinuteUnit));
+
+        // (W9-24) Vế SỐ ÍT của ba đơn vị trên. Bản tiếng Anh đọc "1 day" nhưng "0 days"/"2 days" (luật số ít/số nhiều
+        // Q-W5-2); tiếng Việt không chia số nên hai vế cùng một chữ, nhưng vẫn phải là KHOÁ RIÊNG để bảng chữ khai đủ hai
+        // dạng — nơi gọi chọn vế theo số, không chỗ nào tự nối chuỗi "days" cho n = 1 nữa.
+        internal static string DurationDayUnitSingular => LiveOpsHubStringCatalog.Text(nameof(DurationDayUnitSingular));
+        internal static string DurationHourUnitSingular => LiveOpsHubStringCatalog.Text(nameof(DurationHourUnitSingular));
+        internal static string DurationMinuteUnitSingular => LiveOpsHubStringCatalog.Text(nameof(DurationMinuteUnitSingular));
+
         internal static string CompactDayUnit => LiveOpsHubStringCatalog.Text(nameof(CompactDayUnit));
         internal static string CompactHourUnit => LiveOpsHubStringCatalog.Text(nameof(CompactHourUnit));
         internal static string CompactMinuteUnit => LiveOpsHubStringCatalog.Text(nameof(CompactMinuteUnit));

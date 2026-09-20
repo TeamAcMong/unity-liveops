@@ -38,6 +38,13 @@ namespace DreamTech.LiveOps.Editor
         // Footer bảng.
         internal static string EventTypesFooterFormat => LiveOpsHubStringCatalog.Text(nameof(EventTypesFooterFormat));
 
+        /// <summary>
+        /// Dòng khai báo dưới bảng khi cửa sổ hẹp làm bảng phải bỏ bớt cột phụ (W9-05, soát R-01). {0} = tên các cột đang bị
+        /// ẩn, nối bằng <see cref="EventTypesListSeparator"/>. Câu KHÔNG có số đếm nên không vướng luật số ít/số nhiều
+        /// tiếng Anh (Q-W5-2): liệt kê thẳng tên cột đọc ra việc cụ thể hơn hẳn một con số.
+        /// </summary>
+        internal static string EventTypesHiddenColumnsNoteFormat => LiveOpsHubStringCatalog.Text(nameof(EventTypesHiddenColumnsNoteFormat));
+
         // Ô màu: tên tám ô [FD §2.5] và hai cách gọi tên ô ("ô 7" khi chỉ nói số, "ô 6 steel" khi nói cả tên).
         internal static string EventTypesColorSlotNumberFormat => LiveOpsHubStringCatalog.Text(nameof(EventTypesColorSlotNumberFormat));
         internal static string EventTypesColorSlotNamedFormat => LiveOpsHubStringCatalog.Text(nameof(EventTypesColorSlotNamedFormat));
