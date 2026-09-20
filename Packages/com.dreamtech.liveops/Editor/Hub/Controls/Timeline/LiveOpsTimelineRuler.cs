@@ -44,12 +44,21 @@ namespace DreamTech.LiveOps.Editor
         private const float DayLabelPaddingLeft = 2f;
 
         /// <summary>
-        /// (UX-17) Bề rộng một ký tự của nhãn tầng 1. Lớn hơn <c>LiveOpsTimelineGeometry.LabelCharacterWidth</c> (5,6px) vì
-        /// tầng này có <c>letter-spacing: 0.5px</c> và mốc tháng còn <c>-unity-font-style: bold</c>. Đo thật trên
-        /// 6000.6: "THÁNG 3 2027" (12 ký tự) vẽ ra 76px, tức 6,33px/ký tự — ước bằng 5,6 thì thiếu gần 9px và nhãn sát
-        /// mép track bị cắt dù phép tính bảo là vừa.
+        /// (UX-17) Bề rộng một ký tự của nhãn tầng 1 — vừa là chỗ GIỮ CHỖ để nhãn không chồng nhau, vừa là BỀ RỘNG Ô thật
+        /// của nhãn (xem <see cref="BindMonthTierLabels"/>). Lớn hơn <c>LiveOpsTimelineGeometry.LabelCharacterWidth</c>
+        /// (5,6px) vì tầng này có <c>letter-spacing: 0.5px</c> và mốc tháng còn <c>-unity-font-style: bold</c>. Đo thật
+        /// trên 6000.6: "THÁNG 3 2027" (12 ký tự) vẽ ra 76px, tức 6,33px/ký tự — ước bằng 5,6 thì thiếu gần 9px và nhãn
+        /// sát mép track bị cắt dù phép tính bảo là vừa.
+        /// <para>
+        /// (W9-25 chỗ #7) Vì sao 7,2 chứ không 6,4 nữa: trước W10 nhãn tầng 1 để <c>width: auto</c>, nên ô của nó ÔM KHÍT
+        /// chữ — đo trên 2022.3 "THÁNG 11 2026" được ô 78px cho chữ 77px, dư đúng 1px, và một lần đổi metric phông là cắt
+        /// im lặng một mốc tháng thành "THÁNG 3 20" (một mốc KHÔNG có thật). Ô nay ghi thẳng theo hằng này nên khoảng dư
+        /// là số ĐO ĐƯỢC: 7,2 so với 6,33px/ký tự đo thật để lại ≥ 12% dư ở cả hai bản Unity và cả hai ngôn ngữ — trên
+        /// ngưỡng 5% của luật "chữ chiếm > 95% bề rộng ô". Giữ chỗ rộng thêm 12,5% cũng chỉ làm nhãn nhường nhau SỚM hơn,
+        /// không bao giờ làm nhãn bị cắt.
+        /// </para>
         /// </summary>
-        private const float MonthTierLabelCharacterWidth = 6.4f;
+        private const float MonthTierLabelCharacterWidth = 7.2f;
 
         private const string ClockFormat = "HH:mm";
         private const float LineWidth = 1f;
@@ -281,7 +290,9 @@ namespace DreamTech.LiveOps.Editor
                     if (pulledLeft < nextFreeX) continue;
                     left = pulledLeft;
                 }
-                BindLabel(LabelAt(_monthLabels, MonthTier, visibleCount++), tick, float.NaN, string.Empty, left);
+                // (W9-25 chỗ #7) Ô của nhãn ghi thẳng bằng chỗ đã GIỮ, không để `width: auto`: ô tự co ôm khít chữ nên
+                // không đo được khoảng dư, còn ô theo chỗ giữ thì dư ≥ 12% và luật "chữ chiếm > 95% ô" có số để kiểm.
+                BindLabel(LabelAt(_monthLabels, MonthTier, visibleCount++), tick, tick.X + width, string.Empty, left);
                 nextFreeX = left + width + MonthTierLabelGap;
             }
             return visibleCount;

@@ -767,11 +767,20 @@
     font-size: 10px;
 }
 
+/* (W9-29) Dòng gợi ý CAO THEO NỘI DUNG, không còn 18px cố định.
+   Vì sao đổi: vế phím tắt (⌘⌫ xoá, ⌘D nhân bản) luôn đứng CUỐI câu còn ellipsis luôn cắt từ CUỐI, nên ở cửa sổ hẹp thứ
+   mất đầu tiên đúng là thứ quan trọng nhất — và dòng gợi ý là chỗ DUY NHẤT trong hub nói ra hai phím ấy. Đo thật ngày
+   20/9/2026 trên hub 6000.6 (plan/w10/logs/hubhintprobe.txt): câu "đợt bị bỏ" cần 402px (vi) / 502px (en) mà chỗ cho
+   phần mô tả chỉ có 274px ở cửa sổ 700, 394px ở 820, 364px ở 950 và 438px ở 1024 (en) — bốn cỡ mất phím.
+   Cách chữa theo chốt của user ("cho xuống hai hàng"): bỏ chiều cao cố định, giữ SÀN 18px và cho phần mô tả xuống dòng.
+   Không sinh chuỗi hiển thị mới, không bậc cỡ riêng: chỗ rộng thì câu vẫn nằm một hàng đúng 18px như cũ, chỗ hẹp thì nó
+   gập xuống. Bậc cỡ bị loại vì ở 1280 phần mô tả en còn ĐÚNG 502px cho câu cần 502px — một bậc ngưỡng sẽ đặt cổng ngay
+   trên mép vực, còn gập theo nội dung thì không có mép nào để rơi. */
 .liveops-hub-timeline-hint {
     flex-direction: row;
     align-items: center;
     flex-shrink: 0;
-    height: 18px;
+    min-height: 18px;
     padding: 0 8px;
     border-top-width: 1px;
     border-color: var(--unity-colors-window-border);
@@ -779,12 +788,21 @@
     overflow: hidden;
 }
 
+/* (W9-25 chỗ #2) Id đợt xuống dòng được thay vì ôm khít một hàng: ô tự co theo chữ nên ellipsis ngang không bao giờ cứu
+   được nó, mà id dài (mẫu xấu nhất) lại đẩy hẳn phần mô tả — kèm cụm phím — ra khỏi hàng. Cho phép gập là đường DUY NHẤT
+   giữ được cả id lẫn cụm phím khi id dài hơn chỗ có; UI Toolkit ngắt được ở dấu gạch nối nên id kiểu "treasure-hunt-…"
+   gập thật chứ không tràn (đo ngày 20/9/2026: id 54 ký tự ở cửa sổ 700 xuống 3 hàng, vẫn đọc đủ).
+   `flex-shrink: 1` (KHÔNG phải `max-width`): thử `max-width: 50%` trước và đo ra sai — Yoga đo chiều cao chữ ở bề rộng
+   TRƯỚC khi kẹp max-width, nên nhãn id dài nhận ô cao 40px cho phần chữ cần 66px và mất hai hàng cuối trong im lặng
+   (test `HintLine_ReadsWhole…` bắt đúng chỗ đó). Cho co theo tỉ lệ thì Yoga đo lại sau khi co nên chiều cao luôn khớp.
+   Giá phải trả, khai thẳng: ở cửa sổ hẹp nhất id ngắn cũng có thể xuống hai hàng — đổi lấy việc không câu nào mất chữ. */
 .liveops-hub-timeline-hint-subject {
     padding: 0;
     margin: 0 4px 0 0;
     font-size: 10px;
     -unity-font-style: bold;
-    flex-shrink: 0;
+    flex-shrink: 1;
+    white-space: normal;
 }
 
 .liveops-hub-timeline-hint-text {
@@ -793,9 +811,7 @@
     margin: 0;
     font-size: 10px;
     opacity: 0.82;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    white-space: normal;
 }
 
 /* ============================================================================================ G-OPT-TIMELINE (P1-lùi, Hình 12)
