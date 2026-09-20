@@ -85,7 +85,8 @@ namespace DreamTech.LiveOps.Editor.Tests
             {
                 new LiveOpsHubCaptureExpectedFrame(LiveOpsHubClassNames.Rail, ShellRailWidth, 0f),
                 new LiveOpsHubCaptureExpectedFrame(LiveOpsHubClassNames.Header, 0f, ShellHeaderHeight),
-                new LiveOpsHubCaptureExpectedFrame(LiveOpsHubClassNames.SectionHeader, 0f, ShellSectionHeaderHeight),
+                new LiveOpsHubCaptureExpectedFrame(LiveOpsHubClassNames.SectionHeader, 0f, ShellSectionHeaderHeight)
+                    .WithHeightBelowWindowWidth(LiveOpsHubBreakpoints.MediumBelowWidth, ShellSectionHeaderHeightBelowMedium),
                 new LiveOpsHubCaptureExpectedFrame(LiveOpsHubClassNames.Status, 0f, ShellStatusHeight),
                 new LiveOpsHubCaptureExpectedFrame(LiveOpsHubClassNames.Content, ShellContentWidth, 0f),
                 extraFrame,
@@ -95,6 +96,9 @@ namespace DreamTech.LiveOps.Editor.Tests
         private const float ShellRailWidth = 196f;
         private const float ShellHeaderHeight = 26f;
         private const float ShellSectionHeaderHeight = 36f;
+
+        /// <summary>Header màn ở cửa sổ hẹp hơn 1100px cao 61 (W9-01) — xem chú thích của UxSizeInvariantFrames.</summary>
+        private const float ShellSectionHeaderHeightBelowMedium = 61f;
         private const float ShellStatusHeight = 20f;
         private const float ShellContentWidth = 1084f;
 
