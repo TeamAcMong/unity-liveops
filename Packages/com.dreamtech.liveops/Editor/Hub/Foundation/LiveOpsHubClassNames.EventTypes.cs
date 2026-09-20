@@ -88,5 +88,18 @@ namespace DreamTech.LiveOps.Editor
         /// inspector rộng 240–300px, một dòng không bao giờ đủ cho bản tiếng Anh.
         /// </summary>
         internal const string EventTypesUsageText = "liveops-hub-event-types-usage-text";
+
+        /// <summary>
+        /// Dòng "bảng đang ẩn cột: …" ngay dưới bảng loại (W9-05, soát R-01). Hàng ngang: icon info + câu chữ xuống dòng.
+        /// Chỉ hiện khi bề rộng bảng thật sự không chứa nổi tám cột — bảng đủ cột thì hàng này mang class
+        /// <see cref="EventTypesHidden"/>.
+        /// </summary>
+        internal const string EventTypesColumnsHiddenNote = "liveops-hub-event-types-columns-hidden-note";
+
+        /// <summary>Icon của dòng khai báo cột bị ẩn — xem <see cref="EventTypesColumnsHiddenNote"/>.</summary>
+        internal const string EventTypesColumnsHiddenNoteIcon = "liveops-hub-event-types-columns-hidden-note-icon";
+
+        /// <summary>Câu chữ của dòng khai báo cột bị ẩn — xem <see cref="EventTypesColumnsHiddenNote"/>.</summary>
+        internal const string EventTypesColumnsHiddenNoteText = "liveops-hub-event-types-columns-hidden-note-text";
     }
 }

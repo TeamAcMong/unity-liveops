@@ -276,3 +276,31 @@
 .liveops-hub-event-types-usage-text {
     white-space: normal;
 }
+
+/*
+ * (W9-05, soát R-01) Dòng khai báo cột bị ẩn. Hàng ngang icon + chữ, chữ ĐƯỢC xuống dòng: câu liệt kê tới bốn tên cột
+ * nên ở cửa sổ 700 nó dài hơn một dòng, và cắt chính câu đang giải thích việc bị cắt thì vô nghĩa.
+ * align-items: flex-start để icon bám dòng chữ ĐẦU khi câu xuống nhiều dòng, không trôi xuống giữa khối.
+ */
+.liveops-hub-event-types-columns-hidden-note {
+    flex-direction: row;
+    align-items: flex-start;
+    flex-shrink: 0;
+    margin-top: var(--liveops-hub-space-4);
+}
+
+.liveops-hub-event-types-columns-hidden-note-icon {
+    width: 14px;
+    height: 14px;
+    flex-shrink: 0;
+    margin-right: var(--liveops-hub-space-4);
+}
+
+/*
+ * KHÔNG hạ opacity ở đây: W9-21 đo tương phản theo màu ĐÃ HỢP THÀNH (nhân opacity của tổ tiên), và một câu giải thích
+ * mà chính nó mờ dưới ngưỡng WCAG thì lại là một lỗi đọc mới.
+ */
+.liveops-hub-event-types-columns-hidden-note-text {
+    flex-shrink: 1;
+    white-space: normal;
+}

@@ -911,3 +911,16 @@ file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Overview/**	G-W9-SCREENS
 file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/EventTypes/**	G-W9-SCREENS	W9-05 — 100 chỗ, ô bảng rộng cố định 27-35px
 file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Validation/**	G-W9-SCREENS	W9-06 — 40 chỗ, chip tổng kết và nút "Kiểm lại"
 file	Packages/com.dreamtech.liveops/Editor/Hub/UI/liveops-hub-shell.uss	G-W9-SCREENS	W9-04 — rail + status bar ở cỡ hẹp (phần khung của test Shell)
+
+# (W9, gói G-W9-SCREENS — bước SỬA theo soát, 20/9/2026) Bảy dòng dưới mở quyền ghi cho những file mà gói PHẢI chạm nhưng
+#   khối đăng ký đợt W9 (G-W9-GATE viết) không lường tới. Phát hiện R-02 của bước soát: check-ownership.py không chạy được
+#   cho gói, và báo cáo lại khẳng định quyền ghi "đã đăng ký". Lệch kỹ thuật TỰ DUYỆT theo uỷ quyền user 15/9 — cùng tiền lệ
+#   với G-RECURRING-JSON / G-CALENDAR-DEPTH / G-OPT-TIMELINE: chỉ NỐI tên gói vào dòng của chính vùng mình, không đụng dòng
+#   của gói khác, và không file nào trong bảy dòng này có gói W9 nào khác làm chủ.
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubClassNames.EventTypes.cs	G-EVENTTYPES,G-W9-SCREENS	W9-05 — hằng class của dòng khai báo cột bị ẩn (luật package: tên class chỉ được khai ở file vùng của màn)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubClassNames.Overview.cs	G-OVERVIEW,G-SHELLPOLISH,G-FIX-W6-1,G-W9-SCREENS	W9-03 — hằng class của câu chú cuối thân màn và của nhãn "chặn Copy JSON" xuống dòng (soát R-09)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubClassNames.Validation.cs	G-VALIDATION,G-VALIDATION-DEPTH,G-W9-SCREENS	W9-06 — hằng class hàng trong nút "Kiểm lại"; hậu tố Row là phần sửa của soát R-12
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubStrings.EventTypes.cs	G-EVENTTYPES,G-W9-SCREENS	W9-05 — khoá chuỗi EventTypesHiddenColumnsNoteFormat (vi + en) của dòng khai báo cột bị ẩn (soát R-01)
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Sections/EventTypesSectionTests.cs	G-EVENTTYPES,G-W9-SCREENS	W9-05 — test đơn vị của bậc cột theo bề rộng + ca sắp-theo-cột-phụ-rồi-thu-hẹp (soát R-07)
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/UxGate/UxLayoutAuditTests.cs	G-UX-GATE,G-FIX-UX-1,G-FIX-UX-4,G-FIX-UX-5,G-FIX-UX-6,G-FIX-UX-7,G-FIX-UX-8,G-UX2-DEFER,G-UX2-RECURRING,G-UX2-TIMEFIELD,G-UX2-DRAG,G-FIX-UX2-1,G-UX3-AUDIT,G-W9-GATE,G-W9-SCREENS	W9-03…W9-06 — gỡ bốn mã phiếu/bốn màn khỏi ApprovedDeferralIds/Screens và bốn lời gọi IgnoreWhenDeferred; SỬA CHÉO đã khai ở báo cáo gói, chỉ làm cổng CHẶT hơn
+file	tools/liveops-hub/ownership.tsv	G-W9-SCREENS	W9 — chính khối đăng ký này (soát R-02)

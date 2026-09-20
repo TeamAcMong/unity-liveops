@@ -68,17 +68,12 @@
 }
 
 /*
- * (W9-06) Dải summary được phép xuống dòng và cao thêm. Năm chip "2 bị bỏ · 1 mất tiến độ · …" có flex-shrink mặc định 1
- * nên ở cửa sổ hẹp CHÍNH CHIP bị bóp trong khi Label bên trong thì không — chữ tràn ra ngoài chip 7–9px mỗi bên rồi bị cắt.
- * min-height thay height: ở cửa sổ rộng năm chip vẫn nằm một hàng nên dải vẫn cao đúng 24px của Hình 15.
- */
-/*
  * (W9-06) Nút "[Refresh] Kiểm lại" của section header. Button LÀ một TextElement: chữ của `Button.text` được chính nút vẽ
  * trên toàn bộ hộp nội dung, nhưng khi nút CÓ con (ở đây là icon Refresh) thì nút đo mình theo con chứ không theo chữ —
  * nó co về min-width 54px và chữ bị cắt ở MỌI cỡ cửa sổ, kể cả 1920 (cần 66px, có 38px). Cách chữa đã dùng cho nút "Kiểm
  * lại tất cả" của Tổng quan: bỏ `text`, xếp icon và một Label thành hàng ngang, để nút đo theo cả hai.
  */
-.liveops-hub-validation-recheck-button {
+.liveops-hub-validation-recheck-button-row {
     flex-direction: row;
     align-items: center;
     justify-content: center;
@@ -89,6 +84,11 @@
     padding: 0;
 }
 
+/*
+ * (W9-06) Dải summary được phép xuống dòng và cao thêm. Năm chip "2 bị bỏ · 1 mất tiến độ · …" có flex-shrink mặc định 1
+ * nên ở cửa sổ hẹp CHÍNH CHIP bị bóp trong khi Label bên trong thì không — chữ tràn ra ngoài chip 7–9px mỗi bên rồi bị cắt.
+ * min-height thay height: ở cửa sổ rộng năm chip vẫn nằm một hàng nên dải vẫn cao đúng 24px của Hình 15.
+ */
 .liveops-hub-validation-summary {
     flex-direction: row;
     flex-wrap: wrap;
