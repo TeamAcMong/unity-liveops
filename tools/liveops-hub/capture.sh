@@ -12,6 +12,12 @@
 # plist dùng chung cho MỌI bản Unity trên máy (kể cả Unity GUI user đang mở), nên mọi lượt đặt skin chạy tuần tự dưới một khoá
 # riêng `<thư mục slot>/skin-preference/` (không song song, kể cả khi hai capture.sh chạy ở hai slot); khoá ghi giá trị gốc để
 # lượt sau gặp khoá mồ côi (capture.sh bị kill -9) vẫn trả được skin cho user.
+# CẢNH BÁO (đo được 20/9/2026, gói G-W10-MATRIX): khoá skin chỉ chặn hai capture.sh giẫm nhau — nó KHÔNG chặn một lượt Unity
+# KHÁC (run-editmode.sh của gói bên cạnh) đang chạy song song, vì Unity GHI LẠI plist EditorPrefs lúc THOÁT và đè mất
+# UserSkin vừa đặt. Triệu chứng: lệnh trong Unity thoát 3 "yêu cầu skin light nhưng Editor đang dark", dù `defaults read`
+# ngay lúc đó vẫn ra đúng giá trị mình đặt (lượt Unity kia thoát vào ĐÚNG khe giữa lúc đặt pref và lúc Unity của ta đọc nó).
+# Vì vậy trước khi đặt pref, script CHỜ cho tới khi không còn lượt Unity batchmode nào của công cụ đang chạy — xem
+# wait_for_exclusive_unity. Unity GUI của user không chạy batchmode nên không bị chờ; nó chỉ ghi pref lúc user đóng Editor.
 #
 # Cách dùng:
 #   capture.sh --unity 6000|2022|all --scenarios "<id,id,…>|registered|ux-sizes|ux-sizes-en|ux-sizes-all" --label <nhãn>
@@ -52,6 +58,7 @@ label=""
 skins=dark,light
 output_root=$HOME/.cache/unity-liveops/captures
 timeout_seconds=$DEFAULT_CAPTURE_TIMEOUT_SECONDS
+exclusive_timeout_seconds=${LIVEOPS_CAPTURE_EXCLUSIVE_TIMEOUT_SECONDS:-2400}
 measure=1
 dry_run=0
 contrast=0
@@ -71,7 +78,7 @@ while [ "$#" -gt 0 ]; do
     --contrast) contrast=1; shift;;
     --no-measure) measure=0; shift;;
     --dry-run) dry_run=1; shift;;
-    --help|-h) sed -n '2,24p' "$0" | sed 's/^# \{0,1\}//'; exit 0;;
+    --help|-h) sed -n '2,28p' "$0" | sed 's/^# \{0,1\}//'; exit 0;;
     *) fail_usage "tham số lạ '$1'";;
   esac
 done
@@ -158,6 +165,26 @@ write_user_skin() {
   else
     defaults write "$UNITY_PREFERENCES_DOMAIN" UserSkin -int "$1"
   fi
+}
+
+# Chờ tới khi không còn lượt Unity batchmode nào (của run-editmode.sh, capture.sh khác, bootstrap…). Chỉ đếm batchmode:
+# Unity GUI mà user đang mở không ghi pref trong lúc chạy, chờ nó là chờ mãi.
+readonly EXCLUSIVE_UNITY_POLL_SECONDS=10
+wait_for_exclusive_unity() {
+  local waited=0 running
+  while true; do
+    running=$(pgrep -f "Unity.app/Contents/MacOS/Unity -batchmode" | grep -v "^$$\$" | wc -l | tr -d ' ')
+    [ "${running:-0}" = 0 ] && return 0
+    if [ "$waited" -ge "$exclusive_timeout_seconds" ]; then
+      echo "capture.sh: vẫn còn $running lượt Unity batchmode sau ${waited}s — bỏ chờ và chạy tiếp, skin có thể bị đè" >&2
+      return 0
+    fi
+    if [ "$waited" = 0 ]; then
+      echo "capture.sh: chờ $running lượt Unity batchmode khác thoát trước khi đặt skin (tối đa ${exclusive_timeout_seconds}s)" >&2
+    fi
+    sleep "$EXCLUSIVE_UNITY_POLL_SECONDS"
+    waited=$((waited + EXCLUSIVE_UNITY_POLL_SECONDS))
+  done
 }
 
 holding_skin_lock=0
@@ -263,6 +290,7 @@ for version in $versions; do
       continue
     fi
 
+    wait_for_exclusive_unity
     acquire_skin_lock
     write_user_skin "$skin_value"
     unity_status=0
