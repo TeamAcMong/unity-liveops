@@ -19,13 +19,37 @@
     --liveops-hub-skin-probe: var(--unity-colors-window-background);
 
     /* Trạng thái — Dark ([FD §2.3], tương phản đo trên nền thật). */
-    --liveops-hub-color-blocked-text: #FF8080;
+    /* (W10-06) #FF8080 cũ đạt 4,83:1 khi đứng một mình trên cửa sổ #383838, nhưng câu lỗi nào nằm trong một khối có
+       opacity 0,82-0,85 (dòng chân thẻ số đo, dòng lỗi màn Xuất JSON / Kiểm lịch) thì màu ĐÃ HỢP THÀNH chỉ còn
+       3,75-3,92:1. Nâng hai kênh lục/lam 128 → 172 (giữ nguyên kênh đỏ 255, tức giữ nguyên tông đỏ, chỉ sáng hơn):
+       hợp thành × 0,82 đo ra 4,97:1 trên nền cửa sổ và 4,71:1 trên nền thẻ #3C3C3C. */
+    --liveops-hub-color-blocked-text: #FFACAC;
     --liveops-hub-color-blocked-fill: #F05454;
     --liveops-hub-color-warning-text: #F4BC02;
     --liveops-hub-color-warning-fill: #F4BC02;
     /* Quiet là màu CHỮ phụ (không phải vòng rỗng): dùng khắp hub, kể cả tag lý do của popover Thêm đợt, nên phải theo bậc
-       chữ thường 4,5:1 của WCAG. #949494 cũ chỉ 3,87:1 trên cửa sổ #383838; #A3A3A3 đo ra 4,65:1 (G-UX3-TIMELINE §2.1). */
-    --liveops-hub-color-quiet: #A3A3A3;
+       chữ thường 4,5:1 của WCAG. #949494 cũ chỉ 3,87:1 trên cửa sổ #383838; #A3A3A3 đo ra 4,65:1 (G-UX3-TIMELINE §2.1) —
+       và W10 nâng tiếp một nấc nữa, lý do ngay dưới. */
+    /* (W10-06) #A3A3A3 đo 4,65:1 trên nền CỬA SỔ #383838 nhưng số đếm của thẻ Tổng quan nằm trên nền THẺ #3C3C3C sáng
+       hơn, ở đó chỉ còn 4,37:1. #AAAAAA đo ra 4,75:1 trên nền thẻ và 5,05:1 trên nền cửa sổ — vẫn là xám trung tính
+       cùng tông, chỉ nâng đúng ba nấc cần để qua bậc chữ thường. */
+    --liveops-hub-color-quiet: #AAAAAA;
+    /* (W10-09) Viền của swatch "loại chưa khai báo". Vì sao KHÔNG dùng lại --liveops-hub-color-quiet: swatch ấy nằm trong
+       một ô mang .liveops-hub-event-types-row--undeclared (opacity 0,7), và opacity của tổ tiên NHÂN xuống — viền là hình
+       khối nên phải đạt bậc 3:1 SAU khi nhân. Ở skin tối quiet × 0,7 trên nền cửa sổ #383838 hợp thành #888888 = 3,30:1,
+       vẫn đạt, nên giá trị ở đây bằng đúng quiet; token vẫn tách riêng để lần sau ai chỉnh quiet (màu CHỮ, bậc 4,5:1)
+       không vô tình kéo viền hình khối xuống dưới 3:1 mà không ai báo. Skin sáng phải lệch hẳn — xem khối skin sáng. */
+    --liveops-hub-color-undeclared-border: #AAAAAA;
+    /* (W10-06) Màu CHỮ nền tảng của hub. Vì sao thành token thay vì dùng thẳng --unity-colors-default-text: chữ phụ khắp
+       hub (caption thẻ, dòng chân thẻ, dòng meta status bar) là chữ nền tảng NHÂN opacity 0,7 của khối cha, và
+       #D2D2D2 của Unity × 0,7 hợp thành ra #A5A5A5 trên nền thẻ #3C3C3C — 4,48:1, thiếu 0,02 so với bậc chữ thường.
+       Sửa ở opacity thì phải sửa rải rác ở hàng chục luật USS của mọi màn; sửa ở màu gốc thì một token lo hết.
+       #D7D7D7 × 0,7 hợp thành ra 4,67:1 trên nền thẻ #3C3C3C, 4,89:1 trên nền cửa sổ #383838 và 5,81:1 trên nền
+       chip #282828. Vẫn là xám trung tính của Unity, chỉ sáng hơn năm nấc.
+       Ba số trên tính ĐÚNG như UxLayoutAuditor tính: hợp thành source-over bằng số thực, KHÔNG làm tròn về 8 bit
+       giữa chừng. Làm tròn màu hợp thành về hex trước rồi mới tính thì ra 4,64 / 4,87 / 5,84 — lệch tới 0,03 và
+       KHÔNG phải phép đo mà cổng chạy, nên đừng trộn hai lối tính trong cùng một câu. */
+    --liveops-hub-color-text: #D7D7D7;
     --liveops-hub-color-focus: #7BAEFA;
     /* Link không dùng --unity-colors-link-text (#4C7EFF chỉ 3,20:1 trên #383838). */
     --liveops-hub-color-link: #7BAEFA;
@@ -86,11 +110,60 @@
     --liveops-hub-color-blocked-fill: #A80000;
     --liveops-hub-color-warning-text: #4F3600;
     --liveops-hub-color-warning-fill: #6E4E00;
-    /* Quiet Light trên cửa sổ #C8C8C8; trên rail #A5A5A5 shell dùng --unity-colors-default-text × 0,6 riêng nếu cần.
-       #555555 cũ 4,46:1 — thiếu bậc chữ thường; #4F4F4F đo ra 4,90:1. */
-    --liveops-hub-color-quiet: #4F4F4F;
-    --liveops-hub-color-focus: #1D5087;
-    --liveops-hub-color-link: #1D5087;
+    /* Quiet Light. #555555 đời đầu chỉ 4,46:1 trên cửa sổ #C8C8C8 — thiếu bậc chữ thường; #4F4F4F đo ra 4,90:1 ở đó.
+       (W10-12) Nhưng RAIL của skin sáng không phải nền cửa sổ: nó là --unity-colors-default-background #A5A5A5, tối hơn
+       hẳn, và ở đó #4F4F4F chỉ còn 3,33:1. Chỗ đó có chữ thật: vòng rỗng "chưa kiểm" của rail vẽ bằng quiet, và cảnh đo
+       thứ 9 (màn Kiểm lịch, KẾT QUẢ CŨ — thêm ở phiếu W10-07) là cảnh đầu tiên dựng ra trạng thái ấy, nên đây là nợ có
+       sẵn vừa lộ ra chứ không phải lỗi mới. #393939 đo ra 4,69:1 trên rail, 6,90:1 trên cửa sổ và 7,26:1 trên nền thẻ
+       #CBCBCB — vẫn là xám trung tính cùng tông, và vẫn nhạt hơn hẳn chữ nền tảng #090909 nên "quiet" còn đọc ra là quiet.
+       Chữa ở MÀU GỐC chứ không ở riêng cái badge, đúng lối mà W10-03 đã đi với --liveops-hub-color-link (#1D5087 →
+       #143A60, cũng vì nền chip/rail): một token lo hết mọi chỗ dùng, thay vì rải luật theo từng màn. */
+    --liveops-hub-color-quiet: #393939;
+    /* (W10-09) Skin sáng là chỗ TRƯỢT mà phiếu W10-09 đo được: hồi ấy viền lấy màu quiet, và quiet skin sáng lúc đó là
+       #4F4F4F — × 0,7 trên cửa sổ #C8C8C8 hợp thành #737373 = 2,82:1, dưới bậc hình khối 3:1. Không chữa bằng cách hạ
+       opacity của hàng (0,7 là mức mờ của thiết kế Hình 10b cho "hàng chưa khai báo") và không chữa bằng opacity: 1 trên
+       con (opacity của tổ tiên nhân xuống, con không gỡ được): chữa bằng một token RIÊNG đủ tối để sống sót phép nhân.
+       #444444 × 0,7 hợp thành #6C6C6C = 3,16:1.
+       (W10-12, ghi sau) Phiếu W10-12 sau đó hạ quiet skin sáng xuống #393939 vì nền RAIL, nên hôm nay quiet × 0,7 đo ra
+       3,54:1 — tức nếu viền còn dùng quiet thì cũng vừa đủ qua bậc. Token riêng vẫn ĐÚNG và vẫn giữ: quiet là màu CHỮ,
+       nó được chỉnh theo bậc 4,5:1 trên những nền khác; lần sau ai nâng quiet cho sáng lên một nấc là viền hình khối lại
+       tụt dưới 3:1 mà không có gì báo. Hai bậc khác nhau thì hai token khác nhau. */
+    --liveops-hub-color-undeclared-border: #444444;
+    /* (J2-02) Viền HÌNH KHỐI của nút ở skin sáng. Cảnh phát hiện: ảnh h17-2a-stale-edited-light.png. Mọi con số dưới đây
+       tính bằng CHÍNH hàm của repo (UxLayoutAuditor.RelativeLuminance + ContrastRatio, WCAG 2.1) trên mã hex ghi ngay cạnh,
+       nên người soát tính lại ra đúng số này — không phải số đọc bằng mắt từ ảnh:
+         nền nút #E4E4E4 trên nền trang #C8C8C8 = 1,32:1 — tự nó nút KHÔNG đọc ra là nút, chỉ còn viền làm việc ấy;
+         viền mạnh nhất của Unity ở đó (mép dưới #939393) = 2,42:1 so với nền nút và 1,84:1 so với nền trang — dưới bậc 3:1;
+         #6B6B6B = 3,18:1 trên nền trang #C8C8C8 và 4,19:1 trên nền nút #E4E4E4 — qua bậc hình khối trên CẢ HAI nền ấy.
+       (R06, 21/9/2026) Hai con số đầu của bản trước là 1,29 và 4,11 — đọc từ ảnh chứ không tính; đã tính lại và sửa.
+       GIỚI HẠN CỦA LỜI KHAI NÀY — đọc trước khi đặt một nút ở chỗ mới. Bậc 3:1 ở trên chỉ nói về HAI nền: nền trang
+       #C8C8C8 và nền nút #E4E4E4. Skin sáng còn một nền thứ ba, --unity-colors-default-background #A5A5A5, và trên nó
+       #6B6B6B chỉ 2,16:1 — DƯỚI bậc. Các mặt phẳng tô nền ấy hôm nay là: .liveops-hub-rail · .liveops-hub-chip ·
+       .liveops-hub-goto · .liveops-hub-json-overview · .liveops-hub-timeline-lane-chip ·
+       .liveops-hub-timeline-unplaceable-chip · .liveops-hub-timeline-minimap · .liveops-hub-rule-token ·
+       .liveops-hub-gutter .liveops-hub-state-mark--not-measured. LUẬT: không đặt phần tử mang class .liveops-hub-button
+       BÊN TRONG những mặt phẳng ấy ở skin sáng; cần nút ở đó thì phải khai một token viền RIÊNG đo trên #A5A5A5.
+       Hôm nay không chỗ nào vi phạm: nút ghim của rail dùng class riêng (RailPin) chứ không phải .liveops-hub-button, và
+       chip token của câu Luật lặp tuy LÀ Button nhưng chỉ mang class .liveops-hub-rule-token. Chỗ này CHƯA có cổng máy
+       gác — nợ W11-16, xem phần khai nợ ở báo cáo gói G-W11-EYE.
+       Khai RIÊNG một token cho viền, không dùng lại --liveops-hub-color-quiet: quiet là màu CHỮ, nó được chỉnh theo bậc
+       4,5:1; hai bậc khác nhau thì hai token khác nhau (đúng lối mà --liveops-hub-color-undeclared-border ở ngay trên đã đi).
+       Chỉ khai ở khối skin SÁNG, và luật tiêu thụ nó (liveops-hub-components.uss) cũng chỉ sống trong khối .liveops-hub--skin-light:
+       skin tối đặt nút trên nền tối và không phải chỗ phiếu J2-02 đo được trượt, đổi viền ở đó là dời một bằng chứng đang xanh
+       mà không có phiếu nào đòi. */
+    --liveops-hub-color-button-border: #6B6B6B;
+
+    /* (W10-03) #1D5087 cũ đạt bậc chữ trên nền CỬA SỔ #C8C8C8 nhưng chữ bấm được của chip asset nằm trên nền CHIP
+       #A5A5A5 (--unity-colors-default-background của skin sáng), ở đó chỉ 3,34:1. #143A60 đo ra 4,73:1 trên nền chip
+       và 6,96:1 trên nền cửa sổ. Giữ nguyên tông lam của bảng màu, chỉ hạ độ sáng đúng mức cần; focus đi cùng link
+       như cả hai skin vẫn làm, để viền tiêu điểm và chữ liên kết không tách thành hai màu lam khác nhau. */
+    --liveops-hub-color-focus: #143A60;
+    --liveops-hub-color-link: #143A60;
+    /* Skin sáng KHÔNG đổi: #090909 đúng bằng --unity-colors-default-text của skin sáng đo trên ảnh chụp, nên chữ nền
+       tảng của skin sáng giữ nguyên diện mạo cũ. Khai literal chứ không var(--unity-colors-default-text) vì biến của
+       Unity theo skin ĐANG CHẠY của Editor, không theo class skin — khai var() thì bảng token đo skin sáng sẽ đọc
+       nhầm màu chữ của skin tối. */
+    --liveops-hub-color-text: #090909;
     --liveops-hub-color-now: #1A1A1A;
     --liveops-hub-color-on-selection: #FFFFFF;
     --liveops-hub-color-blocked-tint: rgba(168, 0, 0, 0.16);

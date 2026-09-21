@@ -59,10 +59,11 @@ namespace DreamTech.LiveOps.Editor.Tests
 
         private static readonly UxLayoutAllowEntry[] Entries =
         {
-            new UxLayoutAllowEntry(AnyScreen, UxLayoutFindingKinds.TextCut, "liveops-hub-timeline-bar__label",
-                "Nhãn trong thanh timeline rút gọn theo bề rộng thanh là thiết kế ([SD2] §3.2, LiveOpsTimelineGeometry cắt bằng "
-                + "TimelineBarLabelEllipsis): một đợt 2 giờ ở mức thu nhỏ tháng không thể chứa id đầy đủ. Tên đầy đủ đọc ở hover "
-                + "card và ở inspector."),
+            // (J2-03, 21/9/2026) Mục "liveops-hub-timeline-bar__label" ĐÃ RỜI khỏi đây sang UxTruncationExemption. Nó tha
+            // đúng chỗ ấy, nhưng tha bằng LỜI KHAI: câu "tên đầy đủ đọc ở hover card và ở inspector" không được đo lại lượt
+            // nào, nên gỡ tooltip của thanh đi thì cổng vẫn im lặng. Bản mới tha cùng chỗ mà đo cả hai điều kiện mỗi lượt.
+            // Đừng khai lại ở đây: allow-list được hỏi TRƯỚC (xem UxLayoutAuditor.Add), nên một dòng ở đây làm điều kiện
+            // của bản mới không bao giờ được hỏi tới.
             new UxLayoutAllowEntry(AnyScreen, UxLayoutFindingKinds.TextCut, "liveops-hub-chip-text",
                 "Chip có max-width 240px kèm text-overflow: ellipsis ([SD1] §2.6) — chip là nhãn tóm tắt, câu đầy đủ nằm ở "
                 + "status bar và ở card tương ứng."),
@@ -103,7 +104,12 @@ namespace DreamTech.LiveOps.Editor.Tests
             return false;
         }
 
-        private static bool Identifies(string selector, VisualElement element)
+        /// <summary>
+        /// So khớp một selector (tên element hoặc class USS, có hay không có dấu <c>.</c>/<c>#</c> đứng trước) với một phần tử.
+        /// <c>internal</c> vì <see cref="UxTruncationExemption"/> phải hỏi ĐÚNG câu hỏi này: hai luật miễn trừ dùng hai cách
+        /// so khớp khác nhau là hai bảng nói hai thứ tiếng, và chỗ lệch nhau sẽ chỉ lộ ra ở một màn nào đó.
+        /// </summary>
+        internal static bool Identifies(string selector, VisualElement element)
         {
             string bare = selector[0] == '.' || selector[0] == '#' ? selector.Substring(1) : selector;
             if (string.Equals(element.name, bare, StringComparison.Ordinal)) return true;

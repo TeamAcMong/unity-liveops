@@ -44,12 +44,38 @@ namespace DreamTech.LiveOps.Editor
         private const float DayLabelPaddingLeft = 2f;
 
         /// <summary>
-        /// (UX-17) Bề rộng một ký tự của nhãn tầng 1. Lớn hơn <c>LiveOpsTimelineGeometry.LabelCharacterWidth</c> (5,6px) vì
-        /// tầng này có <c>letter-spacing: 0.5px</c> và mốc tháng còn <c>-unity-font-style: bold</c>. Đo thật trên
-        /// 6000.6: "THÁNG 3 2027" (12 ký tự) vẽ ra 76px, tức 6,33px/ký tự — ước bằng 5,6 thì thiếu gần 9px và nhãn sát
-        /// mép track bị cắt dù phép tính bảo là vừa.
+        /// (UX-17) Bề rộng một ký tự của nhãn tầng 1 dùng để GIỮ CHỖ — nhãn sau phải bắt đầu sau chỗ này, nhãn không đủ chỗ
+        /// thì bị bỏ. Lớn hơn <c>LiveOpsTimelineGeometry.LabelCharacterWidth</c> (5,6px) vì tầng này có
+        /// <c>letter-spacing: 0.5px</c> và mốc tháng còn <c>-unity-font-style: bold</c>. Đo thật trên 6000.6:
+        /// "THÁNG 3 2027" (12 ký tự) vẽ ra 76px, tức 6,33px/ký tự — ước bằng 5,6 thì thiếu gần 9px và nhãn sát mép track bị
+        /// cắt dù phép tính bảo là vừa.
+        /// <para>
+        /// (W10, phiếu soát F7) Hằng này GIỮ NGUYÊN 6,4 — thử nâng lên 7,2 rồi ĐO RA HỎNG: chỗ giữ rộng thêm 12,5% làm nhãn
+        /// tháng nuốt một vạch tuần, và ở mức thu nhỏ Ba tuần cửa sổ 1280 bản tiếng Anh số nhãn "Week n" tụt từ 3 xuống 2
+        /// (plan/w10/logs/weekcount-old.txt so với weekcount-new.txt). Mất một số tuần để lấy khoảng dư cho một nhãn tháng
+        /// là đổi hỏng. Khoảng dư nay lấy bằng <see cref="MonthTierLabelBoxCharacterWidth"/> — một số RIÊNG, chỉ đụng tới Ô
+        /// của nhãn chứ không đụng tới luật nhường chỗ.
+        /// </para>
         /// </summary>
         private const float MonthTierLabelCharacterWidth = 6.4f;
+
+        /// <summary>
+        /// (W9-25 chỗ #7) Bề rộng một ký tự dùng để ghi Ô của nhãn tầng 1 — RỘNG HƠN chỗ giữ chỗ ở trên, và đó là chủ ý.
+        /// <para>
+        /// Vì sao cần: trước W10 nhãn tầng 1 để <c>width: auto</c> nên ô ÔM KHÍT chữ — đo trên 2022.3 "THÁNG 11 2026" được ô
+        /// 78px cho chữ 77px, dư đúng 1px. Một lần đổi metric phông là cắt im lặng một mốc tháng thành "THÁNG 3 20", một mốc
+        /// KHÔNG có thật; và luật "chữ chiếm > 95% bề rộng ô" của cổng bố cục không có chỗ nào để đo. 7,2 so với 6,33px/ký tự
+        /// đo thật để lại ≥ 12% dư ở cả hai bản Unity và cả hai ngôn ngữ.
+        /// </para>
+        /// <para>
+        /// Vì sao ô được phép RỘNG HƠN chỗ giữ: nhãn tầng 1 là <c>position: absolute</c> và KHÔNG có nền — phần ô thừa đè
+        /// sang chỗ của nhãn kế chỉ là khoảng trong suốt, chữ vẫn không chạm nhau vì luật nhường chỗ vẫn tính bằng
+        /// <see cref="MonthTierLabelCharacterWidth"/>. Điều kiện duy nhất: ô KHÔNG được thò khỏi mép track — cha cắt con nên
+        /// phần thò ra là lỗi <c>childOverflow</c> thật; <see cref="BindMonthTierLabels"/> kéo nhãn vào trong, và khi không
+        /// còn chỗ cho cả ô thì co ô về đúng chỗ giữ (hành vi cũ) chứ không bỏ hẳn một mốc tháng.
+        /// </para>
+        /// </summary>
+        private const float MonthTierLabelBoxCharacterWidth = 7.2f;
 
         private const string ClockFormat = "HH:mm";
         private const float LineWidth = 1f;
@@ -270,10 +296,11 @@ namespace DreamTech.LiveOps.Editor
                         left = dodgeLeft;
                     }
                 }
-                // (UX-17) Nhãn tầng 1 KHÔNG bị ô của nó cắt (width auto), nên chỗ duy nhất cắt nó là mép phải của track. Mốc
-                // tháng nằm ngoài khoảng đang xem (thu nhỏ hết cỡ sinh cả tick tháng sau mép track) thì bỏ hẳn; nhãn ló một
-                // phần thì kéo vào trong mép, và chỉ kéo khi không đè nhãn đứng trước — "THÁNG 3 2027" bị mép cắt còn
-                // "THÁNG 3 20" là đọc ra một mốc KHÔNG có thật.
+                // (UX-17) Ô của nhãn tầng 1 luôn rộng hơn chữ (xem khối ghi ô bên dưới), nên chỗ duy nhất cắt nó là mép
+                // phải của track. Mốc tháng nằm ngoài khoảng đang xem (thu nhỏ hết cỡ sinh cả tick tháng sau mép track) thì
+                // bỏ hẳn; nhãn ló một phần thì kéo vào trong mép, và chỉ kéo khi không đè nhãn đứng trước — "THÁNG 3 2027"
+                // bị mép cắt còn "THÁNG 3 20" là đọc ra một mốc KHÔNG có thật. Bước kéo này tính bằng CHỖ GIỮ (đủ cho chữ);
+                // bước ghi ô bên dưới kéo thêm nếu còn chỗ cho cả ô.
                 if (left >= _geometry.TrackWidth) continue;
                 if (left + width > _geometry.TrackWidth)
                 {
@@ -281,7 +308,18 @@ namespace DreamTech.LiveOps.Editor
                     if (pulledLeft < nextFreeX) continue;
                     left = pulledLeft;
                 }
-                BindLabel(LabelAt(_monthLabels, MonthTier, visibleCount++), tick, float.NaN, string.Empty, left);
+                // (W9-25 chỗ #7) Ô của nhãn ghi thẳng, không để `width: auto` (ô tự co ôm khít chữ thì không đo được khoảng
+                // dư). Ô rộng hơn chỗ giữ 12,5% nên luật "chữ chiếm > 95% ô" có số để kiểm; nhưng ô KHÔNG được thò khỏi mép
+                // track vì cha cắt con: còn chỗ thì kéo nhãn vào cho vừa cả ô, hết chỗ thì co ô về đúng chỗ giữ — thà một
+                // nhãn sát mép chật ô còn hơn mất hẳn một mốc tháng.
+                float boxWidth = tick.Text.Length * MonthTierLabelBoxCharacterWidth;
+                if (left + boxWidth > _geometry.TrackWidth)
+                {
+                    float boxLeft = _geometry.TrackWidth - boxWidth;
+                    if (boxLeft >= nextFreeX && boxLeft >= 0f) left = boxLeft;
+                    else boxWidth = _geometry.TrackWidth - left;
+                }
+                BindLabel(LabelAt(_monthLabels, MonthTier, visibleCount++), tick, tick.X + boxWidth, string.Empty, left);
                 nextFreeX = left + width + MonthTierLabelGap;
             }
             return visibleCount;
@@ -390,7 +428,9 @@ namespace DreamTech.LiveOps.Editor
             label.EnableInClassList(LiveOpsHubClassNames.TimelineRulerLabelEmphasized, tick.IsEmphasized);
             label.EnableInClassList(LiveOpsHubClassNames.TimelineHidden, false);
             label.style.left = float.IsNaN(left) ? tick.X : left; // style-inline-allowed: 3
-            // Nhãn ngày/giờ cắt theo bề rộng ô của nó [SD1 §3.2]; nhãn tầng 1 (tháng, tuần) không giới hạn — thước cắt ở mép track.
+            // Nhãn ngày/giờ cắt theo bề rộng ô của nó [SD1 §3.2]. (W9-25 chỗ #7) Nhãn tầng 1 (tháng, tuần) TRƯỚC ĐÂY để
+            // `width: auto` — ô ôm khít chữ, dư 1px, không đo được; nay nơi gọi (BindMonthTierLabels) truyền thẳng ô rộng hơn
+            // chỗ giữ, nên nhánh Auto dưới đây chỉ còn cho nhãn nào thật sự không có mốc kế (nextPosition = NaN).
             label.style.width = float.IsNaN(nextPosition) ? StyleKeyword.Auto : new StyleLength(Math.Max(0f, nextPosition - tick.X)); // style-inline-allowed: 3
         }
 

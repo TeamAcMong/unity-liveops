@@ -76,10 +76,10 @@ namespace DreamTech.LiveOps.Editor.Tests
     public sealed class UxContrastTokenTests
     {
         /// <summary>Bậc WCAG 2.1 AA cho chữ thường.</summary>
-        private const float TextContrastRatio = 4.5f;
+        private const float TextContrastRatio = UxComposedContrast.TextContrastRatio;
 
         /// <summary>Bậc WCAG 2.1 AA cho chữ to và cho thành phần đồ hoạ / thành phần giao diện.</summary>
-        private const float ShapeContrastRatio = 3f;
+        private const float ShapeContrastRatio = UxComposedContrast.ShapeContrastRatio;
 
         /// <summary>
         /// Nền hàng đang chọn của Unity, skin tối. Không phải lời khai suông: chính <c>liveops-hub-theme.uss</c> lấy màu này
@@ -132,6 +132,11 @@ namespace DreamTech.LiveOps.Editor.Tests
         /// </summary>
         private static readonly UxColorTokenRule[] TextTokenRules =
         {
+            // (W10-06) Màu chữ nền tảng của hub: .liveops-hub-root của liveops-hub-shell.uss khai `color:` bằng token này, nên
+            // MỌI chữ không tự khai màu đều kế thừa nó. Trước W10 chỗ này dùng thẳng --unity-colors-default-text và vì thế
+            // không token nào của bảng nói được về màu chữ thường — bảng đo mọi màu phụ mà bỏ trống màu chính.
+            new UxColorTokenRule("--liveops-hub-color-text", TextContrastRatio, UxColorTokenBackdrop.WindowBackground,
+                "màu chữ nền tảng, kế thừa xuống mọi chữ không tự khai màu"),
             new UxColorTokenRule("--liveops-hub-color-blocked-text", TextContrastRatio, UxColorTokenBackdrop.WindowBackground,
                 "câu lỗi và tag 'bị bỏ'"),
             new UxColorTokenRule("--liveops-hub-color-warning-text", TextContrastRatio, UxColorTokenBackdrop.WindowBackground,
@@ -182,6 +187,12 @@ namespace DreamTech.LiveOps.Editor.Tests
                 "dấu chú giải 'đợt lặp'"),
             new UxColorTokenRule("--liveops-hub-legend-ended", ShapeContrastRatio, UxColorTokenBackdrop.WindowBackground,
                 "dấu chú giải 'đã khép'"),
+            // (W10-09) Viền swatch của hàng "loại chưa khai báo". Nhóm hình khối vì nó chỉ xuất hiện trong khai báo
+            // `border-color`, và nó là thứ DUY NHẤT vẽ ra ô màu của một loại hub chưa biết màu — bỏ viền đi thì ô trống
+            // không còn đọc ra là một ô. Bảng này đo ở opacity 1; phép đo SAU khi nhân opacity 0,70 của hàng nằm ở
+            // UxComposedTokenContrastTests.Sites, vì chính phép nhân ấy mới là chỗ phiếu W10-09 trượt.
+            new UxColorTokenRule("--liveops-hub-color-undeclared-border", ShapeContrastRatio,
+                UxColorTokenBackdrop.WindowBackground, "viền swatch 'loại chưa khai báo' màn Loại event"),
         };
 
         /// <summary>
@@ -464,12 +475,12 @@ namespace DreamTech.LiveOps.Editor.Tests
         /// lượt đòi ĐO ĐƯỢC ít nhất một đoạn chữ, kẻo một đổi tên class biến phép đo thành vòng lặp rỗng.
         /// </para>
         /// <para>
-        /// GIỚI HẠN ĐÃ BIẾT — skin SÁNG CHƯA ĐO (phiếu W9-27). Cửa sổ hub thật chạy ở skin ĐANG CHẠY của Editor, mà mọi lượt
-        /// cổng của đợt này chạy ở skin TỐI (đổi <c>EditorPrefs UserSkin</c> là việc riêng của <c>capture.sh</c>, SP-4), nên
-        /// luật màu-đã-hợp-thành mới chỉ có số đo ở skin tối. KHÔNG được suy sang skin sáng từ bảng token: token
-        /// <c>--liveops-hub-color-quiet</c> khác hẳn hai bên (#A3A3A3 tối / #4F4F4F sáng), và bảng token đo TRƯỚC khi nhân
-        /// opacity — đúng thứ ca này chứng minh là không đủ. Lời khai cũ ("lượt cổng ở skin còn lại phủ nửa kia") là sai: lượt
-        /// đó chưa tồn tại.
+        /// PHẠM VI của riêng ca này (cập nhật 20/9/2026, soát W10 R-03): nó đo ở skin ĐANG CHẠY của lượt cổng — tức skin
+        /// TỐI — và chỉ trên HAI nhánh inspector Lịch. Tám cảnh của cả hub, ở CẢ HAI skin, do hai ca đọc bằng chứng bên dưới
+        /// phủ (<see cref="ComposedTextColor_MeetsWcagContrast_InLightSkin_FromCaptureEvidence"/> và
+        /// <see cref="ComposedTextColor_MeetsWcagContrast_InDarkSkin_FromCaptureEvidence"/>). Giữ ca tại-chỗ này bên cạnh hai
+        /// ca kia vì nó là chỗ DUY NHẤT đo trên cây element của chính lượt cổng, không qua file — mất nó thì luật hợp thành
+        /// không còn một phép đo nào chạy cùng lúc với phần còn lại của cổng.
         /// </para>
         /// </summary>
         [UnityTest]
@@ -526,56 +537,132 @@ namespace DreamTech.LiveOps.Editor.Tests
             }
         }
 
-        // ------------------------------------------------------------------------------------------------- trợ giúp
-
         /// <summary>
-        /// Mọi chữ ĐANG HIỆN trong <paramref name="root"/> phải đạt bậc chữ sau khi nhân opacity của tổ tiên. Phần tử không
-        /// hoạt động được bỏ qua theo WCAG 2.1 §1.4.3 — ca gọi hàm này có trách nhiệm khẳng định riêng rằng thứ nó quan tâm
-        /// KHÔNG nằm trong diện miễn trừ đó.
+        /// (W9-27) Tương phản của màu ĐÃ HỢP THÀNH ở skin SÁNG, đọc từ BẰNG CHỨNG mà <c>capture.sh --contrast</c> ghi ra.
+        /// <para>
+        /// Vì sao không đo tại chỗ: cửa sổ hub thật vẽ theo skin ĐANG CHẠY của Editor và mọi lượt cổng chạy skin TỐI — đổi
+        /// <c>EditorPrefs UserSkin</c> là việc riêng của <c>capture.sh</c> (SP-4). Không được suy sang skin sáng từ bảng
+        /// token: bảng token đo TRƯỚC khi nhân opacity, đúng thứ ca màu-đã-hợp-thành chứng minh là không đủ, và hai skin
+        /// khai token khác hẳn nhau (<c>--liveops-hub-color-quiet</c> xám sáng ở skin tối / xám tối ở skin sáng).
+        /// </para>
+        /// <para>
+        /// Ca này ĐỎ khi: thiếu file bằng chứng · khuôn JSON khác đời · bằng chứng của bản Unity khác · bằng chứng của skin
+        /// khác · dấu nguồn lệch (ai đó sửa <c>Editor/Hub/**</c> hoặc sửa chính cái thước sau lượt đo) · đo được 0 đoạn chữ ·
+        /// DANH SÁCH CẢNH lệch · có bất kỳ dòng trượt nào — xem <see cref="AssertComposedContrastEvidence"/>.
+        /// </para>
+        /// <para>
+        /// Cách lấy bằng chứng: <c>tools/liveops-hub/capture.sh --contrast --unity 6000|2022 --skins light --label &lt;nhãn&gt;</c>.
+        /// </para>
         /// </summary>
-        /// <returns>Số đoạn chữ THẬT SỰ được đo — ca gọi dùng nó để không kết luận từ một vòng lặp rỗng.</returns>
-        private static int CollectComposedTextFailures(VisualElement root, string place, List<string> failures)
+        // KHÔNG gắn [Category(Logic)] (soát W10 R-07): fixture này mang [Category(UI)] + [Category(UxGate)], mà lượt Logic
+        // lọc bằng `!LiveOpsHub.UI` — nhãn Logic trên một ca của fixture UI là nhãn CHẾT, ca không bao giờ chạy ở lượt Logic
+        // và vẫn chạy ở lượt UI/UxGate. Ca này không mở cửa sổ nào, nhưng chỗ đứng của nó là cạnh phép đo tại chỗ ở trên.
+        [Test]
+        public void ComposedTextColor_MeetsWcagContrast_InLightSkin_FromCaptureEvidence()
         {
-            if (root == null) return 0;
-            int measuredCount = 0;
-            List<TextElement> texts = new List<TextElement>();
-            root.Query<TextElement>().ToList(texts);
-            for (int index = 0; index < texts.Count; index++)
-            {
-                TextElement text = texts[index];
-                if (string.IsNullOrEmpty(text.text)) continue;
-                if (!UxLayoutAuditor.IsShownOnScreen(text)) continue;
-                if (!text.enabledInHierarchy) continue;
-                measuredCount++;
-
-                Color declared = text.resolvedStyle.color;
-                float opacity = EffectiveOpacity(text);
-                Color faded = new Color(declared.r, declared.g, declared.b, declared.a * opacity);
-                Color background = UxLayoutAuditor.BackdropOf(text);
-                Color seen = UxLayoutAuditor.CompositeOver(faded, background);
-                float ratio = UxLayoutAuditor.ContrastRatio(seen, background);
-                if (ratio >= TextContrastRatio) continue;
-                failures.Add(place + " · \"" + text.text + "\": " + Number(ratio) + ":1 — màu " + HexText(declared)
-                    + " nhân opacity " + Number(opacity) + " hợp thành ra " + HexText(seen) + " trên nền "
-                    + HexText(background) + " (cần ≥ " + Number(TextContrastRatio) + ":1)");
-            }
-
-            return measuredCount;
+            AssertComposedContrastEvidence(UxContrastEvidence.LightSkin, LightSkinName, false);
         }
 
         /// <summary>
-        /// Opacity mà mắt người thật sự thấy trên một phần tử: tích opacity của chính nó và của MỌI tổ tiên. UI Toolkit nhân
-        /// opacity theo từng lớp lúc vẽ, nên đọc mỗi <c>resolvedStyle.opacity</c> của element là đọc thiếu đúng phần mà
-        /// <c>:disabled</c> của Unity đặt lên khối cha.
+        /// (W9-27, soát W10 R-03) Cùng phép đo ấy ở skin TỐI, cũng đọc từ bằng chứng của <c>capture.sh --contrast</c>.
+        /// <para>
+        /// Vì sao cần dù lượt cổng vốn chạy skin tối: ca đo TẠI CHỖ ở trên chỉ đi qua hai nhánh inspector Lịch của MỘT cỡ và
+        /// MỘT ngôn ngữ. Tám cảnh của cả hub ở skin tối — Tổng quan, Loại event, Luật lặp, Kiểm lịch, Xuất JSON — chưa lượt
+        /// nào đo. Bằng chứng của hai skin sinh cùng một cách, đọc bằng cùng một câu, nên không skin nào là "nửa được tin".
+        /// </para>
+        /// <para>
+        /// Cách lấy bằng chứng: <c>tools/liveops-hub/capture.sh --contrast --unity 6000|2022 --skins dark --label &lt;nhãn&gt;</c>.
+        /// </para>
         /// </summary>
-        private static float EffectiveOpacity(VisualElement element)
+        [Test]
+        public void ComposedTextColor_MeetsWcagContrast_InDarkSkin_FromCaptureEvidence()
         {
-            float opacity = 1f;
-            for (VisualElement current = element; current != null; current = current.hierarchy.parent)
-            {
-                opacity *= Mathf.Clamp01(current.resolvedStyle.opacity);
-            }
-            return opacity;
+            AssertComposedContrastEvidence(UxContrastEvidence.DarkSkin, DarkSkinName, true);
+        }
+
+        /// <summary>
+        /// Đọc một file bằng chứng đo tương phản và ĐỎ khi: thiếu file · khuôn JSON khác đời · bằng chứng của bản Unity khác ·
+        /// bằng chứng của skin khác · cờ proSkin lúc đo không khớp skin khai · dấu nguồn lệch (ai đó sửa <c>Editor/Hub/**</c>
+        /// hoặc sửa chính cái thước sau lượt đo) · đo được 0 đoạn chữ · DANH SÁCH CẢNH lệch · có bất kỳ dòng trượt nào.
+        /// Thiếu câu nào trong số đó thì cổng tự lừa mình bằng một file cũ.
+        /// </summary>
+        private static void AssertComposedContrastEvidence(string skin, string skinName, bool expectedProSkin)
+        {
+            string path = UxContrastEvidence.PathFor(skin);
+            UxContrastEvidenceData evidence = UxContrastEvidence.Read(path);
+            Assert.IsNotNull(evidence,
+                "không đọc được bằng chứng đo tương phản skin " + skinName + " ở " + path + " — chạy "
+                + "tools/liveops-hub/capture.sh --contrast --unity <bản> --skins " + skin + " --label <nhãn> rồi chạy lại. "
+                + "Mỗi skin là một nửa giao diện, và một nửa chưa đo là một nửa chưa ai nhìn (W9-27)");
+            Assert.AreEqual(UxContrastEvidence.SchemaVersion, evidence.schema,
+                "bằng chứng ở " + path + " theo khuôn đời " + evidence.schema + ", cổng đọc khuôn đời "
+                + UxContrastEvidence.SchemaVersion + " — đo lại, đừng đọc file cũ bằng luật mới");
+            Assert.AreEqual(skin, evidence.skin,
+                "bằng chứng ở " + path + " là của skin '" + evidence.skin + "', không phải skin " + skinName);
+            Assert.AreEqual(Application.unityVersion, evidence.unityVersion,
+                "bằng chứng ở " + path + " đo trên Unity " + evidence.unityVersion + ", lượt này chạy "
+                + Application.unityVersion + " — hai bản dựng cây element khác nhau nên số đo không dùng chung được");
+            Assert.AreEqual(expectedProSkin, evidence.proSkin,
+                "bằng chứng khai skin " + skinName + " nhưng Editor lúc đo báo proSkin = " + evidence.proSkin
+                + " — lượt đo chạy sai skin");
+
+            string digest = UxContrastEvidence.ComputeSourceDigest();
+            Assert.IsNotEmpty(digest,
+                "không băm được cây nguồn Editor/Hub + mã đo — không có dấu thì bằng chứng cũ tới mấy cũng qua được cổng");
+            Assert.AreEqual(digest, evidence.sourceDigest,
+                "bằng chứng ở " + path + " đo trên một cây nguồn KHÁC cây đang chạy (dấu " + evidence.sourceDigest
+                + " ≠ " + digest + ") — Editor/Hub hoặc chính mã đo đã đổi sau lượt đo, đo lại bằng capture.sh --contrast");
+            CollectionAssert.AreEqual(EvidenceSceneNames, evidence.scenes,
+                "bằng chứng ở " + path + " đi qua một DANH SÁCH CẢNH khác cổng đang đòi. Cổng đối chiếu tên từng cảnh chứ "
+                + "không đối chiếu phép đếm: bỏ một màn rồi thêm một màn khác vẫn giữ nguyên con số, và đúng màn bị bỏ là "
+                + "màn không ai đo nữa. Cổng đòi: " + string.Join(" · ", EvidenceSceneNames) + ". Bằng chứng khai: "
+                + (evidence.scenes == null ? "(không khai)" : string.Join(" · ", evidence.scenes)));
+            Assert.AreEqual(EvidenceSceneNames.Length, evidence.sceneCount,
+                "bằng chứng ở " + path + " khai sceneCount = " + evidence.sceneCount + " nhưng liệt kê "
+                + (evidence.scenes == null ? 0 : evidence.scenes.Length) + " cảnh — file tự mâu thuẫn");
+            Assert.Greater(evidence.measuredCount, 0,
+                "bằng chứng đo được 0 đoạn chữ — phép lọc hỏng thì ca này thành lời khai suông");
+            Assert.IsEmpty(evidence.failures,
+                "màu chữ ĐÃ HỢP THÀNH (nhân opacity của tổ tiên) không đạt " + Number(evidence.minimumRatio) + ":1 ở "
+                + skinName + " (" + evidence.measuredCount + " đoạn chữ đo trên " + evidence.sceneCount + " cảnh):"
+                + Environment.NewLine + string.Join(Environment.NewLine, evidence.failures));
+        }
+
+        /// <summary>
+        /// Tên TỪNG cảnh mà lệnh đo phải đi qua, đúng thứ tự — sáu màn của hub, hai nhánh của inspector Lịch, và biến thể
+        /// "kết quả cũ" của màn Kiểm lịch (thêm ở cổng đợt vét W10, phiếu W10-07).
+        /// <para>
+        /// Khai bằng TÊN chứ không bằng con số 8 (soát W10 R-02): một phép đếm khớp vẫn có thể là tám cảnh khác, nên bỏ đúng
+        /// màn khó rồi thêm một màn dễ vẫn qua cổng. Danh sách này phải khớp từng chữ với <c>LiveOpsHubContrastCommand</c>;
+        /// thêm cảnh ở đó thì thêm dòng ở đây, và lúc ấy bằng chứng cũ lệch — đúng như mong muốn.
+        /// </para>
+        /// </summary>
+        private static readonly string[] EvidenceSceneNames =
+        {
+            "màn Tổng quan",
+            "màn Loại event",
+            "màn Lịch, chưa chọn đợt",
+            "màn Lịch, đợt sinh từ luật",
+            "màn Lịch, đợt cố định",
+            "màn Luật lặp",
+            "màn Kiểm lịch",
+            // (W10-07) Trạng thái DUY NHẤT của hub từng có opacity nhân dồn (hàng cũ 0,82 × dòng meta 0,7 = 0,574) và cũng
+            // là chỗ duy nhất vẽ headline CHƯA ĐO bằng quiet trong một khối đã mờ. Không có cảnh này thì bản vá W10-07 chỉ
+            // là một lời khai đọc từ USS.
+            "màn Kiểm lịch, kết quả cũ",
+            "màn Xuất JSON",
+        };
+
+        // ------------------------------------------------------------------------------------------------- trợ giúp
+
+        /// <summary>
+        /// Phép đo màu ĐÃ HỢP THÀNH dùng chung với lệnh đo batchmode — xem <see cref="UxComposedContrast"/>. Giữ một bản
+        /// DUY NHẤT của công thức vì từ W9-27 nó chạy ở hai chỗ (lượt EditMode ở skin đang chạy, lượt chụp ở skin sáng), và
+        /// hai bản sao là hai con số khác nhau về cùng một cửa sổ.
+        /// </summary>
+        private static int CollectComposedTextFailures(VisualElement root, string place, List<string> failures)
+        {
+            return UxComposedContrast.CollectFailures(root, place, failures);
         }
 
         private static void CollectFailures(VisualElement root, string skinName, bool proSkin, List<string> failures)

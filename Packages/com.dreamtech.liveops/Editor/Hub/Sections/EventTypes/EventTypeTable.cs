@@ -5,8 +5,14 @@ using UnityEngine.UIElements;
 namespace DreamTech.LiveOps.Editor
 {
     /// <summary>
-    /// Bảng loại của màn Loại event ([SD1 §2.1]): <see cref="MultiColumnListView"/> tám cột 44 / 140 / giãn / 120 / 140 / 90 / 84 / 36.
+    /// Bảng loại của màn Loại event ([SD1 §2.1]): <see cref="MultiColumnListView"/> bảy cột 44 / 140 / giãn / 120 / 140 / 90 / 84.
     /// Bảng chỉ VẼ <see cref="EventTypeRow"/> do <see cref="EventTypesModel"/> dựng — không tự tính chữ, không đọc tài liệu.
+    /// <para>
+    /// (W9-31) Cột thứ tám 36px KHÔNG CÒN. Nó mang tiêu đề rỗng và chỉ vẽ dấu trạng thái cho loại CHƯA KHAI BÁO, mà mẫu
+    /// thiết kế không có loại nào chưa khai — nên ở mọi ảnh, mọi cỡ, nó là một cột trống có đường kẻ chia cột riêng và người
+    /// đọc thấy đúng một bảng vỡ cột. Dấu ấy nay nằm trong ô MÀU, ngay cạnh swatch rỗng viền quiet vốn đã nói "chưa khai" —
+    /// không mất thông tin nào, và 36px trả lại cho các cột chữ nên cửa sổ hẹp giữ được nhiều cột phụ hơn.
+    /// </para>
     /// <para>
     /// Thứ tự mặc định là thứ tự làn trên Lịch (V-12); bấm tiêu đề cột mới sắp lại, và bỏ sắp thì về đúng thứ tự làn. Kéo hàng để
     /// đổi thứ tự làn KHÔNG có ở P1 (V-12: chỉ menu header làn của màn Lịch), nên bảng không đăng ký đường kéo nào.
@@ -21,6 +27,21 @@ namespace DreamTech.LiveOps.Editor
         internal const string ConfigKeyColumnName = "config-key";
         internal const string SourceColumnName = "source";
         internal const string EventCountColumnName = "event-count";
+
+        /// <summary>
+        /// (W9-31) Tên của cột 36px ĐÃ GỠ. Hằng còn lại vì kịch bản chụp vùng EventTypes khai một khung mong đợi theo tên này
+        /// và file đó thuộc quyền ghi của gói khác trong cùng đợt; khung ấy nay không khớp phần tử nào nên không kiểm gì.
+        /// Xoá BỘ BA ở cổng đợt, kẻo hằng thừa ở lại rồi có người dựng lại cột trống:
+        /// <list type="number">
+        /// <item>hằng này;</item>
+        /// <item>dòng <c>new LiveOpsHubCaptureExpectedFrame(EventTypeTable.StateColumnName, …)</c> và hằng
+        /// <c>EventTypesColumnStateWidth</c> trong <c>LiveOpsHubCaptureScenarios.EventTypes.cs</c>;</item>
+        /// <item>(soát W10 F3) một CHỐT trong <c>tools/liveops-hub/measure-capture.py</c>: khung mong đợi khớp 0 phần tử
+        /// phải là LỖI chứ không im lặng. Hôm nay vòng <c>for element in matching_elements(...)</c> không sinh gì khi
+        /// không khớp, nên một khung chết không làm cổng ảnh đỏ — đó là lý do khung <c>state</c> mồ côi này sống sót
+        /// qua cả lượt chụp lẫn lượt đo mà không ai biết.</item>
+        /// </list>
+        /// </summary>
         internal const string StateColumnName = "state";
 
         /// <summary>
@@ -41,12 +62,32 @@ namespace DreamTech.LiveOps.Editor
         private const float ColorColumnMinimumWidth = 44f;
 
         private const float TypeIdColumnMinimumWidth = 128f;
-        private const float DisplayNameColumnMinimumWidth = 120f;
+
+        /// <summary>
+        /// (W9-31) 120 → 128px. Tên hiển thị dài nhất của mẫu ("Nhiệm vụ dung nham") cần 111px chữ; 120 cho đúng 112px vùng
+        /// nội dung sau 8px đệm ô — dư 1px, tức 99,1%, đúng thứ luật dư 5% của W9-25 dựng lên để bắt. Con số 120 chưa bao
+        /// giờ bị lộ vì cột này GIÃN và trước W9-31 nó không bao giờ rơi xuống bề rộng tối thiểu; gỡ cột trạng thái 36px trả
+        /// chỗ cho một cột phụ nữa ở cửa sổ 700px, và lúc đó cột tên hiển thị mới chạm đáy của chính nó. 128 cho 120px vùng
+        /// nội dung, dư 9px (92,5%).
+        /// <para>
+        /// (soát W10 F2) Chính việc nâng 120 → 128 lại ĐẨY cỡ 700×560 ra khỏi vùng chạm đáy, và số đo nói rõ: bảng ở đó
+        /// rộng 424px, dùng được 410px sau chỗ thanh cuộn; 44+128+<b>120</b>+116 = 408 ≤ 410 nên bảng còn giữ được một cột
+        /// phụ và cột tên hiển thị rơi xuống 120 (đó là lúc dòng "99,1%" xuất hiện), còn 44+128+<b>128</b>+116 = 416 &gt; 410
+        /// nên bảng bỏ luôn cột phụ ấy và cột tên hiển thị giãn lại thành 240px. Cỡ cửa sổ THẬT SỰ ép cột xuống đáy là
+        /// 706×560 (bảng 430px) — đo được, có ảnh <c>plan/w10/shots/w931-loai-event-day-cot.png</c>.
+        /// </para>
+        /// <para>
+        /// <c>internal</c> vì vậy: con số này phải kiểm được bằng ĐƠN VỊ ("chữ dài nhất × 1/0,95 + đệm ô"), không phụ
+        /// thuộc việc bố cục hôm nay có chạm đáy hay không — xem
+        /// <c>EventTypesSectionTests.Table_AtNarrowWindow_KeepsSlackInEveryCell</c> vế 2. Khoá thứ hai là năm mốc bậc cột
+        /// của <c>OptionalColumnCountThatFits</c>, vốn tính từ <see cref="AlwaysVisibleColumnsWidth"/>.
+        /// </para>
+        /// </summary>
+        internal const float DisplayNameColumnMinimumWidth = 128f;
         private const float EntryColumnMinimumWidth = 116f;
         private const float ConfigKeyColumnMinimumWidth = 140f;
         private const float SourceColumnMinimumWidth = 88f;
         private const float EventCountColumnMinimumWidth = 56f;
-        private const float StateColumnMinimumWidth = 36f;
 
         /// <summary>
         /// Chỗ dành cho thanh cuộn dọc của bảng. Trừ sẵn thì tổng bề rộng tối thiểu của các cột đang hiện không bao giờ
@@ -56,11 +97,11 @@ namespace DreamTech.LiveOps.Editor
         private const float VerticalScrollerReserve = 14f;
 
         /// <summary>
-        /// Bốn cột luôn hiện: màu, id loại, tên hiển thị, dấu trạng thái. Đây là phần trả lời "hàng này là loại nào và nó
-        /// đang thế nào" — bỏ cột nào trong bốn cột này thì bảng thôi là bảng loại.
+        /// Ba cột luôn hiện: màu (đã mang cả dấu trạng thái từ W9-31), id loại, tên hiển thị. Đây là phần trả lời "hàng này
+        /// là loại nào và nó đang thế nào" — bỏ cột nào trong ba cột này thì bảng thôi là bảng loại.
         /// </summary>
         private const float AlwaysVisibleColumnsWidth = ColorColumnMinimumWidth + TypeIdColumnMinimumWidth
-            + DisplayNameColumnMinimumWidth + StateColumnMinimumWidth;
+            + DisplayNameColumnMinimumWidth;
 
         /// <summary>
         /// Bốn cột phụ theo thứ tự GIỮ LẠI: cách vào → khoá config → nguồn → số đợt. Cửa sổ hẹp dần thì bỏ từ cuối danh
@@ -77,9 +118,6 @@ namespace DreamTech.LiveOps.Editor
 
         /// <summary>Bốn cột phụ theo đúng thứ tự giữ lại của <see cref="OptionalColumnMinimumWidths"/>.</summary>
         private readonly List<Column> _optionalColumns = new List<Column>();
-
-        /// <summary>Cột dấu trạng thái — luôn là cột CUỐI, kể cả khi mọi cột phụ đã bị bỏ.</summary>
-        private Column _stateColumn;
 
         /// <summary>Số cột phụ đang hiện; -1 = chưa dựng lần nào. Chỉ dựng lại bảng cột khi con số này ĐỔI.</summary>
         private int _visibleOptionalColumnCount = -1;
@@ -206,14 +244,58 @@ namespace DreamTech.LiveOps.Editor
                 MakeTextCell, BindSourceCell, true));
             _optionalColumns.Add(BuildColumn(EventCountColumnName, LiveOpsHubStrings.EventTypesColumnEventCount, 84,
                 EventCountColumnMinimumWidth, MakeCountCell, BindCountCell, true));
-            // Cột 8 không có tiêu đề: chỗ cho dấu trạng thái, tiêu đề "Trạng thái" trên 36px sẽ bị cắt thành chữ vô nghĩa.
-            _stateColumn = BuildColumn(StateColumnName, string.Empty, 36, StateColumnMinimumWidth, MakeStateCell, BindStateCell, false);
             ApplyVisibleColumnCount(_optionalColumns.Count);
         }
+
+        /// <summary>
+        /// Cột mà Ô của nó phải NHẬN RA ĐƯỢC từ bên ngoài. Luật rút gọn có điều kiện (user chốt 21/9/2026) miễn theo TỪNG
+        /// CỘT: <c>type-id</c> và <c>config-key</c> khai bề rộng CỐ ĐỊNH và có chỗ đọc đủ ở inspector, còn <c>display-name</c>
+        /// là cột GIÃN nên không thuộc diện miễn. Mọi ô của bảng mang cùng một class <c>liveops-hub-event-types-cell</c>,
+        /// nên tên element là cách duy nhất phân biệt cột này với cột kia mà không đẻ thêm class vào bảng class ĐÓNG của
+        /// kế hoạch.
+        /// <para>
+        /// Chỉ đặt tên cho HAI cột ấy, không đặt cho cả bảy: lệnh chụp ghi MỌI element có tên vào JSON số đo, nên đặt tên
+        /// tràn lan là thêm năm dòng cảnh báo "không dò được cạnh rõ" vào mọi ảnh của màn này mà không đổi lấy gì.
+        /// </para>
+        /// </summary>
+        private static readonly string[] IdentifiedCellColumnNames = { TypeIdColumnName, ConfigKeyColumnName };
+
+        /// <summary>
+        /// Hậu tố tên Ô. Tên ô phải KHÁC tên cột: ma trận ảnh 9.5 đo bề rộng từng cột bằng chính tên cột
+        /// (<c>LiveOpsHubCaptureScenarios.EventTypes</c>), và <c>measure-capture.py</c> khớp theo tên hoặc class — đặt ô
+        /// trùng tên cột thì mỗi hàng của bảng thành một "khung" nữa phải đo, và mỗi ảnh của màn đẻ ra hơn hai chục dòng
+        /// cảnh báo "không dò được cạnh rõ" cho đúng thứ chưa bao giờ là một khung thiết kế.
+        /// </summary>
+        private const string CellNameSuffix = "-cell";
+
+        /// <summary>Cột này có cần ô mang tên không. So chuỗi theo Ordinal — tên cột là định danh, không phải chữ hiển thị.</summary>
+        private static bool IsIdentifiedCellColumn(string columnName)
+        {
+            for (int index = 0; index < IdentifiedCellColumnNames.Length; index++)
+            {
+                if (string.Equals(IdentifiedCellColumnNames[index], columnName, StringComparison.Ordinal)) return true;
+            }
+            return false;
+        }
+
+        /// <summary>Tên element của ô cột "Id loại" — <see cref="IdentifiedCellColumnNames"/> nói vì sao ô này có tên.</summary>
+        internal const string TypeIdCellName = TypeIdColumnName + CellNameSuffix;
+
+        /// <summary>Tên element của ô cột "Config key".</summary>
+        internal const string ConfigKeyCellName = ConfigKeyColumnName + CellNameSuffix;
 
         private static Column BuildColumn(string columnName, string title, float width, float minimumWidth,
             Func<VisualElement> makeCell, Action<VisualElement, int> bindCell, bool sortable)
         {
+            string cellName = IsIdentifiedCellColumn(columnName) ? columnName + CellNameSuffix : string.Empty;
+            Func<VisualElement> makeNamedCell = cellName.Length == 0
+                ? makeCell
+                : () =>
+                {
+                    VisualElement cell = makeCell();
+                    cell.name = cellName;
+                    return cell;
+                };
             return new Column
             {
                 name = columnName,
@@ -221,7 +303,7 @@ namespace DreamTech.LiveOps.Editor
                 width = width,
                 minWidth = minimumWidth,
                 sortable = sortable,
-                makeCell = makeCell,
+                makeCell = makeNamedCell,
                 bindCell = bindCell,
             };
         }
@@ -284,7 +366,8 @@ namespace DreamTech.LiveOps.Editor
         /// <c>Column.visible</c>: ở Unity 2022.3, một cột ẩn đứng TRƯỚC một cột hiện làm
         /// <c>MultiColumnController.OnColumnResized</c> tra ô theo chỉ số của danh sách ĐẦY ĐỦ trong khi hàng chỉ dựng ô cho
         /// cột đang hiện — ném <c>ArgumentOutOfRangeException</c> ngay lượt layout đầu (đã gặp thật ở lượt EditMode 2022.3
-        /// của gói này). Cột dấu trạng thái luôn là cột cuối nên trường hợp "ẩn đứng trước hiện" là không tránh được.
+        /// của gói này). Cột phụ bị bỏ luôn là các cột CUỐI từ W9-31, nhưng cách dựng lại vẫn giữ: nó là cách duy nhất đã
+        /// chạy xanh trên cả hai bản, và một lượt sắp xếp đang trỏ cột vừa bỏ vẫn phải được gỡ trước khi bảng đổi cột.
         /// </summary>
         private void ApplyVisibleColumnCount(int optionalCount)
         {
@@ -294,7 +377,6 @@ namespace DreamTech.LiveOps.Editor
             View.columns.Clear();
             foreach (Column column in _leadingColumns) View.columns.Add(column);
             for (int index = 0; index < optionalCount; index++) View.columns.Add(_optionalColumns[index]);
-            View.columns.Add(_stateColumn);
             RefreshHiddenColumnTitles(optionalCount);
             // Danh sách cột vừa dựng lại thì thứ tự hàng phải được TÍNH LẠI theo bộ cột còn lại (soát W9 R-07): đang sắp
             // theo một cột phụ mà cột đó biến mất thì bảng phải về thứ tự làn, chứ không giữ một thứ tự mà người dùng
@@ -340,6 +422,11 @@ namespace DreamTech.LiveOps.Editor
             if (changed != null) changed();
         }
 
+        /// <summary>
+        /// Ô MÀU: swatch 9x9 + dấu trạng thái của chính hàng (W9-31). Hai thứ đứng cạnh nhau trong 44px vì chúng nói cùng một
+        /// chuyện về loại này — swatch rỗng viền quiet nghĩa là "hub chưa biết màu vì loại chưa khai", dấu Blocked nói thẳng
+        /// điều đó. Dấu luôn có trong cây (ẩn bằng <c>visible</c>) để hàng không nhảy một pixel khi đổi trạng thái.
+        /// </summary>
         private static VisualElement MakeSwatchCell()
         {
             VisualElement cell = new VisualElement();
@@ -348,6 +435,12 @@ namespace DreamTech.LiveOps.Editor
             VisualElement swatch = new VisualElement();
             swatch.AddToClassList(LiveOpsHubClassNames.Swatch);
             cell.Add(swatch);
+            // (soát W10 F4) KHÔNG đặt Size = Small: dấu của ô này LUÔN là Blocked (BindSwatchCell), mà
+            // liveops-hub-components.uss không có luật --small.--blocked — bản nhỏ chỉ tồn tại cho Ok/Warning/NotMeasured.
+            // Đặt Small ở đây là một lệnh rỗng đọc thành "dấu 7px", và con số 7 ấy đã lọt vào chú thích USS lẫn báo cáo.
+            // Để mặc định Regular thì cỡ khai đúng bằng cỡ vẽ thật: 8x8.
+            LiveOpsStateMark mark = new LiveOpsStateMark();
+            cell.Add(mark);
             return cell;
         }
 
@@ -355,6 +448,7 @@ namespace DreamTech.LiveOps.Editor
         {
             Label cell = new Label();
             cell.AddToClassList(LiveOpsHubClassNames.EventTypesCell);
+            LiveOpsTableCellTooltip.Attach(cell);
             return cell;
         }
 
@@ -363,6 +457,7 @@ namespace DreamTech.LiveOps.Editor
             Label cell = new Label();
             cell.AddToClassList(LiveOpsHubClassNames.EventTypesCell);
             cell.AddToClassList(LiveOpsHubClassNames.Mono);
+            LiveOpsTableCellTooltip.Attach(cell);
             return cell;
         }
 
@@ -371,16 +466,7 @@ namespace DreamTech.LiveOps.Editor
             Label cell = new Label();
             cell.AddToClassList(LiveOpsHubClassNames.EventTypesCell);
             cell.AddToClassList(LiveOpsHubClassNames.EventTypesCellRight);
-            return cell;
-        }
-
-        private static VisualElement MakeStateCell()
-        {
-            VisualElement cell = new VisualElement();
-            cell.AddToClassList(LiveOpsHubClassNames.EventTypesCell);
-            cell.AddToClassList(LiveOpsHubClassNames.EventTypesCellCenter);
-            LiveOpsStateMark mark = new LiveOpsStateMark();
-            cell.Add(mark);
+            LiveOpsTableCellTooltip.Attach(cell);
             return cell;
         }
 
@@ -394,6 +480,9 @@ namespace DreamTech.LiveOps.Editor
                 swatch.EnableInClassList(EventTypeColorClassNames.Of(slot), slot == row.ColorSlot);
             }
             swatch.EnableInClassList(LiveOpsHubClassNames.EventTypesSwatchUndeclared, !row.IsDeclared);
+            LiveOpsStateMark mark = (LiveOpsStateMark)cell[1];
+            mark.SetHealth(HealthState.Blocked);
+            mark.visible = !row.IsDeclared;
         }
 
         private void BindTypeIdCell(VisualElement cell, int rowIndex)
@@ -429,20 +518,13 @@ namespace DreamTech.LiveOps.Editor
             cell.EnableInClassList(LiveOpsHubClassNames.TextQuiet, row.IsEventCountRuleText);
         }
 
-        private void BindStateCell(VisualElement cell, int rowIndex)
-        {
-            EventTypeRow row = _visibleOrder[rowIndex];
-            ApplyRowClasses(cell, row);
-            LiveOpsStateMark mark = (LiveOpsStateMark)cell[0];
-            mark.SetHealth(HealthState.Blocked);
-            mark.visible = !row.IsDeclared;
-        }
-
         private void BindLabel(VisualElement cell, int rowIndex, string text)
         {
             EventTypeRow row = _visibleOrder[rowIndex];
             ApplyRowClasses(cell, row);
-            ((Label)cell).text = text;
+            // Chữ đi qua LiveOpsTableCellTooltip chứ không gán thẳng: ô nào không chứa hết chữ của mình thì mang luôn
+            // tooltip đủ chữ — điều kiện (a) của luật rút gọn có điều kiện.
+            LiveOpsTableCellTooltip.Bind((Label)cell, text);
         }
 
         private static void ApplyRowClasses(VisualElement cell, EventTypeRow row)

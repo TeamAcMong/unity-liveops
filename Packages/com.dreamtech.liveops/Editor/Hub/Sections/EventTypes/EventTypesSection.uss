@@ -95,9 +95,24 @@
     -unity-text-align: middle-right;
 }
 
+/* (W9-31) Ô căn giữa là HÀNG NGANG và chỉ căn giữa SWATCH: ô màu 44px chứa swatch 9x9 ở đúng tâm cột, dấu trạng thái 8x8
+   đứng ở mép phải. Để cột dọc mặc định thì hai thứ chồng lên nhau trong hàng cao 22px. */
 .liveops-hub-event-types-cell--center {
+    flex-direction: row;
     align-items: center;
     justify-content: center;
+}
+
+/* (soát W10 F5) Dấu nằm NGOÀI dòng chảy (position: absolute), không đứng cạnh swatch trong hàng. Lý do: dấu luôn có trong
+   cây và chỉ ẩn bằng `visible` — ẩn kiểu đó vẫn CHIẾM CHỖ, nên nếu nó nằm trong hàng thì phép căn giữa đang căn giữa cụm
+   "swatch + dấu" chứ không căn giữa swatch, và swatch lệch trái ~6px ở MỌI hàng, kể cả hàng đã khai nơi dấu không hề được
+   vẽ. Tách ra khỏi dòng chảy thì swatch về đúng tâm cột, mà tính chất "hàng không nhảy một pixel khi đổi trạng thái" còn
+   chặt hơn trước (dấu hiện/ẩn không đụng tới layout của swatch).
+   `right` của Yoga đo từ mép VIỀN của ô, không trừ đệm: 4px ở đây bằng đúng đệm ngang 4px của ô, nên dấu thẳng hàng với
+   mép chữ của các cột khác. Dấu 8x8 (Blocked không có bản nhỏ) + 4px lề phải = 12px, còn cách swatch 5,5px trong 44px. */
+.liveops-hub-event-types-cell--center > .liveops-hub-state-mark {
+    position: absolute;
+    right: var(--liveops-hub-space-4);
 }
 
 /* Hàng loại chưa khai báo (Hình 10b): mờ 0,7 để đọc được mà vẫn khác hẳn hàng thật, KHÔNG ẩn — hàng này là thứ phải xử lý. */
@@ -112,7 +127,12 @@
  */
 .liveops-hub-event-types-swatch--undeclared {
     border-width: 1px;
-    border-color: var(--liveops-hub-color-quiet);
+    /* (W10-09) Token riêng chứ không phải --liveops-hub-color-quiet: cả ô mang opacity 0,7 ở luật ngay trên, và viền là
+       HÌNH KHỐI nên bậc phải đạt là 3:1 SAU khi nhân opacity ấy — khác bậc của quiet, vốn là màu CHỮ chỉnh theo 4,5:1.
+       Lúc mở phiếu W10-09, quiet skin sáng là #4F4F4F và hợp thành chỉ còn 2,82:1. Lý do tách token không nằm ở con số
+       ấy mà ở chỗ HAI BẬC KHÁC NHAU: buộc chúng dùng chung một màu thì lần chỉnh quiet kế tiếp sẽ kéo viền xuống dưới
+       3:1 mà không ca nào báo. Số đo hiện tại của viền nằm trong chú thích token ở liveops-hub-theme.uss. */
+    border-color: var(--liveops-hub-color-undeclared-border);
 }
 
 .liveops-hub-event-types-footer {

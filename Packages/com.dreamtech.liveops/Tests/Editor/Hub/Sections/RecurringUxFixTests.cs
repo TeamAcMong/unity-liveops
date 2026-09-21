@@ -1,5 +1,7 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Globalization;
 using DreamTech.LiveOps.Tests;
 using NUnit.Framework;
@@ -52,8 +54,16 @@ namespace DreamTech.LiveOps.Editor.Tests
         /// <summary>Ô nhập rộng nhất mà form 640 còn đọc được; 2022.3 để mặc định thì ô giãn tới 1183 (UX-21).</summary>
         private const float MaximumFieldInputWidth = 280f;
 
-        private const int MaximumWaitFrames = 60;
-        private const double MaximumWaitSeconds = 5d;
+        /// <summary>
+        /// Hạn giờ THẬT của mọi vòng chờ trong fixture này (W10 — bỏ vế đếm khung).
+        /// <para>
+        /// Vì sao không còn vế "quá 60 khung": số khung không phải thời gian. Máy chạy chậm thì cùng một quãng chờ có ít
+        /// khung hơn, nên vế ấy làm hạn giờ DÀI RA đúng lúc cần một câu trả lời dứt khoát — và nó cũng không rút ngắn được
+        /// gì khi máy chạy nhanh. Giờ thật một mình là thứ đo được và đọc được (cùng kết luận với W9-16 ở
+        /// <c>UxEventSender.WaitUntil</c>).
+        /// </para>
+        /// </summary>
+        private const int MaximumWaitMilliseconds = 5000;
 
         private SectionTestScope _scope;
 
@@ -266,10 +276,8 @@ namespace DreamTech.LiveOps.Editor.Tests
         {
             yield return OpenPublishedPrefixSample(WideWidth, WideHeight);
 
-            Section.Form.PrefixField.value = NewPrefix;
-            yield return null;
+            yield return TypeNewPrefixAndWaitForDraft();
 
-            Assert.IsTrue(Section.Draft.NeedsConfirmation, "gõ tiền tố mới khi đợt đang chạy chỉ tạo nháp tại ô");
             int visibleLockSentences = 0;
             _scope.View.Query<Label>(className: LiveOpsHubClassNames.RecurringFieldLockReason).ForEach(label =>
             {
@@ -289,8 +297,7 @@ namespace DreamTech.LiveOps.Editor.Tests
         {
             yield return OpenPublishedPrefixSample(WideWidth, WideHeight);
 
-            Section.Form.PrefixField.value = NewPrefix;
-            yield return null;
+            yield return TypeNewPrefixAndWaitForDraft();
             yield return ClickAt(Section.Form.PeriodField);
 
             Button cancel = _scope.View.Q<Button>(RecurringRuleForm.DraftCancelElementName);
@@ -314,8 +321,7 @@ namespace DreamTech.LiveOps.Editor.Tests
         {
             yield return OpenPublishedPrefixSample(WideWidth, WideHeight);
 
-            Section.Form.PrefixField.value = NewPrefix;
-            yield return null;
+            yield return TypeNewPrefixAndWaitForDraft();
             Button cancel = _scope.View.Q<Button>(RecurringRuleForm.DraftCancelElementName);
             Assert.IsNotNull(cancel, "khối nháp thiếu nút Huỷ (Esc)");
 
@@ -691,13 +697,32 @@ namespace DreamTech.LiveOps.Editor.Tests
         /// </summary>
         private IEnumerator WaitForFocusInside(VisualElement field)
         {
-            int frames = 0;
-            double startedAt = EditorApplication.timeSinceStartup;
-            while (!IsFocusInside(field))
+            yield return WaitForCondition(field, () => IsFocusInside(field));
+        }
+
+        /// <summary>
+        /// Vòng chờ CHUNG của fixture: điều kiện + hạn giờ thật, và mỗi vòng chạy một nhịp panel
+        /// (<see cref="UxEventSender.PumpPanelScheduler"/>) cùng một nhịp <c>delayCall</c>.
+        /// <para>
+        /// Vì sao phải tự cầm nhịp panel: hai ca <c>PrefixDraft_ClickLockedField*</c> đỏ trên 2022.3 khi có Unity khác chạy
+        /// song song, xanh 21/21 khi chạy riêng. Gốc là NHỊP VẼ, không phải hành vi — nút Huỷ nháy bằng hai lượt schedule
+        /// (thêm class, rồi +300 ms gỡ class) mà panel chỉ chạy hàng schedule lúc cửa sổ được vẽ; máy bận thì hai lượt ấy
+        /// lọt gọn vào một nhịp, giữa hai lần test nhìn vào cây. Vòng chờ này chạy đúng một nhịp panel trước mỗi lần đọc,
+        /// nên lượt THÊM class luôn rơi vào một vòng quan sát.
+        /// </para>
+        /// <para>
+        /// Hết hạn thì TRẢ VỀ chứ không fail ở đây: câu assert của chính ca mới biết nó đang chờ cái gì và nói được câu
+        /// người đọc hiểu.
+        /// </para>
+        /// </summary>
+        private static IEnumerator WaitForCondition(VisualElement element, Func<bool> condition)
+        {
+            Stopwatch stopwatch = Stopwatch.StartNew();
+            while (!condition())
             {
-                bool framesExhausted = ++frames > MaximumWaitFrames;
-                bool secondsExhausted = EditorApplication.timeSinceStartup - startedAt > MaximumWaitSeconds;
-                if (framesExhausted && secondsExhausted) yield break;
+                if (stopwatch.ElapsedMilliseconds > MaximumWaitMilliseconds) yield break;
+                UxEventSender.PumpPanelScheduler(element);
+                UxEventSender.PumpDelayCalls();
                 yield return null;
             }
         }
@@ -759,15 +784,7 @@ namespace DreamTech.LiveOps.Editor.Tests
 
         private static IEnumerator WaitForClassState(VisualElement element, string className, bool expected)
         {
-            int frames = 0;
-            double startedAt = EditorApplication.timeSinceStartup;
-            while (element.ClassListContains(className) != expected)
-            {
-                bool framesExhausted = ++frames > MaximumWaitFrames;
-                bool secondsExhausted = EditorApplication.timeSinceStartup - startedAt > MaximumWaitSeconds;
-                if (framesExhausted && secondsExhausted) yield break;
-                yield return null;
-            }
+            yield return WaitForCondition(element, () => element.ClassListContains(className) == expected);
         }
 
         /// <summary>
@@ -781,14 +798,54 @@ namespace DreamTech.LiveOps.Editor.Tests
             _scope.Window.SendEvent(new Event { type = EventType.MouseUp, mousePosition = center, button = 0, clickCount = 1 });
         }
 
+        /// <summary>
+        /// Gõ tiền tố mới vào ô rồi chờ tới khi NHÁP thật sự tồn tại — theo ĐIỀU KIỆN + hạn giờ thật, không đếm khung.
+        /// <para>
+        /// (W10-11) Bản cũ ghi <c>yield return null</c> đúng MỘT khung sau khi đặt <c>value</c>. Một khung là đủ khi máy
+        /// rảnh, nhưng ô tiền tố đi qua <c>ChangeEvent</c> → presenter dựng nháp → panel vẽ lại; khi máy đang chạy vài
+        /// lượt Unity song song thì chuỗi ấy có thể tràn sang khung sau, và mọi câu phía dưới (nút Huỷ, class chớp) đọc
+        /// một cây CHƯA có khối nháp. Đó là gốc chập chờn của hai ca <c>PrefixDraft_ClickLockedField*</c>: không ca nào
+        /// sai về HÀNH VI, chúng chỉ nhìn sớm một khung.
+        /// </para>
+        /// <para>
+        /// Hạn giờ hết thì câu assert dưới đây đỏ ngay tại chỗ với lý do đọc được, chứ không để ca đỏ ở một câu xa hơn
+        /// nói về nút Huỷ trong khi thứ thiếu là cái nháp.
+        /// </para>
+        /// </summary>
+        private IEnumerator TypeNewPrefixAndWaitForDraft()
+        {
+            Section.Form.PrefixField.value = NewPrefix;
+            // Nhường ÍT NHẤT một khung, KHÔNG phải để "chờ cho chắc": đặt `value` chạy ChangeEvent ngay trong lượt gọi,
+            // nên `NeedsConfirmation` đã true trước khi vòng chờ dưới đây hỏi câu đầu tiên — vòng chờ sẽ thoát mà không
+            // nhả khung nào, và cây nháp lẫn resolvedStyle của câu khoá thì chỉ có sau một lượt vẽ của panel. Đo được:
+            // bỏ hẳn khung này làm PrefixDraft_ShowsLockSentenceOnce đếm 0 câu khoá và hai ca ClickLockedField* không
+            // thấy nút Huỷ.
+            yield return null;
+            // Rồi mới chờ theo ĐIỀU KIỆN + hạn giờ (W10-11): điều kiện hỏi CÂY, không hỏi mô hình, vì thứ mọi câu phía
+            // dưới đọc là cây — khối nháp có mặt và nút Huỷ đã dựng.
+            yield return WaitForCondition(_scope.View,
+                () => Section.Draft.NeedsConfirmation && DraftCancelButton() != null);
+            Assert.IsTrue(Section.Draft.NeedsConfirmation,
+                "gõ tiền tố mới khi đợt đang chạy phải tạo nháp tại ô — chờ theo điều kiện tới "
+                + MaximumWaitMilliseconds + " ms vẫn chưa thấy nháp nào");
+            Assert.IsNotNull(DraftCancelButton(),
+                "có nháp rồi mà cây vẫn chưa dựng nút Huỷ (Esc) sau " + MaximumWaitMilliseconds + " ms");
+        }
+
+        /// <summary>Nút "Huỷ (Esc)" của khối nháp — null khi khối nháp chưa dựng.</summary>
+        private Button DraftCancelButton()
+        {
+            return _scope.View.Q<Button>(RecurringRuleForm.DraftCancelElementName);
+        }
+
         /// <summary>Chuột thật lên tâm một phần tử của màn — kể cả phần tử đang bị khoá (đó là chỗ UX-23 đo).</summary>
         private IEnumerator ClickAt(VisualElement element)
         {
             yield return LiveOpsHubWindowTestScope.WaitForLayout(element);
             SendClick(element);
-            // Hai khung: khung đầu để panel xử lý xong focus của chính cú bấm, khung sau để phần đặt lại focus chạy.
-            yield return null;
-            yield return null;
+            // Không chờ thêm khung nào ở đây (W10): hai khung cố định của bản cũ vừa là phép đếm khung, vừa THỪA — mọi nơi
+            // gọi ClickAt đều chờ tiếp theo ĐIỀU KIỆN (class chớp xuất hiện, focus vào đúng nút), và vòng chờ ấy tự cầm
+            // nhịp panel nên nó phủ luôn quãng mà hai khung kia định chờ hộ.
         }
 
         private IEnumerator SelectRule(string eventType)
@@ -797,24 +854,15 @@ namespace DreamTech.LiveOps.Editor.Tests
             yield return null;
         }
 
-        /// <summary>Chờ bảng đợt kế tiếp tính lại sau debounce 250 ms (V-23: quá CẢ 60 khung LẪN 5 giây mới fail).</summary>
+        /// <summary>Chờ bảng đợt kế tiếp tính lại sau debounce 250 ms — theo ĐIỀU KIỆN + hạn giờ thật, không đếm khung.</summary>
         private IEnumerator WaitForOccurrenceRows(int expectedRowCount)
         {
             // Nhường ÍT NHẤT một khung trước khi đo: resolvedStyle chỉ đổi sau một lượt resolve style của panel, nên đọc
             // ngay sau khi gán giá trị là đọc lại con số của khung trước — cái bẫy làm test này đỏ nhầm.
             yield return null;
-            int frames = 0;
-            double startedAt = EditorApplication.timeSinceStartup;
-            while (Section.Form.Occurrences.RowCount != expectedRowCount)
-            {
-                bool framesExhausted = ++frames > MaximumWaitFrames;
-                bool secondsExhausted = EditorApplication.timeSinceStartup - startedAt > MaximumWaitSeconds;
-                if (framesExhausted && secondsExhausted)
-                {
-                    Assert.Fail("bảng đợt kế tiếp không về " + expectedRowCount + " hàng sau 60 khung và 5 giây");
-                }
-                yield return null;
-            }
+            yield return WaitForCondition(_scope.View, () => Section.Form.Occurrences.RowCount == expectedRowCount);
+            Assert.AreEqual(expectedRowCount, Section.Form.Occurrences.RowCount,
+                "bảng đợt kế tiếp không về " + expectedRowCount + " hàng trong " + MaximumWaitMilliseconds + " ms");
         }
 
         private IEnumerator OpenDesignSample(int width, int height)
