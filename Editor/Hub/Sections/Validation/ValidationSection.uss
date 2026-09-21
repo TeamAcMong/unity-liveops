@@ -288,9 +288,29 @@
     white-space: nowrap;
 }
 
-/* Kết quả cũ: hàng mờ đi nhưng chữ trạng thái vẫn đọc được — mờ cả hàng, không mờ riêng dấu. */
-.liveops-hub-validation-row--stale {
+/* Kết quả cũ: hàng mờ đi nhưng chữ trạng thái vẫn đọc được.
+ *
+ * (W10-07) Trước đây luật này đặt `opacity: 0.82` lên CHÍNH HÀNG. Sai ở hai chỗ, cả hai đều là chỗ mắt không thấy mà máy
+ * đo ra:
+ *   1. opacity của tổ tiên NHÂN xuống con. Hàng bọc `-row-meta` và `-row-rule-id` vốn đã tự mờ 0,7, nên tích thật là
+ *      0,574 — chữ nền tảng chỉ còn 3,83:1 (skin tối) / 4,10:1 (skin sáng), dưới bậc chữ 4,5:1.
+ *   2. headline của phát hiện CHƯA ĐO mang `liveops-hub-text--quiet`, mà quiet là màu chữ đã được tinh chỉnh để vừa đủ
+ *      4,5:1 Ở OPACITY 1 (5,05:1 tối / 4,90:1 sáng). Nhân thêm 0,82 là 3,94:1 / 3,50:1 — trượt.
+ *
+ * Vì sao không chữa bằng `opacity: 1` trên con: trong UI Toolkit con KHÔNG gỡ được opacity của tổ tiên. Vì sao không nâng
+ * 0,82 lên cho đủ: quiet skin sáng cần tới ≥ 0,96 mới qua 4,5:1, tức là bỏ hẳn hiệu ứng mờ mà vẫn giả vờ còn nó.
+ *
+ * Đường đúng: bỏ opacity khỏi HÀNG, chỉ làm mờ đúng dòng đang ở cường độ đầy — headline. Hai dòng dưới (`-row-meta`,
+ * `-row-rule-id`) đã mờ 0,7 sẵn, tức vẫn mờ hơn headline cũ, nên hàng "kết quả cũ" vẫn đọc ra là nhạt hơn hàng mới mà
+ * không dòng nào rơi xuống dưới bậc. Hai luật này phải đứng TRƯỚC khối `--selected` ngay dưới: cùng độ đặc hiệu nên
+ * hàng ĐANG CHỌN thắng theo thứ tự nguồn và sáng lên đủ, đúng như [SD2 §2.2] đòi. */
+.liveops-hub-validation-row--stale .liveops-hub-validation-row-headline {
     opacity: 0.82;
+}
+
+/* Headline CHƯA ĐO vẽ bằng quiet — màu ấy đã là mức nhạt nhất còn đọc được, làm mờ thêm là đẩy xuống dưới 4,5:1. */
+.liveops-hub-validation-row--stale .liveops-hub-validation-row-headline.liveops-hub-text--quiet {
+    opacity: 1;
 }
 
 /* [SD2 §2.2] hàng đang chọn chuyển CẢ BA dòng sang opacity 1: headline, meta và id luật. Chỉ nâng headline thì hai dòng
