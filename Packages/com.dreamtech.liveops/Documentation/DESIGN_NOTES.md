@@ -181,6 +181,13 @@ Hai tình huống khác nhau, hai cách xử khác nhau — cả hai đều **kh
   hỏng thì bị bỏ và ghi lý do. Thêm một cửa ném ở `ValidateIdentifier` sẽ làm đúng cái nó cấm, và còn là thay đổi phá
   vỡ với game đã đặt id dài hơn 64. Nên giới hạn sống ở `LiveOpsIdentifierLimits` như hợp đồng soạn thảo, và chỗ THẬT
   SỰ đọc nó hôm nay là bộ dữ liệu xấu nhất của cổng bố cục (`LiveOpsWorstCaseSample`, có test đo từng chuỗi).
+- **Một hằng chỉ có nghĩa khi có mẩu dữ liệu dựng theo nó.** Sáu trên bảy giới hạn có ca đo mỗi lượt, trong đó bốn được
+  ma trận 12 màn vẽ ra bằng chuỗi fixture dài đúng mức. Giới
+  hạn thứ bảy — `MaxAssetNameLength` — mới có hằng fixture và ca đo độ dài, chưa màn nào đứng trên một tên asset 64 ký
+  tự, và chỗ đặt tên ấy (`LiveOpsHubTestServices`) dùng chung cho mọi màn nên nối vào là đổi số của cả những màn đang
+  xanh. Khai thành nợ W11-14 thay vì để hằng nằm im như một con số ai cũng tưởng đã được nghiệm thu.
+- **Giới hạn nói về ĐỘ DÀI CHUỖI ĐÃ GIẢI MÃ.** `Main.asset` ghi tên hiển thị dạng escape YAML, nên dòng thô dài hơn hẳn
+  chuỗi thật (30 so với 18). Mọi phép suy trong mục này đếm trên chuỗi đã giải mã.
 - **Vì sao con số suy ra chứ không chọn tay.** `MaxRecurringIdPrefixLength` = `MaxIdentifierLength` −
   `MaxOccurrenceIndexLength`: id một lần lặp là tiền tố + số thứ tự, nên một tiền tố "trông vẫn ngắn" vẫn sinh ra id
   vượt giới hạn. `MaxOccurrenceIndexLength` = bề rộng chữ của `long.MinValue`, đo được chứ không ước lượng.

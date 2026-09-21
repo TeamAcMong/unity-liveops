@@ -89,6 +89,17 @@ namespace DreamTech.LiveOps.Tests
                 nameof(LiveOpsWorstCaseSample.LongPublishedNote));
         }
 
+        /// <summary>
+        /// (soát W11 R-06) Hằng thứ bảy của bảng giới hạn cũng phải có mẩu dữ liệu dựng theo, kẻo nó là một con số khai
+        /// trong tài liệu mà không chỗ nào đọc — đổi nó chẳng làm gì đỏ, và người đọc README tưởng nó đã được nghiệm thu.
+        /// </summary>
+        [Test]
+        public void WorstCaseSample_AssetName_SitsExactlyAtAssetNameLimit()
+        {
+            AssertExactLength(LiveOpsWorstCaseSample.LongAssetName, LiveOpsIdentifierLimits.MaxAssetNameLength,
+                nameof(LiveOpsWorstCaseSample.LongAssetName));
+        }
+
         [Test]
         public void WorstCaseSample_GeneratedOccurrenceIds_StayWithinIdentifierLimit()
         {
