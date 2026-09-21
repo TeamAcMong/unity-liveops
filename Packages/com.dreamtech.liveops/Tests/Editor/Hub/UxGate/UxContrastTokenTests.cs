@@ -79,7 +79,7 @@ namespace DreamTech.LiveOps.Editor.Tests
         private const float TextContrastRatio = UxComposedContrast.TextContrastRatio;
 
         /// <summary>Bậc WCAG 2.1 AA cho chữ to và cho thành phần đồ hoạ / thành phần giao diện.</summary>
-        private const float ShapeContrastRatio = 3f;
+        private const float ShapeContrastRatio = UxComposedContrast.ShapeContrastRatio;
 
         /// <summary>
         /// Nền hàng đang chọn của Unity, skin tối. Không phải lời khai suông: chính <c>liveops-hub-theme.uss</c> lấy màu này

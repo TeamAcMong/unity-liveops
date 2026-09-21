@@ -1047,3 +1047,51 @@ file	tools/liveops-hub/ownership.tsv	G-W10-MATRIX2	W10 — chính khối đăng 
 #   chuỗi và gói cổng sẽ bị coi là đứng TRƯỚC gói nó gộp. W9 đã gặp đúng chỗ này và đặt W9.5 cho gói cổng — theo y vậy.
 package	G-FIX-W10-2	W10.5	S	G-W10-MATRIX2,G-W10-CAL2,G-W10-THEME
 file	tools/liveops-hub/ownership.tsv	G-FIX-W10-2	đặt lại đợt của G-W10-MATRIX2 cho khớp thứ tự thật + khai đủ phụ thuộc
+
+# ---------------------------------------------------------------------------------------------------------------------
+# (CỔNG ĐỢT VÉT W10, lượt 2 — 21/9/2026) Năm gói sửa TẠI CỔNG, làm nốt các phiếu mà từng gói lẻ không có quyền ghi hoặc
+# không có đủ cây để sửa. Cả năm chạy TUẦN TỰ trên wt/G-W10-GATE, mỗi gói một commit, nên mỗi gói một đợt riêng và gói
+# sau khai phụ thuộc gói trước — đúng luật V-9 (không gói nào phụ thuộc gói CÙNG đợt).
+# Nhãn đợt dạng "W10.5-FIXn": wave_sort_key so bằng tuple (số, hậu tố CHỮ), nên (10.5, "FIX4") đứng SAU (10.5, "") của
+# G-FIX-W10-2 và trước mọi đợt W11. Dạng "W10-FIXn" sẽ ra (10.0, "FIXn") — đứng TRƯỚC W10.5, tức sai thứ tự thật.
+#
+# G-FIX-W10-4 — phiếu F5: bậc WCAG chỉ được khai MỘT chỗ. Sau khi G-W10-MATRIX vào cây, hằng chung đã có thật, nên
+#   UxComposedTokenContrastTests thôi giữ literal 4,5 riêng; bậc hình khối 3:1 cũng gom về cùng nguồn vì từ G-FIX-W10-5
+#   nó có chỗ dùng thứ hai.
+package	G-FIX-W10-4	W10.5-FIX4	S	G-FIX-W10-2,G-W10-MATRIX2,G-W10-CAL2,G-W10-THEME
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/UxGate/UxComposedContrast.cs	G-FIX-W10-4	thêm ShapeContrastRatio cạnh TextContrastRatio — một nguồn cho cả hai bậc của chốt USER 19/9
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/UxGate/UxContrastTokenTests.cs	G-FIX-W10-4	ShapeContrastRatio đọc hằng chung thay vì literal 3f
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/UxGate/UxComposedTokenContrastTests.cs	G-FIX-W10-4	TextContrastRatio thôi khai literal 4,5f, đọc UxComposedContrast.TextContrastRatio (phiếu F5)
+file	tools/liveops-hub/ownership.tsv	G-FIX-W10-4	chính khối đăng ký năm gói sửa ở cổng lượt 2
+#
+# G-FIX-W10-5 — phiếu W10-09: viền swatch "loại chưa khai báo" nằm trong ô mờ 0,7; skin SÁNG hợp thành 2,82:1, dưới bậc
+#   hình khối 3:1. Gói G-W10-THEME đo ra nhưng không có quyền ghi Sections/EventTypes/**; ở cổng thì có.
+package	G-FIX-W10-5	W10.5-FIX5	S	G-FIX-W10-4
+file	Packages/com.dreamtech.liveops/Editor/Hub/UI/liveops-hub-theme.uss	G-FIX-W10-5	token --liveops-hub-color-undeclared-border cho hai skin (#AAAAAA tối / #444444 sáng)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/EventTypes/EventTypesSection.uss	G-FIX-W10-5	viền swatch đọc token mới thay vì --liveops-hub-color-quiet (màu CHỮ)
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/UxGate/UxContrastTokenTests.cs	G-FIX-W10-5	token mới vào bảng hình khối, đo ở opacity 1 trên nền cửa sổ
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/UxGate/UxComposedTokenContrastTests.cs	G-FIX-W10-5	dòng Sites HÌNH KHỐI đầu tiên: token mới × 0,70 phải đạt 3:1 ở CẢ HAI skin
+file	tools/liveops-hub/ownership.tsv	G-FIX-W10-5	khối đăng ký ở trên
+#
+# G-FIX-W10-6 — phiếu W10-07 phần ValidationSection.uss: hàng "kết quả cũ" đặt opacity lên CHÍNH HÀNG nên nhân dồn với
+#   opacity 0,7 của hai dòng con (0,574 → 3,83:1 tối / 4,10:1 sáng) và nhân cả vào headline màu quiet (3,94 / 3,50).
+#   Kèm cảnh đo thứ 9 để bản vá có phép đo chứ không chỉ có lời khai.
+package	G-FIX-W10-6	W10.5-FIX6	S	G-FIX-W10-5
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Validation/ValidationSection.uss	G-FIX-W10-6	bỏ opacity khỏi HÀNG cũ, chỉ làm mờ headline, và giữ headline màu quiet ở cường độ đầy
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Capture/LiveOpsHubContrastCommand.cs	G-FIX-W10-6	cảnh đo thứ 9 "màn Kiểm lịch, kết quả cũ" dựng bằng kịch bản stale-check
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/UxGate/UxContrastTokenTests.cs	G-FIX-W10-6	tên cảnh mới vào danh sách cảnh bắt buộc của bằng chứng
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/UxGate/UxComposedTokenContrastTests.cs	G-FIX-W10-6	ba dòng Sites của hàng "kết quả cũ" sau bản vá
+file	tools/liveops-hub/ownership.tsv	G-FIX-W10-6	khối đăng ký ở trên
+#
+# G-FIX-W10-7 — phiếu W10-10: số chỗ của Calendar_LayoutIsUsable_WithWorstCaseData phụ thuộc THỨ TỰ CHẠY (178/180/184)
+#   vì thẻ hover còn dính trên cây lúc lượt quét đọc. Chữa ở đường chung của lượt quét, không chữa ở từng ca.
+package	G-FIX-W10-7	W10.5-FIX7	S	G-FIX-W10-6
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/UxGate/UxHubWindowFixture.cs	G-FIX-W10-7	HideHoverCards + HasVisibleHoverCard
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/UxGate/UxLayoutAuditTests.cs	G-FIX-W10-7	RunScreen tắt thẻ hover và khẳng định cây sạch TRƯỚC mỗi lượt quét
+file	tools/liveops-hub/ownership.tsv	G-FIX-W10-7	khối đăng ký ở trên
+#
+# G-FIX-W10-8 — phiếu W10-11: hai ca PrefixDraft_ClickLockedField* còn một vế ĐẾM KHUNG (đúng một khung sau khi đặt
+#   value của ô tiền tố) trước khi đọc khối nháp. Đổi sang chờ theo ĐIỀU KIỆN + hạn giờ, như mọi vế chờ khác của hai ca.
+package	G-FIX-W10-8	W10.5-FIX8	S	G-FIX-W10-7
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Sections/RecurringUxFixTests.cs	G-FIX-W10-8	TypeNewPrefixAndWaitForDraft — chờ nháp theo điều kiện thay cho một khung cố định
+file	tools/liveops-hub/ownership.tsv	G-FIX-W10-8	khối đăng ký ở trên
