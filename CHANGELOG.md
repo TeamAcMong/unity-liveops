@@ -5,6 +5,21 @@ phiên bản theo [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.2.0-preview.1] - 2026-09-21
+
+Bản xem trước đầu tiên của nhánh 0.2.0. Gói vào bản này: **LiveOps Hub** — cửa sổ Editor sáu màn (Tổng quan, Loại
+event, Lịch, Luật lặp, Kiểm lịch, Xuất JSON) — cùng asset lịch trong project, JSON định dạng 2, 12 luật Kiểm lịch,
+hai bộ chữ **Tiếng Việt + English mặc định English**, đổi mặc định của `ParseOrDefault` khi remote hỏng (Q-9: dùng
+lịch trong asset thay vì trả lịch rỗng), và `LiveOpsIdentifierLimits` — giới hạn độ dài dữ liệu lịch thành hằng có
+tài liệu. Cửa sổ hub dựng và dùng được ở **mọi cỡ từ 700x560 tới 1920x1040** (7 cỡ × 2 ngôn ngữ trong ma trận kiểm
+bố cục), và **màu CHỮ đạt bậc tương phản WCAG ở cả hai skin sáng/tối** (1005 đoạn chữ trên 9 cảnh, 0 dòng trượt, đo
+trên pixel ảnh chụp ở cả 2022.3.62f2 lẫn 6000.6.0f1).
+
+Hai điều phải đọc trước khi dùng, ghi đủ ở mục **Chưa có ở bản này**: (a) trên **dữ liệu dài gần giới hạn** thì chữ
+ở nhiều màn **bị cắt** — 739 chỗ đã đếm, đã khai theo mã W11-01…W11-12, hoãn sang đợt W11 theo quyết định ngày
+21/9/2026; (b) bậc tương phản đã đo là bậc của **chữ**, chưa phải của **cạnh nút ở skin tối** (J3-02).
+Đây là lý do bản này mang nhãn `preview`.
+
 **LiveOps Hub** — lịch event sống trong project, có cửa sổ cho designer, có bộ kiểm trước khi đăng. Đường chạy của game
 không đổi: `Parse`, `LiveOpsSystem` và mọi port của 0.1.0 giữ nguyên chữ ký và nguyên chuỗi `Problems`.
 
@@ -198,6 +213,32 @@ không đổi: `Parse`, `LiveOpsSystem` và mọi port của 0.1.0 giữ nguyên
   server-authoritative) là 0.4.0.
 - **Không có API đổi lịch giữa phiên.** Remote config về muộn thì chờ có hạn giờ rồi mới `Build()` — README mục 4.4.
 - Chưa chặn triệt để việc vặn giờ tới lúc offline để vào đợt sau sớm (cần giờ server khi vào đợt).
+- **J3-01 — hai nút PHÁ HUỶ dãn hết bề ngang pane** (bước nhìn bằng mắt 21/9/2026). `Xoá luật…` của màn Luật lặp đo
+  được **637px ở 1280x760** và **504px ở 820x560**; `Xoá đợt…` của pane Lịch đo được **265px** và **264px** — cả hai
+  chạy hết bề ngang hộp chứa, tức hành động KHÔNG HOÀN TÁC ĐƯỢC lại là phần tử rộng nhất và dễ bấm nhầm nhất của màn.
+  Hậu quả với người dùng bị chặn ở một bước: cả hai nút đều hỏi lại bằng hộp xác nhận trước khi xoá, nên bấm nhầm
+  không mất dữ liệu. Sửa là một luật USS (`align-self` + `flex-grow: 0`, giống cách `liveops-hub-validation-notice-button`
+  đã làm) cộng một ca kiểm bề ngang nút phá huỷ ở 7 cỡ. Đợt xử lý: W11.
+- **J3-02 — cạnh nút `.liveops-hub-button` ở skin TỐI chưa đạt bậc hình khối 3:1.** Đo trên pixel ảnh chụp: nền nút
+  `#585858` so với nền trang `#383838` là **1,65:1**, viền `#303030` so với nền trang là **1,13:1**. Skin SÁNG thì đạt
+  (viền `#6B6B6B` / nền trang `#C8C8C8` = 3,19:1). Đây là diện mạo nút mặc định của Editor Unity chứ không riêng hub,
+  nên chọn đường xử lý (khai token viền riêng cho skin tối · nhận là giới hạn nền tảng và khai miễn trừ CÓ SỐ · giữ nợ)
+  là một quyết định cần người chốt. Cùng gốc với `W11-16`: chưa có phép đo MÁY nào cho CẠNH của nút, chỉ có cho chữ.
+  Đợt xử lý: W11.
+- **J3-03 — ô đổi định dạng của màn Xuất JSON trông như một ô nhập rỗng.** `ExportMetrics.BuildFormatMenu` cố ý dựng một
+  `ToolbarMenu` KHÔNG mang chữ (giá trị đã in ở dòng value của thẻ, đặt thêm chữ là in con số hai lần), nhưng
+  `ToolbarMenu` rỗng vẫn vẽ trọn khung ô nhập và không có tooltip, nên mắt đọc thành một trường dữ liệu chưa nạp được.
+  Thấy ở cả 820x560 lẫn 1440x900. Đợt xử lý: W11.
+- **Chưa kiểm tay trên GUI.** Theo quyết định của user, bản này nghiệm thu bằng test máy + ảnh chụp batchmode + một lượt
+  người-dùng-giả có ảnh, KHÔNG có lượt một người ngồi bấm thật từ đầu tới cuối. Những gì chỉ lộ ra khi bấm tay (cảm giác
+  trễ, thứ tự focus khi chuyển phím, hành vi của Editor khi cửa sổ bị dock cạnh cửa sổ khác) vì vậy CHƯA được xác nhận.
+- **Menu chuột phải không chụp được.** Menu ngữ cảnh của timeline dựng bằng `GenericMenu` của Editor — nó là cửa sổ của
+  hệ điều hành, không nằm trong `rootVisualElement` của hub, nên cả bộ ảnh lẫn cổng kiểm bố cục đều KHÔNG nhìn thấy nó.
+  Mọi việc trong menu ấy đều có đường vào thứ hai (phím tắt hoặc nút) và đường ấy có ảnh; nhưng bản thân menu thì chưa
+  từng được một phép đo máy nào soi.
+- **Chưa dựng build IL2CPP để kiểm strip** — nhắc lại ở đây vì nó là điều kiện nghiệm thu còn thiếu, không chỉ một ghi chú:
+  đường chạy của game hiện không gọi SHA-256 (chỉ hub gọi), nhưng kết luận "strip không ảnh hưởng game" vẫn chờ bản demo
+  IL2CPP của R-28.
 
 ## [0.1.0] - 2026-09-13
 
