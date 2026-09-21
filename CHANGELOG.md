@@ -139,6 +139,14 @@ không đổi: `Parse`, `LiveOpsSystem` và mọi port của 0.1.0 giữ nguyên
   tới dòng: nhãn `UTC` của ô ngày giờ tràn hàng 7px (W11-09) · câu "not published" cần 120px mà ô có 115px (W11-11) ·
   phụ đề `13/9 08:47 → 20/9 08:47 UTC` cần 142px mà ô có 111px (W11-12). Cả ba sửa RẺ, nhưng chạm file sản phẩm ngoài
   phạm vi gói G-W11-LIMITS nên đợt W11 nhận trước tiên.
+   **(cổng đợt W11, 21/9/2026) Cổng đã cân nhắc sửa luôn ba mục ấy và QUYẾT ĐỊNH GIỮ NỢ.** Đo lại trên bằng chứng
+   `plan/w11/measure-uxgate-6000.xml` cho thấy không mục nào là một phép nới cơ học: hàng ô ngày giờ cần 161px trong
+   154px (88 ô ngày + 4 + 44 ô giờ + 4 + 21 nhãn `UTC`) và MỌI phần tử trong hàng đều `flex-shrink: 0`, nên đóng 7px
+   ấy là chọn xem CÁI GÌ nhường chỗ — ô ngày co lại, hai lề 4px hẹp đi, hay cả hàng xuống dòng; câu `not published` là
+   giá trị metric 18px đậm nên nới 5px là đổi đệm của MỌI thẻ metric ở cả Tổng quan lẫn Xuất JSON; phụ đề Tổng quan
+   thiếu 31px thì không có cách nào ngoài cho xuống dòng hoặc ẩn ở bậc `--narrow`. Cả ba là quyết định THIẾT KẾ cần một
+   lượt nhìn bằng mắt, mà cổng đợt thì không có bước nhìn — đúng lý do user đã duyệt hoãn chúng. Cổng ghi lại số đo
+   chính xác ở đây để đợt W11 vào việc ngay, không phải đo lại.
 
   Tám mục "dữ liệu dài" đổi số sau khi siết fixture: tổng **719 → 739**, do `event-types` +9, `export` +6, `recurring`
   +5. Màn Lịch và màn chọn nhiều đợt **KHÔNG đổi** (178 và 44, đúng bằng nền `G-W10-GATE`). Tăng là ĐÚNG hướng — bản
@@ -164,6 +172,24 @@ không đổi: `Parse`, `LiveOpsSystem` và mọi port của 0.1.0 giữ nguyên
   lịch của KHUNG chưa được nghiệm thu ở mức ấy. Lý do hoãn: tên asset do `LiveOpsHubTestServices.CreateMemoryAsset` đặt
   — file dùng chung cho MỌI màn của ma trận, nên đổi nó là đổi số phát hiện của cả những màn đang xanh và nằm ngoài 12
   phiếu USER đã duyệt, tức tự mở phiếu thứ 13.
+- **W11-15 — bộ ĐI DẠO chọn thanh "bị bỏ" theo khoảng cách hình học thay vì theo cờ của model (J2-04).** Bộ đi dạo dev
+  dò nhãn rồi lấy thanh GẦN NHẤT theo hình học, nên ở cửa sổ 950 nó trúng `lava-quest-2026-09a` (câu ngắn) thay vì
+  `entry-hunt-0916-bonus` — 1/3 cỡ của cảnh (b) lượt W10 nhìn nhầm thanh. **Cổng MÁY không mắc lỗi này**: ca
+  `Calendar_TimelineHint_NotCut_WithDroppedEntrySelected` chọn thanh theo KHOÁ và đo đúng cảnh xấu nhất ở 14 cặp cỡ ×
+  ngôn ngữ (có 950x700), 0 chỗ không dùng được. Nợ nằm ở `Assets/UxJourney/Editor/UxJourneysW10.cs`, chỉ có trên
+  worktree `wt/G-UX-JOURNEY` — ngoài package. Chủ: bước Journey của đợt W11.
+- **W11-16 — chưa có cổng máy chặn việc đặt một nút lên mặt phẳng nền `#A5A5A5` ở skin sáng.** Token viền nút
+  `--liveops-hub-color-button-border` (`#6B6B6B`) đạt bậc hình khối 3:1 trên hai nền đã khai — nền trang `#C8C8C8`
+  (3,18:1) và nền nút `#E4E4E4` (4,19:1) — nhưng trên nền thứ ba `--unity-colors-default-background` `#A5A5A5` nó chỉ
+  **2,16:1**, DƯỚI bậc. Chín mặt phẳng tô nền ấy phải canh (rail · chip · goto · json-overview · chip làn trục · chip
+  không đặt được · minimap · chip token · dấu "chưa đo" của gutter). **0 chỗ vi phạm hôm nay** và luật đã thành văn
+  trong chú thích token, nhưng luật ấy là LỜI: một ca quét cần dựng cả sáu màn + mọi popover trong một root skin sáng,
+  tức một khuôn test mới chứ không phải một assert. Đợt xử lý: W11.
+- **W11-17 — câu chân trang của trạng thái "kiểm rồi sửa" bị cắt ở cỡ hẹp bản tiếng Anh.** Màn `validation-stale` đo ra
+  **1 chỗ / 14 cặp cỡ × ngôn ngữ**: ở 700x560 tiếng Anh, `Calendar changed at 08:46:50 UTC, after …` cần 420px mà ô chỉ
+  có 415px — hụt **5px**. Banner "kết quả cũ" của J2-02 thì SẠCH ở cả 14 cặp, nên đây là nợ CÓ SẴN của chân trang chứ
+  không do bản vá J2-02 sinh ra. Sửa chạm `liveops-hub-shell.uss` + `LiveOpsHubStatusBarModel`, hai file nằm ngoài
+  quyền ghi của gói G-W11-EYE. Đợt xử lý: W11.
 - **Chưa có luật kiểm cho giới hạn độ dài.** `LiveOpsIdentifierLimits` là hằng có tài liệu; màn Kiểm lịch vẫn đúng 12
   luật và không cảnh báo khi một id vượt 64 ký tự.
 - **Màn P2 của hub** (Trực tiếp, Dữ liệu người chơi) và **màn P3** (Mô phỏng): chưa đăng ký, rail và ⌘7–9 **ẩn** chứ
