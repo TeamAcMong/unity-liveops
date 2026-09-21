@@ -276,10 +276,8 @@ namespace DreamTech.LiveOps.Editor.Tests
         {
             yield return OpenPublishedPrefixSample(WideWidth, WideHeight);
 
-            Section.Form.PrefixField.value = NewPrefix;
-            yield return null;
+            yield return TypeNewPrefixAndWaitForDraft();
 
-            Assert.IsTrue(Section.Draft.NeedsConfirmation, "gõ tiền tố mới khi đợt đang chạy chỉ tạo nháp tại ô");
             int visibleLockSentences = 0;
             _scope.View.Query<Label>(className: LiveOpsHubClassNames.RecurringFieldLockReason).ForEach(label =>
             {
@@ -299,8 +297,7 @@ namespace DreamTech.LiveOps.Editor.Tests
         {
             yield return OpenPublishedPrefixSample(WideWidth, WideHeight);
 
-            Section.Form.PrefixField.value = NewPrefix;
-            yield return null;
+            yield return TypeNewPrefixAndWaitForDraft();
             yield return ClickAt(Section.Form.PeriodField);
 
             Button cancel = _scope.View.Q<Button>(RecurringRuleForm.DraftCancelElementName);
@@ -324,8 +321,7 @@ namespace DreamTech.LiveOps.Editor.Tests
         {
             yield return OpenPublishedPrefixSample(WideWidth, WideHeight);
 
-            Section.Form.PrefixField.value = NewPrefix;
-            yield return null;
+            yield return TypeNewPrefixAndWaitForDraft();
             Button cancel = _scope.View.Q<Button>(RecurringRuleForm.DraftCancelElementName);
             Assert.IsNotNull(cancel, "khối nháp thiếu nút Huỷ (Esc)");
 
@@ -800,6 +796,46 @@ namespace DreamTech.LiveOps.Editor.Tests
             Vector2 center = element.worldBound.center;
             _scope.Window.SendEvent(new Event { type = EventType.MouseDown, mousePosition = center, button = 0, clickCount = 1 });
             _scope.Window.SendEvent(new Event { type = EventType.MouseUp, mousePosition = center, button = 0, clickCount = 1 });
+        }
+
+        /// <summary>
+        /// Gõ tiền tố mới vào ô rồi chờ tới khi NHÁP thật sự tồn tại — theo ĐIỀU KIỆN + hạn giờ thật, không đếm khung.
+        /// <para>
+        /// (W10-11) Bản cũ ghi <c>yield return null</c> đúng MỘT khung sau khi đặt <c>value</c>. Một khung là đủ khi máy
+        /// rảnh, nhưng ô tiền tố đi qua <c>ChangeEvent</c> → presenter dựng nháp → panel vẽ lại; khi máy đang chạy vài
+        /// lượt Unity song song thì chuỗi ấy có thể tràn sang khung sau, và mọi câu phía dưới (nút Huỷ, class chớp) đọc
+        /// một cây CHƯA có khối nháp. Đó là gốc chập chờn của hai ca <c>PrefixDraft_ClickLockedField*</c>: không ca nào
+        /// sai về HÀNH VI, chúng chỉ nhìn sớm một khung.
+        /// </para>
+        /// <para>
+        /// Hạn giờ hết thì câu assert dưới đây đỏ ngay tại chỗ với lý do đọc được, chứ không để ca đỏ ở một câu xa hơn
+        /// nói về nút Huỷ trong khi thứ thiếu là cái nháp.
+        /// </para>
+        /// </summary>
+        private IEnumerator TypeNewPrefixAndWaitForDraft()
+        {
+            Section.Form.PrefixField.value = NewPrefix;
+            // Nhường ÍT NHẤT một khung, KHÔNG phải để "chờ cho chắc": đặt `value` chạy ChangeEvent ngay trong lượt gọi,
+            // nên `NeedsConfirmation` đã true trước khi vòng chờ dưới đây hỏi câu đầu tiên — vòng chờ sẽ thoát mà không
+            // nhả khung nào, và cây nháp lẫn resolvedStyle của câu khoá thì chỉ có sau một lượt vẽ của panel. Đo được:
+            // bỏ hẳn khung này làm PrefixDraft_ShowsLockSentenceOnce đếm 0 câu khoá và hai ca ClickLockedField* không
+            // thấy nút Huỷ.
+            yield return null;
+            // Rồi mới chờ theo ĐIỀU KIỆN + hạn giờ (W10-11): điều kiện hỏi CÂY, không hỏi mô hình, vì thứ mọi câu phía
+            // dưới đọc là cây — khối nháp có mặt và nút Huỷ đã dựng.
+            yield return WaitForCondition(_scope.View,
+                () => Section.Draft.NeedsConfirmation && DraftCancelButton() != null);
+            Assert.IsTrue(Section.Draft.NeedsConfirmation,
+                "gõ tiền tố mới khi đợt đang chạy phải tạo nháp tại ô — chờ theo điều kiện tới "
+                + MaximumWaitMilliseconds + " ms vẫn chưa thấy nháp nào");
+            Assert.IsNotNull(DraftCancelButton(),
+                "có nháp rồi mà cây vẫn chưa dựng nút Huỷ (Esc) sau " + MaximumWaitMilliseconds + " ms");
+        }
+
+        /// <summary>Nút "Huỷ (Esc)" của khối nháp — null khi khối nháp chưa dựng.</summary>
+        private Button DraftCancelButton()
+        {
+            return _scope.View.Q<Button>(RecurringRuleForm.DraftCancelElementName);
         }
 
         /// <summary>Chuột thật lên tâm một phần tử của màn — kể cả phần tử đang bị khoá (đó là chỗ UX-23 đo).</summary>
