@@ -1,6 +1,6 @@
 {
   "name": "com.dreamtech.liveops",
-  "version": "0.1.0",
+  "version": "0.2.0-preview.1",
   "displayName": "DreamTech LiveOps",
   "description": "Nền live-ops lắp ráp kiểu Lego cho game mobile: đồng hồ server chống vặn giờ máy, lịch event (lặp lại, danh sách JSON từ remote config, ghép lịch), vòng đời từng đợt event theo id, cộng điểm chống trùng, quà giữa đợt và cuối đợt không mất không phát trùng, kết quả chờ UI báo. Core thuần C# không phụ thuộc engine hay thư viện ngoài; nơi lưu, kho đồ, điều kiện tham gia và luật quà đều cắm qua port.",
   "unity": "2022.3",
