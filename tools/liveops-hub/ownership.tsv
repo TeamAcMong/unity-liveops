@@ -1182,3 +1182,14 @@ package	G-FIX-W11-1	W11.5-FIXA	S	G-W11-LIMITS
 file	CHANGELOG.md	G-FIX-W11-1	ba mục nợ W11-15/16/17 + quyết định giữ nợ W11-09/11/12 của cổng
 file	Packages/com.dreamtech.liveops/CHANGELOG.md	G-FIX-W11-1	bản sao y hệt (ReadmeSnippetCompileTests đối chiếu hai bản)
 file	tools/liveops-hub/ownership.tsv	G-FIX-W11-1	khối đăng ký ở trên
+#
+# G-FIX-W11-2 — việc của CỔNG đợt W11, sinh ra từ một THÍ NGHIỆM ĐO ĐƯỢC chứ không từ phỏng đoán. Cổng chạy 11 lượt
+#   EditMode toàn bộ trên CÙNG một cây, khác nhau đúng một biến là số lượt Unity chạy song song: 5 lượt "một mình"
+#   cho 3 lượt SẠCH TUYỆT ĐỐI + 2 lượt 1 ca đỏ; 6 lượt "hai Unity song song" cho 8 ca đỏ, và CẢ TÁM đều là ca chờ
+#   focus. Phương án từng được đề nghị cho W11-FLAKY-01 — "chờ lâu hơn" — bị chính số đo bác bỏ: CtrlK_OpensPalette
+#   đã chờ 60 khung VÀ 5 giây rồi vẫn đỏ. Gốc nằm ở luật slot, không ở từng ca: unity-slot.sh cho 2 slot song song,
+#   mà test UI gửi sự kiện chuột/phím THẬT thì không chia nhau được focus. Bản vá: lượt EditMode có test UI tự lấy
+#   Unity ĐỘC QUYỀN. KHÔNG một câu assert hay ngưỡng nào đổi.
+package	G-FIX-W11-2	W11.5-FIXB	S	G-FIX-W11-1
+file	tools/liveops-hub/run-editmode.sh	G-FIX-W11-2	lượt có test UI lấy Unity độc quyền (slot 1 + chờ hết lượt batchmode khác)
+file	tools/liveops-hub/ownership.tsv	G-FIX-W11-2	khối đăng ký ở trên
