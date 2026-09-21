@@ -119,11 +119,15 @@
        Chữa ở MÀU GỐC chứ không ở riêng cái badge, đúng lối mà W10-03 đã đi với --liveops-hub-color-link (#1D5087 →
        #143A60, cũng vì nền chip/rail): một token lo hết mọi chỗ dùng, thay vì rải luật theo từng màn. */
     --liveops-hub-color-quiet: #393939;
-    /* (W10-09) Skin sáng là chỗ TRƯỢT mà phiếu W10-09 đo được: quiet #4F4F4F × 0,7 trên cửa sổ #C8C8C8 hợp thành #737373
-       = 2,82:1, dưới bậc hình khối 3:1. Không chữa bằng cách hạ opacity của hàng (0,7 là mức mờ của thiết kế Hình 10b cho
-       "hàng chưa khai báo") và không chữa bằng opacity: 1 trên con (opacity của tổ tiên nhân xuống, con không gỡ được):
-       chữa bằng một màu viền TỐI HƠN đủ để sống sót phép nhân. #444444 × 0,7 hợp thành #6C6C6C = 3,16:1 — vẫn xám trung
-       tính cùng tông, chỉ tối hơn ba nấc so với quiet. */
+    /* (W10-09) Skin sáng là chỗ TRƯỢT mà phiếu W10-09 đo được: hồi ấy viền lấy màu quiet, và quiet skin sáng lúc đó là
+       #4F4F4F — × 0,7 trên cửa sổ #C8C8C8 hợp thành #737373 = 2,82:1, dưới bậc hình khối 3:1. Không chữa bằng cách hạ
+       opacity của hàng (0,7 là mức mờ của thiết kế Hình 10b cho "hàng chưa khai báo") và không chữa bằng opacity: 1 trên
+       con (opacity của tổ tiên nhân xuống, con không gỡ được): chữa bằng một token RIÊNG đủ tối để sống sót phép nhân.
+       #444444 × 0,7 hợp thành #6C6C6C = 3,16:1.
+       (W10-12, ghi sau) Phiếu W10-12 sau đó hạ quiet skin sáng xuống #393939 vì nền RAIL, nên hôm nay quiet × 0,7 đo ra
+       3,54:1 — tức nếu viền còn dùng quiet thì cũng vừa đủ qua bậc. Token riêng vẫn ĐÚNG và vẫn giữ: quiet là màu CHỮ,
+       nó được chỉnh theo bậc 4,5:1 trên những nền khác; lần sau ai nâng quiet cho sáng lên một nấc là viền hình khối lại
+       tụt dưới 3:1 mà không có gì báo. Hai bậc khác nhau thì hai token khác nhau. */
     --liveops-hub-color-undeclared-border: #444444;
     /* (W10-03) #1D5087 cũ đạt bậc chữ trên nền CỬA SỔ #C8C8C8 nhưng chữ bấm được của chip asset nằm trên nền CHIP
        #A5A5A5 (--unity-colors-default-background của skin sáng), ở đó chỉ 3,34:1. #143A60 đo ra 4,73:1 trên nền chip

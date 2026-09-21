@@ -128,8 +128,10 @@
 .liveops-hub-event-types-swatch--undeclared {
     border-width: 1px;
     /* (W10-09) Token riêng chứ không phải --liveops-hub-color-quiet: cả ô mang opacity 0,7 ở luật ngay trên, và viền là
-       HÌNH KHỐI nên bậc phải đạt là 3:1 SAU khi nhân opacity ấy. quiet là màu CHỮ (tinh chỉnh cho bậc 4,5:1 ở opacity 1)
-       và ở skin sáng nó hợp thành chỉ còn 2,82:1 — đó chính là phiếu W10-09. */
+       HÌNH KHỐI nên bậc phải đạt là 3:1 SAU khi nhân opacity ấy — khác bậc của quiet, vốn là màu CHỮ chỉnh theo 4,5:1.
+       Lúc mở phiếu W10-09, quiet skin sáng là #4F4F4F và hợp thành chỉ còn 2,82:1. Lý do tách token không nằm ở con số
+       ấy mà ở chỗ HAI BẬC KHÁC NHAU: buộc chúng dùng chung một màu thì lần chỉnh quiet kế tiếp sẽ kéo viền xuống dưới
+       3:1 mà không ca nào báo. Số đo hiện tại của viền nằm trong chú thích token ở liveops-hub-theme.uss. */
     border-color: var(--liveops-hub-color-undeclared-border);
 }
 
