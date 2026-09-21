@@ -1149,3 +1149,27 @@ file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/UxGate/UxLayoutScreenCatalo
 file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Sections/W11EyeFixTests.cs	G-W11-EYE	FILE MỚI — khoá J2-02 và J2-06; ca viền nút đo trên CẢ HAI nền skin sáng (soát R06/R09)
 file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Sections/CalendarUxFixTests.cs	G-W11-EYE	J2-01 — ca UX-11 đổi từ "nâng ≥ 64px" sang ràng buộc thật "toast không đè chân màn"
 file	tools/liveops-hub/ownership.tsv	G-W11-EYE	khối đăng ký ở trên
+#
+# ==================================================================================================== ĐỢT W11
+#
+# G-W11-LIMITS — điểm 2 của user chốt 21/9/2026: dữ liệu "xấu nhất" phải theo GIỚI HẠN THẬT của dữ liệu, không phải chuỗi
+#   dài tuỳ hứng. Lõi chưa có giới hạn độ dài nào (ValidateIdentifier chỉ kiểm KÝ TỰ) nên gói này ĐẶT giới hạn thành hằng
+#   có tài liệu, dựng lại fixture bằng ĐÚNG mức đó, rồi đo lại 12 ca đỏ của cổng W10. Gói cũng chốt J2-03 vào luật rút gọn
+#   có điều kiện (nhãn thanh trục rời khỏi danh sách tha suông sang danh sách tha CÓ ĐO).
+package	G-W11-LIMITS	W11.1-LIMITS	M	G-FIX-W10-11
+file	Packages/com.dreamtech.liveops/Runtime/Core/Domain/LiveOpsIdentifierLimits.cs	G-W11-LIMITS	MỚI — hằng giới hạn độ dài + vì sao từng con số
+file	Packages/com.dreamtech.liveops/Tests/Editor/LiveOpsIdentifierLimitsTests.cs	G-W11-LIMITS	MỚI — gác phép suy của hằng + fixture bằng ĐÚNG giới hạn
+file	Packages/com.dreamtech.liveops/Tests/Editor/Support/LiveOpsWorstCaseSample.cs	G-W11-LIMITS	mọi chuỗi dài dựng lại bằng đúng giới hạn
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/UxGate/UxTruncationExemption.cs	G-W11-LIMITS	loại ô thứ ba (J2-03) + mục nhãn thanh trục
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/UxGate/UxTruncationExemptionTests.cs	G-W11-LIMITS	hai ca chứng minh của mục J2-03
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/UxGate/UxLayoutAllowList.cs	G-W11-LIMITS	gỡ mục tha suông của nhãn thanh trục
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/UxGate/UxLayoutDeferralList.cs	G-W11-LIMITS	mục hoãn W11-nn của nợ bố cục dữ liệu dài
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/UxGate/UxLayoutAuditTests.cs	G-W11-LIMITS	mã phiếu hoãn nhận thêm dạng W11-NN + hai mảng duyệt
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Capture/LiveOpsHubCaptureScenarioIds.WorstCase.cs	G-W11-LIMITS	MỚI — id hai ảnh bằng chứng nợ W11
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Capture/LiveOpsHubCaptureScenarios.WorstCase.cs	G-W11-LIMITS	MỚI — kịch bản chụp hai màn trên dữ liệu xấu nhất
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Capture/LiveOpsHubCaptureScenarios.cs	G-W11-LIMITS	đăng ký RegisterWorstCase
+file	Packages/com.dreamtech.liveops/README.md	G-W11-LIMITS	mục 4.5 bảng giới hạn + bẫy §8
+file	Packages/com.dreamtech.liveops/Documentation/DESIGN_NOTES.md	G-W11-LIMITS	3.14 vì sao giới hạn là hằng chứ không phải cửa ném
+file	Packages/com.dreamtech.liveops/CHANGELOG.md	G-W11-LIMITS	khối giới hạn + khai nợ W11
+file	CHANGELOG.md	G-W11-LIMITS	bản sao y hệt
+file	tools/liveops-hub/ownership.tsv	G-W11-LIMITS	khối đăng ký ở trên

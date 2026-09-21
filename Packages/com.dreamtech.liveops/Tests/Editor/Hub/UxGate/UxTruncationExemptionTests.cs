@@ -45,8 +45,9 @@ namespace DreamTech.LiveOps.Editor.Tests
         }
 
         /// <summary>
-        /// Ô cột "Id loại" của bảng Loại event. Cột khai cứng 140px (<c>EventTypeTable.AddColumns</c>) nên id 45 ký tự của
-        /// mẫu xấu nhất không thể vừa ô ở cỡ cửa sổ nào — đây đúng là chỗ user cho phép rút chữ CÓ ĐIỀU KIỆN.
+        /// Ô cột "Id loại" của bảng Loại event. Cột khai cứng 140px (<c>EventTypeTable.AddColumns</c>) nên id dài bằng
+        /// <see cref="LiveOpsIdentifierLimits.MaxIdentifierLength"/> của mẫu xấu nhất không thể vừa ô ở cỡ cửa sổ nào — đây
+        /// đúng là chỗ user cho phép rút chữ CÓ ĐIỀU KIỆN.
         /// </summary>
         [UnityTest]
         public IEnumerator EventTypesTypeIdCell_TruncatesWithTooltipAndInspectorShowsFullText()
@@ -107,6 +108,177 @@ namespace DreamTech.LiveOps.Editor.Tests
             Assert.IsFalse(allowed, "gỡ tooltip là mất điều kiện (a) — miễn trừ phải biến mất, không được sống bằng lời khai");
             StringAssert.Contains("không mang tooltip", note,
                 "dòng chẩn đoán phải nói THIẾU GÌ, không chỉ nói 'lỗi' — người sửa cần biết điều kiện nào trượt");
+        }
+
+        /// <summary>
+        /// (J2-03) Nhãn thanh đợt trên trục. Bề rộng thanh bằng khoảng thời gian của đợt nhân tỉ lệ zoom, nên nhãn bị rút ở
+        /// MỌI cỡ cửa sổ — không có bề rộng nào nới được để chữ vừa. Ca này đo đủ hai điều kiện: (a) thanh mang tooltip mở
+        /// đầu bằng id ĐẦY ĐỦ, (b) chọn thanh thì dòng id trên tiêu đề inspector giữ nguyên chuỗi đầy đủ và đang hiện.
+        /// </summary>
+        [UnityTest]
+        public IEnumerator TimelineBarLabel_ShortensWithTooltipAndInspectorShowsFullText()
+        {
+            _fixture = UxHubWindowFixture.Open(LiveOpsHubSections.Ids.Calendar, WideSize,
+                LiveOpsHubLanguageId.Vietnamese, WorstCaseServices());
+            yield return _fixture.WaitForLayout();
+
+            LiveOpsTimelineBar bar = _fixture.BarOf(LiveOpsWorstCaseSample.LongEntryKey);
+            Assert.IsNotNull(bar, "trục phải vẽ thanh của đợt có id dài nhất — không có thanh thì ca này không đo được gì");
+            Label label = bar.Label;
+            Assert.AreNotEqual(LiveOpsWorstCaseSample.LongEventId, label.text,
+                "ca này chỉ có nghĩa khi nhãn ĐANG bị rút — thanh đang đủ chỗ cho cả id thì phải đổi mốc zoom của ca");
+            StringAssert.Contains(LiveOpsHubStrings.TimelineBarLabelEllipsis, label.text,
+                "hub tự rút nhãn thì phải để lại dấu '…' ở phía bị bỏ, nếu không người đọc tưởng đó là id thật");
+
+            // So bằng StringComparison.Ordinal chứ không bằng StringAssert.StartsWith: tooltip là chuỗi MÁY đối chiếu
+            // (id + khoảng UTC), máy chạy cổng đổi ngôn ngữ hệ thống thì phép so phải cho cùng kết quả.
+            Assert.IsTrue(bar.tooltip.StartsWith(LiveOpsWorstCaseSample.LongEventId, StringComparison.Ordinal),
+                "điều kiện (a): tooltip của thanh phải mở đầu bằng id ĐẦY ĐỦ, vì mẩu chữ còn lại trên nhãn không đủ tra "
+                + "— tooltip đang là '" + bar.tooltip + "'");
+            Assert.IsTrue(
+                UxTruncationExemption.Allows("calendar-worst-data", UxLayoutFindingKinds.TextCut, label, out _),
+                "nhãn thanh đang có tooltip đủ chữ nên luật rút gọn có điều kiện phải miễn cho nó");
+
+            yield return UxEventSender.Click(_fixture.Window, bar);
+            yield return UxEventSender.Settle(UxEventSender.SettleFrames * 2, UxEventSender.SettleMilliseconds * 2);
+
+            Label titleId = InspectorTitleId();
+            Assert.IsNotNull(titleId, "điều kiện (b): chọn một thanh thì tiêu đề inspector phải vẽ dòng id");
+            Assert.IsTrue(UxLayoutAuditor.IsShownOnScreen(titleId),
+                "điều kiện (b): chỗ đọc đủ phải đang HIỆN trên màn, không nằm sau một drawer đóng");
+            Assert.AreEqual(LiveOpsWorstCaseSample.LongEventId, titleId.text,
+                "điều kiện (b): dòng id của inspector phải giữ chuỗi ĐẦY ĐỦ, không phải bản đã rút của nhãn thanh");
+            LogAssert.NoUnexpectedReceived();
+        }
+
+        /// <summary>
+        /// Vế NGƯỢC của mục J2-03: gỡ tooltip khỏi THANH thì nhãn mất miễn trừ ngay, y như ô bảng. Không có ca này thì mục
+        /// J2-03 đọc thành "nhãn thanh thì rút thoải mái" — mà quyết định của user là rút CÓ ĐIỀU KIỆN.
+        /// </summary>
+        [UnityTest]
+        public IEnumerator TimelineBarLabel_LosesExemption_WhenBarTooltipIsRemoved()
+        {
+            _fixture = UxHubWindowFixture.Open(LiveOpsHubSections.Ids.Calendar, WideSize,
+                LiveOpsHubLanguageId.Vietnamese, WorstCaseServices());
+            yield return _fixture.WaitForLayout();
+
+            LiveOpsTimelineBar bar = _fixture.BarOf(LiveOpsWorstCaseSample.LongEntryKey);
+            Assert.IsNotNull(bar, "trục phải vẽ thanh của đợt có id dài nhất");
+
+            bar.tooltip = string.Empty;
+            bool allowed = UxTruncationExemption.Allows("calendar-worst-data", UxLayoutFindingKinds.TextCut, bar.Label,
+                out string note);
+            Assert.IsFalse(allowed, "gỡ tooltip là mất điều kiện (a) — miễn trừ của nhãn thanh phải biến mất theo");
+            StringAssert.Contains("không mang tooltip", note,
+                "dòng chẩn đoán phải nói THIẾU GÌ để người sửa biết điều kiện nào trượt");
+        }
+
+        /// <summary>
+        /// (soát W11 R-01) Nhãn thanh rút kiểu HẬU TỐ ("…mega-final-round-2") là hình dạng mà
+        /// <c>LiveOpsTimelineGeometry.ShortenedIdentifier</c> ưu tiên trả về, nên nó phải là hình dạng được đo kỹ nhất.
+        /// Ba vế ở đây đóng đúng ba đường mà một phép so lỏng sẽ cho lọt.
+        /// <para>
+        /// Vì sao là ca THUẦN LOGIC chứ không mở hub: ba vế này nói về phép so chuỗi, không về bố cục. Dựng tay cây
+        /// thanh + nhãn cho phép đặt tooltip SAI — thứ sản phẩm không bao giờ tự sinh ra, mà lại đúng là thứ cần chặn.
+        /// </para>
+        /// </summary>
+        [Test]
+        public void SuffixShortenedBarLabel_NeedsTooltipNamingTheSameIdentifier()
+        {
+            const string shownSuffix = "…mega-final-round-2";
+            VisualElement bar = BuildBarWithLabel(shownSuffix, out Label label);
+
+            bar.tooltip = LiveOpsWorstCaseSample.LongEventId + BarTooltipTail;
+            Assert.IsTrue(UxTruncationExemption.CarriesFullTextTooltip(label, bar, out string _),
+                "tooltip mở đầu bằng id ĐẦY ĐỦ của chính đợt ấy là đúng điều kiện (a) — phép so phải nhận");
+
+            bar.tooltip = LiveOpsWorstCaseSample.BrokenEndEventId + BarTooltipTail;
+            Assert.IsFalse(UxTruncationExemption.CarriesFullTextTooltip(label, bar, out string otherNote),
+                "tooltip nói về một đợt KHÁC thì chữ bị rút vẫn không đọc lại được — bản đầu nhận nó vì mẩu giữ lại của "
+                + "hình dạng hậu tố là chuỗi rỗng và mọi tooltip đều 'bắt đầu bằng chuỗi rỗng'");
+            StringAssert.Contains("hậu tố", otherNote,
+                "dòng chẩn đoán phải nói rõ phép so nào trượt, kẻo người sửa đi tìm nhầm điều kiện");
+
+            bar.tooltip = LiveOpsWorstCaseSample.LongEventId + "0" + BarTooltipTail;
+            Assert.IsFalse(UxTruncationExemption.CarriesFullTextTooltip(label, bar, out string _),
+                "'…mega-final-round-2' nằm gọn trong 'mega-final-round-20' mà hai chuỗi ấy là hai đợt khác nhau — phép so "
+                + "phải đòi BIÊN ngay sau mẩu giữ lại, không được dùng Contains suông");
+        }
+
+        /// <summary>
+        /// (soát W11 R-02) Khoảng dư mỏng (<c>textTight</c>, W9-25) của nhãn thanh KHÔNG được miễn suông. Hai loại ô đầu
+        /// của bảng miễn trừ được miễn hẳn vế ấy vì bề rộng của chúng là con số do bố cục chọn; nhãn thanh thì chỉ được
+        /// user cho phép RÚT chữ, nên textTight ở đây vẫn phải đi qua điều kiện (a).
+        /// <para>
+        /// Không có ca này thì một dòng <c>if (isTextTight) return true;</c> lặng lẽ nuốt 4 chỗ textTight thật của hai màn
+        /// và con số nợ W11 tụt đi 4 mà không ai biết vì sao.
+        /// </para>
+        /// </summary>
+        [Test]
+        public void BarLabelTextTight_StillGoesThroughTooltipCondition()
+        {
+            // Nhãn dải gom: không có "…" nào vì nó rút theo BẬC (câu đầy đủ → "loại · số đợt" → chỉ số đợt), nên phép so
+            // đi vào nhánh "tooltip phải CHỨA đủ chữ của ô".
+            const string stripLabel = "lava-quest · 21 đợt · 20 giờ/ngày";
+            VisualElement bar = BuildBarWithLabel(stripLabel, out Label label);
+
+            bar.tooltip = "lava-quest · 21 đợt · bấm để zoom vào 13/9 08:47 → 20/9 08:47 UTC";
+            Assert.IsFalse(
+                UxTruncationExemption.Allows("calendar-worst-data", UxLayoutFindingKinds.TextTight, label, out string note),
+                "tooltip của dải nói câu KHÁC với nhãn, nên nhãn chật 97,5% bề rộng vẫn là một phát hiện thật");
+            StringAssert.Contains("không chứa đủ chữ", note,
+                "dòng chẩn đoán phải nói thiếu gì — mục miễn trừ có tồn tại, chỉ là điều kiện (a) không đạt");
+
+            bar.tooltip = stripLabel + " · 13/9 08:47 → 20/9 08:47 UTC";
+            Assert.IsTrue(
+                UxTruncationExemption.Allows("calendar-worst-data", UxLayoutFindingKinds.TextTight, label, out string _),
+                "tooltip có chứa đủ chữ của nhãn thì điều kiện (a) đạt — luật vẫn là rút CÓ ĐIỀU KIỆN, không phải cấm hẳn");
+        }
+
+        /// <summary>
+        /// (soát W11 R-02) Mục J2-03 khai selector là class của CẢ THANH chứ không phải class của nhãn, vì tooltip nằm
+        /// trên thanh. Lời khai đi kèm là "trong một thanh chỉ có đúng MỘT phần tử mang chữ" — câu này đo được, nên đo.
+        /// Thêm một Label thứ hai vào thanh mà quên bảng miễn trừ là tha rộng hơn ý định, và ca này đỏ ngay.
+        /// </summary>
+        [UnityTest]
+        public IEnumerator TimelineBar_CarriesExactlyOneTextElement()
+        {
+            _fixture = UxHubWindowFixture.Open(LiveOpsHubSections.Ids.Calendar, WideSize,
+                LiveOpsHubLanguageId.Vietnamese, WorstCaseServices());
+            yield return _fixture.WaitForLayout();
+
+            LiveOpsTimelineBar bar = _fixture.BarOf(LiveOpsWorstCaseSample.LongEntryKey);
+            Assert.IsNotNull(bar, "trục phải vẽ thanh của đợt có id dài nhất");
+
+            List<TextElement> texts = new List<TextElement>();
+            bar.Query<TextElement>().ToList(texts);
+            Assert.AreEqual(1, texts.Count,
+                "thanh đợt phải chỉ có ĐÚNG một phần tử mang chữ (cái nhãn) — thêm phần tử chữ thứ hai là mục miễn trừ "
+                + "khai theo class CẢ THANH bỗng tha luôn cho nó, rộng hơn hẳn điều user đã duyệt");
+            Assert.AreSame(bar.Label, texts[0], "phần tử mang chữ duy nhất của thanh phải là cái nhãn");
+            LogAssert.NoUnexpectedReceived();
+        }
+
+        /// <summary>Đuôi tooltip của một thanh đợt, đúng khuôn <c>TimelineBarTooltipFormat</c> ("{0} · {1} → {2} UTC").</summary>
+        private const string BarTooltipTail = " · 12/9 00:00 → 15/9 00:00 UTC";
+
+        /// <summary>Cây thanh + nhãn tối thiểu mà bảng miễn trừ nhận ra: class của thanh để khớp selector, class nhãn để đọc chữ.</summary>
+        private static VisualElement BuildBarWithLabel(string labelText, out Label label)
+        {
+            VisualElement bar = new VisualElement();
+            bar.AddToClassList(LiveOpsHubClassNames.TimelineBar);
+            label = new Label { text = labelText };
+            label.AddToClassList(LiveOpsHubClassNames.TimelineBarLabel);
+            bar.Add(label);
+            return bar;
+        }
+
+        /// <summary>Dòng id trên tiêu đề inspector Lịch; null = inspector chưa vẽ (chưa chọn đợt nào).</summary>
+        private Label InspectorTitleId()
+        {
+            List<Label> labels = new List<Label>();
+            _fixture.Root.Query<Label>(className: UxTruncationExemption.CalendarInspectorTitleIdSurface).ToList(labels);
+            return labels.Count == 0 ? null : labels[0];
         }
 
         // ============================================================================================ hạ tầng ca
