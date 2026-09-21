@@ -59,6 +59,11 @@ namespace DreamTech.LiveOps.Editor.Tests
             "Tests/Editor/Hub/UxGate/UxContrastEvidence.cs",
             "Tests/Editor/Hub/Capture/LiveOpsHubContrastCommand.cs",
             "Tests/Editor/Support/LiveOpsDesignSample.cs",
+            // (W10-07) Cảnh thứ 9 "màn Kiểm lịch, kết quả cũ" không đứng trên LiveOpsDesignSample mà trên kịch bản
+            // stale-check của file này (chạy kiểm xong rồi sửa lịch qua đúng đường Apply). Không băm file này thì đổi
+            // kịch bản ấy — kiểm ít luật hơn, sửa một đợt khác — KHÔNG làm dấu lệch, và bằng chứng đo trên một trạng thái
+            // khác vẫn qua cổng. Đúng lý do mà LiveOpsDesignSample.cs có mặt ở đây.
+            "Tests/Editor/Hub/Support/LiveOpsHubTestServices.cs",
         };
 
         /// <summary>
