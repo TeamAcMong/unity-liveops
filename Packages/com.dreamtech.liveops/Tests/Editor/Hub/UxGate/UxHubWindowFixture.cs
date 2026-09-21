@@ -257,6 +257,47 @@ namespace DreamTech.LiveOps.Editor.Tests
             return null;
         }
 
+        /// <summary>
+        /// Tắt HẲN mọi thẻ hover của cửa sổ — thẻ đang hiện, thẻ đang chờ 500 ms, và thẻ đang ghim — ở cả shell lẫn từng màn.
+        /// <para>
+        /// (W10-10) Vì sao phải có hàm này thay vì tin vào "rê chuột ra chỗ khác rồi chờ vài khung": hẹn giờ của thẻ hover
+        /// đếm bằng GIỜ THẬT (500 ms hiện, 100 ms ẩn) còn lượt kiểm đếm bằng KHUNG HÌNH. Máy chạy ba lượt Unity song song
+        /// thì cùng một số khung ứng với nhiều thời gian hơn, nên thẻ kịp hiện; máy rảnh thì không. Hệ quả đo được: màn
+        /// <c>calendar-worst-data</c> ra 178, 180 hoặc 184 chỗ trên CÙNG một cây mã, tuỳ thứ tự chạy. Một con số mà cổng
+        /// đang dùng để theo dõi phiếu khác thì không được phép phụ thuộc vào máy chạy nhanh hay chậm.
+        /// </para>
+        /// <para>
+        /// Đây KHÔNG phải giấu phát hiện: thẻ hover là một màn riêng, cần luật riêng của nó. Để nó lọt vào màn khác thì cả
+        /// hai màn cùng đo sai — màn kia đếm thêm thứ không phải của mình, còn thẻ hover thì không ai đo nó có chủ đích.
+        /// </para>
+        /// </summary>
+        public void HideHoverCards()
+        {
+            LiveOpsHubWindow hub = Window as LiveOpsHubWindow;
+            if (hub != null && hub.HoverCardHost != null) hub.HoverCardHost.Hide();
+            for (int index = 0; index < Sections.Count; index++)
+            {
+                if (Sections[index] is CalendarSection calendar && calendar.HoverCardHost != null)
+                {
+                    calendar.HoverCardHost.Hide();
+                }
+                if (Sections[index] is ValidationSection validation && validation.HoverCardHost != null)
+                {
+                    validation.HoverCardHost.Hide();
+                }
+            }
+        }
+
+        /// <summary>
+        /// Cây <paramref name="root"/> còn thẻ hover nào ĐANG HIỆN không. Dò bằng CLASS chứ không bằng danh sách chủ thẻ:
+        /// thêm một màn có thẻ hover mà quên khai ở <see cref="HideHoverCards"/> thì câu này vẫn bắt được, và bắt bằng một
+        /// ca đỏ chứ không bằng một con số lệch âm thầm.
+        /// </summary>
+        public static bool HasVisibleHoverCard(VisualElement root)
+        {
+            return root != null && root.Q(className: LiveOpsHubClassNames.HoverCardVisible) != null;
+        }
+
         /// <summary>Thanh timeline theo khoá (entry key) — tên element của thanh là khoá của nó.</summary>
         public LiveOpsTimelineBar BarOf(string barKey)
         {
