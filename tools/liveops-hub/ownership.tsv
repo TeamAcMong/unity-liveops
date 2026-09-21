@@ -1104,3 +1104,10 @@ file	Packages/com.dreamtech.liveops/Editor/Hub/UI/liveops-hub-theme.uss	G-FIX-W1
 file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/UxGate/UxComposedTokenContrastTests.cs	G-FIX-W10-9	dòng Sites quiet × 1 trên nền chip/rail
 file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/UxGate/UxContrastTokenTests.cs	G-FIX-W10-9	chú thích thôi chép tay mã màu quiet của hai skin
 file	tools/liveops-hub/ownership.tsv	G-FIX-W10-9	khối đăng ký ở trên
+#
+# G-FIX-W10-10 — khe do chính G-FIX-W10-6 mở ra: cảnh đo thứ 9 đứng trên kịch bản stale-check của
+#   LiveOpsHubTestServices.cs, mà file ấy KHÔNG nằm trong dấu nguồn của bằng chứng màu. Đổi kịch bản là đổi ý nghĩa
+#   con số mà dấu không lệch — đúng loại lỗ mà soát W10 R-02 đã bịt một lần cho chính cái thước.
+package	G-FIX-W10-10	W10.5-FIXA	S	G-FIX-W10-9
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/UxGate/UxContrastEvidence.cs	G-FIX-W10-10	băm thêm LiveOpsHubTestServices.cs vào dấu nguồn
+file	tools/liveops-hub/ownership.tsv	G-FIX-W10-10	khối đăng ký ở trên
