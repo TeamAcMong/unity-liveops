@@ -1173,3 +1173,12 @@ file	Packages/com.dreamtech.liveops/Documentation/DESIGN_NOTES.md	G-W11-LIMITS	3
 file	Packages/com.dreamtech.liveops/CHANGELOG.md	G-W11-LIMITS	khối giới hạn + khai nợ W11
 file	CHANGELOG.md	G-W11-LIMITS	bản sao y hệt
 file	tools/liveops-hub/ownership.tsv	G-W11-LIMITS	khối đăng ký ở trên
+#
+# G-FIX-W11-1 — việc của CỔNG đợt W11, không của gói nào: ba mục nợ W11-15/16/17 do gói G-W11-EYE khai ra phải có
+#   một dòng THẬT trong CHANGELOG (hai bản), mà CHANGELOG thuộc quyền ghi của G-W11-LIMITS trong cùng đợt — hai gói
+#   cùng nối vào một khối "Chưa làm" là đúng kiểu xung đột merge mà bảng quyền ghi sinh ra để chặn. Cổng chép sau khi
+#   gộp. Cùng commit ghi luôn quyết định GIỮ NỢ ba mục W11-09/11/12 kèm số đo đã truy tới dòng, để đợt W11 không đo lại.
+package	G-FIX-W11-1	W11.5-FIXA	S	G-W11-LIMITS
+file	CHANGELOG.md	G-FIX-W11-1	ba mục nợ W11-15/16/17 + quyết định giữ nợ W11-09/11/12 của cổng
+file	Packages/com.dreamtech.liveops/CHANGELOG.md	G-FIX-W11-1	bản sao y hệt (ReadmeSnippetCompileTests đối chiếu hai bản)
+file	tools/liveops-hub/ownership.tsv	G-FIX-W11-1	khối đăng ký ở trên
