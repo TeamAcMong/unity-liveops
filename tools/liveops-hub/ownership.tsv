@@ -1,0 +1,1195 @@
+# ownership.tsv — bản máy đọc của bảng quyền ghi (IMPLEMENTATION_PLAN mục 2, 10.3, 10.4, V-5).
+# Sinh tự động; cổng đợt sinh lại khi kế hoạch đổi. check-ownership.py và code-lint.py đọc file này.
+# package	<gói>	<đợt>	<cỡ>	<phụ thuộc, phẩy; - khi không có>
+# file	<đường dẫn từ gốc repo, glob * ** được>	<gói theo thứ tự tạo → sửa, phẩy; * = mọi gói>	<ghi chú>
+# directory	<thư mục mới>	<gói chủ>	<đợt>
+# (đóng cổng W1, V-20) G-DIFF→G-VALIDATOR-A và G-HUBKIT→G-UNITY là phụ thuộc CÙNG ĐỢT có thật, đã merge ở cổng W1;
+#   check-ownership.py --wave-deps báo đúng 2 lỗi này có chủ đích. Lỗi thứ ba trở đi là thật.
+# (G-FIX-W2-1, V-21 duyệt 15/9/2026) W2 thêm 2 phụ thuộc CÙNG ĐỢT có thật: G-FEEDBACK→G-SHELL, G-CONTROLS→G-SHELL (biên dịch: partial
+#   LiveOpsHubCaptureScenarios + kiểu LiveOpsHubCaptureScenario; cổng gói: LiveOpsHubCaptureCommand + probe) — --wave-deps báo đúng 4 lỗi có
+#   chủ đích (2 của W1 + 2 này); lỗi thứ năm trở đi là thật. Bốn cạnh CHỈ-PROBE G-TIMELINE-MODEL/G-PREVIEW/G-FINDINGTEXT/G-EXPORTGATE→G-SHELL
+#   (W2-TIERS 3.1) KHÔNG ghi vào cột phụ thuộc: D-1 dời probe của gói logic ra cổng đợt (10.1 bước 6), bốn gói không chờ G-SHELL.
+# region	<vùng>	<họ=gói,...;...>	(tham khảo: LiveOpsHubStrings/ClassNames/Paths.<Vùng>.cs, LiveOpsHubCaptureScenarios.<Vùng>.cs)
+package	G-TOOLS	W0	M	-
+package	G-GOLDEN	W0	S	-
+package	G-SPIKE-A	W0	M	-
+package	G-CORE	W0	L	-
+package	G-SKELETON	W0	S	-
+package	G-HUBBASE	W1	L	G-SKELETON,G-SPIKE-A
+package	G-VALIDATOR-A	W1	L	G-CORE
+package	G-JSON	W1	M	G-CORE,G-SPIKE-A
+package	G-DIFF	W1	M	G-CORE,G-VALIDATOR-A
+package	G-UNITY	W1	M	G-CORE,G-GOLDEN,G-SPIKE-A
+package	G-HUBKIT	W1	M	G-SKELETON,G-CORE,G-UNITY
+package	G-SPIKE-B	W1	M	G-SPIKE-A
+package	G-SHELL	W2	L	G-HUBBASE,G-HUBKIT
+package	G-FEEDBACK	W2	M	G-HUBBASE,G-HUBKIT,G-SPIKE-A,G-SHELL
+package	G-CONTROLS	W2	M	G-HUBBASE,G-JSON,G-SPIKE-A,G-SHELL
+package	G-TIMELINE-MODEL	W2	M	G-HUBBASE,G-VALIDATOR-A,G-DIFF,G-SPIKE-A
+package	G-VALIDATOR-B	W2	M	G-VALIDATOR-A,G-JSON
+package	G-ROUNDTRIP	W2	M	G-UNITY,G-JSON,G-HUBKIT,G-VALIDATOR-A
+package	G-DEMO	W2	M	G-UNITY
+package	G-PREVIEW	W2	S	G-CORE,G-UNITY,G-HUBKIT
+package	G-FINDINGTEXT	W2	M	G-VALIDATOR-A,G-DIFF,G-HUBBASE
+package	G-EXPORTGATE	W2	M	G-VALIDATOR-A,G-JSON,G-DIFF,G-UNITY,G-HUBBASE,G-HUBKIT
+package	G-SESSION	W3	L	G-SHELL,G-FEEDBACK,G-HUBKIT,G-VALIDATOR-B,G-UNITY,G-JSON,G-DIFF,G-FINDINGTEXT,G-EXPORTGATE,G-SPIKE-A
+package	G-TIMELINE-VIEW	W3	L	G-TIMELINE-MODEL,G-CONTROLS,G-HUBBASE,G-FINDINGTEXT,G-SPIKE-A
+package	G-I18N	W3.5	L	G-TOOLS,G-GOLDEN,G-SPIKE-A,G-CORE,G-SKELETON,G-HUBBASE,G-VALIDATOR-A,G-JSON,G-DIFF,G-UNITY,G-HUBKIT,G-SHELL,G-FEEDBACK,G-CONTROLS,G-TIMELINE-MODEL,G-VALIDATOR-B,G-ROUNDTRIP,G-DEMO,G-PREVIEW,G-FINDINGTEXT,G-EXPORTGATE,G-SESSION,G-TIMELINE-VIEW
+package	G-HOSTUI	W4	M	G-SESSION,G-FEEDBACK
+package	G-OVERVIEW	W4	M	G-SESSION,G-CONTROLS,G-FEEDBACK,G-EXPORTGATE,G-FINDINGTEXT
+package	G-EVENTTYPES	W4	M	G-SESSION,G-CONTROLS
+package	G-CALENDAR	W4	L	G-SESSION,G-TIMELINE-VIEW,G-CONTROLS,G-FEEDBACK
+package	G-RECURRING	W4	M	G-SESSION,G-CONTROLS,G-FEEDBACK
+package	G-VALIDATION	W4	M	G-SESSION,G-CONTROLS,G-FEEDBACK,G-FINDINGTEXT,G-HOSTUI
+package	G-EXPORT	W4	L	G-SESSION,G-CONTROLS,G-FEEDBACK,G-EXPORTGATE,G-FINDINGTEXT,G-HOSTUI
+package	G-INSPECTOR	W4	S	G-SESSION
+package	G-CALENDAR-DEPTH	W5	L	G-CALENDAR,G-VALIDATION,G-SHELLPOLISH
+package	G-VALIDATION-DEPTH	W5	M	G-VALIDATION
+package	G-RECURRING-JSON	W5	S	G-RECURRING
+package	G-PASTE	W5	M	W4,G-SHELLPOLISH,G-VALIDATION-DEPTH
+package	G-SHELLPOLISH	W5	M	G-HOSTUI,G-OVERVIEW,G-PREVIEW
+package	G-JOURNEY	W5	S	W4
+package	G-DOCS	W5	M	W4,G-CALENDAR-DEPTH,G-VALIDATION-DEPTH,G-RECURRING-JSON,G-PASTE,G-SHELLPOLISH,G-JOURNEY
+package	G-FIX-W6-1	W6	M	W5
+package	G-OPT-TIMELINE	W6	M	G-CALENDAR-DEPTH,G-FIX-W6-1
+package	G-OPT-SHORTCUTHELP	W6	S	G-SHELLPOLISH,G-FIX-W6-1
+package	G-ACCEPT	W7	M	-
+package	G-UX-CALENDAR	W8	L	W7
+package	G-UX-INSPECTOR	W8	M	W7
+package	G-UX-TIMELINE	W8	M	W7
+package	G-UX-RECURRING	W8	M	W7
+package	G-UX-SHELL	W8	M	W7
+package	G-UX-GATE	W8	L	W7
+package	G-FIX-UX-1	W8	S	W7
+package	G-FIX-UX-2	W8	S	W7
+package	G-FIX-UX-3	W8	S	W7
+package	G-FIX-UX-4	W8	S	W7
+package	G-FIX-UX-5	W8	S	W7
+package	G-FIX-UX-6	W8	S	W7
+package	G-FIX-UX-7	W8	S	W7
+package	G-FIX-UX-8	W8	S	W7
+region	Foundation	strings=G-HUBBASE;classnames=G-HUBBASE;paths=G-HUBBASE	
+region	Kit	strings=G-HUBKIT;paths=G-HUBKIT	
+region	Shell	strings=G-SHELL,G-I18N,G-HOSTUI,G-SHELLPOLISH;classnames=G-SHELL,G-I18N,G-HOSTUI,G-SHELLPOLISH;paths=G-SHELL,G-HOSTUI,G-SHELLPOLISH;capture=G-SHELL,G-I18N,G-HOSTUI	
+region	Feedback	strings=G-FEEDBACK;classnames=G-FEEDBACK;paths=G-FEEDBACK;capture=G-FEEDBACK	
+region	Controls	strings=G-CONTROLS,G-SHELLPOLISH;classnames=G-CONTROLS,G-SHELLPOLISH;paths=G-CONTROLS;capture=G-CONTROLS,G-SHELLPOLISH	
+region	TimelineModel	strings=G-TIMELINE-MODEL;paths=G-TIMELINE-MODEL	
+region	Timeline	strings=G-TIMELINE-VIEW,G-OPT-TIMELINE,G-CALENDAR-DEPTH;classnames=G-TIMELINE-VIEW,G-OPT-TIMELINE,G-CALENDAR-DEPTH;paths=G-TIMELINE-VIEW,G-OPT-TIMELINE;capture=G-TIMELINE-VIEW,G-OPT-TIMELINE	
+region	Findings	strings=G-FINDINGTEXT;paths=G-FINDINGTEXT	
+region	ExportGate	strings=G-EXPORTGATE;paths=G-EXPORTGATE	
+region	Services	strings=G-SESSION;paths=G-SESSION	
+region	Overview	strings=G-OVERVIEW,G-SHELLPOLISH;classnames=G-OVERVIEW,G-SHELLPOLISH;paths=G-OVERVIEW,G-SHELLPOLISH;capture=G-OVERVIEW,G-SHELLPOLISH	
+region	EventTypes	strings=G-EVENTTYPES;classnames=G-EVENTTYPES;paths=G-EVENTTYPES;capture=G-EVENTTYPES	
+region	Calendar	strings=G-CALENDAR;classnames=G-CALENDAR;paths=G-CALENDAR;capture=G-CALENDAR	
+region	CalendarDepth	strings=G-CALENDAR-DEPTH;classnames=G-CALENDAR-DEPTH;paths=G-CALENDAR-DEPTH;capture=G-CALENDAR-DEPTH	
+region	Recurring	strings=G-RECURRING,G-RECURRING-JSON;classnames=G-RECURRING;paths=G-RECURRING;capture=G-RECURRING	
+region	RecurringJson	classnames=G-RECURRING-JSON;paths=G-RECURRING-JSON;capture=G-RECURRING-JSON	
+region	Validation	strings=G-VALIDATION,G-VALIDATION-DEPTH;classnames=G-VALIDATION;paths=G-VALIDATION;capture=G-VALIDATION	
+region	ValidationDepth	strings=G-VALIDATION-DEPTH;classnames=G-VALIDATION-DEPTH;paths=G-VALIDATION-DEPTH;capture=G-VALIDATION-DEPTH	
+region	Export	strings=G-EXPORT;classnames=G-EXPORT;paths=G-EXPORT;capture=G-EXPORT	
+region	Paste	strings=G-PASTE;classnames=G-PASTE;paths=G-PASTE;capture=G-PASTE	
+region	Inspector	strings=G-INSPECTOR;classnames=G-INSPECTOR;paths=G-INSPECTOR	
+region	ShortcutHelp	strings=G-OPT-SHORTCUTHELP;classnames=G-OPT-SHORTCUTHELP;paths=G-OPT-SHORTCUTHELP;capture=G-OPT-SHORTCUTHELP	
+region	ShellPolish	capture=G-SHELLPOLISH	
+region	OptTimeline	capture=G-OPT-TIMELINE	
+file	.gitignore	G-TOOLS	G-TOOLS tạo
+file	Assets/Demo/Editor/DreamTech.LiveOps.Demo.Editor.asmdef	G-DEMO	G-DEMO tạo
+file	Assets/Demo/Editor/LiveOpsDemoCalendarAssetBuilder.cs	G-DEMO	G-DEMO tạo
+file	Assets/Demo/Editor/LiveOpsDemoSceneBuilder.cs	G-DEMO	G-DEMO tạo
+file	Assets/Demo/LiveOps/Calendars/Main.asset	G-DEMO	G-DEMO tạo
+file	Assets/Demo/LiveOpsDemo.unity	G-DEMO	G-DEMO tạo
+file	Assets/Demo/Scripts/LiveOpsDemo.cs	G-DEMO	G-DEMO tạo
+file	Assets/Demo/Tests/LiveOpsDemoSmokeTests.cs	G-DEMO	G-DEMO tạo
+file	CHANGELOG.md	G-DOCS,G-ACCEPT	G-DOCS tạo; G-ACCEPT sửa
+file	CLAUDE.md	G-DOCS	G-DOCS Q-10 user cho sửa — áp PROPOSED_CLAUDE_MD.md
+file	Packages/com.dreamtech.liveops/CHANGELOG.md	G-DOCS,G-ACCEPT	G-DOCS tạo; G-ACCEPT sửa
+file	Packages/com.dreamtech.liveops/CLAUDE.md	G-DOCS	G-DOCS Q-10 user cho sửa — áp PROPOSED_CLAUDE_MD.md
+file	Packages/com.dreamtech.liveops/Documentation/DESIGN_NOTES.md	G-DOCS	G-DOCS tạo
+file	Packages/com.dreamtech.liveops/Editor/AssemblyInfo.cs	G-SKELETON	G-SKELETON tạo
+file	Packages/com.dreamtech.liveops/Editor/DreamTech.LiveOps.Editor.asmdef	G-SKELETON	G-SKELETON tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Controls/LiveOpsButtonSlot.cs	G-HUBBASE	G-HUBBASE tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Controls/LiveOpsChevron.cs	G-HUBBASE	G-HUBBASE tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Controls/LiveOpsJsonView.cs	G-CONTROLS	G-CONTROLS tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Controls/LiveOpsPlaceholder.cs	G-HUBBASE	G-HUBBASE tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Controls/LiveOpsRuleCycleBar.cs	G-CONTROLS	G-CONTROLS tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Controls/LiveOpsSpinner.cs	G-HUBBASE	G-HUBBASE tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Controls/LiveOpsStateMark.cs	G-HUBBASE	G-HUBBASE tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Controls/LiveOpsTabStrip.cs	G-CONTROLS,G-SHELLPOLISH,G-FIX-W6-1	G-CONTROLS tạo; G-SHELLPOLISH sửa (V-34 nợ G-CONTROLS SP-3: nhãn lý do in thành chữ cạnh tab bị khoá, tooltip chỉ phụ); G-FIX-W6-1 đổi chỗ format câu có số đếm sang LiveOpsHubStringCatalog.Format(nameof(...)) để luật số ít/số nhiều tiếng Anh chạy được (Q-W5-2 — lệch kỹ thuật tự duyệt theo uỷ quyền user 15/9: 10.3 chỉ liệt catalog + StringTable, chưa lường rằng dấu phải chọn vế TRƯỚC string.Format nên chỗ gọi phải đưa KHOÁ thay vì câu)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Controls/LiveOpsTableSorting.cs	G-CONTROLS	G-CONTROLS tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Controls/LiveOpsUtcDateTimeField.cs	G-CONTROLS	G-CONTROLS tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Controls/Timeline/LiveOpsTimelineBar.cs	G-TIMELINE-VIEW,G-OPT-TIMELINE,G-FIX-W4-1,G-FIX-W6-1	G-TIMELINE-VIEW tạo; G-OPT-TIMELINE sửa; G-FIX-W4-1 thêm vế nhịp vào nhãn dải (phiếu D-4 của cổng W4); G-FIX-W6-1 đổi chỗ format câu có số đếm sang LiveOpsHubStringCatalog.Format(nameof(...)) để luật số ít/số nhiều tiếng Anh chạy được (Q-W5-2 — lệch kỹ thuật tự duyệt theo uỷ quyền user 15/9: 10.3 chỉ liệt catalog + StringTable, chưa lường rằng dấu phải chọn vế TRƯỚC string.Format nên chỗ gọi phải đưa KHOÁ thay vì câu)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Controls/Timeline/LiveOpsTimelineDragController.cs	G-TIMELINE-VIEW,G-CALENDAR-DEPTH,G-OPT-TIMELINE	G-TIMELINE-VIEW tạo; G-OPT-TIMELINE sửa; G-CALENDAR-DEPTH sửa (V-34 nợ D-3(c): dùng bước bắt lưới THẬT của khung nhìn, không chỉ nhớ)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Controls/Timeline/LiveOpsTimelineElement.cs	G-TIMELINE-VIEW,G-CALENDAR-DEPTH,G-OPT-TIMELINE,G-FIX-W4-2,G-FIX-W6-1	G-TIMELINE-VIEW tạo; G-OPT-TIMELINE sửa; G-FIX-W4-2 uỷ quyền câu hỏi phím đơn sang LiveOpsHubShortcuts (CC-HOSTUI-4); G-CALENDAR-DEPTH sửa (V-34 nợ D-3(a): vẽ tag kiểm nhanh vào Readout, khung 5 Hình 12); G-FIX-W6-1 đổi chỗ format câu có số đếm sang LiveOpsHubStringCatalog.Format(nameof(...)) để luật số ít/số nhiều tiếng Anh chạy được (Q-W5-2 — lệch kỹ thuật tự duyệt theo uỷ quyền user 15/9: 10.3 chỉ liệt catalog + StringTable, chưa lường rằng dấu phải chọn vế TRƯỚC string.Format nên chỗ gọi phải đưa KHOÁ thay vì câu)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Controls/Timeline/LiveOpsTimelineGeometry.cs	G-TIMELINE-MODEL,G-OPT-TIMELINE	G-TIMELINE-MODEL tạo; G-OPT-TIMELINE sửa
+file	Packages/com.dreamtech.liveops/Editor/Hub/Controls/Timeline/LiveOpsTimelineHintLine.cs	G-TIMELINE-VIEW,G-CALENDAR-DEPTH,G-OPT-TIMELINE	G-TIMELINE-VIEW tạo; G-OPT-TIMELINE sửa; G-CALENDAR-DEPTH sửa (V-34 nợ D-3(b): trạng thái con trỏ ở làn trống + microcopy nhấp đúp, khung 13)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Controls/Timeline/LiveOpsTimelineInput.cs	G-TIMELINE-MODEL,G-OPT-TIMELINE	G-TIMELINE-MODEL tạo; G-OPT-TIMELINE sửa
+file	Packages/com.dreamtech.liveops/Editor/Hub/Controls/Timeline/LiveOpsTimelineIntent.cs	G-TIMELINE-MODEL,G-OPT-TIMELINE	G-TIMELINE-MODEL tạo; G-OPT-TIMELINE sửa
+file	Packages/com.dreamtech.liveops/Editor/Hub/Controls/Timeline/LiveOpsTimelineLane.cs	G-TIMELINE-VIEW,G-OPT-TIMELINE,G-FIX-W6-1	G-TIMELINE-VIEW tạo; G-OPT-TIMELINE sửa; G-FIX-W6-1 đổi chỗ format câu có số đếm sang LiveOpsHubStringCatalog.Format(nameof(...)) để luật số ít/số nhiều tiếng Anh chạy được (Q-W5-2 — lệch kỹ thuật tự duyệt theo uỷ quyền user 15/9: 10.3 chỉ liệt catalog + StringTable, chưa lường rằng dấu phải chọn vế TRƯỚC string.Format nên chỗ gọi phải đưa KHOÁ thay vì câu)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Controls/Timeline/LiveOpsTimelineLegend.cs	G-TIMELINE-VIEW,G-OPT-TIMELINE	G-TIMELINE-VIEW tạo; G-OPT-TIMELINE sửa
+file	Packages/com.dreamtech.liveops/Editor/Hub/Controls/Timeline/LiveOpsTimelineMinimap.cs	G-TIMELINE-VIEW,G-OPT-TIMELINE	G-TIMELINE-VIEW tạo; G-OPT-TIMELINE sửa
+file	Packages/com.dreamtech.liveops/Editor/Hub/Controls/Timeline/LiveOpsTimelineModel.cs	G-TIMELINE-MODEL,G-OPT-TIMELINE,G-FIX-W4-1,G-FIX-W6-1	G-TIMELINE-MODEL tạo; G-OPT-TIMELINE sửa; G-FIX-W4-1 thêm StripActiveHours/StripHoursPerDay (phiếu D-4); G-FIX-W6-1 đổi chỗ format câu có số đếm sang LiveOpsHubStringCatalog.Format(nameof(...)) để luật số ít/số nhiều tiếng Anh chạy được (Q-W5-2 — lệch kỹ thuật tự duyệt theo uỷ quyền user 15/9: 10.3 chỉ liệt catalog + StringTable, chưa lường rằng dấu phải chọn vế TRƯỚC string.Format nên chỗ gọi phải đưa KHOÁ thay vì câu)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Controls/Timeline/LiveOpsTimelineRuler.cs	G-TIMELINE-VIEW,G-OPT-TIMELINE,G-FIX-W4-1	G-TIMELINE-VIEW tạo; G-OPT-TIMELINE sửa; G-FIX-W4-1 bỏ nhãn tầng 1 chồng chữ (phiếu D-2)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Controls/Timeline/LiveOpsTimelineVertexBudget.cs	G-TIMELINE-MODEL,G-OPT-TIMELINE	G-TIMELINE-MODEL tạo; G-OPT-TIMELINE sửa
+file	Packages/com.dreamtech.liveops/Editor/Hub/Dialogs/LiveOpsConfirmContent.cs	G-FEEDBACK	G-FEEDBACK tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Dialogs/LiveOpsConfirmRequest.cs	G-HUBKIT	G-HUBKIT tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Dialogs/LiveOpsConfirmWindow.cs	G-FEEDBACK	G-FEEDBACK tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Dialogs/LiveOpsConfirmWindow.uss	G-FEEDBACK	G-FEEDBACK tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Dialogs/LiveOpsConfirmWindow.uxml	G-FEEDBACK	G-FEEDBACK tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Dialogs/LiveOpsConfirmationPolicy.cs	G-HUBKIT	G-HUBKIT tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Dialogs/LiveOpsPopoverContent.cs	G-FEEDBACK	G-FEEDBACK tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Dialogs/ModalLiveOpsHubConfirmationPresenter.cs	G-FEEDBACK	G-FEEDBACK tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Dialogs/PasteRunningJsonPopover.cs	G-PASTE,G-FIX-W6-1	G-PASTE tạo; G-FIX-W6-1 đổi chỗ format câu có số đếm sang LiveOpsHubStringCatalog.Format(nameof(...)) để luật số ít/số nhiều tiếng Anh chạy được (Q-W5-2 — lệch kỹ thuật tự duyệt theo uỷ quyền user 15/9: 10.3 chỉ liệt catalog + StringTable, chưa lường rằng dấu phải chọn vế TRƯỚC string.Format nên chỗ gọi phải đưa KHOÁ thay vì câu)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Dialogs/PasteRunningJsonPopover.uxml	G-PASTE	G-PASTE tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Dialogs/PasteRunningJsonPopover.uss	G-PASTE	G-PASTE tạo (W5): popover là panel riêng, sheet của màn không tới — class vùng Paste phải có selector (check-class-names --strict)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Dialogs/ShortcutHelpPopover.cs	G-OPT-SHORTCUTHELP	G-OPT-SHORTCUTHELP tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Dialogs/ShortcutHelpPopover.uxml	G-OPT-SHORTCUTHELP	G-OPT-SHORTCUTHELP tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Dialogs/ShortcutHelpPopover.uss	G-OPT-SHORTCUTHELP	G-OPT-SHORTCUTHELP tạo (W6): popover là panel riêng, sheet của màn không tới — class vùng ShortcutHelp phải có selector (check-class-names --strict); cùng lý do với dòng PasteRunningJsonPopover.uss của W5
+file	Packages/com.dreamtech.liveops/Editor/Hub/Feedback/LiveOpsHoverCardHost.cs	G-FEEDBACK	G-FEEDBACK tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Feedback/LiveOpsHubUndoTracker.cs	G-FEEDBACK	G-FEEDBACK tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Feedback/LiveOpsOutcomeRecord.cs	G-HUBKIT	G-HUBKIT tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Feedback/LiveOpsOutcomeView.cs	G-FEEDBACK	G-FEEDBACK tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Feedback/LiveOpsToast.cs	G-FEEDBACK	G-FEEDBACK tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Feedback/LiveOpsToastModel.cs	G-HUBKIT,G-FIX-W4-2,G-FIX-W6-1	G-HUBKIT tạo; G-FIX-W4-2 thêm tên bước ngắn sau Hoàn tác (phiếu D-5); G-FIX-W6-1 UndoGroupName trả UndoneStepName khi có, rơi về Message (Q-W5-5)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/Language/LiveOpsHubLanguage.cs	G-I18N	G-I18N tạo — dịch vụ ngôn ngữ (khoá EditorPrefs LiveOpsHub.Language)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/Language/LiveOpsHubLanguageId.cs	G-I18N	G-I18N tạo — enum ngôn ngữ
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/Language/LiveOpsHubLanguageScope.cs	G-I18N	G-I18N tạo — scope ghim ngôn ngữ cho test + lệnh chụp
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/Language/LiveOpsHubEnglishPlural.cs	G-FIX-W6-1	G-FIX-W6-1 tạo — luật số ít/số nhiều tiếng Anh, dấu {i|số ít|số nhiều} chạy trước string.Format (Q-W5-2)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/Language/LiveOpsHubStringCatalog.*.cs	G-I18N,*	vùng W4/W5: gói màn TẠO file vùng của mình cùng lúc với LiveOpsHubStrings.<Vùng>.cs
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/Language/LiveOpsHubStringCatalog.Controls.cs	G-I18N,G-CONTROLS	G-I18N tạo; sau đó chủ vùng Controls
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/Language/LiveOpsHubStringCatalog.ExportGate.cs	G-I18N,G-EXPORTGATE	G-I18N tạo; sau đó chủ vùng ExportGate
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/Language/LiveOpsHubStringCatalog.Feedback.cs	G-I18N,G-FEEDBACK	G-I18N tạo; sau đó chủ vùng Feedback
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/Language/LiveOpsHubStringCatalog.Findings.cs	G-I18N,G-FINDINGTEXT	G-I18N tạo; sau đó chủ vùng Findings
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/Language/LiveOpsHubStringCatalog.Foundation.cs	G-I18N,G-HUBBASE	G-I18N tạo; sau đó chủ vùng Foundation thêm khoá
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/Language/LiveOpsHubStringCatalog.Kit.cs	G-I18N,G-HUBKIT,G-PASTE,G-ACCEPT	G-I18N tạo; sau đó chủ vùng Kit
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/Language/LiveOpsHubStringCatalog.Preview.cs	G-I18N,G-PREVIEW	G-I18N tạo; sau đó chủ vùng Preview
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/Language/LiveOpsHubStringCatalog.Services.cs	G-I18N,G-SESSION	G-I18N tạo; sau đó chủ vùng Services
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/Language/LiveOpsHubStringCatalog.Shell.cs	G-I18N,G-HOSTUI,G-SHELLPOLISH	G-I18N tạo; sau đó chủ vùng Shell
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/Language/LiveOpsHubStringCatalog.Timeline.cs	G-I18N,G-TIMELINE-VIEW,G-OPT-TIMELINE,G-CALENDAR-DEPTH	G-I18N tạo; sau đó chủ vùng Timeline; G-CALENDAR-DEPTH thêm câu vi+en của nợ D-3 (đi kèm trường strings vùng Timeline, V-34)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/Language/LiveOpsHubStringCatalog.TimelineModel.cs	G-I18N,G-TIMELINE-MODEL	G-I18N tạo; sau đó chủ vùng TimelineModel
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/Language/LiveOpsHubStringCatalog.cs	G-I18N,G-FIX-W6-1	G-I18N tạo — catalog + khai báo Register<Vùng> cho MỌI vùng (24 vùng, kể cả W4/W5/W6 chưa làm: gói màn chỉ thêm file vùng của mình, KHÔNG sửa file này — V-29); G-FIX-W6-1 thêm Format(khoá, đối số) + RawText/TryGetExactRaw/ContainsKey — lối vào duy nhất của câu có số đếm (Q-W5-2; lệch kỹ thuật tự duyệt theo uỷ quyền user 15/9: V-29 cấm gói MÀN sửa file này, đây là luật ngôn ngữ chung của chính vùng Language, cùng cặp với LiveOpsHubStringTable.cs mà 10.3 đã giao)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/Language/LiveOpsHubStringTable.cs	G-I18N,G-FIX-W6-1	G-I18N tạo — bảng chữ một vùng, hai ngôn ngữ; G-FIX-W6-1 gọi LiveOpsHubEnglishPlural khi trả câu tiếng Anh (Q-W5-2)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubClassNames.Calendar.cs	G-CALENDAR	G-CALENDAR vùng Calendar
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubClassNames.CalendarDepth.cs	G-CALENDAR-DEPTH	G-CALENDAR-DEPTH vùng CalendarDepth
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubClassNames.Controls.cs	G-CONTROLS,G-SHELLPOLISH	G-CONTROLS vùng Controls; G-SHELLPOLISH vùng Controls (V-34 nợ SP-3: class nhãn lý do cạnh tab — trường region Controls classnames đã ghi G-SHELLPOLISH, dòng file này bị sót)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubClassNames.EventTypes.cs	G-EVENTTYPES	G-EVENTTYPES vùng EventTypes
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubClassNames.Export.cs	G-EXPORT	G-EXPORT vùng Export
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubClassNames.Feedback.cs	G-FEEDBACK	G-FEEDBACK vùng Feedback
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubClassNames.Foundation.cs	G-HUBBASE	G-HUBBASE vùng Foundation
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubClassNames.Inspector.cs	G-INSPECTOR	G-INSPECTOR vùng Inspector
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubClassNames.Overview.cs	G-OVERVIEW,G-SHELLPOLISH,G-FIX-W6-1	G-OVERVIEW vùng Overview; G-SHELLPOLISH vùng Overview; G-FIX-W6-1 hằng class của ScrollView thân màn (Q-W5-1)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubClassNames.Paste.cs	G-PASTE	G-PASTE vùng Paste
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubClassNames.Recurring.cs	G-RECURRING	G-RECURRING vùng Recurring
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubClassNames.RecurringJson.cs	G-RECURRING-JSON	G-RECURRING-JSON vùng RecurringJson
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubClassNames.Shell.cs	G-SHELL,G-I18N,G-HOSTUI,G-SHELLPOLISH	G-SHELL vùng Shell; G-HOSTUI vùng Shell; G-SHELLPOLISH vùng Shell; G-I18N sửa (ngôn ngữ, W3.5)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubClassNames.ShortcutHelp.cs	G-OPT-SHORTCUTHELP	G-OPT-SHORTCUTHELP vùng ShortcutHelp
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubClassNames.Timeline.cs	G-TIMELINE-VIEW,G-OPT-TIMELINE,G-CALENDAR-DEPTH	G-TIMELINE-VIEW vùng Timeline; G-OPT-TIMELINE vùng Timeline; G-CALENDAR-DEPTH thêm class nợ D-3 — vùng Timeline trường classnames đã mở ở V-34
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubClassNames.Validation.cs	G-VALIDATION	G-VALIDATION vùng Validation
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubClassNames.ValidationDepth.cs	G-VALIDATION-DEPTH	G-VALIDATION-DEPTH vùng ValidationDepth
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubClassNames.cs	G-SKELETON	G-SKELETON tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubFormat.cs	G-HUBBASE,G-CALENDAR-DEPTH	G-HUBBASE tạo; G-CALENDAR-DEPTH thêm LiveOpsHubFormat.DayMonthText (dạng tĩnh "14/9") để control tự vẽ không ghép ngày/tháng bằng tay — lệch kỹ thuật tự duyệt theo uỷ quyền user 15/9 (chỉ THÊM thành viên, không đổi chữ ký cũ)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubIcons.cs	G-HUBBASE	G-HUBBASE tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubKeyLabels.cs	G-HUBBASE	G-HUBBASE tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubPaths.Calendar.cs	G-CALENDAR	G-CALENDAR vùng Calendar
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubPaths.CalendarDepth.cs	G-CALENDAR-DEPTH	G-CALENDAR-DEPTH vùng CalendarDepth
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubPaths.Controls.cs	G-CONTROLS	G-CONTROLS vùng Controls
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubPaths.EventTypes.cs	G-EVENTTYPES	G-EVENTTYPES vùng EventTypes
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubPaths.Export.cs	G-EXPORT	G-EXPORT vùng Export
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubPaths.ExportGate.cs	G-EXPORTGATE	G-EXPORTGATE vùng ExportGate
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubPaths.Feedback.cs	G-FEEDBACK	G-FEEDBACK vùng Feedback
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubPaths.Findings.cs	G-FINDINGTEXT	G-FINDINGTEXT vùng Findings
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubPaths.Foundation.cs	G-HUBBASE	G-HUBBASE vùng Foundation
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubPaths.Inspector.cs	G-INSPECTOR	G-INSPECTOR vùng Inspector
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubPaths.Kit.cs	G-HUBKIT	G-HUBKIT vùng Kit
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubPaths.Overview.cs	G-OVERVIEW,G-SHELLPOLISH	G-OVERVIEW vùng Overview; G-SHELLPOLISH vùng Overview
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubPaths.Paste.cs	G-PASTE	G-PASTE vùng Paste
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubPaths.Recurring.cs	G-RECURRING	G-RECURRING vùng Recurring
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubPaths.RecurringJson.cs	G-RECURRING-JSON	G-RECURRING-JSON vùng RecurringJson
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubPaths.Services.cs	G-SESSION	G-SESSION vùng Services
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubPaths.Shell.cs	G-SHELL,G-HOSTUI,G-SHELLPOLISH	G-SHELL vùng Shell; G-HOSTUI vùng Shell; G-SHELLPOLISH vùng Shell
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubPaths.ShortcutHelp.cs	G-OPT-SHORTCUTHELP	G-OPT-SHORTCUTHELP vùng ShortcutHelp
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubPaths.Timeline.cs	G-TIMELINE-VIEW,G-OPT-TIMELINE	G-TIMELINE-VIEW vùng Timeline; G-OPT-TIMELINE vùng Timeline
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubPaths.TimelineModel.cs	G-TIMELINE-MODEL	G-TIMELINE-MODEL vùng TimelineModel
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubPaths.Validation.cs	G-VALIDATION,G-VALIDATION-DEPTH	G-VALIDATION vùng Validation; G-VALIDATION-DEPTH thêm validation-bulk-preview-host vào RequiredValidationElementNames (soát W5 F-12 — chỗ cắm luôn có trong cây nên probe 9.3 phải canh; tự duyệt theo uỷ quyền user 15/9)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubPaths.ValidationDepth.cs	G-VALIDATION-DEPTH	G-VALIDATION-DEPTH vùng ValidationDepth
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubPaths.cs	G-SKELETON	G-SKELETON tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubStrings.Calendar.cs	G-CALENDAR,G-FIX-W4-2,G-CALENDAR-DEPTH,G-FIX-W6-1	G-CALENDAR vùng Calendar; G-FIX-W4-2 thêm CalendarMoveUndoStepFormat (phiếu D-5); G-CALENDAR-DEPTH gỡ CalendarSnapMenuInterimFormat (nợ D-3(c) làm bước bắt lưới chạy thật) và thêm chữ nút toolbar W5; G-FIX-W6-1 thêm CalendarResizeUndoStepFormat cho hai kiểu đổi mép (Q-W5-5)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubStrings.CalendarDepth.cs	G-CALENDAR-DEPTH	G-CALENDAR-DEPTH vùng CalendarDepth
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubStrings.Controls.cs	G-CONTROLS,G-I18N	G-CONTROLS vùng Controls; G-I18N sửa (ngôn ngữ, W3.5)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubStrings.EventTypes.cs	G-EVENTTYPES	G-EVENTTYPES vùng EventTypes
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubStrings.Export.cs	G-EXPORT	G-EXPORT vùng Export
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubStrings.ExportGate.cs	G-EXPORTGATE,G-I18N	G-EXPORTGATE vùng ExportGate; G-I18N sửa (ngôn ngữ, W3.5)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubStrings.Feedback.cs	G-FEEDBACK,G-I18N	G-FEEDBACK vùng Feedback; G-I18N sửa (ngôn ngữ, W3.5)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubStrings.Findings.cs	G-FINDINGTEXT,G-I18N	G-FINDINGTEXT vùng Findings; G-I18N sửa (ngôn ngữ, W3.5)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubStrings.Foundation.cs	G-HUBBASE,G-FIX-W2-1,G-I18N	G-HUBBASE vùng Foundation; G-FIX-W2-1 thêm câu lỗi số đếm âm (V-21 CC-SHELL-5); G-I18N sửa (ngôn ngữ, W3.5)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubStrings.Inspector.cs	G-INSPECTOR	G-INSPECTOR vùng Inspector
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubStrings.Kit.cs	G-HUBKIT,G-I18N,G-PASTE,G-ACCEPT	G-HUBKIT vùng Kit; G-PASTE hoặc G-ACCEPT được bỏ hằng KitActionNotBuiltInDevBuild khi hết người dùng (C-4, V-20); G-I18N sửa (ngôn ngữ, W3.5)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubStrings.Overview.cs	G-OVERVIEW,G-SHELLPOLISH	G-OVERVIEW vùng Overview; G-SHELLPOLISH vùng Overview
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubStrings.Paste.cs	G-PASTE	G-PASTE vùng Paste
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubStrings.Recurring.cs	G-RECURRING,G-RECURRING-JSON,G-FIX-W6-1	G-RECURRING vùng Recurring; G-RECURRING-JSON vùng Recurring; G-FIX-W6-1 thêm RecurringJsonUnreadableShortReason (Q-W5-3)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubStrings.Services.cs	G-SESSION,G-I18N,G-SHELLPOLISH	G-SESSION vùng Services; G-I18N sửa (ngôn ngữ, W3.5); G-SHELLPOLISH bỏ hằng InterimDiskConflictLog (đổi tên thành ShellDiskConflictLogFormat) (sổ INTERIM mục 12 I-8 giao gói gỡ định danh này, mà nó nằm ở vùng Services — không gói nào khác của W5 đụng file)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubStrings.Shell.cs	G-SHELL,G-I18N,G-HOSTUI,G-SHELLPOLISH	G-SHELL vùng Shell; G-HOSTUI vùng Shell; G-SHELLPOLISH vùng Shell; G-I18N sửa (ngôn ngữ, W3.5)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubStrings.ShortcutHelp.cs	G-OPT-SHORTCUTHELP	G-OPT-SHORTCUTHELP vùng ShortcutHelp
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubStrings.Timeline.cs	G-TIMELINE-VIEW,G-I18N,G-OPT-TIMELINE,G-CALENDAR-DEPTH	G-TIMELINE-VIEW vùng Timeline; G-OPT-TIMELINE vùng Timeline; G-I18N sửa (ngôn ngữ, W3.5); G-CALENDAR-DEPTH thêm chữ nợ D-3 (tag kiểm nhanh trong readout, gợi ý làn trống) — vùng Timeline trường strings đã mở ở V-34
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubStrings.TimelineModel.cs	G-TIMELINE-MODEL,G-I18N	G-TIMELINE-MODEL vùng TimelineModel; G-I18N sửa (ngôn ngữ, W3.5)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubStrings.Validation.cs	G-VALIDATION,G-VALIDATION-DEPTH	G-VALIDATION vùng Validation; G-VALIDATION-DEPTH thêm hằng động từ nút Áp (V-34 nợ Findings)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubStrings.ValidationDepth.cs	G-VALIDATION-DEPTH,G-FIX-W6-1	G-VALIDATION-DEPTH vùng ValidationDepth; G-FIX-W6-1 thêm ValidationDepthIgnoredMetaWithTagFormat cho nhánh có-tag (Q-W5-4 — lệch kỹ thuật tự duyệt theo uỷ quyền user 15/9: 10.3 chỉ liệt ValidationViewModel.cs vì chưa lường khuôn meta thứ hai)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubStrings.cs	G-SKELETON,G-I18N	G-SKELETON tạo; G-I18N sửa (ngôn ngữ, W3.5)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubStyle.cs	G-HUBBASE	G-HUBBASE tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/PipelineStage.cs	G-HUBBASE	G-HUBBASE tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/SectionHealth.cs	G-HUBBASE,G-FIX-W2-1	G-HUBBASE tạo; G-FIX-W2-1 thêm SectionHealth.Counts + LiveOpsHubFindingCounts (V-21 CC-SHELL-5 (b))
+file	Packages/com.dreamtech.liveops/Editor/Hub/Icons/d_liveops-hub-calendar.png	G-HUBBASE	G-HUBBASE tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Icons/d_liveops-hub-calendar@2x.png	G-HUBBASE	G-HUBBASE tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Icons/d_liveops-hub-clipboard.png	G-HUBBASE	G-HUBBASE tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Icons/d_liveops-hub-clipboard@2x.png	G-HUBBASE	G-HUBBASE tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Icons/liveops-hub-calendar.png	G-HUBBASE	G-HUBBASE tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Icons/liveops-hub-calendar@2x.png	G-HUBBASE	G-HUBBASE tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Inspector/LiveEventCalendarAssetInspector.cs	G-INSPECTOR,G-FIX-W6-1	G-INSPECTOR tạo; G-FIX-W6-1 đổi chỗ format câu có số đếm sang LiveOpsHubStringCatalog.Format(nameof(...)) để luật số ít/số nhiều tiếng Anh chạy được (Q-W5-2 — lệch kỹ thuật tự duyệt theo uỷ quyền user 15/9: 10.3 chỉ liệt catalog + StringTable, chưa lường rằng dấu phải chọn vế TRƯỚC string.Format nên chỗ gọi phải đưa KHOÁ thay vì câu)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Inspector/LiveEventCalendarAssetInspector.uss	G-INSPECTOR	G-INSPECTOR tạo (vá review F-4: chữ xuống dòng bằng USS vì [FD §2.14] cấm style inline)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Palette/LiveOpsHubPalette.cs	G-FEEDBACK	G-FEEDBACK tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Palette/LiveOpsPaletteMatcher.cs	G-FEEDBACK	G-FEEDBACK tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Calendar/AddEventFlowModel.cs	G-CALENDAR	G-CALENDAR tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Calendar/AddEventPopover.cs	G-CALENDAR	G-CALENDAR tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Calendar/AddEventPopover.uxml	G-CALENDAR	G-CALENDAR tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Calendar/CalendarCommandHandler.cs	G-CALENDAR-DEPTH	G-CALENDAR-DEPTH tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Calendar/CalendarComparePane.cs	G-CALENDAR-DEPTH	G-CALENDAR-DEPTH tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Calendar/CalendarContextMenus.cs	G-CALENDAR-DEPTH,G-OPT-TIMELINE	G-CALENDAR-DEPTH tạo; G-OPT-TIMELINE sửa
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Calendar/CalendarDeleteFlow.cs	G-CALENDAR	G-CALENDAR tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Calendar/CalendarEventInspector.cs	G-CALENDAR,G-CALENDAR-DEPTH,G-OPT-TIMELINE	G-CALENDAR tạo; G-CALENDAR-DEPTH sửa; G-OPT-TIMELINE sửa
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Calendar/CalendarHoverCardContent.cs	G-CALENDAR-DEPTH	G-CALENDAR-DEPTH tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Calendar/CalendarInspectorModel.cs	G-CALENDAR,G-FIX-W6-1	G-CALENDAR tạo; G-FIX-W6-1 đổi chỗ format câu có số đếm sang LiveOpsHubStringCatalog.Format(nameof(...)) để luật số ít/số nhiều tiếng Anh chạy được (Q-W5-2 — lệch kỹ thuật tự duyệt theo uỷ quyền user 15/9: 10.3 chỉ liệt catalog + StringTable, chưa lường rằng dấu phải chọn vế TRƯỚC string.Format nên chỗ gọi phải đưa KHOÁ thay vì câu)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Calendar/CalendarListPane.cs	G-CALENDAR-DEPTH	G-CALENDAR-DEPTH tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Calendar/CalendarSection.cs	G-SHELL,G-SESSION,G-CALENDAR,G-CALENDAR-DEPTH,G-OPT-TIMELINE	G-SHELL tạo; G-SESSION sửa; G-CALENDAR sửa; G-CALENDAR-DEPTH sửa; G-OPT-TIMELINE nối mục menu "Thu gọn / Mở làn" (2 dòng: đọc IsLaneCollapsed vào CalendarMenuContext + một case gọi timeline.RequestToggleLaneCollapsed) — bảng thiếu dòng này vì 10.3 chỉ liệt kê CalendarContextMenus.cs, mà mục menu không tự nối được vào đâu; lệch tự duyệt theo uỷ quyền user, ghi ở w6/G-OPT-TIMELINE-build.md. Không đụng gói nào cùng đợt W6 (G-FIX-W6-1 và G-OPT-SHORTCUTHELP không sửa file này)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Calendar/CalendarSection.uss	G-CALENDAR,G-CALENDAR-DEPTH	G-CALENDAR tạo; G-CALENDAR-DEPTH sửa
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Calendar/CalendarSection.uxml	G-CALENDAR,G-CALENDAR-DEPTH	G-CALENDAR tạo; G-CALENDAR-DEPTH sửa
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Calendar/CalendarTimelinePresenter.cs	G-CALENDAR,G-CALENDAR-DEPTH,G-OPT-TIMELINE,G-FIX-W4-2,G-FIX-W6-1	G-CALENDAR tạo; G-CALENDAR-DEPTH sửa; G-OPT-TIMELINE sửa; G-FIX-W4-2 truyền tên bước cho toast dời (phiếu D-5); G-FIX-W6-1 đặt câu ngắn cho cả ba kiểu kéo (Q-W5-5)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Calendar/CalendarToolbar.cs	G-CALENDAR,G-CALENDAR-DEPTH,G-FIX-W6-1	G-CALENDAR tạo; G-CALENDAR-DEPTH sửa; G-FIX-W6-1 đổi chỗ format câu có số đếm sang LiveOpsHubStringCatalog.Format(nameof(...)) để luật số ít/số nhiều tiếng Anh chạy được (Q-W5-2 — lệch kỹ thuật tự duyệt theo uỷ quyền user 15/9: 10.3 chỉ liệt catalog + StringTable, chưa lường rằng dấu phải chọn vế TRƯỚC string.Format nên chỗ gọi phải đưa KHOÁ thay vì câu)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/EventTypes/AddEventTypePopover.cs	G-EVENTTYPES	G-EVENTTYPES tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/EventTypes/EventTypeInspector.cs	G-EVENTTYPES	G-EVENTTYPES tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/EventTypes/EventTypeTable.cs	G-EVENTTYPES	G-EVENTTYPES tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/EventTypes/EventTypesModel.cs	G-EVENTTYPES,G-FIX-W6-1	G-EVENTTYPES tạo; G-FIX-W6-1 đổi chỗ format câu có số đếm sang LiveOpsHubStringCatalog.Format(nameof(...)) để luật số ít/số nhiều tiếng Anh chạy được (Q-W5-2 — lệch kỹ thuật tự duyệt theo uỷ quyền user 15/9: 10.3 chỉ liệt catalog + StringTable, chưa lường rằng dấu phải chọn vế TRƯỚC string.Format nên chỗ gọi phải đưa KHOÁ thay vì câu)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/EventTypes/EventTypesSection.cs	G-SHELL,G-SESSION,G-EVENTTYPES	G-SHELL tạo; G-SESSION sửa; G-EVENTTYPES sửa
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/EventTypes/EventTypesSection.uss	G-EVENTTYPES	G-EVENTTYPES tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/EventTypes/EventTypesSection.uxml	G-EVENTTYPES	G-EVENTTYPES tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Export/ExportDiffCard.cs	G-EXPORT	G-EXPORT tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Export/ExportDiffViewModel.cs	G-EXPORT	G-EXPORT tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Export/ExportGateCard.cs	G-EXPORT	G-EXPORT tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Export/ExportHistoryCard.cs	G-EXPORT	G-EXPORT tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Export/ExportHistoryModel.cs	G-EXPORT	G-EXPORT tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Export/ExportMetrics.cs	G-EXPORT,G-FIX-W6-1	G-EXPORT tạo; G-FIX-W6-1 đổi chỗ format câu có số đếm sang LiveOpsHubStringCatalog.Format(nameof(...)) để luật số ít/số nhiều tiếng Anh chạy được (Q-W5-2 — lệch kỹ thuật tự duyệt theo uỷ quyền user 15/9: 10.3 chỉ liệt catalog + StringTable, chưa lường rằng dấu phải chọn vế TRƯỚC string.Format nên chỗ gọi phải đưa KHOÁ thay vì câu)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Export/ExportSection.cs	G-SHELL,G-SESSION,G-EXPORT,G-SHELLPOLISH,G-FIX-W6-1	G-SHELL tạo; G-SESSION sửa; G-EXPORT sửa; G-SHELLPOLISH gỡ dấu INTERIM(G-SHELLPOLISH) của I-11 và mở RevealFileActionId thành internal (dấu nằm ở file này nhưng việc sửa ở LiveOpsHubWindow.cs — check-interim --for G-SHELLPOLISH chặn nếu dấu còn; không gói W5 nào khác đụng file); G-FIX-W6-1 đổi chỗ format câu có số đếm sang LiveOpsHubStringCatalog.Format(nameof(...)) để luật số ít/số nhiều tiếng Anh chạy được (Q-W5-2 — lệch kỹ thuật tự duyệt theo uỷ quyền user 15/9: 10.3 chỉ liệt catalog + StringTable, chưa lường rằng dấu phải chọn vế TRƯỚC string.Format nên chỗ gọi phải đưa KHOÁ thay vì câu)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Export/ExportSection.uss	G-EXPORT	G-EXPORT tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Export/ExportSection.uxml	G-EXPORT	G-EXPORT tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Export/ExportSessionState.cs	G-EXPORT	G-EXPORT tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Export/MarkPublishedModel.cs	G-EXPORT,G-FIX-W6-1	G-EXPORT tạo; G-FIX-W6-1 đổi chỗ format câu có số đếm sang LiveOpsHubStringCatalog.Format(nameof(...)) để luật số ít/số nhiều tiếng Anh chạy được (Q-W5-2 — lệch kỹ thuật tự duyệt theo uỷ quyền user 15/9: 10.3 chỉ liệt catalog + StringTable, chưa lường rằng dấu phải chọn vế TRƯỚC string.Format nên chỗ gọi phải đưa KHOÁ thay vì câu)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Export/MarkPublishedWindow.cs	G-EXPORT	G-EXPORT tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Export/MarkPublishedWindow.uss	G-EXPORT	G-EXPORT tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Export/MarkPublishedWindow.uxml	G-EXPORT	G-EXPORT tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/InterimPlaceholderSection.cs	G-SHELL,G-SHELLPOLISH	G-SHELL tạo; G-SHELLPOLISH xoá
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Overview/OverviewModel.cs	G-OVERVIEW,G-FIX-W6-1	G-OVERVIEW tạo; G-FIX-W6-1 đổi chỗ format câu có số đếm sang LiveOpsHubStringCatalog.Format(nameof(...)) để luật số ít/số nhiều tiếng Anh chạy được (Q-W5-2 — lệch kỹ thuật tự duyệt theo uỷ quyền user 15/9: 10.3 chỉ liệt catalog + StringTable, chưa lường rằng dấu phải chọn vế TRƯỚC string.Format nên chỗ gọi phải đưa KHOÁ thay vì câu)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Overview/OverviewNeedsActionList.cs	G-OVERVIEW	G-OVERVIEW tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Overview/OverviewPipelineFlow.cs	G-OVERVIEW	G-OVERVIEW tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Overview/OverviewRemoteKeyPopover.cs	G-SHELLPOLISH	G-SHELLPOLISH tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Overview/OverviewSection.cs	G-SHELL,G-SESSION,G-OVERVIEW,G-SHELLPOLISH,G-FIX-W6-1	G-SHELL tạo; G-SESSION sửa; G-OVERVIEW sửa; G-SHELLPOLISH sửa; G-FIX-W6-1 bọc thân bằng ScrollView dọc (Q-W5-1, user chốt 17/9/2026)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Overview/OverviewSection.uss	G-OVERVIEW,G-SHELLPOLISH,G-FIX-W6-1	G-OVERVIEW tạo; G-SHELLPOLISH thêm class HelpBox nhiều asset (mục 12 I-9 — gói đã sở hữu OverviewSection.cs/.uxml, dòng .uss bị sót); G-FIX-W6-1 luật USS của ScrollView thân màn (Q-W5-1)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Overview/OverviewSection.uxml	G-OVERVIEW,G-SHELLPOLISH,G-FIX-W6-1	G-OVERVIEW tạo; G-SHELLPOLISH sửa; G-FIX-W6-1 bọc thân bằng ScrollView dọc (Q-W5-1)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Overview/OverviewUpcomingTable.cs	G-OVERVIEW	G-OVERVIEW tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/RecurringRules/LiveOpsRulePresetLibrary.cs	G-RECURRING	G-RECURRING tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/RecurringRules/LiveOpsRulePresets.cs	G-RECURRING	G-RECURRING tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/RecurringRules/RecurringNextOccurrencesTable.cs	G-RECURRING,G-FIX-W6-1	G-RECURRING tạo; G-FIX-W6-1 đổi chỗ format câu có số đếm sang LiveOpsHubStringCatalog.Format(nameof(...)) để luật số ít/số nhiều tiếng Anh chạy được (Q-W5-2 — lệch kỹ thuật tự duyệt theo uỷ quyền user 15/9: 10.3 chỉ liệt catalog + StringTable, chưa lường rằng dấu phải chọn vế TRƯỚC string.Format nên chỗ gọi phải đưa KHOÁ thay vì câu)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/RecurringRules/RecurringPrefixDraft.cs	G-RECURRING,G-RECURRING-JSON	G-RECURRING tạo; G-RECURRING-JSON sửa (V-34 Q-W4-4: phơi tên ô đang giữ nháp để form khoá ba ô còn lại)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/RecurringRules/RecurringRuleForm.cs	G-RECURRING,G-RECURRING-JSON	G-RECURRING tạo; G-RECURRING-JSON sửa
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/RecurringRules/RecurringRuleJsonFoldout.cs	G-RECURRING-JSON,G-FIX-W6-1	G-RECURRING-JSON tạo; G-FIX-W6-1 nhãn cạnh nút Áp dùng câu ngắn, dòng lỗi giữ câu đầy đủ (Q-W5-3)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/RecurringRules/RecurringRuleList.cs	G-RECURRING	G-RECURRING tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/RecurringRules/RecurringRuleModel.cs	G-RECURRING	G-RECURRING tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/RecurringRules/RecurringRuleSentence.cs	G-RECURRING	G-RECURRING tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/RecurringRules/RecurringRulesSection.cs	G-SHELL,G-SESSION,G-RECURRING,G-RECURRING-JSON	G-SHELL tạo; G-SESSION sửa; G-RECURRING sửa; G-RECURRING-JSON sửa (nối foldout JSON sửa được vào lối vào RequestFieldChange — V-34 mở rộng)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/RecurringRules/RecurringRulesSection.uss	G-RECURRING,G-RECURRING-JSON	G-RECURRING tạo; G-RECURRING-JSON sửa (style ô JSON sửa được + nhãn lý do khoá ô)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/RecurringRules/RecurringRulesSection.uxml	G-RECURRING,G-RECURRING-JSON	G-RECURRING tạo; G-RECURRING-JSON sửa
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Validation/DecisionMenu.cs	G-VALIDATION-DEPTH	G-VALIDATION-DEPTH tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Validation/IgnoreWarningPopover.cs	G-VALIDATION-DEPTH	G-VALIDATION-DEPTH tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Validation/IgnoreWarningPopover.uxml	G-VALIDATION-DEPTH	G-VALIDATION-DEPTH tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Validation/ProposalPopover.cs	G-VALIDATION,G-VALIDATION-DEPTH,G-FIX-W6-1	G-VALIDATION tạo; G-VALIDATION-DEPTH sửa (V-34 nợ Findings: động từ theo RepairId cho nút Áp — nợ nằm Ở ĐÂY, không ở LiveOpsFindingText); G-FIX-W6-1 đổi chỗ format câu có số đếm sang LiveOpsHubStringCatalog.Format(nameof(...)) để luật số ít/số nhiều tiếng Anh chạy được (Q-W5-2 — lệch kỹ thuật tự duyệt theo uỷ quyền user 15/9: 10.3 chỉ liệt catalog + StringTable, chưa lường rằng dấu phải chọn vế TRƯỚC string.Format nên chỗ gọi phải đưa KHOÁ thay vì câu)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Validation/ProposalPopover.uxml	G-VALIDATION	G-VALIDATION tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Validation/SafeRepairPreviewCard.cs	G-VALIDATION-DEPTH,G-FIX-W6-1	G-VALIDATION-DEPTH tạo; G-FIX-W6-1 đổi chỗ format câu có số đếm sang LiveOpsHubStringCatalog.Format(nameof(...)) để luật số ít/số nhiều tiếng Anh chạy được (Q-W5-2 — lệch kỹ thuật tự duyệt theo uỷ quyền user 15/9: 10.3 chỉ liệt catalog + StringTable, chưa lường rằng dấu phải chọn vế TRƯỚC string.Format nên chỗ gọi phải đưa KHOÁ thay vì câu)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Validation/ValidationDetailPane.cs	G-VALIDATION	G-VALIDATION tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Validation/ValidationFilter.cs	G-VALIDATION	G-VALIDATION tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Validation/ValidationFindingRow.cs	G-VALIDATION,G-VALIDATION-DEPTH	G-VALIDATION tạo; G-VALIDATION-DEPTH sửa
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Validation/ValidationGroupCard.cs	G-VALIDATION,G-VALIDATION-DEPTH	G-VALIDATION tạo; G-VALIDATION-DEPTH sửa
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Validation/ValidationSection.cs	G-SHELL,G-SESSION,G-VALIDATION,G-VALIDATION-DEPTH,G-FIX-W6-1	G-SHELL tạo; G-SESSION sửa; G-VALIDATION sửa; G-VALIDATION-DEPTH sửa; G-FIX-W6-1 đổi chỗ format câu có số đếm sang LiveOpsHubStringCatalog.Format(nameof(...)) để luật số ít/số nhiều tiếng Anh chạy được (Q-W5-2 — lệch kỹ thuật tự duyệt theo uỷ quyền user 15/9: 10.3 chỉ liệt catalog + StringTable, chưa lường rằng dấu phải chọn vế TRƯỚC string.Format nên chỗ gọi phải đưa KHOÁ thay vì câu)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Validation/ValidationSection.uss	G-VALIDATION,G-VALIDATION-DEPTH	G-VALIDATION tạo; G-VALIDATION-DEPTH sửa (class của card xem trước + popover Bỏ qua + hàng nhóm Đã bỏ qua; cùng cặp với CalendarSection.uss -> G-CALENDAR,G-CALENDAR-DEPTH, dòng này thiếu là sót của bảng — tự duyệt theo uỷ quyền user 15/9, ghi ở G-VALIDATION-DEPTH-build.md)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Validation/ValidationSection.uxml	G-VALIDATION,G-VALIDATION-DEPTH	G-VALIDATION tạo; G-VALIDATION-DEPTH sửa
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Validation/ValidationViewModel.cs	G-VALIDATION,G-VALIDATION-DEPTH,G-FIX-W6-1	G-VALIDATION tạo; G-VALIDATION-DEPTH sửa; G-FIX-W6-1 IgnoredRowOf: tag hẹn giờ THAY vế khoảng, không in hạn hai lần (Q-W5-4)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Services/InterimUnavailableHubActions.cs	G-HUBKIT,G-I18N,G-PASTE	G-HUBKIT tạo; G-PASTE xoá; G-I18N sửa (ngôn ngữ, W3.5)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Services/LiveOpsCalendarAssetPostprocessor.cs	G-SESSION	G-SESSION tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Services/LiveOpsChangeText.cs	G-FINDINGTEXT,G-FIX-W6-1	G-FINDINGTEXT tạo; G-FIX-W6-1 đổi chỗ format câu có số đếm sang LiveOpsHubStringCatalog.Format(nameof(...)) để luật số ít/số nhiều tiếng Anh chạy được (Q-W5-2 — lệch kỹ thuật tự duyệt theo uỷ quyền user 15/9: 10.3 chỉ liệt catalog + StringTable, chưa lường rằng dấu phải chọn vế TRƯỚC string.Format nên chỗ gọi phải đưa KHOÁ thay vì câu)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Services/LiveOpsEventIdSuggester.cs	G-HUBKIT	G-HUBKIT tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Services/LiveOpsFindingText.cs	G-FINDINGTEXT,G-FIX-W6-1	G-FINDINGTEXT tạo; G-FIX-W6-1 đổi chỗ format câu có số đếm sang LiveOpsHubStringCatalog.Format(nameof(...)) để luật số ít/số nhiều tiếng Anh chạy được (Q-W5-2 — lệch kỹ thuật tự duyệt theo uỷ quyền user 15/9: 10.3 chỉ liệt catalog + StringTable, chưa lường rằng dấu phải chọn vế TRƯỚC string.Format nên chỗ gọi phải đưa KHOÁ thay vì câu)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Services/LiveOpsHubAssetLocator.cs	G-SESSION	G-SESSION tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Services/LiveOpsHubCalendarSession.cs	G-SESSION	G-SESSION tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Services/LiveOpsHubCheckState.cs	G-SESSION,G-FIX-W6-1	G-SESSION tạo; G-FIX-W6-1 đổi chỗ format câu có số đếm sang LiveOpsHubStringCatalog.Format(nameof(...)) để luật số ít/số nhiều tiếng Anh chạy được (Q-W5-2 — lệch kỹ thuật tự duyệt theo uỷ quyền user 15/9: 10.3 chỉ liệt catalog + StringTable, chưa lường rằng dấu phải chọn vế TRƯỚC string.Format nên chỗ gọi phải đưa KHOÁ thay vì câu)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Services/LiveOpsHubDiskConflict.cs	G-SESSION	G-SESSION tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Services/LiveOpsHubEditOutcome.cs	G-SESSION	G-SESSION tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Services/LiveOpsHubEditorAdapters.cs	G-HUBKIT,G-FIX-W1-2	G-HUBKIT tạo; G-FIX-W1-2 thêm ReadBackDocument (C-1, V-20)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Services/LiveOpsHubExportGate.cs	G-EXPORTGATE,G-FIX-W6-1	G-EXPORTGATE tạo; G-FIX-W6-1 đổi chỗ format câu có số đếm sang LiveOpsHubStringCatalog.Format(nameof(...)) để luật số ít/số nhiều tiếng Anh chạy được (Q-W5-2 — lệch kỹ thuật tự duyệt theo uỷ quyền user 15/9: 10.3 chỉ liệt catalog + StringTable, chưa lường rằng dấu phải chọn vế TRƯỚC string.Format nên chỗ gọi phải đưa KHOÁ thay vì câu)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Services/LiveOpsHubNavigation.cs	G-HUBKIT	G-HUBKIT tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Services/LiveOpsHubPasteRunningJsonAction.cs	G-PASTE,G-FIX-W6-1	G-PASTE tạo; G-FIX-W6-1 đổi chỗ format câu có số đếm sang LiveOpsHubStringCatalog.Format(nameof(...)) để luật số ít/số nhiều tiếng Anh chạy được (Q-W5-2 — lệch kỹ thuật tự duyệt theo uỷ quyền user 15/9: 10.3 chỉ liệt catalog + StringTable, chưa lường rằng dấu phải chọn vế TRƯỚC string.Format nên chỗ gọi phải đưa KHOÁ thay vì câu)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Services/LiveOpsHubPorts.cs	G-HUBKIT,G-FIX-W1-2	G-HUBKIT tạo; G-FIX-W1-2 thêm ReadBackDocument (C-1, V-20)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Services/LiveOpsHubPreviewSample.cs	G-PREVIEW	G-PREVIEW tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Services/LiveOpsHubPublishState.cs	G-SESSION	G-SESSION tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Services/LiveOpsHubRemoteSnapshot.cs	G-SESSION	G-SESSION tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Services/LiveOpsHubSectionBus.cs	G-HUBKIT	G-HUBKIT tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Services/LiveOpsHubServices.cs	G-SESSION	G-SESSION tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Services/LiveOpsHubServicesBuilder.cs	G-SESSION,G-PASTE	G-SESSION tạo; G-PASTE sửa
+file	Packages/com.dreamtech.liveops/Editor/Hub/Services/LiveOpsHubTestAdapters.cs	G-HUBKIT,G-FIX-W1-2,G-PASTE	G-HUBKIT tạo; G-FIX-W1-2 thêm ReadBackDocument (C-1, V-20); G-PASTE thêm ManualLiveOpsHubActions (W5: luồng thật luôn bật nên ngữ cảnh "nút khoá" của SP-3 phải dựng tường minh)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Services/LiveOpsJsonSyntaxLocator.cs	G-HUBKIT,G-RECURRING-JSON	G-HUBKIT tạo; G-RECURRING-JSON sửa (nhiều giá trị gốc cách nhau bằng dấu phẩy ở top-level là cú pháp hợp lệ — ô luôn được bọc vào mảng trước khi đưa cho parser; lỗi "không đúng một luật" phải do tầng đọc-lại báo, không phải cú pháp — bug thấy ở cổng gói, test JsonWithTwoRules_BlocksApplyWithReason)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Shell/IHubHost.cs	G-SHELL,G-SESSION	G-SHELL tạo; G-SESSION sửa
+file	Packages/com.dreamtech.liveops/Editor/Hub/Shell/IHubSection.cs	G-SHELL	G-SHELL tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Shell/LiveOpsHealthThrottle.cs	G-SHELL	G-SHELL tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Shell/LiveOpsHubBreakpoints.cs	G-SHELL,G-SHELLPOLISH	G-SHELL tạo; G-SHELLPOLISH sửa
+file	Packages/com.dreamtech.liveops/Editor/Hub/Shell/LiveOpsHubDiskConflictBanner.cs	G-SHELLPOLISH,G-FIX-W6-1	G-SHELLPOLISH tạo; G-FIX-W6-1 đổi chỗ format câu có số đếm sang LiveOpsHubStringCatalog.Format(nameof(...)) để luật số ít/số nhiều tiếng Anh chạy được (Q-W5-2 — lệch kỹ thuật tự duyệt theo uỷ quyền user 15/9: 10.3 chỉ liệt catalog + StringTable, chưa lường rằng dấu phải chọn vế TRƯỚC string.Format nên chỗ gọi phải đưa KHOÁ thay vì câu)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Shell/LiveOpsHubFailureView.cs	G-SHELL	G-SHELL tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Shell/LiveOpsHubHeader.cs	G-SHELL,G-I18N,G-HOSTUI,G-SHELLPOLISH	G-SHELL tạo; G-HOSTUI sửa; G-SHELLPOLISH sửa; G-I18N sửa (ngôn ngữ, W3.5)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Shell/LiveOpsHubHeaderChipModel.cs	G-HOSTUI,G-FIX-W6-1	G-HOSTUI tạo; G-FIX-W6-1 đổi chỗ format câu có số đếm sang LiveOpsHubStringCatalog.Format(nameof(...)) để luật số ít/số nhiều tiếng Anh chạy được (Q-W5-2 — lệch kỹ thuật tự duyệt theo uỷ quyền user 15/9: 10.3 chỉ liệt catalog + StringTable, chưa lường rằng dấu phải chọn vế TRƯỚC string.Format nên chỗ gọi phải đưa KHOÁ thay vì câu)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Shell/LiveOpsHubLanguageMenu.cs	G-I18N,G-SHELLPOLISH	G-I18N tạo (menu ngôn ngữ ở header); G-SHELLPOLISH được dời vào menu ⋮ nếu user yêu cầu
+file	Packages/com.dreamtech.liveops/Editor/Hub/Shell/LiveOpsHubNarrowRailMenu.cs	G-SHELLPOLISH	G-SHELLPOLISH tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Shell/LiveOpsHubRail.cs	G-SHELL,G-HOSTUI,G-SHELLPOLISH	G-SHELL tạo; G-HOSTUI sửa; G-SHELLPOLISH sửa
+file	Packages/com.dreamtech.liveops/Editor/Hub/Shell/LiveOpsHubRailModel.cs	G-SHELL,G-FIX-W6-1	G-SHELL tạo; G-FIX-W6-1 đổi chỗ format câu có số đếm sang LiveOpsHubStringCatalog.Format(nameof(...)) để luật số ít/số nhiều tiếng Anh chạy được (Q-W5-2 — lệch kỹ thuật tự duyệt theo uỷ quyền user 15/9: 10.3 chỉ liệt catalog + StringTable, chưa lường rằng dấu phải chọn vế TRƯỚC string.Format nên chỗ gọi phải đưa KHOÁ thay vì câu)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Shell/LiveOpsHubSectionHeader.cs	G-SHELL	G-SHELL tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Shell/LiveOpsHubSections.cs	G-SHELL,G-SESSION	G-SHELL tạo; G-SESSION sửa
+file	Packages/com.dreamtech.liveops/Editor/Hub/Shell/LiveOpsHubShortcuts.cs	G-HOSTUI	G-HOSTUI tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Shell/LiveOpsHubSkin.cs	G-SHELL	G-SHELL tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Shell/LiveOpsHubStatusBar.cs	G-SHELL,G-HOSTUI	G-SHELL tạo; G-HOSTUI sửa
+file	Packages/com.dreamtech.liveops/Editor/Hub/Shell/LiveOpsHubStatusBarModel.cs	G-HOSTUI,G-FIX-W6-1	G-HOSTUI tạo; G-FIX-W6-1 đổi chỗ format câu có số đếm sang LiveOpsHubStringCatalog.Format(nameof(...)) để luật số ít/số nhiều tiếng Anh chạy được (Q-W5-2 — lệch kỹ thuật tự duyệt theo uỷ quyền user 15/9: 10.3 chỉ liệt catalog + StringTable, chưa lường rằng dấu phải chọn vế TRƯỚC string.Format nên chỗ gọi phải đưa KHOÁ thay vì câu)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Shell/LiveOpsHubWindow.cs	G-SHELL,G-SESSION,G-I18N,G-HOSTUI,G-SHELLPOLISH,G-OPT-SHORTCUTHELP,G-FIX-W4-2,G-FIX-W6-1	G-SHELL tạo; G-SESSION sửa; G-HOSTUI sửa; G-SHELLPOLISH sửa; G-OPT-SHORTCUTHELP sửa; G-I18N sửa (ngôn ngữ, W3.5); G-FIX-W4-2 nghe ContentClassRequested (phiếu D-6, PD-21); G-FIX-W6-1 RecentActionText đọc câu ngắn của toast (Q-W5-5)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Shell/LiveOpsHubWindowState.cs	G-SHELL	G-SHELL tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/UI/LiveOpsHub.uxml	G-SHELL,G-I18N,G-HOSTUI,G-SHELLPOLISH	G-SHELL tạo; G-HOSTUI sửa; G-SHELLPOLISH sửa; G-I18N sửa (ngôn ngữ, W3.5)
+file	Packages/com.dreamtech.liveops/Editor/Hub/UI/liveops-hub-components.uss	G-HUBBASE,G-CALENDAR-DEPTH	G-HUBBASE tạo; G-CALENDAR-DEPTH dời luật bề rộng 280px của class DÙNG CHUNG .liveops-hub-inspector từ CalendarSection.uss sang đây (sheet màn Lịch chỉ nạp khi màn Lịch dựng) — lệch kỹ thuật tự duyệt theo uỷ quyền user 15/9
+file	Packages/com.dreamtech.liveops/Editor/Hub/UI/liveops-hub-controls.uss	G-CONTROLS,G-SHELLPOLISH	G-CONTROLS tạo; G-SHELLPOLISH sửa (V-34 nợ SP-3: class nhãn lý do cạnh tab)
+file	Packages/com.dreamtech.liveops/Editor/Hub/UI/liveops-hub-feedback.uss	G-FEEDBACK,G-HOSTUI	G-FEEDBACK tạo; G-HOSTUI sửa CHỈ khối .liveops-hub-palette (CC-HOSTUI-1 + L-6 của soát 16/9: căn giữa ngang) — palette chỉ được gắn vào cửa sổ thật ở G-HOSTUI (W4) nên W2 không có ảnh nào lộ lỗi; ngoại lệ tự duyệt theo uỷ quyền user 15/9, ghi ở contract-changes-G-HOSTUI.md
+file	Packages/com.dreamtech.liveops/Editor/Hub/UI/liveops-hub-motion.uss	G-HUBBASE	G-HUBBASE tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/UI/liveops-hub-shell.uss	G-SHELL,G-I18N,G-HOSTUI,G-SHELLPOLISH	G-SHELL tạo; G-HOSTUI sửa; G-SHELLPOLISH sửa; G-I18N sửa (ngôn ngữ, W3.5)
+file	Packages/com.dreamtech.liveops/Editor/Hub/UI/liveops-hub-theme.uss	G-HUBBASE	G-HUBBASE tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/UI/liveops-hub-timeline.uss	G-TIMELINE-VIEW,G-CALENDAR-DEPTH,G-OPT-TIMELINE,G-FIX-W4-1	G-TIMELINE-VIEW tạo; G-OPT-TIMELINE sửa; G-FIX-W4-1 nâng độ ưu tiên viền focus bàn phím (phiếu D-1); G-CALENDAR-DEPTH sửa (V-34 nợ D-3: class cho tag kiểm nhanh + gợi ý làn trống)
+file	Packages/com.dreamtech.liveops/README.md	G-DOCS	G-DOCS tạo
+file	Packages/com.dreamtech.liveops/Runtime/Core/Calendar/Compilation/LiveEventCalendarCompilation.cs	G-CORE	G-CORE tạo
+file	Packages/com.dreamtech.liveops/Runtime/Core/Calendar/Compilation/LiveEventCalendarCompiler.cs	G-CORE	G-CORE tạo
+file	Packages/com.dreamtech.liveops/Runtime/Core/Calendar/Compilation/LiveEventCalendarDropReason.cs	G-CORE	G-CORE tạo
+file	Packages/com.dreamtech.liveops/Runtime/Core/Calendar/Compilation/LiveEventCalendarEntryOutcome.cs	G-CORE	G-CORE tạo
+file	Packages/com.dreamtech.liveops/Runtime/Core/Calendar/Diff/LiveEventCalendarChange.cs	G-DIFF	G-DIFF tạo
+file	Packages/com.dreamtech.liveops/Runtime/Core/Calendar/Diff/LiveEventCalendarChangeKind.cs	G-DIFF	G-DIFF tạo
+file	Packages/com.dreamtech.liveops/Runtime/Core/Calendar/Diff/LiveEventCalendarDiff.cs	G-DIFF	G-DIFF tạo
+file	Packages/com.dreamtech.liveops/Runtime/Core/Calendar/Diff/LiveEventCalendarDiffResult.cs	G-DIFF	G-DIFF tạo
+file	Packages/com.dreamtech.liveops/Runtime/Core/Calendar/Diff/LiveEventCalendarFieldChange.cs	G-DIFF	G-DIFF tạo
+file	Packages/com.dreamtech.liveops/Runtime/Core/Calendar/Document/FixedLiveEventEntry.cs	G-CORE	G-CORE tạo
+file	Packages/com.dreamtech.liveops/Runtime/Core/Calendar/Document/IgnoredCalendarWarning.cs	G-CORE	G-CORE tạo
+file	Packages/com.dreamtech.liveops/Runtime/Core/Calendar/Document/LiveEventCalendarDocument.cs	G-CORE	G-CORE tạo
+file	Packages/com.dreamtech.liveops/Runtime/Core/Calendar/Document/LiveEventCalendarDocumentBuilder.cs	G-CORE	G-CORE tạo
+file	Packages/com.dreamtech.liveops/Runtime/Core/Calendar/Document/LiveEventCalendarEdit.cs	G-CORE	G-CORE tạo
+file	Packages/com.dreamtech.liveops/Runtime/Core/Calendar/Document/LiveEventCalendarEdits.cs	G-CORE	G-CORE tạo
+file	Packages/com.dreamtech.liveops/Runtime/Core/Calendar/Document/LiveEventCalendarExportOrder.cs	G-CORE	G-CORE tạo
+file	Packages/com.dreamtech.liveops/Runtime/Core/Calendar/Document/LiveEventCalendarItemKind.cs	G-CORE	G-CORE tạo
+file	Packages/com.dreamtech.liveops/Runtime/Core/Calendar/Document/LiveEventTypeColorSlots.cs	G-CORE	G-CORE tạo
+file	Packages/com.dreamtech.liveops/Runtime/Core/Calendar/Document/LiveEventTypeDefinition.cs	G-CORE	G-CORE tạo
+file	Packages/com.dreamtech.liveops/Runtime/Core/Calendar/Document/LiveEventUtcText.cs	G-CORE	G-CORE tạo
+file	Packages/com.dreamtech.liveops/Runtime/Core/Calendar/Document/PublishedCalendarStamp.cs	G-CORE	G-CORE tạo
+file	Packages/com.dreamtech.liveops/Runtime/Core/Calendar/Document/RecurringLiveEventRule.cs	G-CORE	G-CORE tạo
+file	Packages/com.dreamtech.liveops/Runtime/Core/Calendar/Json/LiveEventCalendarJsonFormat.cs	G-JSON	G-JSON tạo
+file	Packages/com.dreamtech.liveops/Runtime/Core/Calendar/Json/LiveEventCalendarJsonLine.cs	G-JSON	G-JSON tạo
+file	Packages/com.dreamtech.liveops/Runtime/Core/Calendar/Json/LiveEventCalendarJsonText.cs	G-JSON	G-JSON tạo
+file	Packages/com.dreamtech.liveops/Runtime/Core/Calendar/Json/LiveEventCalendarJsonWriter.cs	G-JSON	G-JSON tạo
+file	Packages/com.dreamtech.liveops/Runtime/Core/Calendar/Json/LiveEventCalendarSha256.cs	G-JSON	G-JSON tạo
+file	Packages/com.dreamtech.liveops/Runtime/Core/Calendar/Validation/ILiveEventCalendarRule.cs	G-VALIDATOR-A	G-VALIDATOR-A tạo
+file	Packages/com.dreamtech.liveops/Runtime/Core/Calendar/Validation/LiveEventCalendarCheckContext.cs	G-VALIDATOR-A,G-FIX-W2-1	G-VALIDATOR-A tạo; G-FIX-W2-1 thêm LatestStampBaseline + WithLatestStampBaseline (V-21 CC-VALB-1)
+file	Packages/com.dreamtech.liveops/Runtime/Core/Calendar/Validation/LiveEventCalendarCheckReport.cs	G-VALIDATOR-A	G-VALIDATOR-A tạo
+file	Packages/com.dreamtech.liveops/Runtime/Core/Calendar/Validation/LiveEventCalendarCheckRun.cs	G-VALIDATOR-A	G-VALIDATOR-A tạo
+file	Packages/com.dreamtech.liveops/Runtime/Core/Calendar/Validation/LiveEventCalendarCheckSummary.cs	G-VALIDATOR-A	G-VALIDATOR-A tạo
+file	Packages/com.dreamtech.liveops/Runtime/Core/Calendar/Validation/LiveEventCalendarConsequence.cs	G-VALIDATOR-A	G-VALIDATOR-A tạo
+file	Packages/com.dreamtech.liveops/Runtime/Core/Calendar/Validation/LiveEventCalendarDetailCodes.cs	G-VALIDATOR-A	G-VALIDATOR-A tạo
+file	Packages/com.dreamtech.liveops/Runtime/Core/Calendar/Validation/LiveEventCalendarFinding.cs	G-VALIDATOR-A	G-VALIDATOR-A tạo
+file	Packages/com.dreamtech.liveops/Runtime/Core/Calendar/Validation/LiveEventCalendarFindingBuilder.cs	G-VALIDATOR-A	G-VALIDATOR-A tạo
+file	Packages/com.dreamtech.liveops/Runtime/Core/Calendar/Validation/LiveEventCalendarRepair.cs	G-VALIDATOR-A	G-VALIDATOR-A tạo
+file	Packages/com.dreamtech.liveops/Runtime/Core/Calendar/Validation/LiveEventCalendarRuleIds.cs	G-VALIDATOR-A	G-VALIDATOR-A tạo
+file	Packages/com.dreamtech.liveops/Runtime/Core/Calendar/Validation/LiveEventCalendarRuleResult.cs	G-VALIDATOR-A	G-VALIDATOR-A tạo
+file	Packages/com.dreamtech.liveops/Runtime/Core/Calendar/Validation/LiveEventCalendarValidationSettings.cs	G-VALIDATOR-A	G-VALIDATOR-A tạo
+file	Packages/com.dreamtech.liveops/Runtime/Core/Calendar/Validation/LiveEventCalendarValidator.cs	G-VALIDATOR-A,G-VALIDATOR-B	G-VALIDATOR-A tạo; G-VALIDATOR-B sửa
+file	Packages/com.dreamtech.liveops/Runtime/Core/Calendar/Validation/Rules/ConfigKeyMissingRule.cs	G-VALIDATOR-B	G-VALIDATOR-B tạo
+file	Packages/com.dreamtech.liveops/Runtime/Core/Calendar/Validation/Rules/DuplicateEventIdRule.cs	G-VALIDATOR-A	G-VALIDATOR-A tạo
+file	Packages/com.dreamtech.liveops/Runtime/Core/Calendar/Validation/Rules/EndBeforeStartRule.cs	G-VALIDATOR-A	G-VALIDATOR-A tạo
+file	Packages/com.dreamtech.liveops/Runtime/Core/Calendar/Validation/Rules/InvalidIdentifierRule.cs	G-VALIDATOR-A	G-VALIDATOR-A tạo
+file	Packages/com.dreamtech.liveops/Runtime/Core/Calendar/Validation/Rules/LongGapBetweenEventsRule.cs	G-VALIDATOR-B	G-VALIDATOR-B tạo
+file	Packages/com.dreamtech.liveops/Runtime/Core/Calendar/Validation/Rules/NotYetImplementedRule.cs	G-VALIDATOR-A,G-VALIDATOR-B	G-VALIDATOR-A tạo; G-VALIDATOR-B xoá
+file	Packages/com.dreamtech.liveops/Runtime/Core/Calendar/Validation/Rules/OverlapSameTypeRule.cs	G-VALIDATOR-A	G-VALIDATOR-A tạo
+file	Packages/com.dreamtech.liveops/Runtime/Core/Calendar/Validation/Rules/RecurringRuleInvalidRule.cs	G-VALIDATOR-A	G-VALIDATOR-A tạo
+file	Packages/com.dreamtech.liveops/Runtime/Core/Calendar/Validation/Rules/RemoteSnapshotDriftRule.cs	G-VALIDATOR-B	G-VALIDATOR-B tạo
+file	Packages/com.dreamtech.liveops/Runtime/Core/Calendar/Validation/Rules/RunningEventIdChangedRule.cs	G-VALIDATOR-B	G-VALIDATOR-B tạo
+file	Packages/com.dreamtech.liveops/Runtime/Core/Calendar/Validation/Rules/ShadowedByRecurringRule.cs	G-VALIDATOR-A	G-VALIDATOR-A tạo
+file	Packages/com.dreamtech.liveops/Runtime/Core/Calendar/Validation/Rules/UnknownEventTypeRule.cs	G-VALIDATOR-A	G-VALIDATOR-A tạo
+file	Packages/com.dreamtech.liveops/Runtime/Core/Calendar/Validation/Rules/UtcTimeFormatRule.cs	G-VALIDATOR-A	G-VALIDATOR-A tạo
+file	Packages/com.dreamtech.liveops/Runtime/Unity/Calendar/LiveEventCalendarAsset.cs	G-UNITY	G-UNITY tạo
+file	Packages/com.dreamtech.liveops/Runtime/Unity/Calendar/LiveEventCalendarAssetEntries.cs	G-UNITY	G-UNITY tạo
+file	Packages/com.dreamtech.liveops/Runtime/Unity/Calendar/LiveEventCalendarRemoteFailurePolicy.cs	G-UNITY	G-UNITY tạo
+file	Packages/com.dreamtech.liveops/Runtime/Unity/Calendar/LiveOpsSystemBuilderCalendarAssetExtensions.cs	G-UNITY	G-UNITY tạo
+file	Packages/com.dreamtech.liveops/Runtime/Unity/JsonLiveEventCalendarParser.cs	G-UNITY	G-UNITY tạo
+file	Packages/com.dreamtech.liveops/Runtime/Unity/LiveEventCalendarDocumentParseResult.cs	G-UNITY	G-UNITY tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Calendar/Diff/DesignSampleDiffTests.cs	G-DIFF	G-DIFF tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Calendar/Diff/LiveEventCalendarDiffTests.cs	G-DIFF	G-DIFF tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Calendar/Json/LiveEventCalendarJsonWriterTests.cs	G-JSON	G-JSON tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Calendar/Json/LiveEventCalendarSha256Tests.cs	G-JSON	G-JSON tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Calendar/LiveEventCalendarCompilerTests.cs	G-CORE	G-CORE tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Calendar/LiveEventCalendarDocumentTests.cs	G-CORE	G-CORE tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Calendar/LiveEventCalendarEditsTests.cs	G-CORE	G-CORE tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Calendar/LiveEventTypeColorSlotsTests.cs	G-CORE	G-CORE tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Calendar/LiveEventUtcTextTests.cs	G-CORE	G-CORE tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Calendar/Validation/ConfigKeyMissingRuleTests.cs	G-VALIDATOR-B	
+file	Packages/com.dreamtech.liveops/Tests/Editor/Calendar/Validation/DesignSampleCheckTests.cs	G-VALIDATOR-B	
+file	Packages/com.dreamtech.liveops/Tests/Editor/Calendar/Validation/DuplicateEventIdRuleTests.cs	G-VALIDATOR-A	
+file	Packages/com.dreamtech.liveops/Tests/Editor/Calendar/Validation/EndBeforeStartRuleTests.cs	G-VALIDATOR-A	
+file	Packages/com.dreamtech.liveops/Tests/Editor/Calendar/Validation/InvalidIdentifierRuleTests.cs	G-VALIDATOR-A	
+file	Packages/com.dreamtech.liveops/Tests/Editor/Calendar/Validation/LiveEventCalendarCheckSummaryTests.cs	G-VALIDATOR-A	
+file	Packages/com.dreamtech.liveops/Tests/Editor/Calendar/Validation/LiveEventCalendarValidatorTests.cs	G-VALIDATOR-A,G-FIX-W2-1	G-FIX-W2-1 thêm test LatestStampBaseline (V-21 CC-VALB-1)
+file	Packages/com.dreamtech.liveops/Tests/Editor/Calendar/Validation/LongGapBetweenEventsRuleTests.cs	G-VALIDATOR-B	
+file	Packages/com.dreamtech.liveops/Tests/Editor/Calendar/Validation/OverlapSameTypeRuleTests.cs	G-VALIDATOR-A	
+file	Packages/com.dreamtech.liveops/Tests/Editor/Calendar/Validation/RecurringRuleInvalidRuleTests.cs	G-VALIDATOR-A	
+file	Packages/com.dreamtech.liveops/Tests/Editor/Calendar/Validation/RemoteSnapshotDriftRuleTests.cs	G-VALIDATOR-B	
+file	Packages/com.dreamtech.liveops/Tests/Editor/Calendar/Validation/RunningEventIdChangedRuleTests.cs	G-VALIDATOR-B	
+file	Packages/com.dreamtech.liveops/Tests/Editor/Calendar/Validation/ShadowedByRecurringRuleTests.cs	G-VALIDATOR-A	
+file	Packages/com.dreamtech.liveops/Tests/Editor/Calendar/Validation/UnknownEventTypeRuleTests.cs	G-VALIDATOR-A	
+file	Packages/com.dreamtech.liveops/Tests/Editor/Calendar/Validation/UtcTimeFormatRuleTests.cs	G-VALIDATOR-A	
+file	Packages/com.dreamtech.liveops/Tests/Editor/Calendar/Validation/ValidationInvariantFuzzTests.cs	G-ROUNDTRIP	G-ROUNDTRIP tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/DreamTech.LiveOps.Tests.asmdef	G-CORE	G-CORE tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Capture/CaptureCoverageTests.cs	G-ACCEPT	G-ACCEPT tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Capture/LiveOpsHubCaptureCommand.cs	G-SHELL,G-I18N,G-CALENDAR-DEPTH	G-SHELL tạo; G-I18N sửa (ngôn ngữ, W3.5); G-CALENDAR-DEPTH gọi việc dọn của kịch bản sau khi chụp (WithCleanup) — lượt chụp không có TearDown nên kịch bản nào tạo file trên đĩa buộc phải xoá TRƯỚC khi chụp; lệch kỹ thuật tự duyệt theo uỷ quyền user 15/9 (chỉ THÊM một lời gọi, không đổi chữ ký cũ)
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Capture/LiveOpsHubCaptureDeferrals.cs	G-ACCEPT	G-ACCEPT tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Capture/LiveOpsHubCaptureScenario.cs	G-SHELL,G-I18N,G-CALENDAR-DEPTH	G-SHELL tạo; G-I18N sửa (ngôn ngữ, W3.5); G-CALENDAR-DEPTH thêm WithCleanup/Cleanup (tuỳ chọn, mặc định null) — lệch kỹ thuật tự duyệt theo uỷ quyền user 15/9
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Capture/LiveOpsHubCaptureScenarioIds.Fix*.cs	G-FIX-W*	G-FIX-W* V-5 id kịch bản mới của gói sửa
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Capture/LiveOpsHubCaptureScenarioIds.cs	G-SKELETON,G-I18N	G-SKELETON tạo; G-I18N sửa (ngôn ngữ, W3.5)
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Capture/LiveOpsHubCaptureScenarios.Calendar.cs	G-CALENDAR,G-CALENDAR-DEPTH	G-CALENDAR vùng Calendar; G-CALENDAR-DEPTH đổi MỘT tư thế sang SetCursor(giờ, "star-tournament", true) để ảnh h12-frame-13 hiện microcopy làn trống của nợ D-3(b) — lệch kỹ thuật tự duyệt theo uỷ quyền user 15/9; không gói W5 nào khác đụng file này
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Capture/LiveOpsHubCaptureScenarios.CalendarDepth.cs	G-CALENDAR-DEPTH	G-CALENDAR-DEPTH vùng CalendarDepth
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Capture/LiveOpsHubCaptureScenarios.Controls.cs	G-CONTROLS,G-SHELLPOLISH	G-CONTROLS vùng Controls; G-SHELLPOLISH sửa (V-34 nợ SP-3: h03a + hc-controls-gallery có sẵn tab khoá nên ẢNH SẼ ĐỔI — lệch có chủ đích, ghi w5/deviations.md)
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Capture/LiveOpsHubCaptureScenarios.EventTypes.cs	G-EVENTTYPES	G-EVENTTYPES vùng EventTypes
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Capture/LiveOpsHubCaptureScenarios.Export.cs	G-EXPORT	G-EXPORT vùng Export
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Capture/LiveOpsHubCaptureScenarios.Feedback.cs	G-FEEDBACK,G-FIX-W4-3	G-FEEDBACK vùng Feedback; G-FIX-W4-3 gỡ toast thật của cửa sổ khỏi khung hf-toast-bare (W4 cửa sổ tự dựng toast nên khung có hai hub-toast)
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Capture/LiveOpsHubCaptureScenarios.OptTimeline.cs	G-OPT-TIMELINE	G-OPT-TIMELINE vùng OptTimeline
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Capture/LiveOpsHubCaptureScenarios.Overview.cs	G-OVERVIEW,G-SHELLPOLISH,G-FIX-W6-1	G-OVERVIEW vùng Overview; G-SHELLPOLISH vùng Overview; G-FIX-W6-1 chỉ khi số đo kịch bản đọc theo đường element cũ của thân màn (Q-W5-1)
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Capture/LiveOpsHubCaptureScenarios.Paste.cs	G-PASTE	G-PASTE vùng Paste
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Capture/LiveOpsHubCaptureScenarios.Recurring.cs	G-RECURRING	G-RECURRING vùng Recurring
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Capture/LiveOpsHubCaptureScenarios.RecurringJson.cs	G-RECURRING-JSON	G-RECURRING-JSON vùng RecurringJson
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Capture/LiveOpsHubCaptureScenarios.Shell.cs	G-SHELL,G-I18N,G-HOSTUI	G-SHELL vùng Shell; G-HOSTUI vùng Shell; G-I18N sửa (ngôn ngữ, W3.5)
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Capture/LiveOpsHubCaptureScenarios.ShellPolish.cs	G-SHELLPOLISH	G-SHELLPOLISH vùng ShellPolish
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Capture/LiveOpsHubCaptureScenarios.ShortcutHelp.cs	G-OPT-SHORTCUTHELP	G-OPT-SHORTCUTHELP vùng ShortcutHelp
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Capture/LiveOpsHubCaptureScenarios.Timeline.cs	G-TIMELINE-VIEW,G-OPT-TIMELINE	G-TIMELINE-VIEW vùng Timeline; G-OPT-TIMELINE vùng Timeline
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Capture/LiveOpsHubCaptureScenarios.Validation.cs	G-VALIDATION,G-VALIDATION-DEPTH	G-VALIDATION vùng Validation; G-VALIDATION-DEPTH đổi h17-8 sang nút "Sửa" CỦA HÀNG vì nút section header từ W5 mở card xem trước ([SD2 §2.5]) — ảnh không đổi, chỉ đường bấm đổi (tự duyệt theo uỷ quyền user 15/9)
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Capture/LiveOpsHubCaptureScenarios.ValidationDepth.cs	G-VALIDATION-DEPTH,G-FIX-W6-1	G-VALIDATION-DEPTH vùng ValidationDepth; G-FIX-W6-1 kịch bản h17-6 dùng ghi chú CÓ hẹn giờ để ảnh ghim thật sự chứng minh Q-W5-4 (lệch kỹ thuật tự duyệt theo uỷ quyền user 15/9: 10.3 chỉ liệt ValidationViewModel.cs, chưa lường rằng ảnh ghim đi qua nhánh không-tag nên không đổi một pixel)
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Capture/LiveOpsHubCaptureScenarios.cs	G-SHELL	G-SHELL tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Controls/ControlsSkinTokenTests.cs	G-CONTROLS	G-CONTROLS tạo; JSON view + cycle bar của SelfDrawnElements_ResolveTokens_BothSkinClasses (V-21 D-3)
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Controls/ControlsUxmlTests.cs	G-CONTROLS	G-CONTROLS tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Controls/JsonViewTests.cs	G-CONTROLS	G-CONTROLS tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Controls/RuleCycleBarTests.cs	G-CONTROLS	G-CONTROLS tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Controls/TabStripTests.cs	G-CONTROLS,G-SHELLPOLISH	G-CONTROLS tạo; G-SHELLPOLISH thêm test nợ SP-3 (DisabledTab_ReasonRenderedAsText — KHÔNG assert tooltip)
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Controls/UtcDateTimeFieldTests.cs	G-CONTROLS	G-CONTROLS tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Controls/Uxml/RuleCycleBar.uxml	G-CONTROLS	G-CONTROLS tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Controls/Uxml/TabStrip.uxml	G-CONTROLS	G-CONTROLS tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Controls/Uxml/UtcDateTimeField.uxml	G-CONTROLS	G-CONTROLS tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Dialogs/ConfirmRequestTests.cs	G-HUBKIT	G-HUBKIT tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Dialogs/LiveOpsConfirmationPolicyTests.cs	G-HUBKIT	G-HUBKIT tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/DreamTech.LiveOps.Editor.Tests.asmdef	G-SKELETON,G-HUBBASE	G-SKELETON tạo; G-HUBBASE sửa
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Feedback/ConfirmContentTests.cs	G-FEEDBACK	G-FEEDBACK tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Feedback/HoverCardTests.cs	G-FEEDBACK	G-FEEDBACK tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Feedback/PaletteMatcherTests.cs	G-FEEDBACK	G-FEEDBACK tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Feedback/PopoverTests.cs	G-FEEDBACK	G-FEEDBACK tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Feedback/ShortcutHelpTests.cs	G-OPT-SHORTCUTHELP	G-OPT-SHORTCUTHELP tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Feedback/ToastTests.cs	G-FEEDBACK,G-FIX-W6-1	G-FEEDBACK tạo; G-FIX-W6-1 test toast giữ câu dài, UndoGroupName là câu ngắn (Q-W5-5)
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Feedback/UndoTrackerTests.cs	G-FEEDBACK	G-FEEDBACK tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Foundation/EditorFontTests.cs	G-HUBBASE	G-HUBBASE tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Foundation/FormatTests.cs	G-HUBBASE	G-HUBBASE tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Foundation/HubStyleTests.cs	G-HUBBASE,G-FIX-W2-1	G-HUBBASE tạo; G-FIX-W2-1 thêm test SectionHealth.Counts (V-21 CC-SHELL-5)
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Foundation/IconsTests.cs	G-HUBBASE	G-HUBBASE tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Foundation/KeyLabelTests.cs	G-HUBBASE	G-HUBBASE tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Foundation/Language/LiveOpsHubLanguageMenuTests.cs	G-I18N	G-I18N tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Foundation/Language/LiveOpsHubLanguageTests.cs	G-I18N	G-I18N tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Foundation/Language/LiveOpsHubStringCatalogTests.cs	G-I18N	G-I18N tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Foundation/Language/EnglishPluralTests.cs	G-FIX-W6-1	G-FIX-W6-1 tạo — gác: mọi khoá có số đếm đọc đúng khi n = 1; câu tiếng Việt không mang dấu (Q-W5-2)
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Foundation/Language/LiveOpsHubEnglishPluralExceptions.cs	G-FIX-W6-1	G-FIX-W6-1 tạo — sổ ngoại lệ có lý do cho khoá đếm không cần dấu (mẫu LiveOpsHubCaptureDeferrals, V-5)
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Foundation/StateMarkTests.cs	G-HUBBASE	G-HUBBASE tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Foundation/Uxml/StateMarkAttributes.uxml	G-HUBBASE	G-HUBBASE tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Inspector/LiveEventCalendarAssetInspectorTests.cs	G-INSPECTOR	G-INSPECTOR tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Journey/EndToEndJourneyTests.cs	G-JOURNEY,G-FIX-W5-1	G-JOURNEY tạo; G-FIX-W5-1 cho hành trình bấm qua card xem trước sửa hàng loạt (đỏ khi gộp lớp 1 W5, [SD2 §2.5])
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/LiveOpsHubLanguagePinFixture.cs	G-I18N	G-I18N tạo — [SetUpFixture] ghim Tiếng Việt cho toàn assembly test hub
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/LiveOpsHubProbeCommand.cs	G-SHELL,G-SESSION	G-SHELL tạo; G-SESSION nối phiên thật cho 4 ngữ cảnh probe (V-21 CC-SHELL-1)
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Sections/AddEventFlowModelTests.cs	G-CALENDAR	G-CALENDAR tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Sections/AddEventPopoverTests.cs	G-CALENDAR	G-CALENDAR tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Sections/CalendarCommandTests.cs	G-CALENDAR-DEPTH	G-CALENDAR-DEPTH tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Sections/CalendarContextMenusTests.cs	G-CALENDAR-DEPTH,G-OPT-TIMELINE	G-CALENDAR-DEPTH tạo; G-OPT-TIMELINE đổi test LaneHeaderMenu_HasNoCollapseItemBeforeOptTimeline (khoá "chưa có") thành LaneHeaderMenu_HasCollapseItemFirst + LaneHeaderMenu_CollapseItemLabelFollowsLaneState — test cũ khoá đúng cái mà gói này làm xong, không sửa thì đỏ; lệch tự duyệt theo uỷ quyền user, ghi ở w6/G-OPT-TIMELINE-build.md
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Sections/CalendarDeleteFlowTests.cs	G-CALENDAR	G-CALENDAR tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Sections/CalendarDepthTests.cs	G-CALENDAR-DEPTH,G-FIX-W6-1	G-CALENDAR-DEPTH tạo; G-FIX-W6-1 test hai bề mặt sau khi kéo đợt (Q-W5-5)
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Sections/CalendarInspectorModelTests.cs	G-CALENDAR	G-CALENDAR tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Sections/CalendarPresenterTests.cs	G-CALENDAR,G-FIX-W6-1,G-OPT-TIMELINE	G-CALENDAR tạo; G-FIX-W6-1 sửa assert ghim LUẬT CŨ "tên bước Undo trùng câu toast" — Q-W5-5 đổi chính luật đó; G-OPT-TIMELINE gỡ hai tham số chết của SelectBarIntent ở một lời gọi (vá F-10 của cổng soát W6) — không sửa là không compile; cả hai lệch tự duyệt theo uỷ quyền user 15/9
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Sections/CalendarSectionTests.cs	G-CALENDAR	G-CALENDAR tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Sections/EventTypesModelTests.cs	G-EVENTTYPES	G-EVENTTYPES tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Sections/EventTypesSectionTests.cs	G-EVENTTYPES	G-EVENTTYPES tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Sections/ExportDiffViewModelTests.cs	G-EXPORT	G-EXPORT tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Sections/ExportHistoryModelTests.cs	G-EXPORT	G-EXPORT tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Sections/ExportSectionTests.cs	G-EXPORT,G-PASTE	G-EXPORT tạo; G-PASTE sửa (W5: gỡ dấu INTERIM(G-PASTE), dựng ngữ cảnh nút khoá bằng ManualLiveOpsHubActions)
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Sections/MarkPublishedModelTests.cs	G-EXPORT	G-EXPORT tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Sections/OverviewModelTests.cs	G-OVERVIEW,G-PASTE	G-OVERVIEW tạo; G-PASTE sửa (W5: gỡ dấu INTERIM(G-PASTE) trong chú thích)
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Sections/OverviewSectionTests.cs	G-OVERVIEW,G-PASTE,G-FIX-W6-1	G-OVERVIEW tạo; G-PASTE sửa (W5: gỡ dấu INTERIM(G-PASTE), dựng ngữ cảnh nút khoá bằng ManualLiveOpsHubActions); G-FIX-W6-1 test cửa sổ hẹp không cắt chữ (Q-W5-1)
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Sections/ProposalPopoverTests.cs	G-VALIDATION,G-VALIDATION-DEPTH	G-VALIDATION tạo; G-VALIDATION-DEPTH thêm test ApplyButton_VerbFollowsRepairId (V-34 nợ Findings)
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Sections/RecurringJsonFoldoutTests.cs	G-RECURRING-JSON,G-FIX-W6-1	G-RECURRING-JSON tạo; G-FIX-W6-1 test hai câu khác nhau, câu đầy đủ chỉ xuất hiện một lần (Q-W5-3)
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Sections/RecurringPrefixDraftTests.cs	G-RECURRING	G-RECURRING tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Sections/RecurringRuleModelTests.cs	G-RECURRING	G-RECURRING tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Sections/RecurringRulesSectionTests.cs	G-RECURRING,G-RECURRING-JSON	G-RECURRING tạo; G-RECURRING-JSON thêm test Q-W4-4 DraftInOneField_LocksOtherThree_WithReasonAsText / DraftResolved_UnlocksAllFields
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Sections/SectionTestScope.cs	G-SHELL	G-SHELL tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Sections/ValidationDepthTests.cs	G-VALIDATION-DEPTH,G-FIX-W6-1	G-VALIDATION-DEPTH tạo; G-FIX-W6-1 test hàng đã bỏ qua không lặp mốc hẹn (Q-W5-4)
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Sections/ValidationSectionTests.cs	G-VALIDATION,G-VALIDATION-DEPTH	G-VALIDATION tạo; G-VALIDATION-DEPTH đổi SafeFix_AppliesOneUndoGroupAndRechecks sang nút "Sửa" của hàng (cùng lý do h17-8) — luồng card xem trước nằm ở ValidationDepthTests
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Sections/ValidationViewModelTests.cs	G-VALIDATION,G-VALIDATION-DEPTH	G-VALIDATION tạo; G-VALIDATION-DEPTH đổi IgnorableFinding_HasNeitherButtonNorLink -> HasIgnoreWarningButton (test khoá đúng nhánh INTERIM I-7 mà gói này gỡ)
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Services/AssetLocatorTests.cs	G-SESSION	G-SESSION tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Services/CalendarSessionTests.cs	G-SESSION	G-SESSION tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Services/CheckStateStaleTests.cs	G-SESSION	G-SESSION tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Services/CheckStateTests.cs	G-SESSION	G-SESSION tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Services/DiskChangeTests.cs	G-SESSION	G-SESSION tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Services/EventIdSuggesterTests.cs	G-HUBKIT	G-HUBKIT tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Services/ExportGateTests.cs	G-EXPORTGATE	G-EXPORTGATE tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Services/FindingRoutingTests.cs	G-SESSION	G-SESSION tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Services/JsonSyntaxLocatorTests.cs	G-HUBKIT,G-RECURRING-JSON	G-HUBKIT tạo; G-RECURRING-JSON thêm test cấp locator cho công tắc allowMultipleRoots (soát W5 R-3: đổi hành vi top-level của dịch vụ dùng chung mà không có test cấp locator nào ghim)
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Services/JsonWriterSyntaxFuzzTests.cs	G-ROUNDTRIP	G-ROUNDTRIP tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Services/LiveOpsChangeTextTests.cs	G-FINDINGTEXT	G-FINDINGTEXT tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Services/LiveOpsFindingTextTests.cs	G-FINDINGTEXT	G-FINDINGTEXT tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Services/NavigationTests.cs	G-HUBKIT	G-HUBKIT tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Services/PasteRunningJsonTests.cs	G-PASTE	G-PASTE tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Services/PreviewSampleTests.cs	G-PREVIEW	G-PREVIEW tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Services/PublishStateTests.cs	G-SESSION	G-SESSION tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Services/RemoteSnapshotTests.cs	G-SESSION	G-SESSION tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Services/SectionBusTests.cs	G-HUBKIT	G-HUBKIT tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Services/TestAdaptersTests.cs	G-HUBKIT,G-FIX-W1-2,G-PASTE	G-HUBKIT tạo; G-FIX-W1-2 thêm test ReadBackDocument (C-1); G-PASTE được bỏ hai test Interim_* cùng tham chiếu action tạm (C-3, V-20)
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Services/ToastModelTests.cs	G-HUBKIT,G-FIX-W4-2,G-FIX-W6-1	G-HUBKIT tạo; G-FIX-W4-2 thêm test tên bước sau Hoàn tác (phiếu D-5); G-FIX-W6-1 sửa assert ghim luật cũ UndoGroupName = Message (Q-W5-5 — lệch kỹ thuật tự duyệt theo uỷ quyền user 15/9)
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Shell/HubDiskConflictTests.cs	G-SHELLPOLISH	G-SHELLPOLISH tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Shell/HubHostIntegrationTests.cs	G-HOSTUI,G-FIX-W4-2	G-HOSTUI tạo; G-FIX-W4-2 thêm test lớp nội dung của bus (phiếu D-6)
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Shell/HubLayoutTests.cs	G-SHELL	G-SHELL tạo; NarrowRail_Is36px KHÔNG ở đây — sang HubNarrowTests (V-21 CC-SHELL-2)
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Shell/HubMenuTests.cs	G-SHELLPOLISH,G-OPT-SHORTCUTHELP	G-SHELLPOLISH tạo; G-OPT-SHORTCUTHELP sửa OverflowMenu_HasAllItems (menu ⋮ có mục thứ năm 'Hiện hướng dẫn phím tắt' — test này khoá số mục và thứ tự nên gói dựng mục phải sửa chính nó) — lệch kỹ thuật tự duyệt theo uỷ quyền user 15/9, ghi ở G-OPT-SHORTCUTHELP-build.md
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Shell/HubNarrowTests.cs	G-SHELLPOLISH	G-SHELLPOLISH tạo; gồm NarrowRail_Is36px chuyển từ HubLayoutTests (V-21 CC-SHELL-2)
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Shell/HubRailTests.cs	G-SHELL	G-SHELL tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Shell/HubSectionContractTests.cs	G-SHELL	G-SHELL tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Shell/HubShortcutTests.cs	G-HOSTUI	G-HOSTUI tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Shell/HubSkinTests.cs	G-SHELL	G-SHELL tạo; chỉ SkinProbe_* — SelfDrawnElements_* tách sang ControlsSkinTokenTests + TimelineSkinTokenTests (V-21 D-3)
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Shell/HubWindowTests.cs	G-SHELL,G-SESSION	G-SHELL tạo; G-SESSION nối phiên thật cho ngữ cảnh NoAsset/Empty/DesignSample/StaleCheck (V-21 CC-SHELL-1)
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Shell/LiveOpsHubHeaderChipModelTests.cs	G-HOSTUI	G-HOSTUI tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Shell/LiveOpsHubRailModelTests.cs	G-SHELL	G-SHELL tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Shell/LiveOpsHubStatusBarModelTests.cs	G-HOSTUI,G-FIX-W6-1	G-HOSTUI tạo; G-FIX-W6-1 test status bar đọc câu ngắn và phép rơi về câu toast (Q-W5-5)
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Support/FakeHubSection.cs	G-SHELL	G-SHELL tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Support/LiveOpsHubTestCategories.cs	G-SKELETON	G-SKELETON tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Support/LiveOpsHubTestServices.cs	G-SESSION	G-SESSION tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Support/LiveOpsHubWindowTestScope.cs	G-SHELL	G-SHELL tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Timeline/TimelineGeometryTests.cs	G-TIMELINE-MODEL,G-CALENDAR-DEPTH	G-TIMELINE-MODEL tạo; G-CALENDAR-DEPTH thêm test nợ D-3(c) (DragController_UsesViewportSnapStep)
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Timeline/TimelineInteractionTests.cs	G-TIMELINE-VIEW,G-CALENDAR-DEPTH,G-FIX-W4-1	G-TIMELINE-VIEW tạo; G-FIX-W4-1 sửa test nhãn tầng 1 (phiếu D-2); G-CALENDAR-DEPTH thêm test nợ D-3 (HintLine_EmptyLane_ShowsDoubleClickHint, tag kiểm nhanh hiện trên màn)
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Timeline/TimelineModelTests.cs	G-TIMELINE-MODEL,G-FIX-W4-1,G-OPT-TIMELINE	G-TIMELINE-MODEL tạo; G-FIX-W4-1 thêm assert nhịp dải (phiếu D-4); G-OPT-TIMELINE thêm SelectManyIntent + ToggleLaneCollapsedIntent vào danh sách họ đóng — 10.3 cho gói sửa LiveOpsTimelineIntent.cs, mà test này là cái khoá họ đó nên không sửa là đỏ; lệch tự duyệt theo uỷ quyền user, ghi ở w6/G-OPT-TIMELINE-build.md
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Timeline/TimelineMultiSelectTests.cs	G-OPT-TIMELINE	G-OPT-TIMELINE tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Timeline/TimelineSkinTokenTests.cs	G-TIMELINE-VIEW	G-TIMELINE-VIEW tạo; lane + minimap của SelfDrawnElements_ResolveTokens_BothSkinClasses (V-21 D-3)
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Timeline/TimelineUxmlTests.cs	G-TIMELINE-VIEW	G-TIMELINE-VIEW tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Timeline/TimelineVertexBudgetEstimateTests.cs	G-TIMELINE-MODEL	G-TIMELINE-MODEL tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Timeline/TimelineVertexBudgetRenderTests.cs	G-TIMELINE-VIEW	G-TIMELINE-VIEW tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Timeline/Uxml/TimelineZoomLevel.uxml	G-TIMELINE-VIEW	G-TIMELINE-VIEW tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Support/DreamTech.LiveOps.Tests.Support.asmdef	G-CORE	G-CORE tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Support/LiveOpsDesignSample.cs	G-CORE	G-CORE tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Support/LiveOpsDocumentAssert.cs	G-CORE,G-ROUNDTRIP	G-CORE tạo; G-ROUNDTRIP sửa — 10.3 G-ROUNDTRIP (AreJsonEquivalent, V-4)
+file	Packages/com.dreamtech.liveops/Tests/Editor/Support/LiveOpsRandomDocuments.cs	G-ROUNDTRIP	G-ROUNDTRIP tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Unity/CalendarRoundTripTests.cs	G-ROUNDTRIP	G-ROUNDTRIP tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Unity/DreamTech.LiveOps.Unity.Tests.asmdef	G-UNITY	G-UNITY tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Unity/JsonLiveEventCalendarParserFormat2Tests.cs	G-UNITY	G-UNITY tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Unity/JsonLiveEventCalendarParserGoldenTests.cs	G-GOLDEN	G-GOLDEN tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Unity/JsonUtilityBehaviourTests.cs	G-UNITY	G-UNITY tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Unity/LiveEventCalendarAssetTests.cs	G-UNITY	G-UNITY tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Unity/LiveEventCalendarRemoteFailurePolicyTests.cs	G-UNITY	G-UNITY tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Unity/ReadmeSnippetCompileTests.cs	G-DOCS	G-DOCS tạo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Unity/RemoteSnapshotDriftParsedTests.cs	G-VALIDATOR-B	G-VALIDATOR-B tạo; parser thật + luật 12 (V-21 CC-VALB-5)
+file	Packages/com.dreamtech.liveops/package.json	G-TOOLS	G-TOOLS tạo
+file	Packages/packages-lock.json	G-TOOLS	G-TOOLS Unity sinh lại khi PKG/package.json thêm uielements
+file	tools/liveops-hub/PROPOSED_CLAUDE_MD.md	G-TOOLS,G-DOCS	G-TOOLS tạo; G-DOCS sửa
+file	tools/liveops-hub/README.md	G-TOOLS	G-TOOLS tạo
+file	tools/liveops-hub/capture.sh	G-TOOLS	G-TOOLS tạo
+file	tools/liveops-hub/check-class-names.py	G-TOOLS,G-SHELLPOLISH	G-TOOLS tạo; G-SHELLPOLISH sửa regex selector (bỏ lookbehind nuốt vế sau của selector ghép .a.b — --strict báo nhầm 11 hằng là không có selector; tự duyệt theo uỷ quyền user 15/9, mục "tools")
+file	tools/liveops-hub/check-interim.sh	G-TOOLS	G-TOOLS tạo
+file	tools/liveops-hub/check-meta.sh	G-TOOLS	G-TOOLS tạo
+file	tools/liveops-hub/check-ownership.py	G-TOOLS,G-I18N	G-TOOLS tạo; G-I18N sửa (ngôn ngữ, W3.5)
+file	tools/liveops-hub/code-lint.py	G-TOOLS,G-I18N	G-TOOLS tạo; G-I18N sửa (ngôn ngữ, W3.5)
+file	tools/liveops-hub/compile-check.sh	G-TOOLS	G-TOOLS tạo
+file	tools/liveops-hub/contact-sheet.py	G-TOOLS	G-TOOLS tạo
+file	tools/liveops-hub/contract-changes.md	*	* mọi gói ghi yêu cầu đổi hợp đồng rồi dừng (10.1)
+file	tools/liveops-hub/contract-freeze-W3.md	G-SESSION	G-SESSION tạo — 10.3 G-SESSION
+file	tools/liveops-hub/lint-allow.tsv	G-TOOLS,G-I18N,G-PASTE,G-DOCS	G-TOOLS tạo — ngoại lệ lint mỗi gói thêm ở cổng đợt; G-I18N đổi id luật ui-vietnamese-string → display-text-only-in-catalog ở dòng ngoại lệ đang có (V-28, tự duyệt theo uỷ quyền user 15/9); G-PASTE thêm ngoại lệ display-dialog cho hộp "Không tạo được asset" (7.0, V-14 bước 4); G-DOCS thêm ngoại lệ test-forbidden cho hàm hỗ trợ async Task chép nguyên văn từ README (tự duyệt theo uỷ quyền user 16/9)
+file	tools/liveops-hub/lint-samples/**	G-TOOLS,G-I18N	G-TOOLS tạo — bộ mẫu code-lint --self-test; G-I18N sửa (ngôn ngữ, W3.5)
+file	tools/liveops-hub/make-temp-project-2022.sh	G-TOOLS	G-TOOLS tạo
+file	tools/liveops-hub/make-worktree.sh	G-TOOLS	G-TOOLS tạo
+file	tools/liveops-hub/measure-capture.py	G-TOOLS	G-TOOLS tạo
+file	tools/liveops-hub/ownership.tsv	G-TOOLS,G-FIX-W2-1,G-I18N,G-HOSTUI,G-INSPECTOR,G-FIX-W4-1,G-FIX-W4-2,G-RECURRING-JSON,G-SHELLPOLISH,G-VALIDATION-DEPTH,G-FIX-W5-1,G-CALENDAR-DEPTH,G-PASTE,G-DOCS,G-FIX-W6-1,G-OPT-TIMELINE,G-OPT-SHORTCUTHELP,G-FIX-UX-1,G-FIX-UX-2,G-FIX-UX-3,G-FIX-UX-4,G-FIX-UX-5,G-FIX-UX-6,G-FIX-UX-7,G-FIX-UX-8,G-UX2-DEFER,G-UX2-TIMEFIELD,G-FIX-UX2-1	G-TOOLS tạo; G-FIX-W2-1 ghi V-21 (phụ thuộc cùng đợt W2, quyền ghi D-3/CC-SHELL-1/2/5/CC-VALB-1/5); G-I18N sửa (ngôn ngữ, W3.5); G-HOSTUI ghi ngoại lệ quyền ghi liveops-hub-feedback.uss (H-2 của soát 16/9); G-INSPECTOR thêm một dòng file USS của chính thư mục mình (vá review F-4, tự duyệt theo uỷ quyền user 15/9); G-FIX-W4-1/G-FIX-W4-2 ghi quyền sửa của hai gói sửa ở cổng W4 (phiếu D-1…D-6, CC-HOSTUI-4); G-SHELLPOLISH thêm dòng file LiveOpsHubClassNames.Controls.cs bị sót ở V-34 (region Controls classnames đã ghi gói); G-RECURRING-JSON thêm mình vào năm dòng RecurringRulesSection.cs/.uss + RecurringRulesSectionTests.cs + LiveOpsJsonSyntaxLocator.cs + JsonSyntaxLocatorTests.cs (lệch kỹ thuật tự duyệt — bốn tập W5 vẫn rời nhau, năm file này không gói W5 nào khác đụng; LiveOpsJsonSyntaxLocator.cs thêm ở bước cổng gói để sửa lỗi nhỏ thấy khi chạy EditMode lần đầu); G-VALIDATION-DEPTH ghi ba dòng của chính màn mình (ValidationSection.uss thiếu vế gói chiều sâu, ValidationSectionTests + LiveOpsHubCaptureScenarios.Validation đổi đường bấm sang nút "Sửa" của hàng) — tự duyệt theo uỷ quyền user 15/9; G-FIX-W5-1 ghi quyền sửa của gói sửa đỏ khi gộp lớp 1 W5; G-CALENDAR-DEPTH thêm mình vào bốn dòng file mà V-34 đã mở quyền ở mức region (LiveOpsHubStrings/ClassNames/StringCatalog vùng Timeline cho nợ D-3, LiveOpsHubStrings.Calendar.cs để gỡ CalendarSnapMenuInterimFormat) — lệch kỹ thuật tự duyệt theo uỷ quyền user 15/9; bốn file này không gói W5 nào khác đụng; G-PASTE thêm mình vào dòng này khi gộp lớp 2 W5 (chỉ nối tên vào cột chủ, không đụng dòng nào khác của gói khác); G-FIX-W6-1 ghi quyền sửa của gói sửa cổng người W5 (Q-W5-1…Q-W5-5, bảng file chính xác ở 10.3); G-OPT-TIMELINE thêm mình vào BỐN dòng: CalendarSection.cs (mục menu "Thu gọn / Mở làn" phải nối được vào màn), CalendarContextMenusTests.cs (test cũ khoá đúng cái gói này làm xong), TimelineModelTests.cs (danh sách họ ý định đóng phải nhận SelectManyIntent + ToggleLaneCollapsedIntent) và CalendarPresenterTests.cs (một lời gọi SelectBarIntent theo chữ ký mới, vá F-10 của cổng soát W6) — lệch kỹ thuật tự duyệt theo uỷ quyền user, bốn file này không gói nào khác của đợt W6 đụng; G-OPT-SHORTCUTHELP thêm dòng file ShortcutHelpPopover.uss của chính thư mục mình và ghi mình vào dòng HubMenuTests.cs (hai lệch kỹ thuật tự duyệt theo uỷ quyền user 15/9; hai file này không gói W6 nào khác đụng); G-FIX-UX-1 ghi chính nó vào bảng ở cổng đợt W8-UX (như mọi gói G-FIX-* trước); G-UX2-DEFER ghi chính nó vào bảng ở lượt sửa hai của cổng W8-UX (dòng package + chủ của dòng glob Tests/Editor/Hub/UxGate/** + dòng này) — trước đó check-ownership.py không chạy được cho gói vì gói chưa có trong bảng; G-UX2-TIMEFIELD thêm khối đăng ký bốn gói UX2 (F-06); G-FIX-UX2-1 là gói sửa của cổng đợt lượt 2 — gỡ dòng package trùng và mở quyền ghi TimelineInteractionTests.cs cho G-UX2-DRAG
+file	tools/liveops-hub/run-editmode.sh	G-TOOLS	G-TOOLS tạo
+file	tools/liveops-hub/run-playmode.sh	G-TOOLS	G-TOOLS tạo
+file	tools/liveops-hub/unity-slot.sh	G-TOOLS	G-TOOLS tạo
+file	tools/liveops-hub/uss-lint.py	G-TOOLS	G-TOOLS tạo
+directory	Packages/com.dreamtech.liveops/Runtime/Core/Calendar	G-CORE	W0
+directory	Packages/com.dreamtech.liveops/Runtime/Core/Calendar/Document	G-CORE	W0
+directory	Packages/com.dreamtech.liveops/Runtime/Core/Calendar/Compilation	G-CORE	W0
+directory	Packages/com.dreamtech.liveops/Tests/Editor/Support	G-CORE	W0
+directory	Packages/com.dreamtech.liveops/Tests/Editor/Calendar	G-CORE	W0
+directory	Packages/com.dreamtech.liveops/Editor	G-SKELETON	W0
+directory	Packages/com.dreamtech.liveops/Editor/Hub	G-SKELETON	W0
+directory	Packages/com.dreamtech.liveops/Editor/Hub/Foundation	G-SKELETON	W0
+directory	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/Language	G-I18N	W3.5
+directory	Packages/com.dreamtech.liveops/Tests/Editor/Hub	G-SKELETON	W0
+directory	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Support	G-SKELETON	W0
+directory	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Capture	G-SKELETON	W0
+directory	tools	G-TOOLS	W0
+directory	tools/liveops-hub	G-TOOLS	W0
+directory	Packages/com.dreamtech.liveops/Editor/Hub/Controls	G-HUBBASE	W1
+directory	Packages/com.dreamtech.liveops/Editor/Hub/UI	G-HUBBASE	W1
+directory	Packages/com.dreamtech.liveops/Editor/Hub/Icons	G-HUBBASE	W1
+directory	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Foundation	G-HUBBASE	W1
+directory	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Foundation/Uxml	G-HUBBASE	W1
+directory	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Foundation/Language	G-I18N	W3.5
+directory	Packages/com.dreamtech.liveops/Runtime/Core/Calendar/Validation	G-VALIDATOR-A	W1
+directory	Packages/com.dreamtech.liveops/Runtime/Core/Calendar/Validation/Rules	G-VALIDATOR-A	W1
+directory	Packages/com.dreamtech.liveops/Tests/Editor/Calendar/Validation	G-VALIDATOR-A	W1
+directory	Packages/com.dreamtech.liveops/Runtime/Core/Calendar/Json	G-JSON	W1
+directory	Packages/com.dreamtech.liveops/Tests/Editor/Calendar/Json	G-JSON	W1
+directory	Packages/com.dreamtech.liveops/Runtime/Core/Calendar/Diff	G-DIFF	W1
+directory	Packages/com.dreamtech.liveops/Tests/Editor/Calendar/Diff	G-DIFF	W1
+directory	Packages/com.dreamtech.liveops/Runtime/Unity/Calendar	G-UNITY	W1
+directory	Packages/com.dreamtech.liveops/Editor/Hub/Services	G-HUBKIT	W1
+directory	Packages/com.dreamtech.liveops/Editor/Hub/Dialogs	G-HUBKIT	W1
+directory	Packages/com.dreamtech.liveops/Editor/Hub/Feedback	G-HUBKIT	W1
+directory	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Services	G-HUBKIT	W1
+directory	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Dialogs	G-HUBKIT	W1
+directory	Packages/com.dreamtech.liveops/Editor/Hub/Shell	G-SHELL	W2
+directory	Packages/com.dreamtech.liveops/Editor/Hub/Sections	G-SHELL	W2
+directory	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Shell	G-SHELL	W2
+directory	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Sections	G-SHELL	W2
+directory	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Overview	G-SHELL	W2
+directory	Packages/com.dreamtech.liveops/Editor/Hub/Sections/EventTypes	G-SHELL	W2
+directory	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Calendar	G-SHELL	W2
+directory	Packages/com.dreamtech.liveops/Editor/Hub/Sections/RecurringRules	G-SHELL	W2
+directory	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Validation	G-SHELL	W2
+directory	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Export	G-SHELL	W2
+directory	Packages/com.dreamtech.liveops/Editor/Hub/Palette	G-FEEDBACK	W2
+directory	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Feedback	G-FEEDBACK	W2
+directory	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Controls	G-CONTROLS	W2
+directory	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Controls/Uxml	G-CONTROLS	W2
+directory	Packages/com.dreamtech.liveops/Editor/Hub/Controls/Timeline	G-TIMELINE-MODEL	W2
+directory	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Timeline	G-TIMELINE-MODEL	W2
+directory	Assets/Demo/LiveOps	G-DEMO	W2
+directory	Assets/Demo/LiveOps/Calendars	G-DEMO	W2
+directory	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Timeline/Uxml	G-TIMELINE-VIEW	W3
+directory	Packages/com.dreamtech.liveops/Editor/Hub/Inspector	G-INSPECTOR	W4
+directory	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Inspector	G-INSPECTOR	W4
+directory	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Journey	G-JOURNEY	W5
+directory	tools/liveops-hub/lint-samples/**	G-TOOLS	W0
+# (V-33, mở cổng W5 16/9/2026) Cạnh CÙNG ĐỢT W5 — đều là cạnh CỔNG ẢNH/nội dung, không cạnh nào biên dịch:
+#   G-CALENDAR-DEPTH -> G-SHELLPOLISH (h13 chụp 820px cần rail 36px của I-8)
+#   G-PASTE -> G-SHELLPOLISH (h09f vẽ màn Tổng quan) và G-PASTE -> G-VALIDATION-DEPTH (h17-9 vẽ màn Kiểm lịch)
+#   G-DOCS -> sáu gói W5 còn lại (CHANGELOG [Unreleased] tả hành vi đã merge)
+#   => --wave-deps từ nay báo đúng 10 lỗi có chủ đích (2 W1 + 2 W2 + 2 W4 + 4 W5); lỗi thứ 11 trở đi là thật.
+# (V-34) Bốn ngoại lệ quyền ghi của nợ W4 đã ghi ngay trên từng dòng file: D-3 -> G-CALENDAR-DEPTH,
+#   SP-3 -> G-SHELLPOLISH, động từ RepairId -> G-VALIDATION-DEPTH, Q-W4-4 -> G-RECURRING-JSON. Bốn tập rời nhau.
+#   LiveOpsHubStringCatalog.<Vùng>.cs đã được dòng glob (G-I18N,*) cho phép, không thêm dòng hẹp kẻo thu quyền lại.
+# (V-37, mở cổng W6 17/9/2026) Cạnh CÙNG ĐỢT W6 — cả hai đều có thật, không phải chỉ cạnh ảnh:
+#   G-OPT-TIMELINE -> G-FIX-W6-1 và G-OPT-SHORTCUTHELP -> G-FIX-W6-1 (G-FIX-W6-1 sửa LiveOpsHubWindow.cs + catalog
+#   tiếng Anh của MỌI vùng; hai gói P1-lùi chụp ảnh sau khi thân màn Tổng quan có ScrollView và câu status bar đổi)
+#   => --wave-deps từ nay báo đúng 17 lỗi có chủ đích (2 W1 + 2 W2 + 2 W4 + 9 W5 + 2 W6); lỗi thứ 18 trở đi là thật.
+# (Q-W5-2) 17 file LiveOpsHubStringCatalog.<Vùng>.cs do G-FIX-W6-1 quét một lượt — dòng glob (G-I18N,*) ở trên đã
+#   cho phép, KHÔNG thêm dòng hẹp cho từng vùng kẻo thu quyền của chủ vùng lại.
+
+# (V-39, mở đợt W8-UX 17/9/2026) Sáu gói W8 một lớp, RỜI NHAU về file (script mở đợt đã assert không file nào hai chủ).
+#   Dòng dưới THÊM chủ W8 cho file có sẵn (file_packages cộng mọi dòng khớp) — không sửa dòng của gói cũ. Vùng chữ chia theo gói:
+#   A *.CalendarDepth, B *.Calendar, C *.Timeline/*.TimelineModel, D *.Recurring, E *.Shell/*.Kit/*.Feedback/*.Overview/*.ExportGate.
+#   Không cạnh cùng đợt nào: --wave-deps vẫn báo đúng 17 lỗi có chủ đích như sau W6.
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Calendar/CalendarSection.cs	G-UX-CALENDAR	W8-UX (mở đợt sửa UI/UX 17/9/2026, plan/w8-ux/UX-FIX-PLAN.md mục 2.1)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Calendar/CalendarSection.uxml	G-UX-CALENDAR	W8-UX (mở đợt sửa UI/UX 17/9/2026, plan/w8-ux/UX-FIX-PLAN.md mục 2.1)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Calendar/CalendarSection.uss	G-UX-CALENDAR	W8-UX (mở đợt sửa UI/UX 17/9/2026, plan/w8-ux/UX-FIX-PLAN.md mục 2.1)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Calendar/CalendarTimelinePresenter.cs	G-UX-CALENDAR	W8-UX (mở đợt sửa UI/UX 17/9/2026, plan/w8-ux/UX-FIX-PLAN.md mục 2.1)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Calendar/CalendarToolbar.cs	G-UX-CALENDAR	W8-UX (mở đợt sửa UI/UX 17/9/2026, plan/w8-ux/UX-FIX-PLAN.md mục 2.1)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Calendar/CalendarComparePane.cs	G-UX-CALENDAR	W8-UX (mở đợt sửa UI/UX 17/9/2026, plan/w8-ux/UX-FIX-PLAN.md mục 2.1)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Calendar/CalendarContextMenus.cs	G-UX-CALENDAR	W8-UX (mở đợt sửa UI/UX 17/9/2026, plan/w8-ux/UX-FIX-PLAN.md mục 2.1)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Calendar/CalendarHoverCardContent.cs	G-UX-CALENDAR	W8-UX (mở đợt sửa UI/UX 17/9/2026, plan/w8-ux/UX-FIX-PLAN.md mục 2.1)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Feedback/LiveOpsHoverCardHost.cs	G-UX-CALENDAR	W8-UX (mở đợt sửa UI/UX 17/9/2026, plan/w8-ux/UX-FIX-PLAN.md mục 2.1)
+file	Packages/com.dreamtech.liveops/Editor/Hub/UI/liveops-hub-feedback.uss	G-UX-CALENDAR	W8-UX (mở đợt sửa UI/UX 17/9/2026, plan/w8-ux/UX-FIX-PLAN.md mục 2.1)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubStrings.CalendarDepth.cs	G-UX-CALENDAR	W8-UX (mở đợt sửa UI/UX 17/9/2026, plan/w8-ux/UX-FIX-PLAN.md mục 2.1)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubClassNames.CalendarDepth.cs	G-UX-CALENDAR	W8-UX (mở đợt sửa UI/UX 17/9/2026, plan/w8-ux/UX-FIX-PLAN.md mục 2.1)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubPaths.CalendarDepth.cs	G-UX-CALENDAR	W8-UX (mở đợt sửa UI/UX 17/9/2026, plan/w8-ux/UX-FIX-PLAN.md mục 2.1)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/Language/LiveOpsHubStringCatalog.CalendarDepth.cs	G-UX-CALENDAR	W8-UX (mở đợt sửa UI/UX 17/9/2026, plan/w8-ux/UX-FIX-PLAN.md mục 2.1)
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Sections/CalendarUxFixTests.cs	G-UX-CALENDAR	W8-UX (mở đợt sửa UI/UX 17/9/2026, plan/w8-ux/UX-FIX-PLAN.md mục 2.1)
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Sections/CalendarSectionTests.cs	G-UX-CALENDAR	W8-UX (mở đợt sửa UI/UX 17/9/2026, plan/w8-ux/UX-FIX-PLAN.md mục 2.1)
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Sections/CalendarDepthTests.cs	G-UX-CALENDAR	W8-UX (mở đợt sửa UI/UX 17/9/2026, plan/w8-ux/UX-FIX-PLAN.md mục 2.1)
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Sections/CalendarPresenterTests.cs	G-UX-CALENDAR	W8-UX (mở đợt sửa UI/UX 17/9/2026, plan/w8-ux/UX-FIX-PLAN.md mục 2.1)
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Sections/CalendarContextMenusTests.cs	G-UX-CALENDAR	W8-UX (mở đợt sửa UI/UX 17/9/2026, plan/w8-ux/UX-FIX-PLAN.md mục 2.1)
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Feedback/HoverCardTests.cs	G-UX-CALENDAR	W8-UX (mở đợt sửa UI/UX 17/9/2026, plan/w8-ux/UX-FIX-PLAN.md mục 2.1)
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Capture/LiveOpsHubCaptureScenarios.CalendarDepth.cs	G-UX-CALENDAR	W8-UX (mở đợt sửa UI/UX 17/9/2026, plan/w8-ux/UX-FIX-PLAN.md mục 2.1)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Calendar/CalendarEventInspector.cs	G-UX-INSPECTOR	W8-UX (mở đợt sửa UI/UX 17/9/2026, plan/w8-ux/UX-FIX-PLAN.md mục 2.1)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Calendar/CalendarInspectorModel.cs	G-UX-INSPECTOR	W8-UX (mở đợt sửa UI/UX 17/9/2026, plan/w8-ux/UX-FIX-PLAN.md mục 2.1)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Calendar/AddEventPopover.cs	G-UX-INSPECTOR	W8-UX (mở đợt sửa UI/UX 17/9/2026, plan/w8-ux/UX-FIX-PLAN.md mục 2.1)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Calendar/AddEventPopover.uxml	G-UX-INSPECTOR	W8-UX (mở đợt sửa UI/UX 17/9/2026, plan/w8-ux/UX-FIX-PLAN.md mục 2.1)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Calendar/AddEventFlowModel.cs	G-UX-INSPECTOR	W8-UX (mở đợt sửa UI/UX 17/9/2026, plan/w8-ux/UX-FIX-PLAN.md mục 2.1)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Controls/LiveOpsUtcDateTimeField.cs	G-UX-INSPECTOR	W8-UX (mở đợt sửa UI/UX 17/9/2026, plan/w8-ux/UX-FIX-PLAN.md mục 2.1)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Controls/LiveOpsPlaceholder.cs	G-UX-INSPECTOR	W8-UX (mở đợt sửa UI/UX 17/9/2026, plan/w8-ux/UX-FIX-PLAN.md mục 2.1)
+file	Packages/com.dreamtech.liveops/Editor/Hub/UI/liveops-hub-controls.uss	G-UX-INSPECTOR	W8-UX (mở đợt sửa UI/UX 17/9/2026, plan/w8-ux/UX-FIX-PLAN.md mục 2.1)
+file	Packages/com.dreamtech.liveops/Editor/Hub/UI/liveops-hub-components.uss	G-UX-INSPECTOR	W8-UX (mở đợt sửa UI/UX 17/9/2026, plan/w8-ux/UX-FIX-PLAN.md mục 2.1)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubStrings.Calendar.cs	G-UX-INSPECTOR	W8-UX (mở đợt sửa UI/UX 17/9/2026, plan/w8-ux/UX-FIX-PLAN.md mục 2.1)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubClassNames.Calendar.cs	G-UX-INSPECTOR	W8-UX (mở đợt sửa UI/UX 17/9/2026, plan/w8-ux/UX-FIX-PLAN.md mục 2.1)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubPaths.Calendar.cs	G-UX-INSPECTOR	W8-UX (mở đợt sửa UI/UX 17/9/2026, plan/w8-ux/UX-FIX-PLAN.md mục 2.1)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/Language/LiveOpsHubStringCatalog.Calendar.cs	G-UX-INSPECTOR	W8-UX (mở đợt sửa UI/UX 17/9/2026, plan/w8-ux/UX-FIX-PLAN.md mục 2.1)
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Sections/CalendarInspectorUxFixTests.cs	G-UX-INSPECTOR	W8-UX (mở đợt sửa UI/UX 17/9/2026, plan/w8-ux/UX-FIX-PLAN.md mục 2.1)
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Sections/CalendarInspectorModelTests.cs	G-UX-INSPECTOR	W8-UX (mở đợt sửa UI/UX 17/9/2026, plan/w8-ux/UX-FIX-PLAN.md mục 2.1)
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Sections/AddEventPopoverTests.cs	G-UX-INSPECTOR	W8-UX (mở đợt sửa UI/UX 17/9/2026, plan/w8-ux/UX-FIX-PLAN.md mục 2.1)
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Sections/AddEventFlowModelTests.cs	G-UX-INSPECTOR	W8-UX (mở đợt sửa UI/UX 17/9/2026, plan/w8-ux/UX-FIX-PLAN.md mục 2.1)
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Controls/UtcDateTimeFieldTests.cs	G-UX-INSPECTOR	W8-UX (mở đợt sửa UI/UX 17/9/2026, plan/w8-ux/UX-FIX-PLAN.md mục 2.1)
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Capture/LiveOpsHubCaptureScenarios.Calendar.cs	G-UX-INSPECTOR	W8-UX (mở đợt sửa UI/UX 17/9/2026, plan/w8-ux/UX-FIX-PLAN.md mục 2.1)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Controls/Timeline/LiveOpsTimelineElement.cs	G-UX-TIMELINE	W8-UX (mở đợt sửa UI/UX 17/9/2026, plan/w8-ux/UX-FIX-PLAN.md mục 2.1)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Controls/Timeline/LiveOpsTimelineLane.cs	G-UX-TIMELINE	W8-UX (mở đợt sửa UI/UX 17/9/2026, plan/w8-ux/UX-FIX-PLAN.md mục 2.1)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Controls/Timeline/LiveOpsTimelineRuler.cs	G-UX-TIMELINE	W8-UX (mở đợt sửa UI/UX 17/9/2026, plan/w8-ux/UX-FIX-PLAN.md mục 2.1)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Controls/Timeline/LiveOpsTimelineBar.cs	G-UX-TIMELINE	W8-UX (mở đợt sửa UI/UX 17/9/2026, plan/w8-ux/UX-FIX-PLAN.md mục 2.1)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Controls/Timeline/LiveOpsTimelineLegend.cs	G-UX-TIMELINE	W8-UX (mở đợt sửa UI/UX 17/9/2026, plan/w8-ux/UX-FIX-PLAN.md mục 2.1)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Controls/Timeline/LiveOpsTimelineMinimap.cs	G-UX-TIMELINE	W8-UX (mở đợt sửa UI/UX 17/9/2026, plan/w8-ux/UX-FIX-PLAN.md mục 2.1)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Controls/Timeline/LiveOpsTimelineHintLine.cs	G-UX-TIMELINE	W8-UX (mở đợt sửa UI/UX 17/9/2026, plan/w8-ux/UX-FIX-PLAN.md mục 2.1)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Controls/Timeline/LiveOpsTimelineModel.cs	G-UX-TIMELINE	W8-UX (mở đợt sửa UI/UX 17/9/2026, plan/w8-ux/UX-FIX-PLAN.md mục 2.1)
+file	Packages/com.dreamtech.liveops/Editor/Hub/UI/liveops-hub-timeline.uss	G-UX-TIMELINE	W8-UX (mở đợt sửa UI/UX 17/9/2026, plan/w8-ux/UX-FIX-PLAN.md mục 2.1)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubStrings.Timeline.cs	G-UX-TIMELINE	W8-UX (mở đợt sửa UI/UX 17/9/2026, plan/w8-ux/UX-FIX-PLAN.md mục 2.1)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubStrings.TimelineModel.cs	G-UX-TIMELINE	W8-UX (mở đợt sửa UI/UX 17/9/2026, plan/w8-ux/UX-FIX-PLAN.md mục 2.1)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubClassNames.Timeline.cs	G-UX-TIMELINE	W8-UX (mở đợt sửa UI/UX 17/9/2026, plan/w8-ux/UX-FIX-PLAN.md mục 2.1)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/Language/LiveOpsHubStringCatalog.Timeline.cs	G-UX-TIMELINE	W8-UX (mở đợt sửa UI/UX 17/9/2026, plan/w8-ux/UX-FIX-PLAN.md mục 2.1)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/Language/LiveOpsHubStringCatalog.TimelineModel.cs	G-UX-TIMELINE	W8-UX (mở đợt sửa UI/UX 17/9/2026, plan/w8-ux/UX-FIX-PLAN.md mục 2.1)
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Timeline/TimelineUxFixTests.cs	G-UX-TIMELINE	W8-UX (mở đợt sửa UI/UX 17/9/2026, plan/w8-ux/UX-FIX-PLAN.md mục 2.1)
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Timeline/TimelineInteractionTests.cs	G-UX-TIMELINE,G-UX2-DRAG	W8-UX (mở đợt sửa UI/UX 17/9/2026, plan/w8-ux/UX-FIX-PLAN.md mục 2.1); G-UX2-DRAG thêm ca đơn vị BeginBar_EndedBar_ReturnsFalse (đợt đã khép thì từ chối kéo) — cổng đợt mở quyền ghi vì ca này là mặt đơn vị của đúng hành vi mà gói đo ở hành trình, và không gói UX2 nào khác chạm file
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Timeline/TimelineModelTests.cs	G-UX-TIMELINE	W8-UX (mở đợt sửa UI/UX 17/9/2026, plan/w8-ux/UX-FIX-PLAN.md mục 2.1)
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Timeline/TimelineUxmlTests.cs	G-UX-TIMELINE	W8-UX (mở đợt sửa UI/UX 17/9/2026, plan/w8-ux/UX-FIX-PLAN.md mục 2.1)
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Timeline/TimelineMultiSelectTests.cs	G-UX-TIMELINE	W8-UX (mở đợt sửa UI/UX 17/9/2026, plan/w8-ux/UX-FIX-PLAN.md mục 2.1)
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Capture/LiveOpsHubCaptureScenarios.Timeline.cs	G-UX-TIMELINE	W8-UX (mở đợt sửa UI/UX 17/9/2026, plan/w8-ux/UX-FIX-PLAN.md mục 2.1)
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Capture/LiveOpsHubCaptureScenarios.OptTimeline.cs	G-UX-TIMELINE	W8-UX (mở đợt sửa UI/UX 17/9/2026, plan/w8-ux/UX-FIX-PLAN.md mục 2.1)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/RecurringRules/RecurringRulesSection.cs	G-UX-RECURRING	W8-UX (mở đợt sửa UI/UX 17/9/2026, plan/w8-ux/UX-FIX-PLAN.md mục 2.1)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/RecurringRules/RecurringRulesSection.uxml	G-UX-RECURRING	W8-UX (mở đợt sửa UI/UX 17/9/2026, plan/w8-ux/UX-FIX-PLAN.md mục 2.1)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/RecurringRules/RecurringRulesSection.uss	G-UX-RECURRING	W8-UX (mở đợt sửa UI/UX 17/9/2026, plan/w8-ux/UX-FIX-PLAN.md mục 2.1)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/RecurringRules/RecurringRuleForm.cs	G-UX-RECURRING	W8-UX (mở đợt sửa UI/UX 17/9/2026, plan/w8-ux/UX-FIX-PLAN.md mục 2.1)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/RecurringRules/RecurringRuleList.cs	G-UX-RECURRING	W8-UX (mở đợt sửa UI/UX 17/9/2026, plan/w8-ux/UX-FIX-PLAN.md mục 2.1)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/RecurringRules/RecurringRuleSentence.cs	G-UX-RECURRING	W8-UX (mở đợt sửa UI/UX 17/9/2026, plan/w8-ux/UX-FIX-PLAN.md mục 2.1)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/RecurringRules/RecurringNextOccurrencesTable.cs	G-UX-RECURRING	W8-UX (mở đợt sửa UI/UX 17/9/2026, plan/w8-ux/UX-FIX-PLAN.md mục 2.1)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/RecurringRules/RecurringPrefixDraft.cs	G-UX-RECURRING	W8-UX (mở đợt sửa UI/UX 17/9/2026, plan/w8-ux/UX-FIX-PLAN.md mục 2.1)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/RecurringRules/RecurringRuleModel.cs	G-UX-RECURRING	W8-UX (mở đợt sửa UI/UX 17/9/2026, plan/w8-ux/UX-FIX-PLAN.md mục 2.1)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubStrings.Recurring.cs	G-UX-RECURRING	W8-UX (mở đợt sửa UI/UX 17/9/2026, plan/w8-ux/UX-FIX-PLAN.md mục 2.1)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubClassNames.Recurring.cs	G-UX-RECURRING	W8-UX (mở đợt sửa UI/UX 17/9/2026, plan/w8-ux/UX-FIX-PLAN.md mục 2.1)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/Language/LiveOpsHubStringCatalog.Recurring.cs	G-UX-RECURRING	W8-UX (mở đợt sửa UI/UX 17/9/2026, plan/w8-ux/UX-FIX-PLAN.md mục 2.1)
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Sections/RecurringUxFixTests.cs	G-UX-RECURRING,G-UX3-RECURRING	W8-UX (mở đợt sửa UI/UX 17/9/2026, plan/w8-ux/UX-FIX-PLAN.md mục 2.1); G-UX3-RECURRING THÊM một assert vào Narrow_FormFitsWithoutHorizontalScroll (khoá horizontalScrollerVisibility = Hidden của RC-06b — soát lượt 3 phát hiện bản sửa không có test nào gác). Chỉ THÊM, không nới và không xoá assert nào; không gói W8-UX3 nào khác chạm file này nên không có cửa va chạm ở cổng.
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Sections/RecurringRulesSectionTests.cs	G-UX-RECURRING	W8-UX (mở đợt sửa UI/UX 17/9/2026, plan/w8-ux/UX-FIX-PLAN.md mục 2.1)
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Sections/RecurringPrefixDraftTests.cs	G-UX-RECURRING	W8-UX (mở đợt sửa UI/UX 17/9/2026, plan/w8-ux/UX-FIX-PLAN.md mục 2.1)
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Sections/RecurringRuleModelTests.cs	G-UX-RECURRING	W8-UX (mở đợt sửa UI/UX 17/9/2026, plan/w8-ux/UX-FIX-PLAN.md mục 2.1)
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Capture/LiveOpsHubCaptureScenarios.Recurring.cs	G-UX-RECURRING	W8-UX (mở đợt sửa UI/UX 17/9/2026, plan/w8-ux/UX-FIX-PLAN.md mục 2.1)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Shell/LiveOpsHubWindow.cs	G-UX-SHELL	W8-UX (mở đợt sửa UI/UX 17/9/2026, plan/w8-ux/UX-FIX-PLAN.md mục 2.1)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Shell/LiveOpsHubStatusBar.cs	G-UX-SHELL	W8-UX (mở đợt sửa UI/UX 17/9/2026, plan/w8-ux/UX-FIX-PLAN.md mục 2.1)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Shell/LiveOpsHubStatusBarModel.cs	G-UX-SHELL	W8-UX (mở đợt sửa UI/UX 17/9/2026, plan/w8-ux/UX-FIX-PLAN.md mục 2.1)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Shell/LiveOpsHubRail.cs	G-UX-SHELL	W8-UX (mở đợt sửa UI/UX 17/9/2026, plan/w8-ux/UX-FIX-PLAN.md mục 2.1)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Shell/LiveOpsHubRailModel.cs	G-UX-SHELL	W8-UX (mở đợt sửa UI/UX 17/9/2026, plan/w8-ux/UX-FIX-PLAN.md mục 2.1)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Shell/LiveOpsHubSectionHeader.cs	G-UX-SHELL	W8-UX (mở đợt sửa UI/UX 17/9/2026, plan/w8-ux/UX-FIX-PLAN.md mục 2.1)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/PipelineStage.cs	G-UX-SHELL	W8-UX (mở đợt sửa UI/UX 17/9/2026, plan/w8-ux/UX-FIX-PLAN.md mục 2.1)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Feedback/LiveOpsToast.cs	G-UX-SHELL	W8-UX (mở đợt sửa UI/UX 17/9/2026, plan/w8-ux/UX-FIX-PLAN.md mục 2.1)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Feedback/LiveOpsToastModel.cs	G-UX-SHELL	W8-UX (mở đợt sửa UI/UX 17/9/2026, plan/w8-ux/UX-FIX-PLAN.md mục 2.1)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Dialogs/LiveOpsConfirmWindow.cs	G-UX-SHELL	W8-UX (mở đợt sửa UI/UX 17/9/2026, plan/w8-ux/UX-FIX-PLAN.md mục 2.1)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Dialogs/LiveOpsConfirmWindow.uss	G-UX-SHELL	W8-UX (mở đợt sửa UI/UX 17/9/2026, plan/w8-ux/UX-FIX-PLAN.md mục 2.1)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Dialogs/LiveOpsConfirmContent.cs	G-UX-SHELL	W8-UX (mở đợt sửa UI/UX 17/9/2026, plan/w8-ux/UX-FIX-PLAN.md mục 2.1)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Overview/OverviewSection.cs	G-UX-SHELL	W8-UX (mở đợt sửa UI/UX 17/9/2026, plan/w8-ux/UX-FIX-PLAN.md mục 2.1)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Overview/OverviewSection.uss	G-UX-SHELL	W8-UX (mở đợt sửa UI/UX 17/9/2026, plan/w8-ux/UX-FIX-PLAN.md mục 2.1)
+file	Packages/com.dreamtech.liveops/Editor/Hub/UI/liveops-hub-shell.uss	G-UX-SHELL	W8-UX (mở đợt sửa UI/UX 17/9/2026, plan/w8-ux/UX-FIX-PLAN.md mục 2.1)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubStrings.Shell.cs	G-UX-SHELL	W8-UX (mở đợt sửa UI/UX 17/9/2026, plan/w8-ux/UX-FIX-PLAN.md mục 2.1)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubStrings.Kit.cs	G-UX-SHELL	W8-UX (mở đợt sửa UI/UX 17/9/2026, plan/w8-ux/UX-FIX-PLAN.md mục 2.1)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubStrings.Feedback.cs	G-UX-SHELL	W8-UX (mở đợt sửa UI/UX 17/9/2026, plan/w8-ux/UX-FIX-PLAN.md mục 2.1)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubStrings.Overview.cs	G-UX-SHELL	W8-UX (mở đợt sửa UI/UX 17/9/2026, plan/w8-ux/UX-FIX-PLAN.md mục 2.1)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubStrings.ExportGate.cs	G-UX-SHELL	W8-UX (mở đợt sửa UI/UX 17/9/2026, plan/w8-ux/UX-FIX-PLAN.md mục 2.1)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubClassNames.Shell.cs	G-UX-SHELL	W8-UX (mở đợt sửa UI/UX 17/9/2026, plan/w8-ux/UX-FIX-PLAN.md mục 2.1)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubClassNames.Overview.cs	G-UX-SHELL	W8-UX (mở đợt sửa UI/UX 17/9/2026, plan/w8-ux/UX-FIX-PLAN.md mục 2.1)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/Language/LiveOpsHubStringCatalog.Shell.cs	G-UX-SHELL	W8-UX (mở đợt sửa UI/UX 17/9/2026, plan/w8-ux/UX-FIX-PLAN.md mục 2.1)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/Language/LiveOpsHubStringCatalog.Kit.cs	G-UX-SHELL	W8-UX (mở đợt sửa UI/UX 17/9/2026, plan/w8-ux/UX-FIX-PLAN.md mục 2.1)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/Language/LiveOpsHubStringCatalog.Feedback.cs	G-UX-SHELL	W8-UX (mở đợt sửa UI/UX 17/9/2026, plan/w8-ux/UX-FIX-PLAN.md mục 2.1)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/Language/LiveOpsHubStringCatalog.Overview.cs	G-UX-SHELL	W8-UX (mở đợt sửa UI/UX 17/9/2026, plan/w8-ux/UX-FIX-PLAN.md mục 2.1)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/Language/LiveOpsHubStringCatalog.ExportGate.cs	G-UX-SHELL	W8-UX (mở đợt sửa UI/UX 17/9/2026, plan/w8-ux/UX-FIX-PLAN.md mục 2.1)
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Shell/ShellUxFixTests.cs	G-UX-SHELL	W8-UX (mở đợt sửa UI/UX 17/9/2026, plan/w8-ux/UX-FIX-PLAN.md mục 2.1)
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Shell/LiveOpsHubStatusBarModelTests.cs	G-UX-SHELL	W8-UX (mở đợt sửa UI/UX 17/9/2026, plan/w8-ux/UX-FIX-PLAN.md mục 2.1)
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Shell/HubRailTests.cs	G-UX-SHELL	W8-UX (mở đợt sửa UI/UX 17/9/2026, plan/w8-ux/UX-FIX-PLAN.md mục 2.1)
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Shell/LiveOpsHubRailModelTests.cs	G-UX-SHELL	W8-UX (mở đợt sửa UI/UX 17/9/2026, plan/w8-ux/UX-FIX-PLAN.md mục 2.1)
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Shell/HubWindowTests.cs	G-UX-SHELL	W8-UX (mở đợt sửa UI/UX 17/9/2026, plan/w8-ux/UX-FIX-PLAN.md mục 2.1)
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Shell/HubNarrowTests.cs	G-UX-SHELL	W8-UX (mở đợt sửa UI/UX 17/9/2026, plan/w8-ux/UX-FIX-PLAN.md mục 2.1)
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Feedback/ToastTests.cs	G-UX-SHELL	W8-UX (mở đợt sửa UI/UX 17/9/2026, plan/w8-ux/UX-FIX-PLAN.md mục 2.1)
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Feedback/ConfirmContentTests.cs	G-UX-SHELL	W8-UX (mở đợt sửa UI/UX 17/9/2026, plan/w8-ux/UX-FIX-PLAN.md mục 2.1)
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Services/ToastModelTests.cs	G-UX-SHELL	W8-UX (mở đợt sửa UI/UX 17/9/2026, plan/w8-ux/UX-FIX-PLAN.md mục 2.1)
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Sections/OverviewSectionTests.cs	G-UX-SHELL	W8-UX (mở đợt sửa UI/UX 17/9/2026, plan/w8-ux/UX-FIX-PLAN.md mục 2.1)
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Capture/LiveOpsHubCaptureScenarios.Shell.cs	G-UX-SHELL	W8-UX (mở đợt sửa UI/UX 17/9/2026, plan/w8-ux/UX-FIX-PLAN.md mục 2.1)
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Capture/LiveOpsHubCaptureScenarios.ShellPolish.cs	G-UX-SHELL	W8-UX (mở đợt sửa UI/UX 17/9/2026, plan/w8-ux/UX-FIX-PLAN.md mục 2.1)
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/UxGate/**	G-UX-GATE,G-FIX-UX-1,G-FIX-UX-4,G-FIX-UX-5,G-FIX-UX-6,G-FIX-UX-7,G-FIX-UX-8,G-UX2-DEFER	W8-UX (mở đợt sửa UI/UX 17/9/2026, plan/w8-ux/UX-FIX-PLAN.md mục 2.1)
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Support/LiveOpsHubTestCategories.cs	G-UX-GATE	W8-UX (mở đợt sửa UI/UX 17/9/2026, plan/w8-ux/UX-FIX-PLAN.md mục 2.1)
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Capture/LiveOpsHubCaptureScenarios.cs	G-UX-GATE	W8-UX (mở đợt sửa UI/UX 17/9/2026, plan/w8-ux/UX-FIX-PLAN.md mục 2.1)
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Capture/LiveOpsHubCaptureScenarios.UxSizes.cs	G-UX-GATE,G-FIX-UX-2	W8-UX (mở đợt sửa UI/UX 17/9/2026, plan/w8-ux/UX-FIX-PLAN.md mục 2.1)
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Capture/LiveOpsHubCaptureScenarioIds.UxSizes.cs	G-UX-GATE	W8-UX (mở đợt sửa UI/UX 17/9/2026, plan/w8-ux/UX-FIX-PLAN.md mục 2.1)
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Capture/CaptureCoverageTests.cs	G-UX-GATE	W8-UX (mở đợt sửa UI/UX 17/9/2026, plan/w8-ux/UX-FIX-PLAN.md mục 2.1)
+file	tools/liveops-hub/run-editmode.sh	G-UX-GATE	W8-UX (mở đợt sửa UI/UX 17/9/2026, plan/w8-ux/UX-FIX-PLAN.md mục 2.1)
+file	tools/liveops-hub/capture.sh	G-UX-GATE	W8-UX (mở đợt sửa UI/UX 17/9/2026, plan/w8-ux/UX-FIX-PLAN.md mục 2.1)
+file	tools/liveops-hub/README.md	G-UX-GATE	W8-UX (mở đợt sửa UI/UX 17/9/2026, plan/w8-ux/UX-FIX-PLAN.md mục 2.1)
+file	tools/liveops-hub/ux-layout-report.py	G-UX-GATE	W8-UX (mở đợt sửa UI/UX 17/9/2026, plan/w8-ux/UX-FIX-PLAN.md mục 2.1)
+directory	Packages/com.dreamtech.liveops/Tests/Editor/Hub/UxGate	G-UX-GATE	W8
+# (luợt 2 đợt W8-UX2, 19/9/2026 — plan/w8-ux/UX-PASS2-PLAN.md mục 3) Bốn gói chạy song song trên nhánh cổng wt/G-UX-WAVE.
+#   Cột đợt ghi "W8" chứ không "W8-UX2" vì check-ownership.py --wave-deps đọc số đợt bằng float; luợt 2 là luợt sửa tiếp của chính đợt W8.
+#   G-UX2-TIMEFIELD thêm khối này theo phát hiện F-06 của lượt soát (trước đó không gói UX2 nào có dòng đăng ký nên check-ownership.py báo "gói không có trong bảng").
+package	G-UX2-TIMEFIELD	W8-UX2	M	W7
+package	G-UX2-DRAG	W8-UX2	M	W7
+package	G-UX2-RECURRING	W8-UX2	M	W7
+package	G-UX2-DEFER	W8-UX2	S	W7
+package	G-FIX-UX2-1	W8-UX2	S	W7
+file	Packages/com.dreamtech.liveops/Editor/Hub/Controls/LiveOpsUtcDateTimeField.cs	G-UX2-TIMEFIELD	W8-UX2 (luợt 2 đợt sửa UI/UX 19/9/2026, plan/w8-ux/UX-PASS2-PLAN.md mục 3)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Calendar/CalendarEventInspector.cs	G-UX2-TIMEFIELD	W8-UX2 (luợt 2 đợt sửa UI/UX 19/9/2026, plan/w8-ux/UX-PASS2-PLAN.md mục 3)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Calendar/CalendarInspectorModel.cs	G-UX2-TIMEFIELD	W8-UX2 (luợt 2 đợt sửa UI/UX 19/9/2026, plan/w8-ux/UX-PASS2-PLAN.md mục 3) — mở rộng danh sách file của gói: khoá hai mép giờ của đợt đã khép phải quyết ở model rồi view mới đọc được (phát hiện F-02); không gói UX2 nào khác chạm file này
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Calendar/CalendarSection.uss	G-UX2-TIMEFIELD	W8-UX2 (luợt 2 đợt sửa UI/UX 19/9/2026, plan/w8-ux/UX-PASS2-PLAN.md mục 3)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubStrings.Calendar.cs	G-UX2-TIMEFIELD	W8-UX2 (luợt 2 đợt sửa UI/UX 19/9/2026, plan/w8-ux/UX-PASS2-PLAN.md mục 3) — câu lý do khoá của đợt đã khép
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/Language/LiveOpsHubStringCatalog.Calendar.cs	G-UX2-TIMEFIELD	W8-UX2 (luợt 2 đợt sửa UI/UX 19/9/2026, plan/w8-ux/UX-PASS2-PLAN.md mục 3) — bản vi + en của câu lý do khoá
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Sections/CalendarInspectorModelTests.cs	G-UX2-TIMEFIELD	W8-UX2 (luợt 2 đợt sửa UI/UX 19/9/2026, plan/w8-ux/UX-PASS2-PLAN.md mục 3) — ca mới EndedEvent_BothEdgesLockedWithReason
+file	Packages/com.dreamtech.liveops/Editor/Hub/Controls/Timeline/**	G-UX2-DRAG	W8-UX2 (luợt 2 đợt sửa UI/UX 19/9/2026, plan/w8-ux/UX-PASS2-PLAN.md mục 3)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/RecurringRules/**	G-UX2-RECURRING	W8-UX2 (luợt 2 đợt sửa UI/UX 19/9/2026, plan/w8-ux/UX-PASS2-PLAN.md mục 3)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubClassNames.Recurring.cs	G-UX2-RECURRING	W8-UX2 (luợt 2 đợt sửa UI/UX 19/9/2026, plan/w8-ux/UX-PASS2-PLAN.md mục 3)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubStrings.Recurring.cs	G-UX2-RECURRING	W8-UX2 (luợt 2 đợt sửa UI/UX 19/9/2026, plan/w8-ux/UX-PASS2-PLAN.md mục 3)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/Language/LiveOpsHubStringCatalog.Recurring.cs	G-UX2-RECURRING	W8-UX2 (luợt 2 đợt sửa UI/UX 19/9/2026, plan/w8-ux/UX-PASS2-PLAN.md mục 3)
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/UxGate/**	G-UX2-DEFER,G-UX2-RECURRING,G-UX2-TIMEFIELD,G-UX2-DRAG,G-FIX-UX2-1	W8-UX2 (luợt 2 đợt sửa UI/UX 19/9/2026, plan/w8-ux/UX-PASS2-PLAN.md mục 3) — thứ tự gộp DEFER → RECURRING → TIMEFIELD → DRAG; UxCalendarJourneyTests.cs dùng chung: TIMEFIELD giữ hai ca UX-04 (ô giờ) + trợ giúp SelectedBar, DRAG giữ các ca kéo/tháng 10; bảng chia thanh ở plan/w8-ux/UX2-BAR-ASSIGNMENT.md
+file	tools/liveops-hub/ownership.tsv	G-UX2-TIMEFIELD	W8-UX2 (luợt 2 đợt sửa UI/UX 19/9/2026, plan/w8-ux/UX-PASS2-PLAN.md mục 3) — thêm khối đăng ký của bốn gói UX2 (F-06)
+# Lượt 3 đợt sửa UI/UX (W8-UX3, 19/9/2026, plan/w8-ux/UX-PASS3-PLAN.md). Bốn gói RỜI NHAU VỀ FILE; chỉ ownership.tsv là chỗ
+#   dùng chung (mỗi gói chỉ THÊM dòng của mình, cổng gỡ trùng như các lượt trước). Thứ tự gộp ở cổng: AUDIT → TIMELINE →
+#   CALENDAR → RECURRING (AUDIT đi trước vì nó đổi cách ĐẾM, hai gói sau phải đo trên luật đã đúng). Cạnh AUDIT→RECURRING là
+#   thứ tự GỘP, KHÔNG ghi vào cột phụ thuộc (cột đó đọc theo số đợt; ghi tên gói cùng đợt vào là --wave-deps báo lỗi giả) —
+#   cùng tiền lệ bốn cạnh CHỈ-PROBE của W2-TIERS 3.1.
+package	G-UX3-AUDIT	W8-UX3	S	W7
+package	G-UX3-CALENDAR	W8-UX3	M	W7
+package	G-UX3-TIMELINE	W8-UX3	M	W7
+package	G-UX3-RECURRING	W8-UX3	M	W7
+package	G-FIX-UX3-1	W8-UX3	S	W7
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/UxGate/UxLayoutAuditor.cs	G-UX3-AUDIT	W8-UX3 — hai chỗ luật đo nói SAI sự thật (hàng dưới lằn cuộn bị báo "bị cắt"; màu có alpha đo như màu đục)
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/UxGate/UxLayoutAuditTests.cs	G-UX3-AUDIT	W8-UX3 — luật tương phản phủ cả bốn dấu chú giải, không chỉ ba
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/UxGate/UxContrastTokenTests.cs	G-UX3-AUDIT,G-FIX-UX3-1	W8-UX3 — file MỚI: kiểm tự động tỉ lệ tương phản WCAG của mọi token màu, CẢ HAI skin (chữ 4,5:1 / hình khối 3:1) | G-FIX-UX3-1: ba dấu chú giải mà G-UX3-TIMELINE khai thêm phải vào BẢNG ĐO (bậc hình khối 3:1), không vào miễn trừ
+file	Packages/com.dreamtech.liveops/Editor/Hub/UI/liveops-hub-components.uss	G-UX3-CALENDAR	W8-UX3 — ô số + ô chữ của inspector tràn khỏi hàng
+file	Packages/com.dreamtech.liveops/Editor/Hub/UI/liveops-hub-controls.uss	G-UX3-CALENDAR	W8-UX3 — chữ trong TextField và ToolbarToggle lệch 2px (2022.3)
+file	Packages/com.dreamtech.liveops/Editor/Hub/UI/liveops-hub-shell.uss	G-UX3-CALENDAR	W8-UX3 — hai chevron của nút ghim rail chồng khung nhau ở 700/820
+file	Packages/com.dreamtech.liveops/Editor/Hub/Shell/LiveOpsHubRail.cs	G-UX3-CALENDAR	W8-UX3 — nút ghim rail dựng hai chevron sát nhau (chỉ sửa khi USS không đủ)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Calendar/**	G-UX3-CALENDAR	W8-UX3 — toolbar tiếng Việt ở 1024x700, popover Thêm đợt, ô inspector
+file	Packages/com.dreamtech.liveops/Editor/Hub/UI/liveops-hub-timeline.uss	G-UX3-TIMELINE	W8-UX3 — chip "Đợt tới"/tag "bị bỏ" tràn khỏi lane; dấu màu chú giải đổi sang token
+file	Packages/com.dreamtech.liveops/Editor/Hub/UI/liveops-hub-theme.uss	G-UX3-TIMELINE	W8-UX3 — token màu đạt WCAG ở CẢ HAI skin (quiet, json-string, json-literal, dấu chú giải)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Controls/Timeline/LiveOpsTimelineLane.cs	G-UX3-TIMELINE	W8-UX3 — lane cắt chữ của chip/tag thay vì cho xuống hàng hoặc thu gọn
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Controls/ControlsSkinTokenTests.cs	G-UX3-TIMELINE	W8-UX3 — bản sao hằng màu của token: chép lại hai màu JSON skin Light sau khi chúng đạt bậc chữ 4,5:1 (không nới assert nào)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/RecurringRules/**	G-UX3-RECURRING	W8-UX3 — bảng "đợt kế tiếp" và thanh cuộn ngang thừa của form
+file	tools/liveops-hub/ownership.tsv	G-UX3-AUDIT,G-UX3-CALENDAR,G-UX3-TIMELINE,G-UX3-RECURRING,G-FIX-UX3-1	W8-UX3 — G-UX3-AUDIT viết khối đăng ký lượt 3; ba gói còn lại chỉ nối tên vào dòng của chính mình
+# ---------------------------------------------------------------------------------------------- đợt W9 (bố cục 5 màn còn lại + phiếu treo)
+# Đợt lẻ W9.5 / W9.7 để bảng diễn tả được thứ tự BÊN TRONG một đợt: check-ownership.py --wave-deps đòi đợt của
+# cái mình phụ thuộc phải NHỎ HƠN HẲN, nên hai gói cùng ghi "W9" thì không xếp lớp được (cùng cơ chế W3.5 của G-I18N).
+package	G-W9-LABEL	W9	M	W8
+package	G-W9-CALENDAR	W9	M	W8
+package	G-W9-GATE	W9.5	L	G-W9-LABEL,G-W9-CALENDAR
+package	G-W9-EXPORT	W9.7	L	G-W9-GATE
+package	G-W9-SCREENS	W9.7	L	G-W9-GATE
+file	Packages/com.dreamtech.liveops/Editor/Hub/Controls/Timeline/LiveOpsTimelineGeometry.cs	G-W9-LABEL	W9-23 + W9-UX31 — nhãn thanh rút tại dấu phân cách thay vì giữa hai chữ cái
+file	Packages/com.dreamtech.liveops/Editor/Hub/Controls/Timeline/LiveOpsTimelineModel.cs	G-W9-LABEL	W9-24 — chuỗi đơn vị số ít cho khoảng thời gian
+file	Packages/com.dreamtech.liveops/Editor/Hub/Controls/Timeline/LiveOpsTimelineDragController.cs	G-W9-LABEL	W9-24 — readout khi kéo in "shift +1 days"
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubFormat.cs	G-W9-LABEL	W9-24 — chọn dạng số ít hay số nhiều theo giá trị
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubStrings.Foundation.cs	G-W9-LABEL	W9-24 — ba khoá mới DurationDay/Hour/MinuteUnitSingular
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/Language/LiveOpsHubStringCatalog.Foundation.cs	G-W9-LABEL	W9-24 — bảng chuỗi vi + en của ba khoá số ít
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Controls/LiveOpsTimelineGeometryTests.cs	G-W9-LABEL	W9-23 phần kiểm — mẩu còn lại phải là tiền tố hoặc hậu tố THẬT của id
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Calendar/CalendarSection.uss	G-W9-CALENDAR	W9-19 trả lại đệm ô ngày + W9-20 bậc breakpoint ~1000px + W9-21 pane chỉ-đọc
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Calendar/CalendarEventInspector.cs	G-W9-CALENDAR	W9-21 pane chỉ-đọc thôi dùng SetEnabled(false) + W9-UX09 viewDataKey riêng theo đợt
+file	Packages/com.dreamtech.liveops/Editor/Hub/UI/liveops-hub-controls.uss	G-W9-CALENDAR	W9-19 — bề rộng ô ngày 76 → 80-84px
+file	Packages/com.dreamtech.liveops/Editor/Hub/Shell/LiveOpsHubBreakpoints.cs	G-W9-CALENDAR	W9-20 — bậc breakpoint mới trong khoảng mù 900-1099px
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Controls/UtcDateTimeFieldTests.cs	G-W9-CALENDAR	W9-19 — assert bề rộng ô ngày (dòng 65) đi theo số đo mới
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Sections/CalendarInspectorUxFixTests.cs	G-W9-CALENDAR	W9-19 — assert bề rộng ô ngày (dòng 290) + W9-UX09 trạng thái gập
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/UxGate/UxContrastTokenTests.cs	G-W9-CALENDAR	W9-21 — cổng đo màu ĐÃ HỢP THÀNH (nhân opacity của tổ tiên), hai skin
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/UxGate/UxEventSender.cs	G-W9-GATE	W9-16 — chờ theo ĐIỀU KIỆN + hạn giờ thật, thôi đếm khung hình
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/UxGate/UxHubWindowFixture.cs	G-W9-GATE	W9-20 — thêm cỡ 950x700 vào AllSizes
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/UxGate/UxLayoutAuditor.cs	G-W9-GATE	W9-25 cảnh báo khi chữ chiếm > 95% bề rộng ô + W9-23 phần kiểm ở tầng auditor
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/UxGate/UxLayoutAuditTests.cs	G-W9-GATE	W9-18 tách theo từng cỡ + W9-26 test khung phải soi ĐÚNG rail/status bar
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/UxGate/UxLayoutDeferralList.cs	G-W9-GATE,G-W9-EXPORT,G-W9-SCREENS	W9-18 mục hoãn theo cỡ (G-W9-GATE); hai gói màn chỉ GỠ dòng màn của mình khi đã xanh
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Capture/**	G-W9-GATE	W9-17 bỏ chiều cao cố định của confirm-root + W9-22 ba kịch bản chụp còn thiếu
+file	tools/liveops-hub/check-ownership.py	G-W9-GATE	W9-02 — đọc được nhãn đợt có hậu tố (W8-UX2) thay vì vỡ ở float()
+file	tools/liveops-hub/ux-layout-report.py	G-UX-GATE,G-W9-GATE	G-W9-GATE thêm loại textTight của W9-25 vào bảng hiển thị — lệch kỹ thuật tự duyệt: một loại phát hiện MỚI mà công cụ báo cáo không biết đọc là một lỗ im lặng đúng loại mà cổng này sinh ra để diệt, và không gói W9 nào khác chạm file
+file	tools/liveops-hub/measure-capture.py	G-TOOLS,G-W9-GATE	G-W9-GATE thêm sai số RIÊNG cho một khung (khoá "tolerance") — W9-17 cần nói "chiều cao một dòng chữ là số của FONT" cho ĐÚNG một khung thay vì nới --tolerance cho cả bộ ảnh; không gói W9 nào khác chạm file
+file	tools/liveops-hub/ownership.tsv	G-W9-GATE	W9-02 cột đợt W8-UX2 cho năm dòng G-UX2-*/G-FIX-UX2-1; G-W9-GATE viết khối đăng ký đợt W9
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Export/**	G-W9-EXPORT	W9-01 — 241 chỗ không dùng được của màn Xuất JSON
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Overview/**	G-W9-SCREENS	W9-03 + W9-04 — 118 chỗ, bảng "đợt tới" đẩy cột ra ngoài cửa sổ
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/EventTypes/**	G-W9-SCREENS	W9-05 — 100 chỗ, ô bảng rộng cố định 27-35px
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Validation/**	G-W9-SCREENS	W9-06 — 40 chỗ, chip tổng kết và nút "Kiểm lại"
+file	Packages/com.dreamtech.liveops/Editor/Hub/UI/liveops-hub-shell.uss	G-W9-SCREENS	W9-04 — rail + status bar ở cỡ hẹp (phần khung của test Shell)
+
+# (W9, gói G-W9-SCREENS — bước SỬA theo soát, 20/9/2026) Bảy dòng dưới mở quyền ghi cho những file mà gói PHẢI chạm nhưng
+#   khối đăng ký đợt W9 (G-W9-GATE viết) không lường tới. Phát hiện R-02 của bước soát: check-ownership.py không chạy được
+#   cho gói, và báo cáo lại khẳng định quyền ghi "đã đăng ký". Lệch kỹ thuật TỰ DUYỆT theo uỷ quyền user 15/9 — cùng tiền lệ
+#   với G-RECURRING-JSON / G-CALENDAR-DEPTH / G-OPT-TIMELINE: chỉ NỐI tên gói vào dòng của chính vùng mình, không đụng dòng
+#   của gói khác, và không file nào trong bảy dòng này có gói W9 nào khác làm chủ.
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubClassNames.EventTypes.cs	G-EVENTTYPES,G-W9-SCREENS	W9-05 — hằng class của dòng khai báo cột bị ẩn (luật package: tên class chỉ được khai ở file vùng của màn)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubClassNames.Overview.cs	G-OVERVIEW,G-SHELLPOLISH,G-FIX-W6-1,G-W9-SCREENS	W9-03 — hằng class của câu chú cuối thân màn và của nhãn "chặn Copy JSON" xuống dòng (soát R-09)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubClassNames.Validation.cs	G-VALIDATION,G-VALIDATION-DEPTH,G-W9-SCREENS	W9-06 — hằng class hàng trong nút "Kiểm lại"; hậu tố Row là phần sửa của soát R-12
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubStrings.EventTypes.cs	G-EVENTTYPES,G-W9-SCREENS	W9-05 — khoá chuỗi EventTypesHiddenColumnsNoteFormat (vi + en) của dòng khai báo cột bị ẩn (soát R-01)
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Sections/EventTypesSectionTests.cs	G-EVENTTYPES,G-W9-SCREENS	W9-05 — test đơn vị của bậc cột theo bề rộng + ca sắp-theo-cột-phụ-rồi-thu-hẹp (soát R-07)
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/UxGate/UxLayoutAuditTests.cs	G-UX-GATE,G-FIX-UX-1,G-FIX-UX-4,G-FIX-UX-5,G-FIX-UX-6,G-FIX-UX-7,G-FIX-UX-8,G-UX2-DEFER,G-UX2-RECURRING,G-UX2-TIMEFIELD,G-UX2-DRAG,G-FIX-UX2-1,G-UX3-AUDIT,G-W9-GATE,G-W9-SCREENS	W9-03…W9-06 — gỡ bốn mã phiếu/bốn màn khỏi ApprovedDeferralIds/Screens và bốn lời gọi IgnoreWhenDeferred; SỬA CHÉO đã khai ở báo cáo gói, chỉ làm cổng CHẶT hơn
+file	tools/liveops-hub/ownership.tsv	G-W9-SCREENS	W9 — chính khối đăng ký này (soát R-02)
+
+# (W9, CỔNG ĐỢT — G-FIX-W9-1, 20/9/2026) Gói G-W9-EXPORT không giao được sản phẩm nào (nhánh wt/G-W9-EXPORT đứng nguyên ở
+#   6d73130): nó tự khai chặn vì hai file cần sửa thuộc quyền ghi của gói khác. Ở CỔNG ĐỢT cả hai gói ấy đã gộp nên rào đó
+#   không còn, và phiếu W9-01 được làm tại đây dưới tên G-FIX-W9-1 — cùng tiền lệ G-FIX-W2-1 / G-FIX-W6-1 / G-FIX-UX3-1.
+#   Sáu dòng dưới NỐI thêm tên gói sửa vào đúng những vùng nó chạm; owners cộng dồn qua mọi dòng khớp nên không dòng nào
+#   của gói khác bị đổi.
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Export/**	G-FIX-W9-1	W9-01 — khung cuộn dọc cho thân màn, hai hàng xếp dọc dưới 1100px, chữ xuống dòng thay vì rút bằng "…"
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubClassNames.Export.cs	G-FIX-W9-1	W9-01 — hai hằng class mới: gốc thân (giãn) và khung cuộn
+file	Packages/com.dreamtech.liveops/Editor/Hub/UI/liveops-hub-shell.uss	G-FIX-W9-1	W9-01 — header màn cao theo nội dung, phụ đề xuống dòng, dưới 1100px nhóm nút xuống dòng riêng
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/UxGate/UxLayoutAuditTests.cs	G-FIX-W9-1	W9-01 — tập phiếu/màn được duyệt hoãn về RỖNG
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/UxGate/UxLayoutDeferralList.cs	G-FIX-W9-1	W9-01 — gỡ mục hoãn cuối cùng (màn export)
+file	tools/liveops-hub/ownership.tsv	G-FIX-W9-1	khối đăng ký của chính gói sửa ở cổng đợt
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/EventTypes/EventTypeTable.cs	G-FIX-W9-1	W9-16 — mở đọc "đã áp xong bộ cột nào" để test chờ theo ĐIỀU KIỆN thay vì đếm khung hình
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Sections/EventTypesSectionTests.cs	G-FIX-W9-1	W9-16 — ca thu hẹp cửa sổ thôi đếm ba khung hình; câu fail in kèm bề rộng bảng đo được
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Capture/**	G-FIX-W9-1	W9-01 — khung số đo header màn biết luật theo bề rộng cửa sổ (36 từ 1100px, 61 dưới mức đó)
+file	tools/liveops-hub/measure-capture.py	G-FIX-W9-1	W9-01 — khoá whenWindowNarrowerThan cho bảng khung mặc định + hai ca tự kiểm
+
+# (W10, ĐỢT VÉT CUỐI TRƯỚC PHÁT HÀNH 0.2.0-preview.1, 20/9/2026) Ba gói RỜI NHAU VỀ FILE. Vì sao chia đúng ba mảng này:
+#   W9-29 nằm hết trong vùng Timeline (dòng gợi ý + nhãn thước), W9-30/W9-31 nằm ở control ô giờ + bảng Loại event và đi kèm
+#   phần dọn "chữ chiếm > 95% bề rộng ô" của bốn màn còn lại, còn W9-25/27/28 + lỗ hổng ma trận chỉ đụng cây test và harness
+#   chụp. Không file nào có mặt ở hai gói, nên ba nhánh gộp được theo thứ tự nào cũng không va chạm văn bản.
+#   PHỤ THUỘC CÙNG ĐỢT CÓ THẬT: G-W10-MATRIX nâng "textTight" thành LỖI, mà chỗ vi phạm do G-W10-HINT và G-W10-FIELD dọn —
+#   nên bằng chứng xanh của việc nâng ngưỡng phải lấy trên bản đã gộp cả ba (cổng đợt), khai thẳng chứ không giấu.
+package	G-W10-MATRIX	W10	L	W9
+package	G-W10-HINT	W10	M	W9
+package	G-W10-FIELD	W10	M	W9
+
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/UxGate/**	G-W10-MATRIX	W9-25 nâng thành lỗi + W9-27 đo tương phản hợp thành ở theme SÁNG + W9-28 chữa test chập chờn + vá lỗ hổng ma trận (biến thể dữ liệu xấu nhất cho cả sáu màn)
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Capture/**	G-W10-MATRIX	W9-27 — lệnh đo trong Unity chạy dưới lượt chụp của capture.sh rồi ghi JSON số đo
+file	Packages/com.dreamtech.liveops/Tests/Editor/Support/LiveOpsWorstCaseSample.cs	G-W10-MATRIX	FILE MỚI — tài liệu mẫu "dữ liệu xấu nhất" (id dài, chuỗi dài nhất, số lớn, danh sách rỗng, loại chưa khai). KHÔNG sửa LiveOpsDesignSample.cs: 1.601 byte của ExpectedFormat2Json ghim theo mẫu cũ
+file	tools/liveops-hub/capture.sh	G-W10-MATRIX	W9-27 — thêm lượt đo tương phản theo skin, dùng lại đúng khoá skin sẵn có (capture.sh vẫn là chỗ DUY NHẤT đặt EditorPrefs UserSkin)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Controls/Timeline/**	G-W10-HINT	W9-29 — dòng gợi ý đáy trục rút gọn theo BẬC CỠ, không bao giờ mất cụm phím; W9-25 dọn nhãn thước 'THÁNG 11 2026'
+file	Packages/com.dreamtech.liveops/Editor/Hub/UI/liveops-hub-timeline.uss	G-W10-HINT	W9-29 — bậc cỡ của dòng gợi ý (hai hàng hoặc bỏ vế giải thích) + khoảng dư của nhãn thước
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubClassNames.Timeline.cs	G-W10-HINT	W9-29 — hằng class của bậc cỡ dòng gợi ý (nếu cần)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubStrings.Timeline.cs	G-W10-HINT	W9-29 — khoá chuỗi biến thể NGẮN của dòng gợi ý (chỉ khi user duyệt chuỗi mới)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/Language/LiveOpsHubStringCatalog.Timeline.cs	G-W10-HINT	W9-29 — bản vi + en của biến thể ngắn (chỉ khi user duyệt chuỗi mới)
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Timeline/**	G-W10-HINT	W9-29 — test đơn vị: mọi biến thể dòng gợi ý giữ đủ cụm phím ở mọi bậc cỡ
+file	Packages/com.dreamtech.liveops/Editor/Hub/Controls/LiveOpsUtcDateTimeField.cs	G-W10-FIELD	W9-30 — biểu tượng lỗi 12px không còn bị đẩy ra ngoài mép phải hàng field
+file	Packages/com.dreamtech.liveops/Editor/Hub/UI/liveops-hub-controls.uss	G-W10-FIELD	W9-30 — chỗ của biểu tượng lỗi trong hàng ô ngày/giờ/UTC
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/EventTypes/**	G-W10-FIELD	W9-31 — cột 36px KHÔNG TÊN của bảng Loại event (cột "state", title rỗng) thôi đọc thành bảng vỡ cột
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Calendar/CalendarEventInspector.cs	G-W10-FIELD	W9-25 — nhãn "Dời cả hai (giờ)" / "Shift both (hours)" chiếm 98,9% ô ở cả bảy cỡ bản tiếng Anh
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Calendar/CalendarSection.uss	G-W10-FIELD	W9-25 — khoảng dư của hàng "Dời cả hai (giờ)" trong inspector chọn nhiều
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Overview/OverviewUpcomingTable.cs	G-W10-FIELD	W9-25 — ô giờ mono '14/9 00:00 → 20/9 00:00' chiếm 97,5% ô (2022.3)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Overview/OverviewSection.uss	G-W10-FIELD	W9-25 — bề rộng cột giờ của bảng "Sắp diễn ra"
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/RecurringRules/RecurringRuleSentence.cs	G-W10-FIELD	W9-25 — ba mảnh câu luật (', mỗi đợt chạy ', ', anchored at ', ', each occurrence runs ') chiếm 95,8-97,6% ô
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/RecurringRules/RecurringRulesSection.uss	G-W10-FIELD	W9-25 — khoảng dư của mảnh chữ trong câu luật
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Controls/**	G-W10-FIELD	W9-30 — test đơn vị của ô giờ UTC ở trạng thái gõ hỏng
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Sections/**	G-W10-FIELD	W9-31 + W9-25 — test đơn vị của bảng Loại event, inspector chọn nhiều, bảng "Sắp diễn ra", câu luật
+file	tools/liveops-hub/ownership.tsv	G-W10-MATRIX	W10 — chính khối đăng ký này (ghi ở bước kế hoạch, ba gói KHÔNG đụng lại file này)
+
+# (W10, BỔ SUNG 21/9/2026) G-W10-THEME — đóng W10-03 + W10-06: màu ĐÃ HỢP THÀNH (token × opacity của tổ tiên × nền đục)
+#   trượt bậc WCAG ở 37 chỗ skin tối và 8 chỗ skin sáng. USER chốt 19/9 (tương phản theo WCAG cho CẢ MÀU ĐÃ HỢP THÀNH) là
+#   luật đã có, nên đây là THI HÀNH luật chứ không phải quyết định thiết kế mới; USER mở quyền ghi liveops-hub-theme.uss cho
+#   gói này (vốn thuộc G-HUBBASE) ở chốt 21/9.
+#   Vì sao chạm được cả liveops-hub-shell.uss: token --liveops-hub-color-text chỉ có tác dụng khi .liveops-hub-root thôi khai
+#   `color: var(--unity-colors-default-text)` — một dòng, cùng lúc với token, kẻo token khai ra mà không ai đọc.
+#   (LƯỢT SỬA 2, 21/9) Thêm quyền ghi liveops-hub-components.uss: soát hoài nghi tìm ra .liveops-hub-text--ok vẫn đặt màu
+#   CHỮ bằng var(--unity-colors-default-text) — cùng cái sai mà chính gói này kết tội, chỉ khác chỗ. Sửa ĐÚNG MỘT luật
+#   color trong file ấy, cộng một ca cổng quét mọi sheet hub để lối ấy không mở lại.
+#   VA CHẠM VĂN BẢN ĐÃ BIẾT với G-W10-MATRIX: cả hai sửa UxContrastTokenTests.cs (gói này THÊM một dòng vào bảng token cho
+#   token mới + sửa một chú thích nhắc #A3A3A3). Khai thẳng chứ không giấu: gộp MATRIX trước thì lượt gộp gói này phải đọc lại
+#   bảng token, và ngược lại.
+package	G-W10-THEME	W10	S	W9
+
+file	Packages/com.dreamtech.liveops/Editor/Hub/UI/liveops-hub-theme.uss	G-W10-THEME	W10-03 + W10-06 — nâng token màu chữ cho đủ 4,5:1 SAU khi nhân opacity của tổ tiên, ở cả hai skin
+file	Packages/com.dreamtech.liveops/Editor/Hub/UI/liveops-hub-shell.uss	G-W10-THEME	W10-06 — .liveops-hub-root đọc màu chữ nền tảng qua token thay vì thẳng biến Unity (một dòng)
+file	Packages/com.dreamtech.liveops/Editor/Hub/UI/liveops-hub-components.uss	G-W10-THEME	W10-06 (lượt sửa 2, phát hiện F1 của soát 21/9) — luật .liveops-hub-text--ok còn đặt màu CHỮ bằng var(--unity-colors-default-text): ở skin tối là #D2D2D2, đúng màu sinh ra phiếu, và giải theo skin ĐANG CHẠY chứ không theo class skin. Đổi sang token, ĐÚNG MỘT luật color; không gói W10 nào khác giữ file này (G-W10-HINT giữ timeline.uss, G-W10-FIELD giữ controls.uss) nên không va chạm văn bản trong đợt
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/UxGate/UxComposedTokenContrastTests.cs	G-W10-THEME	FILE MỚI — cổng tương phản cho màu ĐÃ HỢP THÀNH, chạy cho CẢ HAI theme trong một lượt; hằng nền đối chiếu số đo thật của skin đang chạy
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/UxGate/UxContrastTokenTests.cs	G-W10-THEME	W10-06 — khai token màu chữ nền tảng vào bảng token (trước W10 bảng đo mọi màu phụ mà bỏ trống màu chính)
+file	tools/liveops-hub/ownership.tsv	G-W10-THEME	W10 — chính khối đăng ký G-W10-THEME ở trên (USER mở quyền 21/9); gói không đụng dòng nào của ba gói W10 cũ
+# (W10, CỔNG ĐỢT — G-FIX-W10-1, 21/9/2026) VA CHẠM NGỮ NGHĨA có thật khi gộp: G-W10-MATRIX đổi tên hằng ngưỡng
+#   TextFillWarningRatio → TextFillLimitRatio (W9-25 nâng cảnh báo thành LỖI) trong khi hai ca của G-W10-FIELD gọi tên CŨ,
+#   và hai ca ấy còn CHÉP TAY hai hằng TextFillMinimumWidth/TextFillMinimumSlack vì lúc viết chúng không có quyền ghi vào
+#   Tests/Editor/Hub/UxGate/** (nợ F7 mà báo cáo gói G-W10-FIELD đã tự khai). Ba nhánh rời nhau thì compile được; gộp lại
+#   là lỗi CS0117. Ở cổng đợt rào quyền ghi không còn, nên sửa tại đây: mở hai hằng thành internal, xoá bản chép tay.
+# (CỔNG ĐỢT W10 — G-FIX-W10-2 bổ sung) Gói G-FIX-W10-1 ghi file nhưng THIẾU dòng package; bảng phải khai đủ gói
+#   nào đã ghi, không thì --wave-deps không có gì để xếp thứ tự cho nó. Đợt W10-FIX1 xếp sau phần gốc W10 (hậu tố
+#   rỗng < "FIX1") nên nó đứng sau hai gói nó sửa, đúng thứ tự thật.
+package	G-FIX-W10-1	W10-FIX1	S	G-W10-MATRIX,G-W10-FIELD
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/UxGate/UxLayoutAuditor.cs	G-FIX-W10-1	mở TextFillMinimumWidth + TextFillMinimumSlack thành internal để test của Sections đọc MỘT nguồn duy nhất
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Sections/EventTypesSectionTests.cs	G-FIX-W10-1	đổi TextFillWarningRatio → TextFillLimitRatio; hai bản chép tay đọc thẳng hằng của auditor (trả nợ F7)
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Sections/OverviewSectionTests.cs	G-FIX-W10-1	như trên, một bản chép tay
+file	tools/liveops-hub/ownership.tsv	G-FIX-W10-1	khối đăng ký của chính gói sửa ở cổng đợt
+
+# (W10 tiếp theo, 21/9/2026) G-W10-CAL2 — lỗi THẬT mà chính lưới W10 bày ra: chọn NHIỀU thanh không mở được drawer inspector
+#   ở cửa sổ hẹp hơn 1100px (CalendarSection không nghe SelectionSetChanged nên ApplyInspectorDrawerLayout không chạy lại),
+#   kèm hai hằng "medium" của repo lệch nhau 100px. Gói này nền trên NHÁNH CỔNG wt/G-W10-WAVE chứ không trên
+#   feature/liveops-hub-p1: ca ghi nhận hiện trạng sai (MultiSelectDrawer_AtMediumWidth_StaysHidden_KnownGap) và hằng
+#   MediumBreakpointWidth chỉ tồn tại SAU khi ba gói W10 đã gộp — nền d797065 không có gì để đảo.
+#   Ba file dưới đây từng thuộc G-W10-FIELD / G-W10-MATRIX; hai gói ấy đã gộp xong nên không còn ai ghi song song.
+package	G-W10-CAL2	W10-CAL2	M	G-W10-FIELD,G-W10-MATRIX,G-W10-HINT
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Calendar/CalendarSection.cs	G-W10-CAL2	nghe SelectionSetChanged → chạy lại ApplyInspectorDrawerLayout (drawer chọn nhiều ở bậc --medium)
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Sections/CalendarInspectorUxFixTests.cs	G-W10-CAL2	đảo ca ghi nhận hiện trạng sai thành ca khoá hành vi ĐÚNG ở bốn cỡ --medium
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/UxGate/UxHubWindowFixture.cs	G-W10-CAL2	MediumBreakpointWidth thôi chép tay 1000, đọc thẳng LiveOpsHubBreakpoints.MediumBelowWidth
+file	tools/liveops-hub/ownership.tsv	G-W10-CAL2	chính khối đăng ký này
+# ---------------------------------------------------------------------------------------------------------------------
+# G-W10-MATRIX2 (21/9/2026) — gói VÉT TIẾP của đợt W10, làm nốt việc dở của G-W10-MATRIX sau khi USER chốt hai quyết định
+# thiết kế. Gói đứng trên NHÁNH CỔNG wt/G-W10-WAVE (HINT + FIELD + MATRIX + G-FIX-W10-1), không đứng trên d797065:
+#   - ca khoá HÀNH VI SAI phải đảo (MultiSelectDrawer_AtMediumWidth_StaysHidden_KnownGap) nằm trong file của G-W10-FIELD;
+#   - bằng chứng của luật rút gọn có điều kiện chỉ có nghĩa trên bản đã dọn bảy chỗ textTight của HINT/FIELD.
+# Quyền ghi của gói vì vậy đo theo nền 309b4ed (đỉnh nhánh cổng), khai thẳng ở báo cáo G-W10-MATRIX2-build.md.
+# (CỔNG ĐỢT W10 — G-FIX-W10-2, 21/9/2026) Đợt của gói khai SAI sự thật: gói này KHÔNG chạy song song với
+#   G-W10-MATRIX mà đứng TRÊN nó (wt/G-W10-MATRIX là tổ tiên của wt/G-W10-MATRIX2, nền đo quyền ghi là
+#   309b4ed = đỉnh wt/G-W10-WAVE chứa HINT + FIELD + MATRIX). Khai đợt "W10" cho một gói phụ thuộc gói W10 khác
+#   nên --wave-deps báo lỗi, đúng ra nó phải báo. Đặt đợt riêng cho gói vét tiếp, y như W9 đã làm (W9.5 / W9.7)
+#   và y như G-W10-CAL2 ở ngay trên (W10-CAL2). Đây là sửa cho BẢN GHI khớp sự thật, không phải nới luật:
+#   số lỗi --wave-deps của đợt W10 về 0, 17 lỗi còn lại là nợ có sẵn từ W1–W6 trên chính d797065.
+#   Phụ thuộc khai đủ ba gói của nhánh cổng chứ không mỗi G-W10-MATRIX, vì gói đứng trên cả ba.
+package	G-W10-MATRIX2	W10-MATRIX2	L	G-W10-MATRIX,G-W10-HINT,G-W10-FIELD
+
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/UxGate/**	G-W10-MATRIX2	Luật rút gọn CÓ ĐIỀU KIỆN (user chốt 21/9) + W9-25 sau khi áp luật + W10-07 (biến thể dữ liệu xấu nhất cho 12 màn còn nợ) + bỏ chờ bằng đếm khung
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Sections/CalendarInspectorUxFixTests.cs	G-W10-MATRIX2	Đảo ca MultiSelectDrawer_AtMediumWidth_* từ khoá HIỆN TRẠNG SAI sang khoá HÀNH VI ĐÚNG, và đưa 700x560 trở lại bộ cỡ
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Sections/RecurringUxFixTests.cs	G-W10-MATRIX2	Hai ca PrefixDraft_ClickLockedField* đỏ khi chạy song song trên 2022.3 — bỏ vế đếm khung, chờ theo điều kiện + hạn giờ, và tự cầm nhịp panel
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Calendar/CalendarSection.cs	G-W10-MATRIX2	LỖI THẬT: chọn NHIỀU thanh không mở được drawer inspector ở cửa sổ hẹp hơn 1100px (CalendarSection không nghe SelectionSetChanged)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Controls/LiveOpsTableCellTooltip.cs	G-W10-MATRIX2	FILE MỚI — điều kiện (a) của luật rút gọn có điều kiện: ô bảng không chứa hết chữ thì mang tooltip đủ chữ
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/EventTypes/EventTypeTable.cs	G-W10-MATRIX2	Ô bảng mang tên cột (để miễn trừ khai theo TỪNG cột) và đi qua LiveOpsTableCellTooltip
+file	tools/liveops-hub/ownership.tsv	G-W10-MATRIX2	W10 — chính khối đăng ký này
+
+# (CỔNG ĐỢT W10 — G-FIX-W10-2) Gói sửa tại cổng, chỉ chạm đúng bảng quyền ghi.
+# Đợt W10.5 chứ không "W10-GATE": wave_sort_key so bằng tuple (số, hậu tố CHỮ), nên "GATE" < "MATRIX2" theo thứ tự
+#   chuỗi và gói cổng sẽ bị coi là đứng TRƯỚC gói nó gộp. W9 đã gặp đúng chỗ này và đặt W9.5 cho gói cổng — theo y vậy.
+package	G-FIX-W10-2	W10.5	S	G-W10-MATRIX2,G-W10-CAL2,G-W10-THEME
+file	tools/liveops-hub/ownership.tsv	G-FIX-W10-2	đặt lại đợt của G-W10-MATRIX2 cho khớp thứ tự thật + khai đủ phụ thuộc
+
+# ---------------------------------------------------------------------------------------------------------------------
+# (CỔNG ĐỢT VÉT W10, lượt 2 — 21/9/2026) Năm gói sửa TẠI CỔNG, làm nốt các phiếu mà từng gói lẻ không có quyền ghi hoặc
+# không có đủ cây để sửa. Cả năm chạy TUẦN TỰ trên wt/G-W10-GATE, mỗi gói một commit, nên mỗi gói một đợt riêng và gói
+# sau khai phụ thuộc gói trước — đúng luật V-9 (không gói nào phụ thuộc gói CÙNG đợt).
+# Nhãn đợt dạng "W10.5-FIXn": wave_sort_key so bằng tuple (số, hậu tố CHỮ), nên (10.5, "FIX4") đứng SAU (10.5, "") của
+# G-FIX-W10-2 và trước mọi đợt W11. Dạng "W10-FIXn" sẽ ra (10.0, "FIXn") — đứng TRƯỚC W10.5, tức sai thứ tự thật.
+#
+# G-FIX-W10-4 — phiếu F5: bậc WCAG chỉ được khai MỘT chỗ. Sau khi G-W10-MATRIX vào cây, hằng chung đã có thật, nên
+#   UxComposedTokenContrastTests thôi giữ literal 4,5 riêng; bậc hình khối 3:1 cũng gom về cùng nguồn vì từ G-FIX-W10-5
+#   nó có chỗ dùng thứ hai.
+package	G-FIX-W10-4	W10.5-FIX4	S	G-FIX-W10-2,G-W10-MATRIX2,G-W10-CAL2,G-W10-THEME
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/UxGate/UxComposedContrast.cs	G-FIX-W10-4	thêm ShapeContrastRatio cạnh TextContrastRatio — một nguồn cho cả hai bậc của chốt USER 19/9
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/UxGate/UxContrastTokenTests.cs	G-FIX-W10-4	ShapeContrastRatio đọc hằng chung thay vì literal 3f
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/UxGate/UxComposedTokenContrastTests.cs	G-FIX-W10-4	TextContrastRatio thôi khai literal 4,5f, đọc UxComposedContrast.TextContrastRatio (phiếu F5)
+file	tools/liveops-hub/ownership.tsv	G-FIX-W10-4	chính khối đăng ký năm gói sửa ở cổng lượt 2
+#
+# G-FIX-W10-5 — phiếu W10-09: viền swatch "loại chưa khai báo" nằm trong ô mờ 0,7; skin SÁNG hợp thành 2,82:1, dưới bậc
+#   hình khối 3:1. Gói G-W10-THEME đo ra nhưng không có quyền ghi Sections/EventTypes/**; ở cổng thì có.
+package	G-FIX-W10-5	W10.5-FIX5	S	G-FIX-W10-4
+file	Packages/com.dreamtech.liveops/Editor/Hub/UI/liveops-hub-theme.uss	G-FIX-W10-5	token --liveops-hub-color-undeclared-border cho hai skin (#AAAAAA tối / #444444 sáng)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/EventTypes/EventTypesSection.uss	G-FIX-W10-5	viền swatch đọc token mới thay vì --liveops-hub-color-quiet (màu CHỮ)
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/UxGate/UxContrastTokenTests.cs	G-FIX-W10-5	token mới vào bảng hình khối, đo ở opacity 1 trên nền cửa sổ
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/UxGate/UxComposedTokenContrastTests.cs	G-FIX-W10-5	dòng Sites HÌNH KHỐI đầu tiên: token mới × 0,70 phải đạt 3:1 ở CẢ HAI skin
+file	tools/liveops-hub/ownership.tsv	G-FIX-W10-5	khối đăng ký ở trên
+#
+# G-FIX-W10-6 — phiếu W10-07 phần ValidationSection.uss: hàng "kết quả cũ" đặt opacity lên CHÍNH HÀNG nên nhân dồn với
+#   opacity 0,7 của hai dòng con (0,574 → 3,83:1 tối / 4,10:1 sáng) và nhân cả vào headline màu quiet (3,94 / 3,50).
+#   Kèm cảnh đo thứ 9 để bản vá có phép đo chứ không chỉ có lời khai.
+package	G-FIX-W10-6	W10.5-FIX6	S	G-FIX-W10-5
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Validation/ValidationSection.uss	G-FIX-W10-6	bỏ opacity khỏi HÀNG cũ, chỉ làm mờ headline, và giữ headline màu quiet ở cường độ đầy
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Capture/LiveOpsHubContrastCommand.cs	G-FIX-W10-6	cảnh đo thứ 9 "màn Kiểm lịch, kết quả cũ" dựng bằng kịch bản stale-check
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/UxGate/UxContrastTokenTests.cs	G-FIX-W10-6	tên cảnh mới vào danh sách cảnh bắt buộc của bằng chứng
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/UxGate/UxComposedTokenContrastTests.cs	G-FIX-W10-6	ba dòng Sites của hàng "kết quả cũ" sau bản vá
+file	tools/liveops-hub/ownership.tsv	G-FIX-W10-6	khối đăng ký ở trên
+#
+# G-FIX-W10-7 — phiếu W10-10: số chỗ của Calendar_LayoutIsUsable_WithWorstCaseData phụ thuộc THỨ TỰ CHẠY (178/180/184)
+#   vì thẻ hover còn dính trên cây lúc lượt quét đọc. Chữa ở đường chung của lượt quét, không chữa ở từng ca.
+package	G-FIX-W10-7	W10.5-FIX7	S	G-FIX-W10-6
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/UxGate/UxHubWindowFixture.cs	G-FIX-W10-7	HideHoverCards + HasVisibleHoverCard
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/UxGate/UxLayoutAuditTests.cs	G-FIX-W10-7	RunScreen tắt thẻ hover và khẳng định cây sạch TRƯỚC mỗi lượt quét
+file	tools/liveops-hub/ownership.tsv	G-FIX-W10-7	khối đăng ký ở trên
+#
+# G-FIX-W10-8 — phiếu W10-11: hai ca PrefixDraft_ClickLockedField* còn một vế ĐẾM KHUNG (đúng một khung sau khi đặt
+#   value của ô tiền tố) trước khi đọc khối nháp. Đổi sang chờ theo ĐIỀU KIỆN + hạn giờ, như mọi vế chờ khác của hai ca.
+package	G-FIX-W10-8	W10.5-FIX8	S	G-FIX-W10-7
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Sections/RecurringUxFixTests.cs	G-FIX-W10-8	TypeNewPrefixAndWaitForDraft — chờ nháp theo điều kiện thay cho một khung cố định
+file	tools/liveops-hub/ownership.tsv	G-FIX-W10-8	khối đăng ký ở trên
+#
+# G-FIX-W10-9 — phiếu W10-12 (MỚI, do chính cảnh đo thứ 9 của G-FIX-W10-6 tìm ra): vòng rỗng "chưa kiểm" của rail vẽ
+#   bằng quiet, mà nền rail skin sáng là --unity-colors-default-background #A5A5A5 chứ không phải nền cửa sổ #C8C8C8.
+#   Quiet #4F4F4F ở đó chỉ 3,33:1. Nợ CÓ SẴN, tám cảnh cũ không dựng ra trạng thái ấy nên chưa lượt nào đo tới.
+package	G-FIX-W10-9	W10.5-FIX9	S	G-FIX-W10-8
+file	Packages/com.dreamtech.liveops/Editor/Hub/UI/liveops-hub-theme.uss	G-FIX-W10-9	quiet skin sáng #4F4F4F → #393939 (4,69:1 trên rail)
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/UxGate/UxComposedTokenContrastTests.cs	G-FIX-W10-9	dòng Sites quiet × 1 trên nền chip/rail
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/UxGate/UxContrastTokenTests.cs	G-FIX-W10-9	chú thích thôi chép tay mã màu quiet của hai skin
+file	tools/liveops-hub/ownership.tsv	G-FIX-W10-9	khối đăng ký ở trên
+#
+# G-FIX-W10-10 — khe do chính G-FIX-W10-6 mở ra: cảnh đo thứ 9 đứng trên kịch bản stale-check của
+#   LiveOpsHubTestServices.cs, mà file ấy KHÔNG nằm trong dấu nguồn của bằng chứng màu. Đổi kịch bản là đổi ý nghĩa
+#   con số mà dấu không lệch — đúng loại lỗ mà soát W10 R-02 đã bịt một lần cho chính cái thước.
+package	G-FIX-W10-10	W10.5-FIXA	S	G-FIX-W10-9
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/UxGate/UxContrastEvidence.cs	G-FIX-W10-10	băm thêm LiveOpsHubTestServices.cs vào dấu nguồn
+file	tools/liveops-hub/ownership.tsv	G-FIX-W10-10	khối đăng ký ở trên
+#
+# G-FIX-W10-11 — chú thích của G-FIX-W10-5 nói SAI sự thật sau khi G-FIX-W10-9 hạ quiet skin sáng: nó viết viền
+#   "#444444 chỉ tối hơn ba nấc so với quiet", mà quiet nay là #393939, tức viền SÁNG hơn quiet. Chú thích sai là lỗi
+#   thật trong kho này (chú thích phải nói VÌ SAO, và phải đúng), nên sửa chứ không để lại.
+package	G-FIX-W10-11	W10.5-FIXB	S	G-FIX-W10-10
+file	Packages/com.dreamtech.liveops/Editor/Hub/UI/liveops-hub-theme.uss	G-FIX-W10-11	chú thích token viền: số đo hôm nay + vì sao vẫn tách token
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/EventTypes/EventTypesSection.uss	G-FIX-W10-11	như trên, phía chỗ dùng
+file	tools/liveops-hub/ownership.tsv	G-FIX-W10-11	khối đăng ký ở trên
+#
+# ==================================================================================================== ĐỢT W11
+#
+# G-W11-EYE — ba lỗi NGƯỜI DÙNG GIẢ NHÌN THẤY ở lượt đi dạo W10 (W10-JOURNEY-2.md), user chốt 21/9/2026 là phải sửa
+#   TRƯỚC khi phát hành; nợ bố cục "dữ liệu xấu nhất" (12 ca đỏ) để đợt W11 sau.
+#   J2-01 toast màn Lịch đè hàng đầu dải chú giải ở 820 khi ngăn kéo inspector mở (chồng 452×24). Toast là
+#     position:absolute nên MỌI phép đếm chữ-bị-cắt của cổng đều mù với nó — gói này thêm một màn đo CHỒNG LẤN giữa
+#     toast và ba phần tử chân màn, tức phép đo còn thiếu hẳn cho mọi cặp "nổi lên trên / nội dung".
+#   J2-02 nút trong banner "kết quả cũ" màn Kiểm lịch dãn hết bề ngang + trùng chữ "Kiểm lại" với nút header +
+#     viền nút skin sáng 2,42:1 < 3:1.
+#   J2-06 dấu phẩy rời khỏi chip token trong câu Luật lặp (padding 0 3px của .liveops-hub-rule-token).
+package	G-W11-EYE	W11	M	W10
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Calendar/CalendarSection.cs	G-W11-EYE	J2-01 — chỗ đậu toast theo chân màn ĐO ĐƯỢC (world y) thay cho hai bậc class 64/96
+file	Packages/com.dreamtech.liveops/Editor/Hub/Services/LiveOpsHubSectionBus.cs	G-W11-EYE	J2-01 — kênh SetToastFloor(worldTopY) từ màn lên cửa sổ
+file	Packages/com.dreamtech.liveops/Editor/Hub/Shell/LiveOpsHubWindow.cs	G-W11-EYE	J2-01 — cửa sổ đổi world y thành bottom của toast + hằng khe thủ + kẹp HAI đầu (soát R07)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Validation/ValidationSection.cs	G-W11-EYE	J2-02 — banner "kết quả cũ" xếp ngang, nút thôi dãn, chữ khác nút header, khoá cùng nhịp
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Validation/ValidationSection.uss	G-W11-EYE	J2-02 — luật USS của banner (hàng ngang, chữ co được, nút không dãn)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/RecurringRules/RecurringRulesSection.uss	G-W11-EYE	J2-06 — padding-right của chip khi sau nó là dấu câu (margin âm là bản vá SAI, đã bỏ: nó đẻ 42 chỗ childOverflow mỗi màn Luật lặp)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/RecurringRules/RecurringRuleSentence.cs	G-W11-EYE	J2-06 — nhìn tới mảnh kế để biết sau chip là dấu câu hay khoảng trắng thật
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubClassNames.cs	G-W11-EYE	J2-06 — hằng class RuleTokenFollowedByPunctuation
+file	Packages/com.dreamtech.liveops/Editor/Hub/UI/liveops-hub-theme.uss	G-W11-EYE	J2-02 — token --liveops-hub-color-button-border cho skin sáng (3:1); số đo tính lại bằng hàm của repo + khai giới hạn nền thứ ba (soát R06/R09)
+file	Packages/com.dreamtech.liveops/Editor/Hub/UI/liveops-hub-components.uss	G-W11-EYE	J2-02 — luật viền nút skin sáng đọc token trên + khai giới hạn nền (soát R09); chú thích nút nguy hiểm nói đúng thứ nó đặt (soát R10)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubClassNames.Validation.cs	G-W11-EYE	J2-02 — ba hằng class của banner
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubStrings.Validation.cs	G-W11-EYE	J2-02 — khoá chuỗi nút banner
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/Language/LiveOpsHubStringCatalog.Validation.cs	G-W11-EYE	J2-02 — câu vi + en của nút banner
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/UxGate/UxLayoutAuditTests.cs	G-W11-EYE	J2-01 màn calendar-toast-legend (ngăn kéo mở + ba luật không-đè); J2-02 màn validation-stale (soát R04); khai nợ W11-15 (J2-04) + W11-17
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/UxGate/UxLayoutScreenCatalog.cs	G-W11-EYE	dòng khai "màn này nhìn thấy dữ liệu xấu nhất ở đâu" cho calendar-toast-legend (J2-01) và validation-stale (J2-02)
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Sections/W11EyeFixTests.cs	G-W11-EYE	FILE MỚI — khoá J2-02 và J2-06; ca viền nút đo trên CẢ HAI nền skin sáng (soát R06/R09)
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Sections/CalendarUxFixTests.cs	G-W11-EYE	J2-01 — ca UX-11 đổi từ "nâng ≥ 64px" sang ràng buộc thật "toast không đè chân màn"
+file	tools/liveops-hub/ownership.tsv	G-W11-EYE	khối đăng ký ở trên
+#
+# ==================================================================================================== ĐỢT W11
+#
+# G-W11-LIMITS — điểm 2 của user chốt 21/9/2026: dữ liệu "xấu nhất" phải theo GIỚI HẠN THẬT của dữ liệu, không phải chuỗi
+#   dài tuỳ hứng. Lõi chưa có giới hạn độ dài nào (ValidateIdentifier chỉ kiểm KÝ TỰ) nên gói này ĐẶT giới hạn thành hằng
+#   có tài liệu, dựng lại fixture bằng ĐÚNG mức đó, rồi đo lại 12 ca đỏ của cổng W10. Gói cũng chốt J2-03 vào luật rút gọn
+#   có điều kiện (nhãn thanh trục rời khỏi danh sách tha suông sang danh sách tha CÓ ĐO).
+package	G-W11-LIMITS	W11.1-LIMITS	M	G-FIX-W10-11
+file	Packages/com.dreamtech.liveops/Runtime/Core/Domain/LiveOpsIdentifierLimits.cs	G-W11-LIMITS	MỚI — hằng giới hạn độ dài + vì sao từng con số
+file	Packages/com.dreamtech.liveops/Tests/Editor/LiveOpsIdentifierLimitsTests.cs	G-W11-LIMITS	MỚI — gác phép suy của hằng + fixture bằng ĐÚNG giới hạn
+file	Packages/com.dreamtech.liveops/Tests/Editor/Support/LiveOpsWorstCaseSample.cs	G-W11-LIMITS	mọi chuỗi dài dựng lại bằng đúng giới hạn
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/UxGate/UxTruncationExemption.cs	G-W11-LIMITS	loại ô thứ ba (J2-03) + mục nhãn thanh trục
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/UxGate/UxTruncationExemptionTests.cs	G-W11-LIMITS	hai ca chứng minh của mục J2-03
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/UxGate/UxLayoutAllowList.cs	G-W11-LIMITS	gỡ mục tha suông của nhãn thanh trục
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/UxGate/UxLayoutDeferralList.cs	G-W11-LIMITS	mục hoãn W11-nn của nợ bố cục dữ liệu dài
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/UxGate/UxLayoutAuditTests.cs	G-W11-LIMITS	mã phiếu hoãn nhận thêm dạng W11-NN + hai mảng duyệt
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Capture/LiveOpsHubCaptureScenarioIds.WorstCase.cs	G-W11-LIMITS	MỚI — id hai ảnh bằng chứng nợ W11
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Capture/LiveOpsHubCaptureScenarios.WorstCase.cs	G-W11-LIMITS	MỚI — kịch bản chụp hai màn trên dữ liệu xấu nhất
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Capture/LiveOpsHubCaptureScenarios.cs	G-W11-LIMITS	đăng ký RegisterWorstCase
+file	Packages/com.dreamtech.liveops/README.md	G-W11-LIMITS	mục 4.5 bảng giới hạn + bẫy §8
+file	Packages/com.dreamtech.liveops/Documentation/DESIGN_NOTES.md	G-W11-LIMITS	3.14 vì sao giới hạn là hằng chứ không phải cửa ném
+file	Packages/com.dreamtech.liveops/CHANGELOG.md	G-W11-LIMITS	khối giới hạn + khai nợ W11
+file	CHANGELOG.md	G-W11-LIMITS	bản sao y hệt
+file	tools/liveops-hub/ownership.tsv	G-W11-LIMITS	khối đăng ký ở trên
+#
+# G-FIX-W11-1 — việc của CỔNG đợt W11, không của gói nào: ba mục nợ W11-15/16/17 do gói G-W11-EYE khai ra phải có
+#   một dòng THẬT trong CHANGELOG (hai bản), mà CHANGELOG thuộc quyền ghi của G-W11-LIMITS trong cùng đợt — hai gói
+#   cùng nối vào một khối "Chưa làm" là đúng kiểu xung đột merge mà bảng quyền ghi sinh ra để chặn. Cổng chép sau khi
+#   gộp. Cùng commit ghi luôn quyết định GIỮ NỢ ba mục W11-09/11/12 kèm số đo đã truy tới dòng, để đợt W11 không đo lại.
+package	G-FIX-W11-1	W11.5-FIXA	S	G-W11-LIMITS
+file	CHANGELOG.md	G-FIX-W11-1	ba mục nợ W11-15/16/17 + quyết định giữ nợ W11-09/11/12 của cổng
+file	Packages/com.dreamtech.liveops/CHANGELOG.md	G-FIX-W11-1	bản sao y hệt (ReadmeSnippetCompileTests đối chiếu hai bản)
+file	tools/liveops-hub/ownership.tsv	G-FIX-W11-1	khối đăng ký ở trên
+#
+# G-FIX-W11-2 — việc của CỔNG đợt W11, sinh ra từ một THÍ NGHIỆM ĐO ĐƯỢC chứ không từ phỏng đoán. Cổng chạy 11 lượt
+#   EditMode toàn bộ trên CÙNG một cây, khác nhau đúng một biến là số lượt Unity chạy song song: 5 lượt "một mình"
+#   cho 3 lượt SẠCH TUYỆT ĐỐI + 2 lượt 1 ca đỏ; 6 lượt "hai Unity song song" cho 8 ca đỏ, và CẢ TÁM đều là ca chờ
+#   focus. Phương án từng được đề nghị cho W11-FLAKY-01 — "chờ lâu hơn" — bị chính số đo bác bỏ: CtrlK_OpensPalette
+#   đã chờ 60 khung VÀ 5 giây rồi vẫn đỏ. Gốc nằm ở luật slot, không ở từng ca: unity-slot.sh cho 2 slot song song,
+#   mà test UI gửi sự kiện chuột/phím THẬT thì không chia nhau được focus. Bản vá: lượt EditMode có test UI tự lấy
+#   Unity ĐỘC QUYỀN. KHÔNG một câu assert hay ngưỡng nào đổi.
+package	G-FIX-W11-2	W11.5-FIXB	S	G-FIX-W11-1
+file	tools/liveops-hub/run-editmode.sh	G-FIX-W11-2	lượt có test UI lấy Unity độc quyền (slot 1 + chờ hết lượt batchmode khác)
+file	tools/liveops-hub/ownership.tsv	G-FIX-W11-2	khối đăng ký ở trên

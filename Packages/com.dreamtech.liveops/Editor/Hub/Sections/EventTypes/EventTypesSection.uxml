@@ -1,0 +1,31 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" editor-extension-mode="True">
+    <!--
+        Thân màn Loại event (7.2, Hình 10). Tên element (name) là hợp đồng với LiveOpsHubPaths.RequiredEventTypesElementNames —
+        đổi tên ở đây thì sửa danh sách đó cùng nhịp. Cả chín element luôn có mặt, trạng thái chỉ bật/tắt bằng `hidden`: probe và
+        HubWindowTests Q từng tên ở cả ngữ cảnh không asset. Không có chữ trong file này: mọi chữ đặt từ C# qua LiveOpsHubStrings.
+        Bảng loại (MultiColumnListView) dựng bằng C# vào event-types-table-host vì tiêu đề cột là chữ của catalog.
+    -->
+    <ui:VisualElement name="event-types-body" class="liveops-hub-event-types-body">
+        <ui:VisualElement name="event-types-empty" class="liveops-hub-empty">
+            <ui:Label name="event-types-empty-title" class="liveops-hub-empty-title" />
+            <ui:Label name="event-types-empty-body" class="liveops-hub-empty-body" />
+            <ui:VisualElement name="event-types-empty-actions" class="liveops-hub-helpbox-actions" />
+        </ui:VisualElement>
+        <ui:VisualElement name="event-types-content" class="liveops-hub-event-types-content">
+            <ui:VisualElement name="event-types-table-column" class="liveops-hub-event-types-table-column">
+                <ui:VisualElement name="event-types-table-host" class="liveops-hub-event-types-table-host" />
+                <!--
+                    (W9-05, soát R-01) Dòng khai báo cột bị ẩn. Bảng bỏ bớt cột phụ ở cửa sổ hẹp; giấu mà không nói là
+                    người đọc tưởng bảng chỉ có bấy nhiêu cột. Icon được C# chèn vào đầu hàng (icon lấy từ LiveOpsHubIcons).
+                -->
+                <ui:VisualElement name="event-types-columns-hidden-note" class="liveops-hub-event-types-columns-hidden-note liveops-hub-event-types-hidden">
+                    <ui:Label name="event-types-columns-hidden-note-text" class="liveops-hub-event-types-columns-hidden-note-text" />
+                </ui:VisualElement>
+                <ui:Label name="event-types-footer" class="liveops-hub-event-types-footer" />
+                <ui:VisualElement name="event-types-unknown-bar" class="liveops-hub-event-types-unknown-bar" />
+                <ui:VisualElement name="event-types-reference-card" class="liveops-hub-card liveops-hub-event-types-reference-card" />
+            </ui:VisualElement>
+            <ui:VisualElement name="event-types-inspector" class="liveops-hub-event-types-inspector" />
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

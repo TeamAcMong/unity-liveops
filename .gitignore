@@ -58,6 +58,9 @@ crashlytics-build.properties
 # Test results from batchmode runs
 /TestResults/
 
+# Cache của công cụ LiveOps Hub (DLL compile-check, DLL test tham chiếu) — sinh lại được, không commit
+tools/liveops-hub/.cache/
+
 # OS / IDE
 .DS_Store
 Thumbs.db

@@ -1,0 +1,27 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" editor-extension-mode="True">
+    <!--
+        Bố cục màn Luật lặp ([SD1 §4.1]): pane trái 240px (danh sách luật) | pane form giãn, nội dung max-width 640.
+        Tên element (name) là hợp đồng với RecurringRulesSection.*ElementName và RequiredElementNames — đổi ở đây thì sửa hằng
+        cùng nhịp, nếu không probe CLI và HubWindowTests đỏ ngay ở cổng.
+        Danh sách và form là custom control dựng từ C# (RecurringRuleList, RecurringRuleForm) nên ở đây chỉ có CHỖ TREO của
+        chúng: hai control đó phải nối sự kiện ngay lúc dựng, khai trong UXML thì không nối được.
+        Khối trống có NÚT BƯỚC TIẾP (mục 7: "trống = vì sao · trống không phải đạt · nút bước tiếp"): cùng một nút đổi chữ
+        và đích theo ngữ cảnh — có lịch thì "Thêm luật", chưa có lịch thì sang Tổng quan để tạo lịch.
+        Không có chữ trong file này: mọi câu đặt từ C# qua LiveOpsHubStrings (code-lint chặn tiếng Việt trong UXML).
+        Stylesheet của màn gắn từ C# theo LiveOpsHubPaths.RecurringRulesSectionUss, để thiếu file thì card lỗi nêu đường dẫn.
+    -->
+    <ui:VisualElement name="recurring-body" class="liveops-hub-recurring-body">
+        <ui:VisualElement name="recurring-split" class="liveops-hub-recurring-split">
+            <ui:VisualElement name="recurring-list-host" />
+            <ui:ScrollView name="recurring-form-scroll" class="liveops-hub-recurring-form-scroll">
+                <ui:VisualElement name="recurring-form-host" />
+            </ui:ScrollView>
+        </ui:VisualElement>
+        <ui:VisualElement name="recurring-empty" class="liveops-hub-empty">
+            <ui:Label name="recurring-empty-title" class="liveops-hub-empty-title" />
+            <ui:Label name="recurring-empty-body" class="liveops-hub-empty-body" />
+            <ui:Button name="recurring-empty-action" class="liveops-hub-button liveops-hub-button--primary liveops-hub-recurring-empty-action" />
+        </ui:VisualElement>
+        <ui:VisualElement name="recurring-add" class="liveops-hub-recurring-add" />
+    </ui:VisualElement>
+</ui:UXML>

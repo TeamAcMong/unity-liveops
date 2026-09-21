@@ -1,0 +1,772 @@
+/*
+ * liveops-hub-shell.uss — khung LiveOps Hub: header 26, rail 196, section header 36, note đầu thân, status bar 20, card lỗi,
+ * trạng thái trống ([FD §3], [FD §4], kế hoạch 8.2–8.3). Nạp sau theme + components, trước feedback/controls/timeline/motion.
+ *
+ * Số đo là hợp đồng với ảnh chụp (measure-capture.py: rail 196 · header 26 · section header 36 · status 20 · cột nội dung
+ * 1084 ở cửa sổ 1280×760). UI Toolkit tính width/height GỒM viền và padding (border-box), nên viền 1px nằm trong số đo.
+ *
+ * Luật: không màu trần (token theme hoặc --unity-colors-*), không gap/:last-child/@media (khoảng cách = margin của phần tử
+ * đứng sau; cửa sổ hẹp = class --medium/--narrow/--compact trên root do LiveOpsHubBreakpoints bật).
+ */
+
+/* ---------------------------------------------------------------- Root */
+
+.liveops-hub-root {
+    flex-grow: 1;
+    flex-direction: column;
+    font-size: 11px;
+    /* (W10-06) Màu chữ nền tảng đi qua token của theme chứ không thẳng --unity-colors-default-text: chữ phụ khắp hub là
+       màu này NHÂN opacity của khối cha, và giá trị Unity cho skin tối (#D2D2D2 × 0,7) trượt bậc chữ thường trên nền
+       thẻ. Token nâng một chỗ, mọi chữ kế thừa theo — xem chú thích --liveops-hub-color-text của theme. */
+    color: var(--liveops-hub-color-text);
+    background-color: var(--unity-colors-window-background);
+}
+
+/* ---------------------------------------------------------------- Header 26px — [FD §3.3] */
+
+.liveops-hub-header {
+    height: 26px;
+    flex-shrink: 0;
+    flex-direction: row;
+    align-items: center;
+    padding: 0 8px;
+    background-color: var(--unity-colors-toolbar-background);
+    border-bottom-width: 1px;
+    border-bottom-color: var(--unity-colors-window-border);
+}
+
+.liveops-hub-header-title {
+    font-size: 12px;
+    -unity-font-style: bold;
+    padding: 0;
+    margin: 0;
+}
+
+/* Ô "Đi tới màn…" — trông như ô nhập (viền + nền default-background) nhưng không nhận chữ; bấm mở palette [FD §3.3]. */
+.liveops-hub-goto {
+    flex-direction: row;
+    align-items: center;
+    height: 18px;
+    margin-left: var(--liveops-hub-space-12);
+    padding: 0 6px;
+    border-width: 1px;
+    border-color: var(--unity-colors-window-border);
+    border-radius: 3px;
+    background-color: var(--unity-colors-default-background);
+}
+
+.liveops-hub-goto-label {
+    font-size: 11px;
+    opacity: 0.7;
+    padding: 0;
+    margin: 0;
+}
+
+.liveops-hub-goto-key {
+    font-size: 9px;
+    opacity: 0.7;
+    padding: 0;
+    margin-left: 8px;
+}
+
+/* Khoảng giãn đẩy hai chip về phía phải; menu ngôn ngữ vẫn dùng margin-left: auto để nằm sau cùng. */
+.liveops-hub-header-spacer {
+    flex-grow: 1;
+    flex-shrink: 1;
+}
+
+/* Chip header 18px — [FD §3.3]. Chip rỗng vẫn giữ trong cây (ẩn từng phần bằng --hidden) để bố cục không nhảy. */
+.liveops-hub-chip {
+    flex-direction: row;
+    align-items: center;
+    height: 18px;
+    margin-left: 6px;
+    padding: 0 6px;
+    border-width: 1px;
+    border-color: var(--unity-colors-window-border);
+    border-radius: 3px;
+    background-color: var(--unity-colors-default-background);
+}
+
+.liveops-hub-chip-key {
+    font-size: 10px;
+    opacity: 0.7;
+    padding: 0;
+    margin-right: 4px;
+}
+
+.liveops-hub-chip-text {
+    font-size: 11px;
+    padding: 0;
+    margin: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 240px;
+}
+
+/* Dấu 7 px đầu chip nháp ([FD §3.3] dạng (c)) — cùng cách status bar đeo dấu, không phải hình vẽ riêng của header. */
+.liveops-hub-chip-mark {
+    margin-right: 4px;
+}
+
+/* Dạng (a) in đậm ([FD §3.3]): "Chưa lưu · ⌘S" là chip duy nhất mời người dùng làm một việc. */
+.liveops-hub-chip-text--strong {
+    -unity-font-style: bold;
+}
+
+.liveops-hub-chip-divider {
+    width: 1px;
+    height: 12px;
+    margin: 0 4px;
+    background-color: var(--unity-colors-window-border);
+}
+
+/* display: none chứ không visibility: hidden — phần rỗng của chip không được chiếm chỗ (chip co lại quanh phần còn lại). */
+.liveops-hub-chip--hidden {
+    display: none;
+}
+
+.liveops-hub-chip--clickable {
+    color: var(--liveops-hub-color-link);
+}
+
+/* --compact (< 720): ẩn khoá chip, giữ nguyên phần chữ [FD §3.3]. */
+.liveops-hub--compact .liveops-hub-chip-key {
+    display: none;
+}
+
+/* Menu ngôn ngữ đẩy về mép phải header bằng margin-left: auto — USS không có grid nên đây là cách đẩy duy nhất. */
+.liveops-hub-language-menu {
+    margin-left: auto;
+    margin-right: 0;
+    margin-top: 0;
+    margin-bottom: 0;
+    padding-left: 6px;
+    padding-right: 4px;
+    min-width: 34px;
+    height: 18px;
+    font-size: 11px;
+}
+
+/* ---------------------------------------------------------------- Hàng giữa: rail + cột nội dung */
+
+.liveops-hub-main {
+    flex-grow: 1;
+    flex-shrink: 1;
+    flex-direction: row;
+    min-height: 0;
+}
+
+/* ---------------------------------------------------------------- Rail 196px — [FD §3.5] */
+
+.liveops-hub-rail {
+    width: 196px;
+    flex-shrink: 0;
+    flex-direction: column;
+    background-color: var(--unity-colors-default-background);
+    border-right-width: 1px;
+    border-right-color: var(--unity-colors-window-border);
+}
+
+.liveops-hub-rail-caption {
+    padding: 10px 10px 4px 10px;
+    margin: 0;
+    font-size: 10px;
+    -unity-font-style: bold;
+    letter-spacing: 0.5px;
+    opacity: 0.7;
+}
+
+.liveops-hub-rail-scroll {
+    flex-grow: 1;
+    flex-shrink: 1;
+}
+
+.liveops-hub-rail-stage-row,
+.liveops-hub-rail-row {
+    height: 22px;
+    flex-shrink: 0;
+    flex-direction: row;
+    align-items: center;
+    padding-left: 10px;
+    padding-right: 8px;
+}
+
+.liveops-hub-rail-row:hover {
+    background-color: var(--unity-colors-highlight-background-hover);
+}
+
+/* Gutter 14px: dấu tầng 8px ở tâm + đường nối 2px chạy qua tâm hai nửa hàng → đường nối thẳng một mạch qua mọi hàng. */
+.liveops-hub-gutter {
+    width: 14px;
+    flex-shrink: 0;
+    align-self: stretch;
+    align-items: center;
+    justify-content: center;
+}
+
+.liveops-hub-gutter-line {
+    position: absolute;
+    left: 6px;
+    width: 2px;
+    background-color: var(--unity-colors-default-text);
+    opacity: 0.35;
+}
+
+.liveops-hub-gutter-line--top {
+    top: 0;
+    height: 50%;
+}
+
+.liveops-hub-gutter-line--bottom {
+    top: 50%;
+    bottom: 0;
+}
+
+.liveops-hub-gutter-line.liveops-hub-gutter-line--dead {
+    opacity: 0.12;
+}
+
+.liveops-hub-gutter-line.liveops-hub-gutter-line--hidden {
+    display: none;
+}
+
+/* Vòng rỗng trong gutter mang nền rail để đường nối không xuyên qua lỗ vòng. */
+.liveops-hub-gutter .liveops-hub-state-mark--not-measured {
+    background-color: var(--unity-colors-default-background);
+}
+
+.liveops-hub-rail-stage-label {
+    flex-grow: 1;
+    flex-shrink: 1;
+    margin: 0 0 0 6px;
+    padding: 0;
+    font-size: 10px;
+    -unity-font-style: bold;
+    letter-spacing: 0.5px;
+    opacity: 0.82;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.liveops-hub-rail-badge {
+    flex-shrink: 0;
+    margin: 0 0 0 4px;
+    padding: 0;
+    font-size: 10px;
+    -unity-font-style: bold;
+    -unity-text-align: middle-right;
+}
+
+.liveops-hub-rail-row-label {
+    flex-grow: 1;
+    flex-shrink: 1;
+    margin: 0 0 0 14px;
+    padding: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.liveops-hub-rail-row-mark {
+    margin-left: 4px;
+}
+
+/* Màn Ok ẩn dấu nhưng giữ chỗ để nhãn không nhảy khi trạng thái đổi. */
+.liveops-hub-rail-row-mark--hidden {
+    visibility: hidden;
+}
+
+/* Active: nền chọn (mất focus = inactive), chữ đậm, thanh trái 2px (padding bù 2px để nhãn không lệch). */
+.liveops-hub-rail-row--active {
+    background-color: var(--unity-colors-highlight-background-inactive);
+    border-left-width: 2px;
+    border-left-color: var(--liveops-hub-color-on-selection);
+    padding-left: 8px;
+}
+
+.liveops-hub-rail-row--active:hover {
+    background-color: var(--unity-colors-highlight-background-inactive);
+}
+
+.liveops-hub-rail--has-focus .liveops-hub-rail-row--active,
+.liveops-hub-rail--has-focus .liveops-hub-rail-row--active:hover {
+    background-color: var(--unity-colors-highlight-background);
+}
+
+/* Chữ trắng chỉ khi rail có focus (nền highlight). Mất focus (nền highlight-inactive) thì chữ màu thường, đậm — Hình 3 hàng
+   rail "active + vùng rail mất focus"; ở Light trắng trên #AEAEAE chỉ 2,22:1 ([FD §2.3]), mà đây là trạng thái thường gặp nhất
+   (người dùng đang làm việc ở cột nội dung). */
+.liveops-hub-rail-row--active > .liveops-hub-rail-row-label {
+    -unity-font-style: bold;
+}
+
+.liveops-hub-rail--has-focus .liveops-hub-rail-row--active > .liveops-hub-rail-row-label {
+    color: var(--liveops-hub-color-on-selection);
+}
+
+.liveops-hub--skin-light .liveops-hub-rail-row--active {
+    border-left-color: var(--unity-colors-default-text);
+}
+
+/* Ô chặn đáy rail — chỉ dựng khi có Blocked. */
+.liveops-hub-rail-blocker-host {
+    flex-shrink: 0;
+}
+
+.liveops-hub-rail-blocker {
+    margin: 6px;
+    padding: 6px 8px;
+    border-width: 1px;
+    border-radius: 3px;
+    border-color: var(--unity-colors-window-border);
+    background-color: var(--unity-colors-toolbar-background);
+}
+
+.liveops-hub-rail-blocker:hover {
+    background-color: var(--unity-colors-highlight-background-hover);
+}
+
+.liveops-hub-rail-blocker-head {
+    flex-direction: row;
+    align-items: center;
+}
+
+.liveops-hub-rail-blocker-title {
+    flex-grow: 1;
+    flex-shrink: 1;
+    margin: 0 0 0 6px;
+    padding: 0;
+    font-size: 10px;
+    -unity-font-style: bold;
+}
+
+.liveops-hub-rail-blocker-head > .liveops-hub-chevron {
+    opacity: 0.7;
+}
+
+.liveops-hub-rail-blocker-detail {
+    margin: 2px 0 0 0;
+    padding: 0;
+    font-size: 10px;
+    opacity: 0.82;
+    white-space: normal;
+}
+
+/* ---------------------------------------------------------------- Rail 36px của cửa sổ hẹp — [FD §3.7], mục 12 I-8
+
+   Hai hình dạng dựng SẴN trong cây, USS chọn bằng class trên root: đổi bề rộng cửa sổ không dựng lại rail (giữ focus, giữ hover).
+   Nút ‹› ghim mở thắng --narrow vì selector có thêm một class trên cùng element root (specificity cao hơn). */
+
+.liveops-hub-rail-pin {
+    display: none;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    height: 20px;
+    flex-shrink: 0;
+    margin: 4px 4px 0 4px;
+    padding: 0;
+    border-width: 0;
+    background-color: transparent;
+}
+
+.liveops-hub-rail-pin:hover {
+    background-color: var(--unity-colors-highlight-background-hover);
+}
+
+/* Hai mũi tên của nút ‹› phải cách nhau. Vì sao không để sát: chevron là ô 5x5 XOAY 45 độ, nên khung bao thật của nó rộng
+   7,1px chứ không phải 5px — hai ô layout kề nhau làm hai khung bao chồng 2,1px và cổng bố cục đọc ra "hai khối đè lên
+   nhau" (RC-04, đỏ ở 700 và 820 cả hai ngôn ngữ). 2px mỗi bên đẩy tâm hai mũi cách nhau 9px > 7,1px nên hết chồng, và
+   khe hở cũng làm cặp mũi đọc rõ là "mở rộng / thu lại" thay vì một khối nhoè. */
+.liveops-hub-rail-pin > .liveops-hub-chevron {
+    margin-left: 2px;
+    margin-right: 2px;
+}
+
+.liveops-hub-rail-narrow {
+    display: none;
+    flex-grow: 1;
+    flex-shrink: 1;
+    flex-direction: column;
+    align-items: center;
+    padding-top: 4px;
+}
+
+/* Ô tầng 36×32 với icon 16 ở giữa và dấu 7px ghim góc phải trên (right 5, top 5). */
+.liveops-hub-rail-narrow-cell {
+    width: 36px;
+    height: 32px;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+}
+
+.liveops-hub-rail-narrow-cell:hover {
+    background-color: var(--unity-colors-highlight-background-hover);
+}
+
+.liveops-hub-rail-narrow-cell--active {
+    background-color: var(--unity-colors-highlight-background-inactive);
+}
+
+.liveops-hub-rail--has-focus .liveops-hub-rail-narrow-cell--active {
+    background-color: var(--unity-colors-highlight-background);
+}
+
+/* Ô icon lỗi ở ĐÁY rail thu gọn (ô chặn thu lại còn đúng một dấu) — margin-top:auto đẩy xuống đáy cột. */
+.liveops-hub-rail-narrow-cell--blocker {
+    margin-top: auto;
+    margin-bottom: 4px;
+}
+
+.liveops-hub-rail-narrow-mark {
+    position: absolute;
+    right: 5px;
+    top: 5px;
+}
+
+.liveops-hub--narrow .liveops-hub-rail {
+    width: 36px;
+}
+
+.liveops-hub--narrow .liveops-hub-rail-pin {
+    display: flex;
+}
+
+.liveops-hub--narrow .liveops-hub-rail-narrow {
+    display: flex;
+}
+
+.liveops-hub--narrow .liveops-hub-rail-caption {
+    display: none;
+}
+
+.liveops-hub--narrow .liveops-hub-rail-scroll {
+    display: none;
+}
+
+.liveops-hub--narrow .liveops-hub-rail-blocker-host {
+    display: none;
+}
+
+/* Đã ghim mở: rail về đúng 196 px dù cửa sổ vẫn hẹp — người dùng chọn thấy đủ chữ và chịu mất chỗ của cột nội dung.
+   Năm luật dưới CÙNG specificity với sáu luật --narrow ở trên (hai class) nên thắng nhờ ĐỨNG SAU; viết rời (không ghép
+   .liveops-hub--narrow.liveops-hub--rail-pinned-open) để mỗi class còn một selector của riêng mình. Cửa sổ rộng thì năm
+   luật này không đổi gì: rail vốn đã 196, ba phần kia (caption, scroll, ô chặn) vốn đã hiện và hình rail thu gọn vốn đã ẩn.
+   Luật --narrow thứ sáu là nút ‹› ghim: nút chỉ hiện ở cửa sổ hẹp nên ghim mở KHÔNG được ẩn nó — bấm xong còn phải bấm lại. */
+.liveops-hub--rail-pinned-open .liveops-hub-rail {
+    width: 196px;
+}
+
+.liveops-hub--rail-pinned-open .liveops-hub-rail-narrow {
+    display: none;
+}
+
+.liveops-hub--rail-pinned-open .liveops-hub-rail-caption {
+    display: flex;
+}
+
+.liveops-hub--rail-pinned-open .liveops-hub-rail-scroll {
+    display: flex;
+}
+
+.liveops-hub--rail-pinned-open .liveops-hub-rail-blocker-host {
+    display: flex;
+}
+
+/* ---------------------------------------------------------------- Cột nội dung 1084px */
+
+.liveops-hub-content {
+    flex-grow: 1;
+    flex-shrink: 1;
+    flex-direction: column;
+    min-width: 0;
+}
+
+/* ---------------------------------------------------------------- Section header 36px — [FD §3.6] */
+
+/*
+ * W9-01: cao THEO NỘI DUNG với sàn 36px thay vì khoá cứng 36. Vì sao: phụ đề màn Xuất JSON dài 225px (vi) / 266px (en) —
+ * ở mọi cỡ dưới 1100 nó không còn chỗ trên một dòng. Khoá cứng chiều cao thì lựa chọn duy nhất còn lại là CẮT chữ; mở
+ * sàn ra thì phụ đề xuống dòng và không mất chữ nào. Ở 1280 nội dung vẫn vừa một dòng nên chiều cao đo được y hệt 36
+ * (HubLayoutTests.Shell_1280x760_Measurements canh đúng số đó).
+ */
+.liveops-hub-section-header {
+    min-height: 36px;
+    flex-shrink: 0;
+    flex-direction: row;
+    align-items: center;
+    align-content: center;
+    padding: 0 10px;
+    background-color: var(--unity-colors-toolbar-background);
+    border-bottom-width: 1px;
+    border-bottom-color: var(--unity-colors-window-border);
+}
+
+.liveops-hub-section-heading {
+    flex-grow: 1;
+    flex-shrink: 1;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.liveops-hub-section-title {
+    margin: 0;
+    padding: 0;
+    font-size: 12px;
+    -unity-font-style: bold;
+}
+
+/*
+ * W9-01: phụ đề XUỐNG DÒNG thay vì rút bằng "…". Phụ đề là câu nói màn này đang làm gì với dữ liệu nào ("JSON cho key
+ * liveops_calendar, so với lần đăng gần nhất") — rút nó đi là bỏ đúng nửa mang thông tin. Ellipsis chỉ đúng khi phần bị
+ * bỏ đoán được; ở đây không đoán được.
+ */
+.liveops-hub-section-subtitle {
+    margin: 0;
+    padding: 0;
+    font-size: 10px;
+    opacity: 0.82;
+    white-space: normal;
+}
+
+.liveops-hub-section-actions {
+    flex-shrink: 0;
+    flex-direction: row;
+    align-items: center;
+    margin-left: 4px;
+}
+
+.liveops-hub-section-actions--empty {
+    display: none;
+}
+
+/*
+ * W9-01, dưới 1100px: tiêu đề + phụ đề chiếm TRỌN dòng đầu, nhóm nút xuống dòng hai. Vì sao đặt ở --medium chứ không ở
+ * --narrow: ô đo được của phụ đề màn Xuất JSON là 191px ở 1024 và 117px ở 950 trong khi chữ cần 266 — dải 900…1099 cũng
+ * đã chật, lùi tới --narrow là để hai cỡ đó cắt chữ trong im lặng. Ở 1280 nhóm nút vẫn nằm cùng dòng nên chiều cao
+ * header giữ đúng 36px.
+ */
+.liveops-hub--medium .liveops-hub-section-header {
+    flex-direction: column;
+    align-items: stretch;
+    padding-top: 4px;
+    padding-bottom: 4px;
+}
+
+.liveops-hub--medium .liveops-hub-section-actions {
+    margin-left: 0;
+    margin-top: 4px;
+}
+
+/* ---------------------------------------------------------------- Note đầu thân (đang biên dịch — Hình 28 khung 3) */
+
+.liveops-hub-shell-notes {
+    flex-shrink: 0;
+    flex-direction: column;
+}
+
+.liveops-hub-note {
+    flex-direction: row;
+    align-items: center;
+    margin: 8px 10px 0 10px;
+    padding: 4px 8px;
+    border-width: 1px;
+    border-radius: 3px;
+    border-color: var(--unity-colors-window-border);
+    background-color: var(--unity-colors-toolbar-background);
+}
+
+.liveops-hub-note-text {
+    margin: 0 0 0 6px;
+    padding: 0;
+    white-space: normal;
+}
+
+/* ---------------------------------------------------------------- Thân màn */
+
+.liveops-hub-section-body {
+    flex-grow: 1;
+    flex-shrink: 1;
+    min-height: 0;
+    flex-direction: column;
+}
+
+/* ---------------------------------------------------------------- Status bar 20px — [FD §3.4] */
+
+.liveops-hub-status {
+    height: 20px;
+    flex-shrink: 0;
+    flex-direction: row;
+    align-items: center;
+    padding: 0 8px;
+    background-color: var(--unity-colors-toolbar-background);
+    border-top-width: 1px;
+    border-top-color: var(--unity-colors-window-border);
+}
+
+.liveops-hub-status-left {
+    flex-grow: 1;
+    flex-shrink: 1;
+    flex-direction: row;
+    align-items: center;
+    min-width: 0;
+    opacity: 0.82;
+    /* (UX-20) Chốt chặn cuối: con nào quên khai co vẫn bị cắt ở mép vế trái thay vì vẽ đè lên giờ UTC bên phải. */
+    overflow: hidden;
+}
+
+.liveops-hub-status-text {
+    margin: 0;
+    padding: 0;
+    font-size: 10px;
+    /* (UX-20) Khai co TƯỜNG MINH: text-overflow chỉ có việc khi element đã bị ép hẹp hơn chữ. Vế phải khai lại
+       flex-shrink: 0 ngay dưới nên giờ UTC vẫn không bao giờ bị cắt. */
+    flex-shrink: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.liveops-hub-status-mark {
+    margin-right: 6px;
+}
+
+/* Chưa có câu trạng thái thì ẩn dấu nhưng giữ chỗ — một vòng rỗng không kèm lý do sẽ bị đọc thành trạng thái thật. */
+.liveops-hub-status-mark--hidden {
+    visibility: hidden;
+}
+
+/*
+ * (UX-20 / UJ-19) Khoảng cách 6 px cũ làm câu trái đã cắt "…" dính luôn vào giờ UTC và đọc thành một câu
+ * ("…Move hunt-091…13/9 08:47 UTC"). 12 px là mức đọc ra hai vế mà vẫn không lấy thêm chỗ đáng kể của vế trái — dùng
+ * token space-12 chứ không viết số, như mọi luật khoảng cách khác của khung (soát W8-UX R14).
+ */
+.liveops-hub-status-right {
+    flex-shrink: 0;
+    margin-left: 12px;
+    opacity: 0.7;
+}
+
+/* ---------------------------------------------------------------- Card lỗi — [FD §4.1] khung 1 (màn ném) và 2 (thiếu UXML) */
+
+.liveops-hub-failure {
+    margin: 10px;
+    padding: 8px 10px;
+    border-width: 1px;
+    border-left-width: 3px;
+    border-radius: 3px;
+    border-color: var(--unity-colors-window-border);
+    border-left-color: var(--liveops-hub-color-blocked-fill);
+    background-color: var(--unity-colors-toolbar-background);
+}
+
+/* Thiếu UXML: card là thứ duy nhất trong cửa sổ, nên chiếm bề ngang đọc được thay vì trải hết. */
+.liveops-hub-failure--window {
+    max-width: 720px;
+}
+
+.liveops-hub-failure-head {
+    flex-direction: row;
+    align-items: center;
+}
+
+.liveops-hub-failure-title {
+    flex-grow: 1;
+    flex-shrink: 1;
+    margin: 0 0 0 6px;
+    padding: 0;
+    font-size: 12px;
+    -unity-font-style: bold;
+    white-space: normal;
+}
+
+.liveops-hub-failure-body {
+    margin: 6px 0 0 0;
+    padding: 0;
+    opacity: 0.9;
+    white-space: normal;
+}
+
+.liveops-hub-failure-actions {
+    flex-direction: row;
+    margin-top: 8px;
+}
+
+.liveops-hub-failure-footnote {
+    margin: 8px 0 0 0;
+    padding: 0;
+    font-size: 10px;
+    opacity: 0.7;
+    white-space: normal;
+}
+
+/* ---------------------------------------------------------------- Trạng thái trống — [FD §4] */
+
+.liveops-hub-empty {
+    padding: 16px;
+    max-width: 520px;
+}
+
+.liveops-hub-empty-title {
+    margin: 0 0 4px 0;
+    padding: 0;
+    font-size: 12px;
+    -unity-font-style: bold;
+    white-space: normal;
+}
+
+.liveops-hub-empty-body {
+    margin: 0;
+    padding: 0;
+    white-space: normal;
+}
+
+/* ---------------------------------------------------------------- Chỗ cắm outcome + băng đĩa (G-HOSTUI, W4) */
+
+/* Host rỗng không chiếm chỗ: outcome tự có margin-top 8 khi hiện (liveops-hub-feedback.uss). */
+.liveops-hub-outcome-host {
+    flex-shrink: 0;
+    flex-direction: column;
+    padding: 0 10px;
+}
+
+/* Băng "tệp đã đổi trên đĩa" (4.3): dựng trong hub-shell-notes cùng khuôn với note đang biên dịch, thêm hàng nút. */
+/* Hình 28 khung 4 là HelpBox CẢNH BÁO: sọc trái 3px màu warning + icon, để băng này không lẫn với note "đang biên dịch"
+   (cùng lớp .liveops-hub-note) — một cái chỉ báo tin, cái kia đang đòi người dùng quyết. */
+.liveops-hub-disk-banner {
+    flex-direction: column;
+    align-items: stretch;
+    border-left-width: 3px;
+    border-left-color: var(--liveops-hub-color-warning-fill);
+}
+
+.liveops-hub-disk-banner-head {
+    flex-direction: row;
+    align-items: flex-start;
+}
+
+.liveops-hub-disk-banner-text {
+    flex-grow: 1;
+    flex-shrink: 1;
+    font-size: 11px;
+    white-space: normal;
+    padding: 0;
+    margin: 0 0 0 6px;
+}
+
+.liveops-hub-disk-banner-actions {
+    flex-direction: row;
+    align-items: center;
+    margin-top: 6px;
+}
+
+.liveops-hub-disk-banner-actions > Button {
+    height: 18px;
+    min-width: 54px;
+    margin-left: 0;
+    margin-right: 6px;
+}

@@ -1,0 +1,20 @@
+{
+    "name": "DreamTech.LiveOps.Tests.Support",
+    "rootNamespace": "DreamTech.LiveOps.Tests",
+    "references": [
+        "DreamTech.LiveOps"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": false,
+    "defineConstraints": [
+        "UNITY_INCLUDE_TESTS"
+    ],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

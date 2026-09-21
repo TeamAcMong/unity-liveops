@@ -1,0 +1,26 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" editor-extension-mode="True">
+    <!--
+        Bố cục màn Lịch (7.3, [SD1 §3.1]): toolbar màn → thân gồm TwoPaneSplitView (CHỈ Danh sách | cột timeline) và inspector là
+        sibling 280px NGOÀI split — split tự ghi style inline lên hai pane con nên inspector nằm trong đó sẽ mất bề rộng cố định,
+        và ở breakpoint medium inspector phải thành drawer phủ lên timeline (W5). Tên element (name) là hợp đồng với
+        LiveOpsHubPaths.CalendarElementNames — đổi ở đây thì sửa hằng cùng nhịp, probe và test Q theo đúng các tên đó.
+        Không có chữ trong file này: mọi câu lấy từ LiveOpsHubStrings (code-lint chặn chữ hiển thị trong UXML).
+        Control timeline dựng từ C# (LiveOpsTimelineElement) và gắn vào cột timeline với tên "calendar-timeline".
+    -->
+    <ui:VisualElement name="calendar-root" class="liveops-hub-calendar-fill-height">
+        <ui:VisualElement name="calendar-empty" class="liveops-hub-empty" />
+        <uie:Toolbar name="calendar-toolbar" class="liveops-hub-calendar-toolbar" />
+        <ui:VisualElement name="calendar-main" class="liveops-hub-calendar-main liveops-hub-calendar-fill-height">
+            <ui:TwoPaneSplitView name="calendar-split" class="liveops-hub-calendar-split liveops-hub-calendar-fill-height" orientation="Horizontal"
+                                 fixed-pane-index="0" fixed-pane-initial-dimension="240" view-data-key="liveops-hub-calendar-split">
+                <ui:VisualElement name="calendar-list-pane" class="liveops-hub-calendar-list-pane" />
+                <ui:VisualElement name="calendar-timeline-column" class="liveops-hub-calendar-timeline-column liveops-hub-calendar-fill-height" />
+            </ui:TwoPaneSplitView>
+            <ui:VisualElement name="calendar-inspector" class="liveops-hub-inspector">
+                <ui:VisualElement name="calendar-inspector-title" class="liveops-hub-calendar-inspector-title" />
+                <ui:ScrollView name="calendar-inspector-body" class="liveops-hub-calendar-inspector-body"
+                               view-data-key="liveops-hub-calendar-inspector-body" />
+            </ui:VisualElement>
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

@@ -1,0 +1,20 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" editor-extension-mode="True">
+    <!--
+        Popover Thêm đợt [SD1 §3.11]: ba bước ẩn hiện trong cùng một container liveops-hub-create-flow (không phải ba cửa sổ), header
+        24px có tiêu đề + ba step-dot, hàng nút dính đáy. Tên element là hợp đồng với LiveOpsHubPaths.AddEventPopoverElementNames.
+        Không có chữ trong file này: mọi câu lấy từ LiveOpsHubStrings (code-lint chặn chữ hiển thị trong UXML).
+    -->
+    <ui:VisualElement name="add-event-root" class="liveops-hub-create-flow">
+        <ui:VisualElement name="add-event-header" class="liveops-hub-calendar-flow-header">
+            <ui:Label name="add-event-header-title" />
+            <ui:VisualElement name="add-event-step-dots" class="liveops-hub-calendar-flow-header" />
+        </ui:VisualElement>
+        <ui:VisualElement name="add-event-step-type" class="liveops-hub-calendar-flow-step">
+            <ui:TextField name="add-event-type-filter" />
+            <ui:ScrollView name="add-event-type-list" />
+        </ui:VisualElement>
+        <ui:VisualElement name="add-event-step-times" class="liveops-hub-calendar-flow-step" />
+        <ui:VisualElement name="add-event-step-review" class="liveops-hub-calendar-flow-step" />
+        <ui:VisualElement name="add-event-buttons" class="liveops-hub-calendar-flow-buttons" />
+    </ui:VisualElement>
+</ui:UXML>

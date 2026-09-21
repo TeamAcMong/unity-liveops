@@ -1,0 +1,326 @@
+/*
+ * EventTypesSection.uss — màn Loại event (7.2, Hình 10): bảng loại | inspector 300px, footer bảng, dòng loại chưa khai báo
+ * (Hình 10b) và dãy tám ô màu 18×18 của inspector.
+ *
+ * Số đo là hợp đồng với ảnh chụp (inspector 300 · footer 10px opacity 0,82 · ô màu 18×18 chứa swatch 12×12 · swatch bảng 9×9).
+ * UI Toolkit tính width/height GỒM viền và padding (border-box), nên viền 1px của inspector nằm trong 300px.
+ *
+ * Luật: không màu trần (token theme hoặc --unity-colors-*), không gap/:last-child/@media — khoảng cách là margin của phần tử
+ * đứng sau; cửa sổ hẹp dùng class --medium/--narrow/--compact do LiveOpsHubBreakpoints bật trên root.
+ */
+
+.liveops-hub-event-types-body {
+    flex-grow: 1;
+    flex-direction: column;
+}
+
+.liveops-hub-event-types-hidden {
+    display: none;
+}
+
+/* ---------------------------------------------------------------- Bố cục: bảng flex 1 | inspector 300px [SD1 §2.1] */
+
+.liveops-hub-event-types-content {
+    flex-grow: 1;
+    flex-direction: row;
+}
+
+.liveops-hub-event-types-table-column {
+    flex-grow: 1;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.liveops-hub-event-types-table-host {
+    flex-grow: 1;
+    min-height: 60px;
+}
+
+.liveops-hub-event-types-table {
+    flex-grow: 1;
+}
+
+/*
+ * Cửa sổ hẹp: inspector xuống 240px thay vì đẩy bảng còn vài chục pixel (bảng mới là thứ người dùng đọc trước).
+ * (W9-05) Mốc đổi từ --narrow (<900) sang --medium (<1100): ở 1024px bảng chỉ còn 527px cho tám cột cần tối thiểu 668px,
+ * tức chính cỡ đó cũng đã thiếu chỗ. 60px trả lại cho bảng ở 1024 đủ để giữ thêm một cột chữ thay vì bỏ đi.
+ */
+.liveops-hub-event-types-inspector {
+    width: 300px;
+    flex-shrink: 0;
+    flex-direction: column;
+    padding: 6px 4px;
+    border-left-width: 1px;
+    border-left-color: var(--unity-colors-window-border);
+}
+
+.liveops-hub--medium .liveops-hub-event-types-inspector {
+    width: 240px;
+}
+
+/* ---------------------------------------------------------------- Nút chính "Thêm loại" của section header [SD1 §2.1] */
+
+/*
+ * Button LÀ một TextElement: `Button.text` được chính nút vẽ trên toàn bộ hộp nội dung, nên Image con chỉ chồng lên chữ chứ
+ * không đẩy chữ sang phải. Nút này bỏ `text`, xếp Image rồi Label thành hàng — [FD §2.12]: icon 14×14, margin-left −2,
+ * margin-right 4, flex-shrink 0.
+ */
+.liveops-hub-event-types-add-button {
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+}
+
+.liveops-hub-event-types-add-button-icon {
+    margin-left: -2px;
+    margin-right: 4px;
+}
+
+.liveops-hub-event-types-add-button-label {
+    margin: 0;
+    padding: 0;
+}
+
+/* ---------------------------------------------------------------- Bảng */
+
+.liveops-hub-event-types-cell {
+    flex-grow: 1;
+    margin: 0;
+    padding: 0 4px;
+    overflow: hidden;
+    -unity-text-align: middle-left;
+}
+
+.liveops-hub-event-types-cell--right {
+    -unity-text-align: middle-right;
+}
+
+/* (W9-31) Ô căn giữa là HÀNG NGANG và chỉ căn giữa SWATCH: ô màu 44px chứa swatch 9x9 ở đúng tâm cột, dấu trạng thái 8x8
+   đứng ở mép phải. Để cột dọc mặc định thì hai thứ chồng lên nhau trong hàng cao 22px. */
+.liveops-hub-event-types-cell--center {
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+}
+
+/* (soát W10 F5) Dấu nằm NGOÀI dòng chảy (position: absolute), không đứng cạnh swatch trong hàng. Lý do: dấu luôn có trong
+   cây và chỉ ẩn bằng `visible` — ẩn kiểu đó vẫn CHIẾM CHỖ, nên nếu nó nằm trong hàng thì phép căn giữa đang căn giữa cụm
+   "swatch + dấu" chứ không căn giữa swatch, và swatch lệch trái ~6px ở MỌI hàng, kể cả hàng đã khai nơi dấu không hề được
+   vẽ. Tách ra khỏi dòng chảy thì swatch về đúng tâm cột, mà tính chất "hàng không nhảy một pixel khi đổi trạng thái" còn
+   chặt hơn trước (dấu hiện/ẩn không đụng tới layout của swatch).
+   `right` của Yoga đo từ mép VIỀN của ô, không trừ đệm: 4px ở đây bằng đúng đệm ngang 4px của ô, nên dấu thẳng hàng với
+   mép chữ của các cột khác. Dấu 8x8 (Blocked không có bản nhỏ) + 4px lề phải = 12px, còn cách swatch 5,5px trong 44px. */
+.liveops-hub-event-types-cell--center > .liveops-hub-state-mark {
+    position: absolute;
+    right: var(--liveops-hub-space-4);
+}
+
+/* Hàng loại chưa khai báo (Hình 10b): mờ 0,7 để đọc được mà vẫn khác hẳn hàng thật, KHÔNG ẩn — hàng này là thứ phải xử lý. */
+.liveops-hub-event-types-row--undeclared {
+    opacity: 0.7;
+}
+
+/*
+ * Swatch rỗng viền quiet: loại chưa khai báo thì hub chưa biết màu nào, tô đại một màu là nói dối. Không đặt background-color —
+ * .liveops-hub-swatch không có nền sẵn, hàng chưa khai báo chỉ KHÔNG gắn class liveops-hub-event-color-N nào. Thiết kế vẽ viền
+ * đứt, USS không có border-style nên viền liền màu quiet là bản gần nhất ([API §12]: không có dashed border trong UI Toolkit).
+ */
+.liveops-hub-event-types-swatch--undeclared {
+    border-width: 1px;
+    /* (W10-09) Token riêng chứ không phải --liveops-hub-color-quiet: cả ô mang opacity 0,7 ở luật ngay trên, và viền là
+       HÌNH KHỐI nên bậc phải đạt là 3:1 SAU khi nhân opacity ấy — khác bậc của quiet, vốn là màu CHỮ chỉnh theo 4,5:1.
+       Lúc mở phiếu W10-09, quiet skin sáng là #4F4F4F và hợp thành chỉ còn 2,82:1. Lý do tách token không nằm ở con số
+       ấy mà ở chỗ HAI BẬC KHÁC NHAU: buộc chúng dùng chung một màu thì lần chỉnh quiet kế tiếp sẽ kéo viền xuống dưới
+       3:1 mà không ca nào báo. Số đo hiện tại của viền nằm trong chú thích token ở liveops-hub-theme.uss. */
+    border-color: var(--liveops-hub-color-undeclared-border);
+}
+
+.liveops-hub-event-types-footer {
+    flex-shrink: 0;
+    margin: 0;
+    padding: 6px 8px;
+    font-size: 10px;
+    opacity: 0.82;
+    white-space: normal;
+    border-top-width: 1px;
+    border-top-color: var(--unity-colors-window-border);
+}
+
+/* ---------------------------------------------------------------- Dòng Blocked của loại chưa khai báo [SD1 §2.2] */
+
+/*
+ * Dải là CỘT: BuildUnknownBar thêm một hàng cho MỖI loại chưa khai báo, mà bản dán có thể có hai loại lạ cùng lúc. Để dải là
+ * hàng ngang thì hai hàng nằm cạnh nhau và bị bóp — và hàng con không có flex-grow nên nút "Khai báo" dừng ngay sau chữ thay
+ * vì ra mép phải như [SD1 §2.2] vẽ.
+ */
+.liveops-hub-event-types-unknown-bar {
+    flex-shrink: 0;
+    flex-direction: column;
+    padding: 6px;
+    border-top-width: 1px;
+    border-top-color: var(--unity-colors-window-border);
+}
+
+.liveops-hub-event-types-unknown-row {
+    flex-direction: row;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+/* Hàng đầu sát viền trên của dải (đã có padding 6); từ hàng thứ hai mới cần khoảng cách — USS không có :first-child. */
+.liveops-hub-event-types-unknown-row--stacked {
+    margin-top: 4px;
+}
+
+/* Chữ giãn đẩy nút "Khai báo" sang mép phải; 8px là khoảng cách gap của thiết kế, USS không có gap nên là margin. */
+.liveops-hub-event-types-unknown-text {
+    flex-grow: 1;
+    margin: 0 8px;
+    padding: 0;
+    white-space: normal;
+}
+
+.liveops-hub-event-types-reference-card {
+    flex-shrink: 0;
+    margin: 0 6px 6px 6px;
+}
+
+.liveops-hub-event-types-reference-text {
+    flex-direction: column;
+    flex-grow: 1;
+    padding: 4px 0;
+    min-width: 0;
+}
+
+/* Icon err 16px của hàng phát hiện ([FD §2.12]: hàng phát hiện dùng cỡ 16); 6px là khoảng cách tới cột chữ. */
+.liveops-hub-event-types-reference-icon {
+    margin-right: 6px;
+}
+
+/* ---------------------------------------------------------------- Inspector */
+
+.liveops-hub-event-types-inspector-title {
+    flex-direction: row;
+    align-items: center;
+    height: 20px;
+    flex-shrink: 0;
+    margin-bottom: 4px;
+}
+
+.liveops-hub-event-types-field {
+    flex-direction: row;
+    align-items: center;
+    margin-top: 4px;
+}
+
+.liveops-hub-event-types-inspector-title-text {
+    flex-grow: 1;
+    margin: 0 4px;
+    padding: 0;
+    -unity-font-style: bold;
+    overflow: hidden;
+}
+
+/*
+ * (W9-05, lộ ra ở lượt EditMode 2022.3) Ô giá trị phải lấy ĐÚNG phần còn lại của hàng: bề rộng hàng trừ nhãn 99px.
+ * Ở 2022.3, một BaseField (TextField/Toggle) không khai flex-basis thì lấy bề rộng cơ sở bằng TRỌN bề rộng hàng rồi
+ * mới bị đẩy sang phải sau nhãn — kết quả là ô tràn khỏi hàng đúng 99px ở MỌI cỡ cửa sổ, kể cả 1920, và icon khoá
+ * cạnh ô id bị đẩy ra ngoài theo 111px. 6000.6 không có triệu chứng đó, nên không khai tường minh thì lỗi chỉ hiện ở
+ * một bản Unity. `flex-basis: 0` bỏ hẳn bề rộng cơ sở theo nội dung: ô nhận đúng phần chia của flexbox.
+ */
+.liveops-hub-event-types-field-value {
+    flex-grow: 1;
+    flex-shrink: 1;
+    flex-basis: 0;
+    width: auto;
+    margin: 0;
+    min-width: 0;
+}
+
+.liveops-hub-event-types-field-label {
+    width: 99px;
+    flex-shrink: 0;
+    margin: 0;
+    padding: 0 4px 0 0;
+    overflow: hidden;
+}
+
+/* Dòng phụ thẳng cột giá trị (nhãn 99 + padding 4 = 103) — cùng mốc với nút "Về màu theo băm" [SD1 §2.1]. */
+.liveops-hub-event-types-field-sub {
+    margin: 2px 0 0 103px;
+    padding: 0;
+    font-size: 10px;
+    white-space: normal;
+}
+
+/*
+ * (W9-05) flex-wrap: tám ô 18px là 144px, còn cột giá trị của inspector chỉ rộng ~130px khi inspector co về 240px — ô thứ
+ * tám bị đẩy 12px ra ngoài cha. Cho dãy xuống dòng: người dùng vẫn bấm được cả tám màu, chỉ là hai hàng bốn ô.
+ */
+.liveops-hub-event-types-color-slots {
+    flex-direction: row;
+    flex-wrap: wrap;
+    flex-grow: 1;
+}
+
+.liveops-hub-event-types-color-slot {
+    width: 18px;
+    height: 18px;
+    margin: 0;
+    padding: 0;
+    align-items: center;
+    justify-content: center;
+}
+
+.liveops-hub-event-types-color-swatch {
+    width: 12px;
+    height: 12px;
+}
+
+/* Gợi ý ô trống khi còn trùng màu: chỉ viền, KHÔNG tự ghi màu (PD Q1 [SD1 Q1] — người dùng bấm mới ghi). */
+.liveops-hub-event-types-color-slot--suggested {
+    border-width: 1px;
+    border-color: var(--liveops-hub-color-focus);
+}
+
+.liveops-hub-event-types-usage-card {
+    margin: 10px 3px 0 3px;
+    padding: 6px 8px;
+    flex-shrink: 0;
+}
+
+/*
+ * (W9-05) Câu "n đợt cố định · đợt tới …" dài theo dữ liệu (bản tiếng Anh cần 223px trong card rộng 204px). Card nằm trong
+ * inspector 240–300px nên không nới được — cho xuống dòng.
+ */
+.liveops-hub-event-types-usage-text {
+    white-space: normal;
+}
+
+/*
+ * (W9-05, soát R-01) Dòng khai báo cột bị ẩn. Hàng ngang icon + chữ, chữ ĐƯỢC xuống dòng: câu liệt kê tới bốn tên cột
+ * nên ở cửa sổ 700 nó dài hơn một dòng, và cắt chính câu đang giải thích việc bị cắt thì vô nghĩa.
+ * align-items: flex-start để icon bám dòng chữ ĐẦU khi câu xuống nhiều dòng, không trôi xuống giữa khối.
+ */
+.liveops-hub-event-types-columns-hidden-note {
+    flex-direction: row;
+    align-items: flex-start;
+    flex-shrink: 0;
+    margin-top: var(--liveops-hub-space-4);
+}
+
+.liveops-hub-event-types-columns-hidden-note-icon {
+    width: 14px;
+    height: 14px;
+    flex-shrink: 0;
+    margin-right: var(--liveops-hub-space-4);
+}
+
+/*
+ * KHÔNG hạ opacity ở đây: W9-21 đo tương phản theo màu ĐÃ HỢP THÀNH (nhân opacity của tổ tiên), và một câu giải thích
+ * mà chính nó mờ dưới ngưỡng WCAG thì lại là một lỗi đọc mới.
+ */
+.liveops-hub-event-types-columns-hidden-note-text {
+    flex-shrink: 1;
+    white-space: normal;
+}

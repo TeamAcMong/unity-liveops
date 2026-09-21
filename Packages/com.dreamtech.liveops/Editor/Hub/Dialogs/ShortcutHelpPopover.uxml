@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Popover "Hiện hướng dẫn phím tắt" ([FD §3.3], ma trận 9.5 ảnh ho-shortcut-help) — PopupWindow 320px riêng.
+  Hai nhóm phím và mọi hàng do C# dựng vào `shortcut-help-groups`: số hàng phụ thuộc profile phím của người dùng (một lệnh bị
+  gỡ phím vẫn có hàng, một lệnh mới đăng ký là có thêm hàng), nên viết cứng trong UXML là bảng nói sai ngay lần đầu ai đó đổi phím.
+  Danh sách nằm trong ScrollView: hai nhóm cộng lại cao hơn cửa sổ popover, để nó nở theo nội dung thì dòng ghi chú và hàng nút
+  rơi khỏi khung — đúng lỗi mà popover dán đã trả giá ở W5.
+  Dòng lý do (`shortcut-help-open-failed-reason`) khai sẵn và ẩn bằng CLASS: lý do khoá/hỏng luôn in thành CHỮ cạnh nút (SP-3),
+  và trạng thái không được gán style inline ([FD §2.14]).
+  Không câu chữ nào trong file này — mọi label do C# đổ từ LiveOpsHubStrings (lint chặn chữ hiển thị trong UXML).
+-->
+<ui:UXML xmlns:ui="UnityEngine.UIElements">
+    <ui:VisualElement name="shortcut-help-body" class="liveops-hub-shortcut-help">
+        <ui:Label name="shortcut-help-header" class="liveops-hub-shortcut-help-header" />
+        <ui:ScrollView name="shortcut-help-scroll" class="liveops-hub-shortcut-help-scroll">
+            <ui:VisualElement name="shortcut-help-groups" class="liveops-hub-shortcut-help-groups" />
+        </ui:ScrollView>
+        <ui:Label name="shortcut-help-note" class="liveops-hub-shortcut-help-note" />
+        <ui:Label name="shortcut-help-open-failed-reason" class="liveops-hub-text--blocked liveops-hub-shortcut-help-hidden" />
+        <ui:VisualElement name="shortcut-help-footer" class="liveops-hub-shortcut-help-footer">
+            <ui:Button name="shortcut-help-close" class="liveops-hub-button" />
+            <ui:Button name="shortcut-help-open-shortcut-manager" class="liveops-hub-button liveops-hub-button--primary" />
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

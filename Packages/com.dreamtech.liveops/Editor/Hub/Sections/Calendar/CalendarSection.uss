@@ -1,0 +1,560 @@
+/* Màn Lịch [SD1 §3.1, §3.9, §3.11]. Số đo bám mockup: inspector 280px, toolbar 21px, ô tìm 160px, popover 320px.
+   Class dùng chung (liveops-hub-inspector, -card, -tag, -mono…) đã có ở liveops-hub-components.uss; file này chỉ thêm phần
+   riêng của màn. Không màu trần: mọi màu đi qua token của liveops-hub-theme.uss. */
+
+.liveops-hub-calendar--hidden {
+    display: none;
+}
+
+.liveops-hub-calendar-toolbar {
+    height: 21px;
+    flex-shrink: 0;
+}
+
+.liveops-hub-calendar-toolbar-group {
+    flex-direction: row;
+    align-items: center;
+    margin-left: var(--liveops-hub-space-4);
+}
+
+.liveops-hub-calendar-toolbar-spacer {
+    flex-grow: 1;
+}
+
+.liveops-hub-calendar-search {
+    width: 160px;
+    flex-shrink: 0;
+}
+
+/* Toolbar rút gọn ở --narrow (8.8 [FD §4.2]) — dưới 900px thanh đủ bị cắt mất vế phải: tab zoom nhường chỗ cho menu "3 tuần ▾",
+   "Danh sách" / "Hôm nay (T)" / "Chú giải" vào menu ⋮ (ô tìm đã co còn 120px từ bậc --snug). Mọi phần tử vẫn ở trong cây:
+   đổi theo class chứ không dựng lại toolbar, nên kéo rộng cửa sổ ra là mọi trạng thái còn nguyên. */
+.liveops-hub-calendar-zoom-menu {
+    display: none;
+}
+
+.liveops-hub-calendar-overflow-menu {
+    display: none;
+}
+
+.liveops-hub--narrow .liveops-hub-calendar-zoom-tabs {
+    display: none;
+}
+
+.liveops-hub--narrow .liveops-hub-calendar-zoom-menu {
+    display: flex;
+}
+
+.liveops-hub--narrow .liveops-hub-calendar-overflow-menu {
+    display: flex;
+    flex-shrink: 0;
+}
+
+.liveops-hub--narrow .liveops-hub-calendar-list-toggle {
+    display: none;
+}
+
+.liveops-hub--narrow .liveops-hub-calendar-today-button {
+    display: none;
+}
+
+/* (UX-29, V5) Ở 820px toolbar còn thừa "Bắt lưới: Tự động ▾" nên ô tìm bị ép và vế phải tràn; mục này đã có đường lệnh trong
+   menu ⋮ nên chỗ của nó khi hẹp là menu đó, không phải thanh.
+   (R-05 lượt soát 2) Luật --narrow cho công tắc "So với đã đăng" ĐÃ XOÁ vì thành code chết: breakpoint bật CỘNG DỒN
+   (--snug dưới 1000, --narrow dưới 900) nên từ W9-20 mọi cửa sổ --narrow đều đã mang --snug, mà --snug ẩn công tắc rồi.
+   Nhãn lý do thì KHÔNG xoá: từ R-04 nó Ở LẠI thanh ở bậc --snug, nên luật dưới đây là chỗ DUY NHẤT nhường nốt nó, ở dải
+   dưới 900px — nơi thanh không còn chỗ cho một câu dài và menu ⋮ là đường vào duy nhất của mọi lệnh đã rời thanh. */
+.liveops-hub--narrow .liveops-hub-calendar-snap-menu {
+    display: none;
+}
+
+.liveops-hub--narrow .liveops-hub-calendar-disabled-reason {
+    display: none;
+}
+
+/* (RC-05) Ở 1024x700 TIẾNG VIỆT toolbar vẫn đầy tuy chưa tới --narrow: đo được "6/9/2026 – 27/9/2026" cần 126 chỉ có 111,
+   "Hôm nay (T)" cần 70 có 61, "Bắt lưới: Tự động" cần 96 có 84 — ba nhãn cùng bị bóp vì tổng bề ngang vượt thanh. Chuỗi
+   tiếng Việt dài hơn tiếng Anh nên tiếng Anh ở cùng cỡ thì vừa; USS không đọc được ngôn ngữ, nên luật đặt theo CỠ và áp cho
+   cả hai ngôn ngữ — thà nhường sớm còn hơn cắt chữ ở một ngôn ngữ.
+   Chỉ nhường ĐÚNG MỘT control: menu "Bắt lưới ▾" là thứ ít dùng nhất của thanh và đã có đủ năm mức trong menu ⋮, nên bỏ nó
+   khỏi thanh trả lại ~103px, thừa cho 24px mà menu ⋮ chiếm và cho 24px ba nhãn kia còn thiếu. "Danh sách", "Hôm nay (T)" và
+   "So với đã đăng" vẫn ở lại thanh tới tận --narrow.
+   (R-01 của lượt soát 3) Nhường theo CỠ là CÓ CHỦ ĐÍCH cho cả hai ngôn ngữ, không phải quên gate theo ngôn ngữ — đã đo lại:
+   ở 1024 thanh tiếng Anh còn 113px trống liền mạch, tức bản en ở đúng cỡ đó vẫn đủ chỗ cho menu Bắt lưới. Nhưng --medium
+   trải từ 900 tới 1099 mà ma trận cổng chỉ thử 1024 trong dải đó: menu Bắt lưới bản en đo được rộng 112px, nên gate
+   theo ngôn ngữ sẽ làm thanh tiếng Anh HẾT chỗ ở khoảng dưới 1000px — đúng kiểu cắt chữ ở cửa sổ nhỏ mà đợt này
+   sinh ra để dẹp, lại nằm trong khoảng mù không test nào soi. Muốn giữ menu cho bản en thì phải có breakpoint riêng ở
+   LiveOpsHubBreakpoints (ngoài quyền ghi của gói) — đã mở phiếu, xem contract-changes-G-UX3-CALENDAR.md. */
+.liveops-hub--medium .liveops-hub-calendar-snap-menu {
+    display: none;
+}
+
+/* Menu ⋮ phải hiện từ --medium, không thì mức bắt lưới vừa rời thanh sẽ KHÔNG còn đường vào nào ở dải 900–1100px. */
+.liveops-hub--medium .liveops-hub-calendar-overflow-menu {
+    display: flex;
+    flex-shrink: 0;
+}
+
+/* (W9-20) Bậc --snug (dưới 1000px) — bậc thứ hai của dải mà trước đây chỉ có --medium.
+   Số đo, không phải suy đoán: ở 950×700 tiếng Việt, khi CHƯA có bậc này, nhãn khoảng "6/9/2026 – 27/9/2026" cần 126px mà chỗ
+   trên thanh chỉ còn 116px — thanh đã nhường menu "Bắt lưới" từ --medium rồi vẫn thiếu 10px (đo ở 6000.6 ngày 20/9).
+   Nhường tiếp ĐÚNG MỘT control: công tắc "So với đã đăng (n)". Vì sao nó chứ không phải cái khác — lệnh của nó đã nằm sẵn
+   trong menu ⋮ đang hiện từ --medium, nên nhường nó không cắt đường vào nào; dải tab zoom KHÔNG đụng tới (ô tìm thì có — xem
+   luật ô tìm ngay dưới).
+   (R-04 lượt soát 2) Nhãn lý do Ở LẠI thanh ở bậc này — bản đầu ẩn cả nhãn và đó là một lỗi. Vì sao: lệnh "So với đã đăng"
+   khi bị khoá chỉ còn đường vào qua menu ⋮, mà mục menu bị khoá của DropdownMenuAction KHÔNG mang được tooltip (nhãn mục
+   cũng chốt cứng lúc append), nên ẩn nốt nhãn là kéo vùng "nút khoá mà không một chữ nói vì sao" từ dưới 900px lên dưới
+   1000px — ngược đúng SPIKE-B SP-3. Câu "Chưa có dấu đã đăng" / "No published stamp yet" đứng một mình vẫn đủ nghĩa. Chỗ
+   nhường vẫn dư: chỉ bỏ công tắc đã trả lại ~140px cho 10px còn thiếu, và nhãn lý do CHỈ hiện khi lệnh thật sự bị khoá.
+   Vì sao không đợi tới --narrow: dải 900…999 khi ấy không có bậc nào của riêng nó, mà ma trận cổng trước W9-20 chỉ thử 1024
+   trong cả dải 900…1099 — chỗ cắt chữ ở 950 nằm trong đúng khoảng mù đó. */
+.liveops-hub--snug .liveops-hub-calendar-compare-toggle {
+    display: none;
+}
+
+/* Ô tìm co còn 120px từ bậc này (trước đây từ --narrow). Vì sao phải co sớm hơn một bậc: giữ nhãn lý do trên thanh (R-04) tốn
+   chỗ, và ĐO ở 950×700 tiếng Việt khi mới chỉ bỏ công tắc: nhãn khoảng "6/9/2026 – 27/9/2026" cần 126px mà chỉ còn 122px —
+   thiếu 4px (lượt dò 6000.6 `logs/G-W9-CALENDAR-fix-probe1.log`). Co ô tìm trả lại 40px, đủ dư. Vì sao co ô tìm chứ không ẩn
+   nhãn lý do: ô tìm 120px VẪN gõ được và vẫn đúng bề rộng mà bậc --narrow đã dùng từ UX-29 (không đẻ thêm con số mới), còn
+   nhãn lý do mất đi là mất hẳn câu trả lời "vì sao lệnh này xám". Luật --narrow cũ cho ô tìm đã xoá vì bị bậc này bao trùm. */
+.liveops-hub--snug .liveops-hub-calendar-search {
+    width: 120px;
+}
+
+/* Dải chú giải: ẩn khi hẹp (chỗ của nó là menu ⋮), hiện lại khi người dùng bật mục đó. Luật hai class nên nó thắng luật ẩn
+   một class ở trên mà không cần !important. */
+.liveops-hub--narrow .liveops-hub-timeline-legend {
+    display: none;
+}
+
+.liveops-hub--narrow .liveops-hub-timeline-legend.liveops-hub-calendar-legend-shown {
+    display: flex;
+}
+
+/* (UX-12) Chip làn ẩn = hàng ngang nhãn + nút thật. Nút giữ chiều cao toolbar để vùng bấm đủ lớn. */
+.liveops-hub-calendar-hidden-lanes-chip {
+    flex-shrink: 0;
+    flex-direction: row;
+    align-items: center;
+    margin-left: var(--liveops-hub-space-4);
+}
+
+.liveops-hub-calendar-hidden-lanes-label {
+    font-size: 10px;
+    color: var(--liveops-hub-color-quiet);
+}
+
+.liveops-hub-calendar-hidden-lanes-show {
+    font-size: 10px;
+    margin-left: 4px;
+    padding-left: 5px;
+    padding-right: 5px;
+}
+
+/* (UX-01) Mắt xích giãn của chuỗi gốc màn → main → split → cột timeline. `min-height: 0` là phần bắt buộc: trong flexbox con
+   không co xuống dưới chiều cao nội tại nếu không cho phép, nên ScrollView thân timeline (ở 2022.3 không góp chiều cao nội tại)
+   kéo cả cột về 0. Gắn bằng CLASS chứ không inline để USS còn đọc được ở kiểm bố cục và ảnh chụp. */
+.liveops-hub-calendar-fill-height {
+    flex-grow: 1;
+    min-height: 0;
+}
+
+.liveops-hub-calendar-main {
+    flex-direction: row;
+}
+
+/* Hằng LiveOpsHubClassNames.CalendarSplit thuộc file G-CALENDAR không sửa được ở gói này (ownership.tsv); selector giữ ở đây
+   để check-class-names --strict còn khớp. Không đổi bố cục thật — `liveops-hub-calendar-fill-height` trên cùng element đã
+   làm việc đó (UX-01), nên chỉ còn flex-grow trùng lặp vô hại. */
+.liveops-hub-calendar-split {
+    flex-grow: 1;
+}
+
+.liveops-hub-calendar-list-pane {
+    flex-grow: 1;
+    min-height: 0;
+}
+
+.liveops-hub-calendar-timeline-column {
+    overflow: hidden;
+}
+
+/* Bề rộng 280px của .liveops-hub-inspector nằm ở liveops-hub-components.uss (class DÙNG CHUNG): sheet này chỉ nạp khi màn Lịch
+   dựng, nên để luật ở đây thì mọi màn khác dùng class đó sau W5 sẽ không có bề rộng nào. Ở lại đây: biến thể drawer của màn Lịch. */
+
+/* Drawer ở --medium [SD1 §3.9]: inspector PHỦ bên phải thay vì bóp trục — ở 820px trục còn 616px, đủ 21 ngày ở 1,22 px/giờ.
+   Luật hai class nên nó thắng luật một class ở trên mà không cần !important. */
+.liveops-hub--medium .liveops-hub-inspector {
+    position: absolute;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    border-left-width: 1px;
+    border-left-color: var(--unity-colors-window-border);
+    background-color: var(--unity-colors-window-background);
+}
+
+/* (UX-07, lệch thiết kế V-39) Drawer mở thì cột timeline lùi vào đúng bề rộng drawer. Thiết kế gốc cho drawer PHỦ lên trục,
+   nhưng ở 820px mọi thứ neo mép phải (chip "Đợt tới", nhãn "chồng n giờ", đuôi gợi ý) nằm hẳn dưới drawer và không bấm được —
+   ưu tiên dùng được thắng. Lề đặt trên split, không đặt padding trên `calendar-main`: `right: 0` của drawer đo theo mép padding
+   của cha nên padding sẽ kéo cả drawer vào trong. */
+.liveops-hub--medium .liveops-hub-calendar-drawer-open {
+    margin-right: 280px;
+}
+
+/* Nút đóng chỉ có nghĩa khi inspector là drawer; ở cửa sổ rộng nó không đóng được cái gì. */
+.liveops-hub-calendar-drawer-close {
+    display: none;
+}
+
+.liveops-hub--medium .liveops-hub-calendar-drawer-close {
+    display: flex;
+    width: 18px;
+    height: 18px;
+    margin-left: auto;
+    margin-right: var(--liveops-hub-space-4);
+    padding: 0;
+    align-items: center;
+    justify-content: center;
+}
+
+.liveops-hub-calendar-inspector-title {
+    flex-direction: row;
+    align-items: center;
+    height: 20px;
+    flex-shrink: 0;
+    border-bottom-width: 1px;
+    border-bottom-color: var(--unity-colors-window-border);
+}
+
+.liveops-hub-calendar-inspector-title-id {
+    font-size: 11px;
+    -unity-font-style: bold;
+    margin-left: var(--liveops-hub-space-4);
+}
+
+.liveops-hub-calendar-inspector-body {
+    flex-grow: 1;
+    padding-left: var(--liveops-hub-space-4);
+    padding-right: var(--liveops-hub-space-4);
+}
+
+.liveops-hub-calendar-inspector-separator {
+    height: 1px;
+    margin-top: 6px;
+    margin-bottom: 6px;
+    background-color: var(--unity-colors-window-border);
+}
+
+.liveops-hub-calendar-inspector-issues {
+    margin-top: var(--liveops-hub-space-4);
+}
+
+/* (W9-21) Khối field CHỈ ĐỌC của đợt sinh từ luật. Dấu hiệu "không sửa ở đây" là VIỀN TRÁI + câu ghi chú ngay dưới khối, KHÔNG
+   phải độ mờ: độ mờ của :disabled nhân vào màu đã hợp thành nên kéo chính những con số người dùng cần đọc (id, giờ lần lặp,
+   độ dài) xuống 2,28–3,54:1 — đo 12 đoạn chữ của khối ở skin tối, 20/9 — dưới xa 4,5:1 mà user chốt 19/9. Viền dùng token quiet — token này đã ở bậc chữ 4,5:1 nên thừa
+   bậc 3:1 của hình khối. */
+.liveops-hub-calendar-inspector-read-only-pane {
+    border-left-width: 2px;
+    border-left-color: var(--liveops-hub-color-quiet);
+    padding-left: var(--liveops-hub-space-4);
+}
+
+.liveops-hub-calendar-field-row {
+    flex-direction: row;
+    align-items: center;
+}
+
+.liveops-hub-calendar-field-subline {
+    font-size: 10px;
+    color: var(--liveops-hub-color-quiet);
+    margin-left: 63px;
+}
+
+.liveops-hub-calendar-field-error {
+    font-size: 10px;
+    color: var(--liveops-hub-color-blocked-text);
+    white-space: normal;
+}
+
+/* (W9-25 chỗ 1) white-space của BaseField không xuống được nhãn con, nên gắn thẳng vào nhãn của field mang
+   liveops-hub-calendar-wrap-text. Chỉ ô "Dời cả hai (giờ)" của pane chọn nhiều mang class này; cột nhãn 96px giữ nguyên cho
+   mọi hàng khác vì hàng ô giờ UTC không còn pixel nào để nhường (xem chú thích ở CalendarEventInspector.RefreshMultiple). */
+.liveops-hub-calendar-inspector-field.liveops-hub-calendar-wrap-text > .unity-base-field__label {
+    white-space: normal;
+}
+
+/* Popover Thêm đợt: header 24px có ba step-dot, danh sách loại hàng 22px, hàng nút dính đáy. */
+.liveops-hub-calendar-flow-header {
+    flex-direction: row;
+    align-items: center;
+    height: 24px;
+    flex-shrink: 0;
+}
+
+.liveops-hub-calendar-flow-step {
+    flex-grow: 1;
+}
+
+.liveops-hub-calendar-step-dot {
+    width: 14px;
+    height: 14px;
+    border-radius: 7px;
+    border-width: 1px;
+    border-color: var(--liveops-hub-color-quiet);
+    margin-left: 3px;
+    align-items: center;
+    justify-content: center;
+    font-size: 9px;
+    -unity-font-style: bold;
+    -unity-text-align: middle-center;
+    color: var(--liveops-hub-color-quiet);
+}
+
+.liveops-hub-calendar-step-dot--active {
+    background-color: var(--unity-colors-default-text);
+    border-color: var(--unity-colors-default-text);
+    color: var(--liveops-hub-color-on-selection);
+}
+
+/* Hàng loại: min-height chứ không phải height cố định — tag lý do bên phải được XUỐNG DÒNG khi câu dài (xem luật của tag),
+   nên hàng phải cao theo nội dung. Hàng ngắn vẫn đúng 22px như mockup. */
+.liveops-hub-calendar-type-row {
+    flex-direction: row;
+    align-items: center;
+    min-height: 22px;
+    padding-left: 7px;
+    padding-right: 7px;
+    border-radius: 3px;
+}
+
+/* Id mono KHÔNG co: nó là thứ người dùng đang chọn, co nó là nuốt mất tên loại. Phần nhường chỗ là tag lý do ở luật dưới. */
+.liveops-hub-calendar-type-row > .liveops-hub-mono {
+    flex-shrink: 0;
+}
+
+.liveops-hub-calendar-type-row--active {
+    background-color: var(--unity-colors-highlight-background-hover);
+}
+
+/* (R-04 của lượt soát 3) Hàng loại bị khoá KHÔNG làm mờ cả hàng nữa. Vì sao: opacity nhân vào MÀU ĐÃ HỢP THÀNH, nên đo WCAG
+   2.x trên pixel ảnh chụp thấy tag lý do rơi xuống 1,92:1 và id mono 3,18:1 trên nền #383838 — dưới xa mức 4,5:1 mà user chốt
+   19/9, và KHÔNG token màu nào cứu được vì opacity nhân sau token (nâng quiet lên #A3A3A3 vẫn chỉ ra ~2,1:1). Thay bằng màu
+   chữ mờ đi qua token: sửa token một lần là tới được đoạn chữ này. Dấu hiệu "bị khoá" không mất — chính tag lý do bên cạnh nói
+   thành CHỮ vì sao loại đó không chọn được (SPIKE-B SP-3), nên không phải phân biệt bằng riêng độ mờ.
+   Ô màu loại cũng KHÔNG mờ đi: ô màu là hình khối, chuẩn của user là 3:1, mà nhân 0,5 lên nền #383838 kéo màu loại 0 từ
+   3,77:1 xuống 1,99:1 — làm mờ nó là đổi một lỗi tương phản này lấy một lỗi khác. */
+.liveops-hub-calendar-type-row--disabled > .liveops-hub-mono,
+.liveops-hub-calendar-type-row--disabled > .liveops-hub-calendar-type-row-tag {
+    color: var(--liveops-hub-color-quiet);
+}
+
+/* (RC-08) Tag lý do có margin-left:auto nhưng KHÔNG co, nên câu tiếng Anh "(generated by a rule — edit it in Recurring
+   rules)" dài hơn chỗ trống và ĐÈ LÊN id mono 14–36px trong popover rộng cố định 320px. Cho nó co được và xuống dòng: câu dài
+   chiếm hai hàng trong một hàng loại cao theo nội dung, id vẫn đọc nguyên. Không cắt, không ellipsis — tag này chính là lý do
+   loại đó không chọn được, cắt nó là giấu mất lý do. */
+.liveops-hub-calendar-type-row-tag {
+    font-size: 10px;
+    color: var(--liveops-hub-color-quiet);
+    margin-left: auto;
+    flex-shrink: 1;
+    min-width: 0;
+    white-space: normal;
+    -unity-text-align: middle-right;
+}
+
+.liveops-hub-calendar-flow-buttons {
+    flex-direction: row;
+    align-items: center;
+    margin-top: auto;
+    flex-shrink: 0;
+}
+
+.liveops-hub-calendar-flow-key-hint {
+    font-size: 10px;
+    opacity: 0.82;
+    flex-grow: 1;
+}
+
+/* ---------------------------------------------------------------- Chiều sâu W5 (G-CALENDAR-DEPTH) */
+
+/* Hai nút W5 [SD1 §3.1]: "Danh sách" đứng đầu toolbar (đổi bố cục màn), "So với đã đăng" sau phần giãn (đổi pane phải).
+   margin-left: 0 vì cùng lý do với .liveops-hub-tab-strip__tab: 2022.3 cho ToolbarToggle lề trái ÂM 2px, nên "Danh sách" thò
+   2px ra ngoài chính thanh và "So với đã đăng" đè 2px lên khoảng giãn đứng trước nó (RC-10). 6000.6 không đổi gì. */
+.liveops-hub-calendar-list-toggle {
+    flex-shrink: 0;
+    margin-left: 0;
+}
+
+.liveops-hub-calendar-compare-toggle {
+    flex-shrink: 0;
+    margin-left: 0;
+}
+
+/* Nhãn lý do in cạnh nút bị khoá — SPIKE-B SP-3: chữ thật, không phải tooltip. */
+.liveops-hub-calendar-disabled-reason {
+    font-size: 10px;
+    color: var(--liveops-hub-color-quiet);
+    margin-right: var(--liveops-hub-space-4);
+    flex-shrink: 0;
+}
+
+/* Pane Danh sách [SD1 §3.12]: bảng chiếm hết pane trái của split. */
+.liveops-hub-calendar-list-table {
+    flex-grow: 1;
+}
+
+.liveops-hub-calendar-list-cell {
+    font-size: 11px;
+    padding-left: 6px;
+    padding-right: 6px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.liveops-hub-calendar-list-empty {
+    font-size: 11px;
+    color: var(--liveops-hub-color-quiet);
+    white-space: normal;
+    padding: 8px 6px;
+}
+
+/* Pane So với đã đăng [SD1 §3.4]: cùng 280px với inspector, hai pane loại trừ nhau. */
+.liveops-hub-compare-pane {
+    width: 280px;
+    flex-shrink: 0;
+}
+
+.liveops-hub-calendar-compare-title {
+    font-size: 11px;
+    -unity-font-style: bold;
+    margin-left: var(--liveops-hub-space-4);
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.liveops-hub-calendar-compare-count {
+    font-size: 10px;
+    opacity: 0.7;
+    margin-left: auto;
+    margin-right: var(--liveops-hub-space-4);
+}
+
+/* (UX-11 · V8, R-02) Danh sách CO theo nội dung, không giãn lấp pane: `flex-grow: 1` đẩy ghi chú xuống tận đáy nên ở cửa sổ
+   cao có tới ~425px trống giữa dòng cuối và ghi chú, người đọc tưởng ghi chú thuộc về thứ khác. `flex-shrink` + `min-height: 0`
+   giữ đường cuộn khi danh sách dài hơn chỗ còn lại. */
+.liveops-hub-calendar-compare-body {
+    flex-grow: 0;
+    flex-shrink: 1;
+    min-height: 0;
+}
+
+.liveops-hub-calendar-compare-group-label {
+    font-size: 10px;
+    -unity-font-style: bold;
+    opacity: 0.82;
+    padding: 5px 6px 1px 6px;
+}
+
+.liveops-hub-calendar-compare-row {
+    flex-direction: row;
+    align-items: center;
+    height: 22px;
+    padding-left: 6px;
+    padding-right: 6px;
+}
+
+.liveops-hub-calendar-compare-row--selected {
+    background-color: var(--unity-colors-highlight-background);
+}
+
+.liveops-hub-calendar-compare-symbol {
+    width: 10px;
+    -unity-font-style: bold;
+    font-size: 10px;
+    margin-left: 6px;
+}
+
+.liveops-hub-calendar-compare-text {
+    flex-shrink: 1;
+    font-size: 11px;
+    margin-left: 6px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.liveops-hub-calendar-compare-note {
+    font-size: 10px;
+    opacity: 0.82;
+    white-space: normal;
+    margin: 8px 6px 0 6px;
+}
+
+/* Hover card của thanh [SD1 §3.8]: 260px, hàng key-value min-height 17, cột key 58. */
+.liveops-hub-calendar-hover-card {
+    width: 260px;
+}
+
+.liveops-hub-calendar-hover-header {
+    flex-direction: row;
+    align-items: center;
+}
+
+.liveops-hub-calendar-hover-row {
+    flex-direction: row;
+    align-items: flex-start;
+    min-height: 17px;
+}
+
+.liveops-hub-calendar-hover-key {
+    width: 58px;
+    flex-shrink: 0;
+    font-size: 10px;
+    opacity: 0.7;
+}
+
+.liveops-hub-calendar-hover-value {
+    flex-shrink: 1;
+    font-size: 10px;
+    white-space: normal;
+}
+
+/* Dòng lỗi [SD1 §3.8]: dấu 12px canh trên rồi tới câu — dấu canh giữa sẽ trôi xuống khi câu xuống hai dòng. */
+.liveops-hub-calendar-hover-problem-row {
+    flex-direction: row;
+    align-items: flex-start;
+    margin-top: 3px;
+}
+
+.liveops-hub-calendar-hover-problem-mark {
+    align-self: flex-start;
+    margin-top: 2px;
+    margin-right: 4px;
+}
+
+.liveops-hub-calendar-hover-problem {
+    flex-shrink: 1;
+    font-size: 10px;
+    white-space: normal;
+}
+
+.liveops-hub-calendar-hover-pinned-row {
+    flex-direction: row;
+    align-items: center;
+    margin-top: 4px;
+}
+
+.liveops-hub-calendar-hover-counter {
+    font-size: 10px;
+    opacity: 0.7;
+    margin-left: auto;
+}
+
+.liveops-hub-calendar-hover-footer {
+    font-size: 10px;
+    opacity: 0.7;
+    white-space: normal;
+    margin-top: 4px;
+}

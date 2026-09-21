@@ -1,0 +1,914 @@
+/*
+ * liveops-hub-timeline.uss — timeline của màn Lịch ([SD1 §3.2–3.7], kế hoạch 7.3, G-TIMELINE-VIEW). Nạp sau controls, trước motion.
+ *
+ * Element tự vẽ (làn, thước, minimap) khai lại token trên selector của CHÍNH nó bằng var(): custom property không kế thừa từ
+ * .liveops-hub-root ([API §12.2]) — thiếu dòng khai lại thì màu vẽ Painter2D mất âm thầm (TimelineSkinTokenTests).
+ *
+ * Con trỏ chuột theo vùng (V-11) bằng cursor trên element vùng bắt: thân thanh cố định move-arrow, mép 8px resize-horizontal,
+ * thanh lặp/đã khép/dải arrow. Không đặt style.cursor trong C# (luật style inline [FD §2.14]).
+ */
+
+/* ---------------------------------------------------------------- Khung: vùng chính · minimap · chú giải · gợi ý */
+
+.liveops-hub-timeline {
+    flex-direction: column;
+    flex-grow: 1;
+    min-height: 0;
+    overflow: hidden;
+    background-color: var(--unity-colors-window-background);
+}
+
+.liveops-hub-timeline--hidden {
+    display: none;
+}
+
+.liveops-hub-timeline-main {
+    flex-grow: 1;
+    flex-shrink: 1;
+    min-height: 0;
+}
+
+.liveops-hub-timeline-body {
+    flex-grow: 1;
+    flex-shrink: 1;
+    min-height: 36px;
+}
+
+/* Lớp phủ nằm thẳng track (bỏ 168px header), phủ cả thước lẫn thân — vạch bây giờ chạy từ tầng 2 xuống hết các làn, trên thanh. */
+.liveops-hub-timeline-overlay {
+    position: absolute;
+    left: 168px;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    overflow: hidden;
+}
+
+.liveops-hub-timeline-now-line {
+    position: absolute;
+    top: 18px;
+    bottom: 0;
+    width: 2px;
+    background-color: var(--liveops-hub-color-now);
+}
+
+.liveops-hub-timeline-cursor-line {
+    position: absolute;
+    top: 18px;
+    bottom: 0;
+    width: 1px;
+    background-color: var(--unity-colors-default-text);
+    opacity: 0.35;
+}
+
+/* ---------------------------------------------------------------- Thước: góc trục 168×46 · tầng 1 18 · tầng 2 18 · dấu 10 · giờ máy 14 */
+
+.liveops-hub-timeline-ruler {
+    flex-direction: row;
+    flex-shrink: 0;
+    height: 46px;
+    border-bottom-width: 1px;
+    border-color: var(--unity-colors-window-border);
+}
+
+.liveops-hub-timeline-ruler--day-zoom {
+    height: 60px;
+}
+
+.liveops-hub-timeline-ruler-corner {
+    width: 168px;
+    flex-shrink: 0;
+    padding: 4px 6px;
+    background-color: var(--unity-colors-toolbar-background);
+    border-right-width: 1px;
+    border-color: var(--unity-colors-window-border);
+}
+
+.liveops-hub-timeline-ruler-corner-title {
+    font-size: 11px;
+    -unity-font-style: bold;
+}
+
+.liveops-hub-timeline-ruler-corner-subtitle {
+    font-size: 10px;
+    opacity: 0.7;
+    white-space: normal;
+}
+
+.liveops-hub-timeline-ruler-track {
+    --liveops-hub-ruler-day-line: var(--liveops-hub-timeline-grid-monday);
+    --liveops-hub-ruler-week-line: var(--unity-colors-default-text);
+    flex-grow: 1;
+    overflow: hidden;
+}
+
+.liveops-hub-timeline-ruler-tier {
+    height: 18px;
+    flex-shrink: 0;
+    background-color: var(--unity-colors-toolbar-background);
+}
+
+.liveops-hub-timeline-ruler-tier--day {
+    border-top-width: 1px;
+    border-color: var(--unity-colors-window-border);
+}
+
+.liveops-hub-timeline-ruler-tier--marks {
+    height: 10px;
+    background-color: var(--unity-colors-window-background);
+}
+
+.liveops-hub-timeline-ruler-tier--device {
+    height: 14px;
+    background-color: var(--unity-colors-window-background);
+}
+
+.liveops-hub-timeline-ruler-label {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    padding: 0 0 0 2px;
+    margin: 0;
+    font-size: 10px;
+    opacity: 0.82;
+    overflow: hidden;
+    -unity-text-align: middle-left;
+    white-space: nowrap;
+}
+
+.liveops-hub-timeline-ruler-tier--month > .liveops-hub-timeline-ruler-label {
+    letter-spacing: 0.5px;
+}
+
+.liveops-hub-timeline-ruler-label--emphasized {
+    -unity-font-style: bold;
+    opacity: 1;
+}
+
+.liveops-hub-timeline-ruler-tier--device > .liveops-hub-timeline-ruler-label {
+    font-size: 9px;
+    opacity: 0.7;
+}
+
+/* Cờ bây giờ: cao 16, nền --now, chữ màu nền cửa sổ, mono 9,5px, bo 2, căn giữa trên vạch [SD1 §3.2]. */
+.liveops-hub-timeline-ruler-now-flag {
+    position: absolute;
+    top: 1px;
+    height: 16px;
+    padding: 0 3px;
+    margin: 0;
+    font-size: 9.5px;
+    border-radius: 2px;
+    translate: -50% 0;
+    color: var(--unity-colors-window-background);
+    background-color: var(--liveops-hub-color-now);
+    -unity-text-align: middle-center;
+}
+
+/* Bubble giờ tại con trỏ ở tầng 2 (V-11): cao 16 nền tooltip, căn giữa, đè số ngày quanh con trỏ. */
+.liveops-hub-timeline-ruler-bubble {
+    position: absolute;
+    top: 1px;
+    height: 16px;
+    padding: 0 4px;
+    margin: 0;
+    font-size: 10px;
+    border-width: 1px;
+    border-radius: 3px;
+    translate: -50% 0;
+    background-color: var(--unity-colors-tooltip-background);
+    border-color: var(--unity-colors-tooltip-border);
+    -unity-text-align: middle-center;
+}
+
+/* Cờ đã đăng: viền trái 2px + viền trên 3px, rộng 5 cao 8 [SD1 §3.2]. */
+.liveops-hub-timeline-ruler-published-flag {
+    position: absolute;
+    top: 1px;
+    width: 5px;
+    height: 8px;
+    border-left-width: 2px;
+    border-top-width: 3px;
+    border-color: var(--unity-colors-default-text);
+}
+
+/* ---------------------------------------------------------------- Làn: header 168 + track Painter2D */
+
+.liveops-hub-timeline-lane-row {
+    flex-direction: row;
+    flex-shrink: 0;
+    border-bottom-width: 1px;
+    border-color: var(--unity-colors-window-border);
+}
+
+.liveops-hub-timeline-lane-header {
+    width: 168px;
+    flex-shrink: 0;
+    padding: 4px 6px;
+    background-color: var(--unity-colors-toolbar-background);
+    border-right-width: 1px;
+    border-color: var(--unity-colors-window-border);
+    overflow: hidden;
+}
+
+.liveops-hub-timeline-lane-name-row {
+    flex-direction: row;
+    align-items: center;
+    min-height: 14px;
+}
+
+.liveops-hub-timeline-lane-swatch {
+    width: 9px;
+    height: 9px;
+    margin-right: 5px;
+    flex-shrink: 0;
+}
+
+.liveops-hub-timeline-lane-name {
+    flex-shrink: 1;
+    padding: 0;
+    margin: 0 5px 0 0;
+    font-size: 11px;
+    -unity-font-style: bold;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.liveops-hub-timeline-lane-name--placeholder {
+    -unity-font-style: bold-and-italic;
+    opacity: 0.7;
+}
+
+.liveops-hub-timeline-lane-loop-icon {
+    opacity: 0.7;
+    margin-right: 5px;
+}
+
+/* Chip trạng thái dòng tên: cao 14, padding 0 4, bo 3, 9px, nền default-background; dấu 7px + số. */
+.liveops-hub-timeline-lane-chip {
+    flex-direction: row;
+    align-items: center;
+    height: 14px;
+    padding: 0 4px;
+    margin-left: auto;
+    border-radius: 3px;
+    background-color: var(--unity-colors-default-background);
+}
+
+.liveops-hub-timeline-lane-chip > .unity-label {
+    font-size: 9px;
+    padding: 0 0 0 3px;
+    margin: 0;
+}
+
+.liveops-hub-timeline-lane-meta-row {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    margin-top: 2px;
+    padding-left: 14px;
+}
+
+/* (R-04, UJ-19) Vế nhịp xuống dòng thay vì bị cắt: header rộng cố định 168px, mà "repeats every 24 hours · runs 20 hours"
+   (~200px) lẫn "lặp mỗi 24 giờ · chạy 20 giờ" (~157px) đều dài hơn 142px chỗ trống — nowrap + ellipsis nghĩa là CẢ HAI ngôn
+   ngữ đều đọc cụt. Làn nền giãn theo hàng (R-01) nên header cao thêm một dòng không còn để lại dải không vẽ. */
+.liveops-hub-timeline-lane-meta {
+    flex-shrink: 1;
+    min-width: 96px;
+    padding: 0;
+    margin: 0;
+    font-size: 10px;
+    opacity: 0.82;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: normal;
+}
+
+.liveops-hub-timeline-lane-meta--secondary {
+    margin-top: 2px;
+    padding-left: 14px;
+}
+
+.liveops-hub-timeline-unplaceable-chip {
+    flex-direction: row;
+    align-items: center;
+    height: 14px;
+    padding: 0 4px;
+    margin-left: 6px;
+    margin-top: 1px;
+    border-radius: 3px;
+    background-color: var(--unity-colors-default-background);
+    flex-shrink: 0;
+}
+
+.liveops-hub-timeline-unplaceable-chip > .unity-label {
+    font-size: 9px;
+    padding: 0 0 0 3px;
+    margin: 0;
+}
+
+.liveops-hub-timeline-lane {
+    --liveops-hub-lane-weekend: var(--liveops-hub-timeline-weekend);
+    --liveops-hub-lane-today: var(--liveops-hub-timeline-today);
+    --liveops-hub-lane-grid: var(--liveops-hub-timeline-grid);
+    --liveops-hub-lane-grid-monday: var(--liveops-hub-timeline-grid-monday);
+    --liveops-hub-lane-overlap: var(--liveops-hub-color-blocked-fill);
+    flex-grow: 1;
+    flex-shrink: 1;
+    overflow: hidden;
+    background-color: var(--unity-colors-window-background);
+}
+
+/* Nhãn "chồng 12 giờ" 10px blocked-text phía trên vùng chồng (top −13 so với padTop 16), căn giữa. */
+.liveops-hub-timeline-overlap-label {
+    position: absolute;
+    top: 1px;
+    padding: 0;
+    margin: 0;
+    font-size: 10px;
+    translate: -50% 0;
+    white-space: nowrap;
+}
+
+/* Tag "bị bỏ": cao 16, padding 0 4, 10px, chữ blocked, nền cửa sổ, viền, bo 3 — đặt tại x2 + 4, y + 2. */
+.liveops-hub-timeline-dropped-tag {
+    position: absolute;
+    flex-direction: row;
+    align-items: center;
+    height: 16px;
+    padding: 0 4px;
+    border-width: 1px;
+    border-radius: 3px;
+    border-color: var(--unity-colors-window-border);
+    background-color: var(--unity-colors-window-background);
+}
+
+.liveops-hub-timeline-dropped-tag > .unity-label {
+    font-size: 10px;
+    padding: 0 0 0 3px;
+    margin: 0;
+}
+
+.liveops-hub-timeline-dropped-tag--will-drop {
+    border-color: var(--liveops-hub-color-blocked-fill);
+}
+
+/* Chip "Đợt tới": Tag ở mép phải track (lề 8, marginTop padTop + 5), nền cửa sổ, kèm chevron phải.
+ *
+ * (G-UX3-TIMELINE/RC-03) Chip KHÔNG còn position: absolute. Khi còn absolute, chip chỉ neo mép phải và tự nở theo chữ:
+ * câu "Đợt tới: <id> · <giờ> · còn <thời gian>" cần 340–395px trong làn chỉ rộng 216–380px, nên phần đầu câu (đúng chỗ
+ * chứa id) thò khỏi mép trái làn và bị overflow: hidden của làn cắt mất. Cho chip chảy trong làn (align-self: flex-end)
+ * thì Yoga đo chữ trong đúng bề rộng còn lại và cho XUỐNG DÒNG thay vì cắt; làn đã là height: auto + min-height nên nó
+ * tự cao thêm theo số dòng của chip. Làn có chip luôn là làn KHÔNG có thanh nào (BindNextChip), nên chip cao thêm không
+ * đẩy thanh nào đi đâu cả. Không dùng ellipsis: id của đợt là thứ người dùng cần đọc, rút gọn nó là mất thông tin.
+ */
+.liveops-hub-timeline-next-chip {
+    margin-left: 8px;
+    margin-right: 8px;
+    background-color: var(--unity-colors-window-background);
+}
+
+/* Đè hai luật của .liveops-hub-tag: height 18px cố định (chip hai/ba dòng phải cao theo nội dung) và
+   align-self: flex-start (chip neo mép PHẢI track). Selector hai class để thắng dù thứ tự nạp sheet có đổi. */
+.liveops-hub-tag.liveops-hub-timeline-next-chip {
+    height: auto;
+    min-height: 18px;
+    align-self: flex-end;
+    align-items: center;
+}
+
+.liveops-hub-timeline-next-chip > .unity-label {
+    font-size: 10px;
+    padding: 0 6px 0 0;
+    margin: 0;
+    flex-shrink: 1;
+    white-space: normal;
+}
+
+/* ---------------------------------------------------------------- Thanh [SD1 §3.5]: cao 20, bo 2, 10px, padding 0 4 2, dải đáy 3px */
+
+.liveops-hub-timeline-bar {
+    position: absolute;
+    height: 20px;
+    flex-direction: row;
+    align-items: center;
+    padding: 0 4px 2px 4px;
+    border-width: 1px;
+    border-radius: 2px;
+    border-color: var(--unity-colors-button-border);
+    border-bottom-color: var(--unity-colors-button-border_accent);
+    background-color: var(--unity-colors-button-background);
+    cursor: move-arrow;
+}
+
+.liveops-hub-timeline-bar--recurring {
+    border-color: var(--unity-colors-window-border);
+    background-color: var(--unity-colors-toolbar_button-background);
+    cursor: arrow;
+}
+
+.liveops-hub-timeline-bar--merged {
+    cursor: arrow;
+}
+
+.liveops-hub-timeline-bar--ended {
+    background-color: var(--unity-colors-window-background);
+    cursor: arrow;
+}
+
+.liveops-hub-timeline-bar--ended > .liveops-hub-timeline-bar__stripe {
+    opacity: 0.5;
+}
+
+.liveops-hub-timeline-bar--ended > .liveops-hub-timeline-bar__label {
+    opacity: 0.7;
+}
+
+.liveops-hub-timeline-bar--hover {
+    background-color: var(--unity-colors-button-background-hover);
+}
+
+.liveops-hub-timeline-bar--selected {
+    background-color: var(--unity-colors-highlight-background-inactive);
+    border-color: var(--liveops-hub-color-quiet);
+}
+
+.liveops-hub-timeline--has-focus .liveops-hub-timeline-bar--selected {
+    background-color: var(--unity-colors-highlight-background);
+    border-color: var(--unity-colors-highlight-background);
+}
+
+.liveops-hub-timeline--has-focus .liveops-hub-timeline-bar--selected > .liveops-hub-timeline-bar__label {
+    color: var(--liveops-hub-color-on-selection);
+}
+
+.liveops-hub-timeline--has-focus .liveops-hub-timeline-bar--selected > .liveops-hub-timeline-bar__strike,
+.liveops-hub-timeline--has-focus .liveops-hub-timeline-bar--selected > .liveops-hub-timeline-bar__changed {
+    background-color: var(--liveops-hub-color-on-selection);
+}
+
+.liveops-hub-timeline-bar--focused {
+    border-color: var(--liveops-hub-color-focus);
+}
+
+/* Focus bàn phím phải thắng cả luật hai class của thanh đang chọn (0,2,0), nếu không khung "focus bàn phím" vẽ y hệt
+   khung "đã chọn" — đó là lý do h12-frame-04 từng trùng byte với h12-frame-03a (phiếu D-2 của cổng W4). */
+.liveops-hub-timeline--has-focus .liveops-hub-timeline-bar--focused {
+    border-color: var(--liveops-hub-color-focus);
+    border-width: 2px;
+}
+
+.liveops-hub-timeline-bar--dragging {
+    border-color: var(--unity-colors-default-text);
+}
+
+.liveops-hub-timeline-bar--will-drop {
+    border-color: var(--liveops-hub-color-blocked-fill);
+}
+
+.liveops-hub-timeline-bar__stripe {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 3px;
+}
+
+.liveops-hub-timeline-bar__label {
+    flex-grow: 1;
+    flex-shrink: 1;
+    padding: 0;
+    margin: 0;
+    font-size: 10px;
+    overflow: hidden;
+    white-space: nowrap;
+    -unity-text-align: middle-left;
+}
+
+.liveops-hub-timeline-bar--changed > .liveops-hub-timeline-bar__label {
+    margin-right: 8px;
+}
+
+.liveops-hub-timeline-bar--clipped-start {
+    padding-left: 8px;
+}
+
+.liveops-hub-timeline-bar--clipped-end {
+    padding-right: 8px;
+}
+
+.liveops-hub-timeline-bar__loop-icon {
+    margin-right: 3px;
+    opacity: 0.82;
+    flex-shrink: 0;
+}
+
+.liveops-hub-timeline-bar__lock-icon {
+    margin-right: 3px;
+    flex-shrink: 0;
+}
+
+/* Vuông "khác bản đã đăng" 5×5 góc phải trên. */
+.liveops-hub-timeline-bar__changed {
+    position: absolute;
+    top: 1px;
+    right: 1px;
+    width: 5px;
+    height: 5px;
+    background-color: var(--unity-colors-default-text);
+}
+
+/* Gạch bị bỏ 1px ở top 9, cách mép 3 — màu blocked-text (đang chọn có focus thì trắng). */
+.liveops-hub-timeline-bar__strike {
+    position: absolute;
+    top: 9px;
+    left: 3px;
+    right: 3px;
+    height: 1px;
+    background-color: var(--liveops-hub-color-blocked-text);
+}
+
+/* Dấu cắt mép ◂ ▸ 5×10: cha overflow hidden chứa vuông 7×7 xoay 45°, màu chữ opacity 0,82; top 5 cách mép 1. */
+.liveops-hub-timeline-bar__clip-start,
+.liveops-hub-timeline-bar__clip-end {
+    position: absolute;
+    top: 4px;
+    width: 5px;
+    height: 10px;
+    overflow: hidden;
+}
+
+.liveops-hub-timeline-bar__clip-start {
+    left: 1px;
+}
+
+.liveops-hub-timeline-bar__clip-end {
+    right: 1px;
+}
+
+.liveops-hub-timeline-bar__clip-shape {
+    position: absolute;
+    top: 1.5px;
+    width: 7px;
+    height: 7px;
+    rotate: 45deg;
+    opacity: 0.82;
+    background-color: var(--unity-colors-default-text);
+}
+
+.liveops-hub-timeline-bar__clip-start > .liveops-hub-timeline-bar__clip-shape {
+    left: 1.5px;
+}
+
+.liveops-hub-timeline-bar__clip-end > .liveops-hub-timeline-bar__clip-shape {
+    left: -3.5px;
+}
+
+/* Vùng bắt mép 8px (4 trong, 4 ngoài) — con trỏ resize-horizontal (V-11); tay nắm 2×12 ở top 4 chỉ hiện khi hover, opacity 0,7. */
+.liveops-hub-timeline-bar__edge {
+    position: absolute;
+    top: -1px;
+    bottom: -1px;
+    width: 8px;
+    cursor: resize-horizontal;
+}
+
+.liveops-hub-timeline-bar__edge--start {
+    left: -5px;
+}
+
+.liveops-hub-timeline-bar__edge--end {
+    right: -5px;
+}
+
+.liveops-hub-timeline-bar__handle {
+    position: absolute;
+    top: 4px;
+    left: 3px;
+    width: 2px;
+    height: 12px;
+    opacity: 0.7;
+    background-color: var(--unity-colors-default-text);
+    display: none;
+}
+
+.liveops-hub-timeline-bar--hover > .liveops-hub-timeline-bar__edge > .liveops-hub-timeline-bar__handle {
+    display: flex;
+}
+
+/* Bóng ở chỗ cũ khi kéo: nền trong suốt, viền 1px màu chữ opacity 0,5. */
+.liveops-hub-timeline-bar-ghost {
+    position: absolute;
+    height: 20px;
+    border-width: 1px;
+    border-radius: 2px;
+    border-color: var(--unity-colors-default-text);
+    opacity: 0.5;
+}
+
+/* Readout bám mép đang kéo: cao 18, padding 0 6, nền tooltip, 10px. */
+.liveops-hub-timeline-readout {
+    position: absolute;
+    flex-direction: row;
+    align-items: center;
+    height: 18px;
+    padding: 0 6px;
+    border-width: 1px;
+    border-radius: 3px;
+    background-color: var(--unity-colors-tooltip-background);
+    border-color: var(--unity-colors-tooltip-border);
+}
+
+.liveops-hub-timeline-readout-text,
+.liveops-hub-timeline-readout-overlap,
+.liveops-hub-timeline-readout-quick-check-text {
+    padding: 0;
+    margin: 0;
+    font-size: 10px;
+    white-space: nowrap;
+}
+
+/* (nợ D-3(a)) Vế tag kiểm nhanh: dấu 7px đứng trước câu, cùng hàng với hai vế kia của readout (Hình 12 khung 5). */
+.liveops-hub-timeline-readout-quick-check {
+    flex-direction: row;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+.liveops-hub-timeline-readout-quick-check-text {
+    margin-left: 4px;
+    opacity: 0.82;
+}
+
+/* (UX-18, T2) Khe trước dấu ngăn "·" của vế chồng giờ: chữ không giữ được khoảng trắng ĐẦU Label nên khe phải là margin. */
+.liveops-hub-timeline-readout-overlap {
+    margin-left: 4px;
+}
+
+/* ---------------------------------------------------------------- Minimap 20px · chú giải · dòng gợi ý 18px */
+
+.liveops-hub-timeline-minimap {
+    --liveops-hub-minimap-event-color-0: var(--liveops-hub-event-color-0);
+    --liveops-hub-minimap-event-color-1: var(--liveops-hub-event-color-1);
+    --liveops-hub-minimap-event-color-2: var(--liveops-hub-event-color-2);
+    --liveops-hub-minimap-event-color-3: var(--liveops-hub-event-color-3);
+    --liveops-hub-minimap-event-color-4: var(--liveops-hub-event-color-4);
+    --liveops-hub-minimap-event-color-5: var(--liveops-hub-event-color-5);
+    --liveops-hub-minimap-event-color-6: var(--liveops-hub-event-color-6);
+    --liveops-hub-minimap-event-color-7: var(--liveops-hub-event-color-7);
+    --liveops-hub-minimap-blocked: var(--liveops-hub-color-blocked-fill);
+    --liveops-hub-minimap-warning: var(--liveops-hub-color-warning-fill);
+    --liveops-hub-minimap-now: var(--liveops-hub-color-now);
+    --liveops-hub-minimap-text: var(--unity-colors-default-text);
+    height: 20px;
+    flex-shrink: 0;
+    margin-top: 6px;
+    margin-left: 168px;
+    overflow: hidden;
+    border-top-width: 1px;
+    border-color: var(--unity-colors-window-border);
+    background-color: var(--unity-colors-default-background);
+}
+
+.liveops-hub-timeline-legend {
+    flex-direction: row;
+    flex-wrap: wrap;
+    flex-shrink: 0;
+    min-height: 20px;
+    padding: 3px 8px 0 8px;
+    border-top-width: 1px;
+    border-color: var(--unity-colors-window-border);
+}
+
+.liveops-hub-timeline-legend-item {
+    flex-direction: row;
+    align-items: center;
+    margin: 0 14px 3px 0;
+}
+
+/* (UX-19, G-UX3-TIMELINE/RC-07) Dấu chú giải là bản ÂM của thanh, không phải bản sao màu của thanh. Lấy đúng màu nền của
+   thanh thì ba dấu đo ra 1,65 / 1,06 / 1,00:1 so với nền cửa sổ — dấu "đã khép" trùng khít nền nên VÔ HÌNH, và ở skin tối
+   không màu tối nào đạt nổi bậc 3:1 (trần với màu đen là 1,79:1). Ba token thang trung tính ở liveops-hub-theme.uss giữ
+   nguyên thứ hạng sáng → tối của thanh thật và đo 6,72 / 4,93 / 3,49:1 (Dark), 6,59 / 4,39 / 3,05:1 (Light). */
+.liveops-hub-timeline-legend-sample {
+    width: 18px;
+    height: 10px;
+    margin-right: 4px;
+    border-width: 1px;
+    border-radius: 2px;
+    border-color: var(--unity-colors-button-border);
+    background-color: var(--liveops-hub-legend-fixed);
+}
+
+.liveops-hub-timeline-legend-sample--recurring {
+    border-color: var(--unity-colors-window-border);
+    background-color: var(--liveops-hub-legend-recurring);
+}
+
+.liveops-hub-timeline-legend-sample--ended {
+    background-color: var(--liveops-hub-legend-ended);
+}
+
+.liveops-hub-timeline-legend-sample--ended > .liveops-hub-timeline-bar__stripe {
+    opacity: 0.5;
+}
+
+/* Dấu "vùng chồng giờ" phải ĐỤC: nền tint là blocked-fill × 0,16, hợp thành lên nền cửa sổ chỉ còn 1,17:1 (Dark) và
+   1,32:1 (Light) — đo như màu đục thì ra 3,41:1 và người soát tưởng đạt. Mảng chồng THẬT trên trục vẫn giữ tint + gạch
+   chéo vì nó nằm dưới thanh; dấu chú giải là hình 18×10 đứng một mình nên phải tự đạt bậc 3:1. */
+.liveops-hub-timeline-legend-sample--overlap {
+    border-color: var(--liveops-hub-color-blocked-fill);
+    background-color: var(--liveops-hub-color-blocked-fill);
+}
+
+/* Nét vẽ TRÊN dấu (vuông "khác bản đã đăng", gạch "bị bỏ", dấu cắt mép) lấy màu nền cửa sổ: dấu đã là bản âm nên nền cửa
+   sổ chính là màu mực đọc được ở cả hai skin (6,72:1 trên dấu sáng nhất, 3,49:1 trên dấu tối nhất). Giữ màu gốc của thanh
+   thì vuông trắng đo 1,15:1 và gạch đỏ 1,39:1 trên dấu mới — tức là mất hẳn. Gạch "bị bỏ" mất sắc đỏ ở chú giải là đánh
+   đổi CÓ CHỦ ĐÍCH: không màu nào vừa đọc được trên dấu sáng vừa nhận ra là đỏ blocked (hai ràng buộc loại trừ nhau về số),
+   nghĩa "bị bỏ" vẫn do nhãn chữ ngay cạnh và do thanh thật trên trục mang. */
+.liveops-hub-timeline-legend-sample > .liveops-hub-timeline-bar__changed,
+.liveops-hub-timeline-legend-sample > .liveops-hub-timeline-bar__strike,
+.liveops-hub-timeline-legend-sample > .liveops-hub-timeline-bar__clip-start > .liveops-hub-timeline-bar__clip-shape {
+    background-color: var(--unity-colors-window-background);
+}
+
+.liveops-hub-timeline-legend-sample > .liveops-hub-timeline-bar__stripe {
+    height: 3px;
+}
+
+.liveops-hub-timeline-legend-sample > .liveops-hub-timeline-bar__strike {
+    top: 3px;
+}
+
+.liveops-hub-timeline-legend-sample > .liveops-hub-timeline-bar__changed {
+    width: 3px;
+    height: 3px;
+}
+
+.liveops-hub-timeline-legend-sample > .liveops-hub-timeline-bar__clip-start {
+    top: -1px;
+    left: 0;
+    height: 8px;
+}
+
+.liveops-hub-timeline-legend-sample-mark {
+    margin-right: 4px;
+}
+
+.liveops-hub-timeline-legend-item > .liveops-hub-icon {
+    margin-right: 3px;
+    opacity: 0.82;
+}
+
+.liveops-hub-timeline-legend-text {
+    padding: 0;
+    margin: 0;
+    font-size: 10px;
+}
+
+/* (W9-29) Dòng gợi ý CAO THEO NỘI DUNG, không còn 18px cố định.
+   Vì sao đổi: vế phím tắt (⌘⌦ xoá, ⌘D nhân bản — glyph xoá do Editor sinh là ⌦ U+2326, không phải ⌫) luôn đứng CUỐI câu
+   còn ellipsis luôn cắt từ CUỐI, nên ở cửa sổ hẹp thứ mất đầu tiên đúng là thứ quan trọng nhất — và dòng gợi ý là chỗ DUY
+   NHẤT trong hub nói ra hai phím ấy. Đo thật ngày 20/9/2026 trên hub 6000.6: bản CŨ (plan/w10/logs/hintprobe.txt, dòng
+   gợi ý còn khoá 18px) cho câu "đợt bị bỏ" cần 402px (vi) / 502px (en) mà ô mô tả chỉ có 254px ở cửa sổ 700 và 374px ở
+   820; bản SAU khi gập (logs/hubhintprobe.txt) đo lại chính ô đó trên hub thật: 274px ở 700, 394px ở 820, 364px ở 950 và
+   438px ở 1024 (en) — bốn cỡ mà bản cũ mất phím.
+   Cách chữa theo chốt của user ("cho xuống hai hàng"): bỏ chiều cao cố định, giữ SÀN 18px và cho phần mô tả xuống dòng.
+   Không sinh chuỗi hiển thị mới, không bậc cỡ riêng: chỗ rộng thì câu vẫn nằm một hàng đúng 18px như cũ, chỗ hẹp thì nó
+   gập xuống. Bậc cỡ bị loại vì ở 1280 phần mô tả en còn ĐÚNG 502px cho câu cần 502px — một bậc ngưỡng sẽ đặt cổng ngay
+   trên mép vực, còn gập theo nội dung thì không có mép nào để rơi.
+   TRẦN 56px (W10, phiếu soát F3): "cao theo nội dung" mà KHÔNG có trần thì một câu gợi ý dài hơn ở bản sau — hoặc một
+   bản dịch dài hơn — sẽ ăn dần chỗ của làn trong im lặng, vì dòng gợi ý là anh em `flex-shrink: 0` của thân trục. 56px =
+   bốn hàng chữ 10px (hàng ~13px + viền + đệm). Trạng thái CAO NHẤT đo được hôm nay là "đang chọn đợt có id dài nhất" ở
+   cửa sổ 700: 41px, tức ba hàng (plan/w10/logs/hintvariants.txt), nên trần còn dư đúng một hàng và ở 700x560 vẫn còn
+   nguyên một làn. Trần đặt Ở ĐÂY chứ không chỉ trong assert của test: vượt trần thì `overflow: hidden` cắt chữ, và chữ bị
+   cắt là thứ luật "chữ gập cao hơn ô" của UxLayoutAuditor ĐỌC RA ĐƯỢC — hỏng thành một phiếu đỏ có ảnh, không thành một
+   làn biến mất mà không ai đo. */
+.liveops-hub-timeline-hint {
+    flex-direction: row;
+    align-items: center;
+    flex-shrink: 0;
+    min-height: 18px;
+    max-height: 56px;
+    padding: 0 8px;
+    border-top-width: 1px;
+    border-color: var(--unity-colors-window-border);
+    background-color: var(--unity-colors-toolbar-background);
+    overflow: hidden;
+}
+
+/* (W9-25 chỗ #2) Id đợt xuống dòng được thay vì ôm khít một hàng: ô tự co theo chữ nên ellipsis ngang không bao giờ cứu
+   được nó, mà id dài (mẫu xấu nhất) lại đẩy hẳn phần mô tả — kèm cụm phím — ra khỏi hàng. Cho phép gập là đường DUY NHẤT
+   giữ được cả id lẫn cụm phím khi id dài hơn chỗ có; UI Toolkit ngắt được ở dấu gạch nối nên id kiểu "treasure-hunt-…"
+   gập thật chứ không tràn (đo ngày 20/9/2026: id 54 ký tự ở cửa sổ 700 xuống 3 hàng, vẫn đọc đủ).
+   `flex-shrink: 1` (KHÔNG phải `max-width`): thử `max-width: 50%` trước và đo ra sai — Yoga đo chiều cao chữ ở bề rộng
+   TRƯỚC khi kẹp max-width, nên nhãn id dài nhận ô cao 40px cho phần chữ cần 66px và mất hai hàng cuối trong im lặng
+   (test `HintLine_ReadsWhole…` bắt đúng chỗ đó). Cho co theo tỉ lệ thì Yoga đo lại sau khi co nên chiều cao luôn khớp.
+   Giá phải trả, khai thẳng: ở cửa sổ hẹp nhất id ngắn cũng có thể xuống hai hàng — đổi lấy việc không câu nào mất chữ. */
+.liveops-hub-timeline-hint-subject {
+    padding: 0;
+    margin: 0 4px 0 0;
+    font-size: 10px;
+    -unity-font-style: bold;
+    flex-shrink: 1;
+    white-space: normal;
+}
+
+.liveops-hub-timeline-hint-text {
+    flex-shrink: 1;
+    padding: 0;
+    margin: 0;
+    font-size: 10px;
+    opacity: 0.82;
+    white-space: normal;
+}
+
+/* ============================================================================================ G-OPT-TIMELINE (P1-lùi, Hình 12)
+   Khung chọn, làn thu gọn và chevron gập. Ba thứ này chỉ đổi HÌNH, mọi quyết định (làn nào thu gọn, thanh nào trong tập chọn)
+   nằm ở model + element — USS không được là nơi thứ hai giữ trạng thái. */
+
+/* Khung chọn kéo trên chỗ trống (khung 9): nền highlight 0,2 + viền 1px highlight, không nhận chuột. */
+/* Khung chọn (khung 9): viền 1px ĐỤC ở element ngoài, nền 0,2 ở con `__fill`. Gộp hai thứ vào một element thì `opacity`
+   nhuộm luôn viền — đo trên ảnh chụp: viền chỉ hơn nền cửa sổ 4-6 mức, coi như không có viền. */
+.liveops-hub-timeline-marquee {
+    position: absolute;
+    border-width: 1px;
+    border-color: var(--unity-colors-highlight-background);
+}
+
+.liveops-hub-timeline-marquee__fill {
+    position: absolute;
+    left: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    background-color: var(--unity-colors-highlight-background);
+    opacity: 0.2;
+}
+
+/* Làn thu gọn (khung 12): cao 22px. Chiều cao thật do C# ghi inline theo LaneHeight; luật này giữ mép dưới không bị nền
+   của làn mở đè khi pool tái dùng element. */
+.liveops-hub-timeline-lane--collapsed {
+    max-height: 22px;
+}
+
+/* Thanh trong làn thu gọn: dải 6px bo 1, opacity 0,85, không nhãn, không icon, không tay nắm — chỉ còn màu loại. */
+.liveops-hub-timeline-bar--collapsed {
+    height: 6px;
+    padding: 0;
+    border-width: 0;
+    border-radius: 1px;
+    opacity: 0.85;
+}
+
+/* Dải màu lấp hết 6px: ở làn thu gọn màu loại LÀ nội dung, không còn nhãn hay icon nào khác để đọc. */
+.liveops-hub-timeline-bar--collapsed > .liveops-hub-timeline-bar__stripe {
+    top: 0;
+    height: auto;
+}
+
+.liveops-hub-timeline-bar--collapsed > .liveops-hub-timeline-bar__label {
+    display: none;
+}
+
+.liveops-hub-timeline-bar--collapsed > .liveops-hub-timeline-bar__loop-icon {
+    display: none;
+}
+
+.liveops-hub-timeline-bar--collapsed > .liveops-hub-timeline-bar__lock-icon {
+    display: none;
+}
+
+.liveops-hub-timeline-bar--collapsed > .liveops-hub-timeline-bar__edge {
+    display: none;
+}
+
+/* Chevron gập ở dòng tên làn (khung 12): 9×8, opacity 0,8. Hình là một ô vuông 5×5 chỉ có hai cạnh, xoay 45° — cùng cách
+   dựng với dấu cắt mép của thanh, vì font của Editor không chắc có glyph chevron. */
+.liveops-hub-timeline-lane-chevron {
+    width: 16px;
+    height: 14px;
+    flex-shrink: 0;
+    margin-right: 0;
+    align-items: center;
+    justify-content: center;
+    opacity: 0.8;
+    cursor: link;
+}
+
+.liveops-hub-timeline-lane-chevron-shape {
+    width: 5px;
+    height: 5px;
+    border-right-width: 1px;
+    border-bottom-width: 1px;
+    border-color: var(--unity-colors-default-text);
+    rotate: 45deg;
+    translate: 0 -1px;
+}
+
+/* Làn thu gọn: chevron quay sang phải (gập) thay vì xuống (mở). */
+.liveops-hub-timeline-lane-chevron--collapsed > .liveops-hub-timeline-lane-chevron-shape {
+    rotate: -45deg;
+    translate: -1px 0;
+}

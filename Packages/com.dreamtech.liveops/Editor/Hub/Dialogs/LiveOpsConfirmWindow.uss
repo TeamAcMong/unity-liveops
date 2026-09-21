@@ -1,0 +1,134 @@
+/*
+ * LiveOpsConfirmWindow.uss — hộp xác nhận cấp 1 (400×212) / cấp 2 gõ id (400×290), [FD §3.10], kế hoạch 8.6.
+ * Nạp sau theme + components vào gốc liveops-hub-root của CHÍNH cửa sổ hộp (panel riêng — sheet của cửa sổ hub không tới đây).
+ *
+ * Luật: thân padding 10px 12px; tiêu đề 12px đậm; câu thân 11px xuống dòng, margin-top 6px (thiết kế ghi line-height 1,45 nhưng USS
+ * không có line-height — giữ khoảng dòng mặc định của Inter); hàng nút dính đáy nhờ margin-top auto
+ * (padding-top 12px) để chỗ dư nằm trên hàng nút; gợi ý phím góc trái 10px 0,82. Nút phá huỷ chỉ đổi màu chữ (class
+ * liveops-hub-button--danger ở components), nút an toàn chữ đậm. Không màu trần.
+ */
+
+.liveops-hub-root {
+    flex-grow: 1;
+    background-color: var(--unity-colors-window-background);
+}
+
+.liveops-hub-confirm {
+    flex-grow: 1;
+    flex-direction: column;
+    padding: 10px 12px;
+}
+
+.liveops-hub-confirm-title {
+    font-size: 12px;
+    -unity-font-style: bold;
+    white-space: normal;
+    padding: 0;
+    margin: 0;
+}
+
+.liveops-hub-confirm-body {
+    font-size: 11px;
+    white-space: normal;
+    padding: 0;
+    margin: 6px 0 0 0;
+}
+
+.liveops-hub-confirm-body--hidden {
+    display: none;
+}
+
+.liveops-hub-confirm-warning {
+    margin: 6px 0 0 0;
+}
+
+.liveops-hub-confirm-warning--hidden {
+    display: none;
+}
+
+/*
+ * (soát W8-UX R5) Ô cuộn của thân (câu + HelpBox + vùng gõ id), do LiveOpsConfirmContent dựng từ C#.
+ * flex-grow 1: ăn đúng chỗ khung còn lại giữa tiêu đề và hàng nút — chiều cao cửa sổ đã tính theo nội dung nên "chỗ còn lại"
+ * bằng đúng chiều cao nội dung và không sinh lại khoảng trống mà UX-27 vừa gỡ.
+ * min-height 0: flexbox mặc định KHÔNG cho con co xuống dưới chiều cao nội dung, mà đúng lúc hộp chạm trần 420px thì phải
+ * co được — không co thì hàng nút bị đẩy ra ngoài khung, tức là mất đường thoát của một hộp phá huỷ.
+ */
+.liveops-hub-confirm > .unity-scroll-view {
+    flex-grow: 1;
+    flex-shrink: 1;
+    min-height: 0;
+}
+
+.liveops-hub-confirm > .unity-scroll-view > .unity-scroll-view__content-viewport {
+    min-height: 0;
+}
+
+/* ---------------------------------------------------------------- Cấp 2: gõ id đang chạy */
+
+.liveops-hub-confirm-type {
+    margin-top: 8px;
+}
+
+.liveops-hub-confirm-type--hidden {
+    display: none;
+}
+
+.liveops-hub-confirm-type-row {
+    flex-direction: row;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.liveops-hub-confirm-type-row > .unity-label {
+    padding: 0;
+    margin: 0 4px 0 0;
+}
+
+.liveops-hub-confirm-type-id {
+    -unity-font-style: bold;
+}
+
+.liveops-hub-confirm-type-field {
+    height: 18px;
+    margin: 4px 0 0 0;
+}
+
+.liveops-hub-confirm-type-hint {
+    font-size: 10px;
+    opacity: 0.82;
+    white-space: normal;
+    padding: 0;
+    margin: 4px 0 0 0;
+}
+
+/* ---------------------------------------------------------------- Hàng nút: [gợi ý] … [phá huỷ] [an toàn] */
+
+.liveops-hub-confirm-buttons {
+    flex-direction: row;
+    /* Gợi ý phím có thể cao hai dòng: căn đáy để hai nút luôn nằm đúng dòng cuối, không trôi lên giữa câu. */
+    align-items: flex-end;
+    flex-shrink: 0;
+    margin-top: auto;
+    padding-top: 12px;
+}
+
+/*
+ * (UX-27 / UJ-12) Gợi ý phím XUỐNG DÒNG, không cắt: câu nêu đúng hai phím thoát hiểm của một hộp phá huỷ
+ * ("Esc: Giữ tiền tố cũ · Enter không đổi gì") và ở hàng nút 400 px nó bị cắt thành "Enter không đổi gi" — mất đúng
+ * nửa câu người dùng cần. Hàng nút cao thêm một dòng; chiều cao hộp đã theo nội dung đo được nên không sinh khoảng trống.
+ */
+.liveops-hub-confirm-key-hint {
+    flex-grow: 1;
+    flex-shrink: 1;
+    min-width: 0;
+    font-size: 10px;
+    opacity: 0.82;
+    padding: 0;
+    margin: 0;
+    white-space: normal;
+}
+
+.liveops-hub-confirm-missing-layout {
+    flex-grow: 1;
+    padding: 10px 12px;
+}

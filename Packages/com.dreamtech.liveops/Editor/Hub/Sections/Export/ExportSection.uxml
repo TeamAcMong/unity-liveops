@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Thân màn Xuất JSON [SD2 §3.3]: hàng trên (card Cổng xuất giãn + bốn tile metric 560px), hàng dưới (card "JSON sẽ đăng"
+  520px + cột phải gồm card diff, card Các lần đã đăng và chữ chân). Note/HelpBox/card lỗi nằm TRÊN hai hàng đó
+  (export-notices) vì chúng nói về toàn màn.
+  Empty (chưa có asset) nằm SẴN trong cây và chỉ bật/tắt bằng class: tên element sống còn phải Q được ở CẢ hai ngữ cảnh
+  (không asset và dữ liệu mẫu) vì probe 9.3 và HubWindowTests duyệt cả hai.
+  Không câu chữ nào trong file này — mọi label do C# đổ từ LiveOpsHubStrings (lint chặn chữ hiển thị trong UXML).
+-->
+<ui:UXML xmlns:ui="UnityEngine.UIElements">
+    <ui:VisualElement name="export-body" class="liveops-hub-export-page">
+        <ui:VisualElement name="export-empty" class="liveops-hub-empty">
+            <ui:Label name="export-empty-title" class="liveops-hub-empty-title" />
+            <ui:Label name="export-empty-body" class="liveops-hub-empty-body" />
+            <ui:Button name="export-empty-action" class="liveops-hub-button" />
+        </ui:VisualElement>
+
+        <!-- Q-W5-1 áp cho màn Xuất JSON (W9-01): thân mặc định nằm trong một ScrollView DỌC ở MỌI bề rộng. Đo ở 700x560 thân
+             cao 1466px trong cửa sổ cao 560 — không có khung cuộn thì hơn hai phần ba màn nằm ngoài cửa sổ và bị
+             rootVisualContainer cắt, tức mất chữ chứ không phải "xem sau". Không gắn theo breakpoint: một đường vẽ, một
+             đường đo. Hướng cuộn do C# đặt (tên thuộc tính UXML lệch giữa 2022.3 và 6000.6). -->
+        <ui:ScrollView name="export-scroll" class="liveops-hub-export-scroll">
+            <ui:VisualElement name="export-default" class="liveops-hub-export-default">
+                <ui:VisualElement name="export-notices" />
+
+                <ui:VisualElement name="export-top-row" class="liveops-hub-export-top-row">
+                    <ui:VisualElement name="export-gate-host" class="liveops-hub-export-gate-column" />
+                    <ui:VisualElement name="export-metrics-host" class="liveops-hub-export-metric-host" />
+                </ui:VisualElement>
+
+                <ui:VisualElement name="export-bottom-row" class="liveops-hub-export-bottom-row">
+                    <ui:VisualElement name="export-json-card" class="liveops-hub-card liveops-hub-export-json-column">
+                        <ui:VisualElement class="liveops-hub-card-header">
+                            <ui:Label name="export-json-title" class="liveops-hub-export-card-title" />
+                            <ui:Label name="export-json-meta" class="liveops-hub-export-card-meta" />
+                        </ui:VisualElement>
+                        <ui:VisualElement name="export-json-host" class="liveops-hub-export-json-host" />
+                    </ui:VisualElement>
+
+                    <ui:VisualElement name="export-side-column" class="liveops-hub-export-side-column">
+                        <ui:VisualElement name="export-diff-host" />
+                        <ui:VisualElement name="export-history-host" />
+                        <ui:Label name="export-footer-note" class="liveops-hub-note" />
+                    </ui:VisualElement>
+                </ui:VisualElement>
+            </ui:VisualElement>
+        </ui:ScrollView>
+    </ui:VisualElement>
+</ui:UXML>

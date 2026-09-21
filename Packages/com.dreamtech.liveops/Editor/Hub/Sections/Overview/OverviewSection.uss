@@ -1,0 +1,464 @@
+/*
+ * Màn Tổng quan (Hình 4/5). Số đo bám hình: thân padding 10 · cột dọc cách nhau 8 · metric flex 1 1 132 cách nhau 6 ·
+ * hàng việc cần làm cột khoá 96px + nút 150px · thân flow cao 48 padding 0 12 · bảng 7 ngày cột 170/250/140/130/giãn.
+ * Mọi màu đi qua token của liveops-hub-theme.uss (hai skin); USS không có gap/:last-child nên khoảng cách dùng margin và
+ * class `--last` bật từ C#.
+ */
+
+.liveops-hub-overview-page {
+    flex-grow: 1;
+    padding: var(--liveops-hub-space-10);
+}
+
+/*
+ * Q-W5-1: ScrollView bọc thân mặc định chiếm hết chỗ còn lại của trang, còn chính thân thì cao theo nội dung — có vậy phần
+ * dư mới tràn ra và thanh cuộn mới có việc. Thanh cuộn ngang tắt từ C# (bố cục đã co theo `--narrow`).
+ */
+.liveops-hub-overview-scroll {
+    flex-grow: 1;
+}
+
+.liveops-hub-overview-default {
+    flex-grow: 1;
+}
+
+.liveops-hub-overview-metric-row {
+    flex-direction: row;
+    align-items: stretch;
+    margin-bottom: var(--liveops-hub-space-8);
+}
+
+.liveops-hub-overview-metric--last {
+    margin-right: 0;
+}
+
+.liveops-hub-overview-metric-value-row {
+    flex-direction: row;
+    align-items: flex-end;
+    min-height: 22px;
+}
+
+.liveops-hub-overview-metric-foot-row {
+    flex-direction: row;
+    align-items: center;
+}
+
+.liveops-hub-overview-card-title {
+    -unity-font-style: bold;
+    font-size: 11px;
+}
+
+.liveops-hub-overview-card-subtitle {
+    font-size: 10px;
+    opacity: 0.7;
+    margin-left: var(--liveops-hub-space-6);
+    flex-shrink: 1;
+    overflow: hidden;
+}
+
+.liveops-hub-overview-card-spacer {
+    flex-grow: 1;
+}
+
+.liveops-hub-overview-card-body {
+    padding-top: var(--liveops-hub-space-2);
+    padding-bottom: var(--liveops-hub-space-2);
+}
+
+/*
+ * Nút header "[Refresh] Kiểm lại tất cả" (7.1). Button mặc định căn giữa chữ của chính nó; ở đây chữ là Label con nên nút
+ * phải tự xếp hàng ngang, nếu không icon và chữ chồng lên nhau.
+ */
+.liveops-hub-overview-recheck-all {
+    flex-direction: row;
+    align-items: center;
+}
+
+/*
+ * (UX-30 / UJ-25) Nút chỉ có icon (⋮). Nút chữ giữ min-width 54px để hai nút cạnh nhau không so le; một icon 12px trong
+ * ô đó thành "nút rộng rỗng có dấu ⋮ nhỏ ở trái". Ô vuông theo chiều cao nút 18px, icon căn giữa.
+ * Số 18 viết thẳng chứ không qua token khoảng cách vì đây là BỀ RỘNG phải bằng đúng chiều cao của .liveops-hub-button
+ * (18px, liveops-hub-components.uss) — vuông là điều kiện, không phải một bậc khoảng cách. Bảng UX-30 của kế hoạch ghi
+ * 22px; 22 sẽ CAO HƠN nút chữ cạnh nó và hai nút so le, nên lấy 18 (lệch tự duyệt, ghi ở §V-39 của kế hoạch).
+ * Luật nằm ở sheet của màn (không phải liveops-hub-components.uss) vì file đó ngoài quyền ghi của gói: thiếu sheet thì nút
+ * quay về min-width 54px — fail-open giống hệt mọi luật khác của chính section này, xem OverviewSection.cs.
+ */
+.liveops-hub-overview-icon-button {
+    min-width: 18px;
+    width: 18px;
+    padding: 0;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+}
+
+.liveops-hub-overview-recheck-all-label {
+    margin-left: var(--liveops-hub-space-4);
+}
+
+/* ---------------------------------------------------------------- Việc cần làm trước khi đăng */
+
+.liveops-hub-overview-need-row {
+    min-height: 34px;
+    padding-right: var(--liveops-hub-space-8);
+}
+
+.liveops-hub-overview-need-text {
+    flex-grow: 1;
+    flex-shrink: 1;
+    overflow: hidden;
+}
+
+/*
+ * (W9-03) Xuống dòng thay vì cắt: ở 700px cột chữ còn 348px trong khi tiêu đề phát hiện cần tới 373px và dòng "ở đâu" cần
+ * 431px. Cột chữ có flex-grow nên nó đã lấy hết chỗ còn lại của hàng — không còn bề rộng nào để xin thêm, chỉ còn cách cho
+ * câu chạy xuống dòng thứ hai. Hàng chỉ khai min-height nên cao thêm là hợp lệ.
+ */
+.liveops-hub-overview-need-title {
+    font-size: 11px;
+    white-space: normal;
+}
+
+.liveops-hub-overview-need-detail {
+    font-size: 10px;
+    opacity: 0.7;
+    white-space: normal;
+}
+
+/* Cột 96px căn phải: trạng thái CỔNG, tách khỏi mức của phát hiện (dấu Blocked 7px riêng). */
+/*
+ * (W9-03, sửa lại theo soát W9 R-09) Bề rộng CỨNG 96px — đúng số đo Hình 4 [SD1 §1.1], không phải min-width.
+ * Cột này tồn tại ĐỂ MỌI NÚT THẲNG HÀNG: BuildBlocksColumn dựng cột RỖNG cho cả hàng không chặn chính vì lý do đó, nên
+ * một cột "co giãn theo nội dung từng hàng" là cột phá đúng việc nó sinh ra để làm. Bản W9-03 đổi sang `min-width: 96px`
+ * để chữ "blocks Copy JSON" (cần 100px) thôi đẩy dấu Blocked ra ngoài mép trái — chữa được chỗ tràn nhưng mở cửa cho
+ * hàng rộng khác nhau, và làm số 96px của [SD1 §1.1] thành một con số chỉ đúng ở hàng rỗng.
+ * Cách chữa đúng: giữ CỘT 96px, cho CHỮ bên trong xuống dòng (luật ngay dưới). Hàng khai min-height 34px nên dòng thứ
+ * hai có chỗ; không hàng nào rộng khác hàng nào, và không chữ nào bị cắt.
+ * (Đo được: sau riêng thay đổi này, cả bốn `overview-need-blocks-*` đều rộng đúng 96 — nhưng cột nút VẪN lệch 3px, nên
+ *  3px đó có nguồn khác; xem chú thích `margin-right: 0` ở luật nút bên dưới.)
+ */
+.liveops-hub-overview-need-blocks {
+    width: 96px;
+    flex-shrink: 0;
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-end;
+    font-size: 10px;
+}
+
+/*
+ * (soát W9 R-09) Chữ "chặn Copy JSON" / "blocks Copy JSON" xuống dòng TRONG cột 96px thay vì đẩy dấu Blocked ra ngoài.
+ * flex-shrink 1 + white-space normal: nhãn nhận đúng phần còn lại sau dấu Blocked rồi tự ngắt dòng ở khoảng trắng.
+ */
+.liveops-hub-overview-need-blocks-label {
+    flex-shrink: 1;
+    white-space: normal;
+    -unity-text-align: middle-right;
+}
+
+/*
+ * Slot của nút = [lý do khoá][nút]. Nút giữ ĐÚNG 150px của Hình 4; lý do co lại và cắt khi hàng chật, nên mép phải của slot
+ * không bao giờ vượt mép card (trước đây slot cố định 150px còn lý do đẩy nút ra ngoài cửa sổ, chữ nút bị cắt cụt).
+ * Bộ chọn hai class vì .liveops-hub-button-slot (liveops-hub-components.uss) đặt flex-shrink:0 ở cùng mức riêng một class.
+ */
+.liveops-hub-button-slot.liveops-hub-overview-need-button {
+    min-width: 150px;
+    flex-shrink: 1;
+    margin-left: var(--liveops-hub-space-8);
+}
+
+.liveops-hub-overview-need-button > .liveops-hub-button-reason {
+    flex-shrink: 1;
+    overflow: hidden;
+}
+
+/*
+ * Nút lấp đúng bề rộng cột của Hình 4 — chữ nút dài ngắn khác nhau không được làm cột nút răng cưa.
+ * (W9-03) Giữ 150px và cho chữ XUỐNG DÒNG thay vì nới bề rộng: "Open Check calendar · To review" cần 172px ở MỌI cỡ cửa sổ
+ * (kể cả 1920), tức đây không phải lỗi cửa sổ hẹp mà là chữ dài hơn cột. Nới bề rộng theo chữ sẽ làm cột nút răng cưa —
+ * đúng thứ số đo 150px sinh ra để tránh. height: auto để dòng thứ hai có chỗ; 18px trở thành sàn, không còn là trần.
+ */
+.liveops-hub-overview-need-button > .liveops-hub-button {
+    width: 150px;
+    height: auto;
+    min-height: 18px;
+    flex-shrink: 0;
+    margin-left: 0;
+    /*
+     * (soát W9 R-09) margin-right: 0 là chỗ chữa 3px RĂNG CƯA còn lại — đo được, không phải đoán.
+     * Button của Unity mang sẵn margin 1px 3px. Slot bọc nút khai `min-width: 150px; flex-shrink: 1`, nên bề rộng
+     * MONG MUỐN của slot là 150 (nút) + 3 (margin phải) = 153. Hàng nào cột chữ bên trái phải xuống dòng thì flexbox
+     * đòi lại chỗ ở đứa co được — slot rơi về đúng min-width 150, tức HẸP HƠN 3px so với hàng không xuống dòng, và
+     * mép trái nút của hàng đó lệch sang phải 3px. Đo trên ux-w9-overview-en-700x560-light.png (lượt chụp SAU khi cột
+     * 96px đã cố định): slot hàng 0 và 2 rộng 153 (x=515), slot hàng 1 và 3 rộng 150 (x=518) — đúng hai hàng có chữ
+     * xuống dòng, và KHÔNG trùng với hai hàng có dấu chặn. Sau khi bỏ margin: cả bốn slot x=518 w=150.
+     * Bỏ margin phải thì bề rộng mong muốn của slot BẰNG min-width, không còn gì để co, và bốn nút thẳng một cột ở
+     * mọi hàng, mọi ngôn ngữ.
+     */
+    margin-right: 0;
+    white-space: normal;
+    -unity-text-align: middle-center;
+}
+
+/* ---------------------------------------------------------------- Đường đi của lịch */
+
+/* flex-shrink 0: thân flow là số đo của Hình 4 (48px) — cột dọc chật không được bóp nó xuống 46. */
+.liveops-hub-overview-flow {
+    flex-direction: row;
+    align-items: center;
+    flex-shrink: 0;
+    height: 48px;
+    padding-left: var(--liveops-hub-space-12);
+    padding-right: var(--liveops-hub-space-12);
+}
+
+.liveops-hub-overview-flow-node {
+    flex-grow: 1;
+    flex-shrink: 1;
+    align-items: center;
+    justify-content: center;
+}
+
+.liveops-hub-overview-flow-caption {
+    font-size: 10px;
+    -unity-font-style: bold;
+    letter-spacing: 0.5px;
+    margin-top: var(--liveops-hub-space-4);
+}
+
+.liveops-hub-overview-flow-note {
+    font-size: 10px;
+    opacity: 0.85;
+}
+
+.liveops-hub-overview-flow-connector {
+    height: 2px;
+    flex-grow: 1;
+    flex-shrink: 1;
+    margin-left: var(--liveops-hub-space-6);
+    margin-right: var(--liveops-hub-space-6);
+    background-color: var(--unity-colors-default-text);
+    opacity: 0.35;
+}
+
+/* Sau tầng cổng chặn đầu tiên: đường nối gần như tắt hẳn — mắt thấy lịch dừng ở đâu mà không phải đọc chữ. */
+.liveops-hub-overview-flow-connector--dead {
+    opacity: 0.12;
+}
+
+/* ---------------------------------------------------------------- 7 ngày tới */
+
+/*
+ * (UX-30 / UJ-25) flex-shrink: 0 trên bảng và từng hàng: thân màn cao hơn cửa sổ thì flexbox co con xuống dưới chiều cao
+ * nội dung — hàng bảng bị ép thấp hơn min-height, chữ hai dòng đè lên nhau và đáy bảng cụt. Việc cuộn là của ScrollView
+ * thân màn (Q-W5-1), không phải của hàng bảng.
+ */
+.liveops-hub-overview-upcoming-table {
+    flex-direction: column;
+    flex-shrink: 0;
+}
+
+/*
+ * (W9-03) flex-wrap: hàng bảng được phép xuống dòng. Bốn cột đầu là số đo cố định của Hình 4 (170+250+140+130 = 690px),
+ * còn cột nội dung của màn chỉ rộng ~607px ở cửa sổ 700 và ~727px ở 820 — không cho xuống dòng thì cột 4 và cột 5 bị đẩy
+ * RA NGOÀI cửa sổ và cột Ghi chú co còn 0–37px. Xuống dòng giữ nguyên số đo thiết kế ở cửa sổ rộng và không cắt chữ nào.
+ */
+.liveops-hub-overview-upcoming-head-row {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    flex-shrink: 0;
+    min-height: 20px;
+    padding-left: var(--liveops-hub-space-8);
+    padding-right: var(--liveops-hub-space-8);
+    border-bottom-width: 1px;
+    border-bottom-color: var(--unity-colors-window-border);
+}
+
+.liveops-hub-overview-upcoming-row {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    flex-shrink: 0;
+    min-height: 26px;
+    padding-left: var(--liveops-hub-space-8);
+    padding-right: var(--liveops-hub-space-8);
+}
+
+.liveops-hub-overview-upcoming-cell {
+    flex-direction: row;
+    align-items: center;
+    flex-shrink: 0;
+    overflow: hidden;
+    padding-right: var(--liveops-hub-space-6);
+}
+
+/*
+ * (W9-25 chỗ 3) Ô giờ giữ đúng 170px của Hình 4, nhưng vùng NỘI DUNG được nới theo hai đường:
+ *  - align-items: stretch thay flex-start — nhãn mono trước đó tự co đúng bằng chữ mình (161px đo ở 2022.3) nên "khoảng dư"
+ *    của nó là 0 dù ô còn chỗ; stretch cho nhãn nhận trọn bề rộng ô và chỗ dư của ô mới thành chỗ dư của CHỮ. Chữ vẫn căn
+ *    trái nên trông y hệt.
+ *  - đệm phải 6 → 2px VÀ bỏ đệm ngang mặc định của chính nhãn (Unity cho TextElement 1px trái + 2px phải): chuỗi dài nhất
+ *    "14/9 00:00 → 20/9 00:00" cần 157px, ô 170 trừ đệm 6 và 3px của nhãn chỉ còn 161 — dư 4px, tức 2,5%, dưới ngưỡng dư 5%
+ *    của W9-25. Đo lại sau khi nới: 168px vùng nội dung, dư 11px (6,5%). Nới ĐỆM chứ không nới bề rộng cột vì 170 là số đo
+ *    của ma trận ảnh 9.5 và của OverviewSectionTests.NeedsActionRow_ColumnWidthsMatchDesign. Đệm DỌC của nhãn giữ nguyên để
+ *    hai mức chữ (giờ + tương đối) không xê dịch.
+ *
+ * (soát W10 F8) Luật bỏ đệm NGANG phải trùng MỌI con trực tiếp của ô giờ, không riêng nhãn mono. Ô này có ba loại con ở ba
+ * chỗ: nhãn giờ (mono) và nhãn tương đối (liveops-hub-overview-upcoming-relative) ở hàng dữ liệu, nhãn tiêu đề (liveops-hub-caption)
+ * ở hàng đầu — hàng tiêu đề dùng LẠI đúng class --time. Chỉ bỏ đệm cho nhãn mono thì hai nhãn kia giữ 1px trái mặc định của
+ * TextElement, tức ba dòng cùng một cột bắt đầu lệch nhau 1px theo chiều ngang. Một pixel vẫn là một cạnh không thẳng.
+ */
+.liveops-hub-overview-upcoming-cell--time {
+    width: 170px;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: center;
+    padding-right: var(--liveops-hub-space-2);
+}
+
+.liveops-hub-overview-upcoming-cell--time > .liveops-hub-mono,
+.liveops-hub-overview-upcoming-cell--time > .liveops-hub-overview-upcoming-relative,
+.liveops-hub-overview-upcoming-cell--time > .liveops-hub-caption {
+    padding-left: 0;
+    padding-right: 0;
+}
+
+.liveops-hub-overview-upcoming-cell--event {
+    width: 250px;
+}
+
+.liveops-hub-overview-upcoming-cell--type {
+    width: 140px;
+}
+
+.liveops-hub-overview-upcoming-cell--kind {
+    width: 130px;
+}
+
+/*
+ * (W9-03) min-width 340 là ĐIỀU KIỆN XUỐNG DÒNG của cả bảng, không phải một số trang trí: câu ghi chú dài nhất của dữ liệu
+ * mẫu cần 322px (bản tiếng Anh) cộng đệm ô 6px. Khai bề rộng tối thiểu này thì flexbox tính cột Ghi chú là 340px khi chia
+ * hàng, nên ở mọi cửa sổ mà 690px (bốn cột cố định) + 340px không vừa — tức từ 1280 trở xuống — Ghi chú TỰ rơi xuống dòng
+ * hai và nhận trọn bề rộng bảng. Mọi hàng và cả hàng tiêu đề rơi dòng GIỐNG NHAU vì điều kiện không phụ thuộc chữ của từng
+ * hàng; nếu để flexbox tự đo theo chữ thì hàng ghi chú ngắn ở lại dòng một còn hàng dài rơi xuống, bảng thành răng cưa.
+ * flex-shrink 1 giữ nguyên: ở cửa sổ rất hẹp cột này được phép co, nhưng không bao giờ dưới 340px.
+ */
+.liveops-hub-overview-upcoming-cell--note {
+    flex-grow: 1;
+    flex-shrink: 1;
+    width: auto;
+    min-width: 340px;
+}
+
+.liveops-hub-overview-upcoming-relative {
+    font-size: 10px;
+    opacity: 0.7;
+}
+
+/* ---------------------------------------------------------------- Empty (a): ba bước */
+
+.liveops-hub-overview-step-list {
+    margin-top: var(--liveops-hub-space-10);
+}
+
+.liveops-hub-overview-step-row {
+    flex-direction: row;
+    align-items: center;
+    margin-bottom: var(--liveops-hub-space-6);
+}
+
+/* Số dùng MÀU CHỮ, không màu nền: bước chưa làm không được trông như đã đạt [SD1 §1.2]. */
+.liveops-hub-overview-step-marker {
+    width: 18px;
+    height: 18px;
+    border-width: 1.5px;
+    border-color: var(--liveops-hub-color-quiet);
+    border-radius: 9px;
+    font-size: 10px;
+    -unity-font-style: bold;
+    -unity-text-align: middle-center;
+    flex-shrink: 0;
+}
+
+.liveops-hub-overview-step-label {
+    margin-left: var(--liveops-hub-space-8);
+}
+
+.liveops-hub-overview-empty-actions {
+    flex-direction: row;
+    align-items: center;
+    margin-top: var(--liveops-hub-space-10);
+}
+
+/* (b) nhiều asset lịch [SD1 §1.3]: HelpBox info ở đầu thân — icon + câu + khoảng giãn + nút "Đổi…", các item căn giữa dọc. */
+.liveops-hub-overview-multiple-assets {
+    flex-direction: row;
+    align-items: center;
+    flex-shrink: 0;
+    margin-bottom: var(--liveops-hub-space-8);
+    padding: var(--liveops-hub-space-4) var(--liveops-hub-space-8);
+    border-width: 1px;
+    border-radius: 3px;
+    border-color: var(--unity-colors-window-border);
+    background-color: var(--unity-colors-toolbar-background);
+}
+
+.liveops-hub-overview-multiple-assets-text {
+    flex-shrink: 1;
+    margin: 0 0 0 var(--liveops-hub-space-6);
+    padding: 0;
+    white-space: normal;
+}
+
+/* Khối bị ẩn: display none để không chiếm chỗ (empty (a) và thân mặc định thay nhau, không bao giờ cùng hiện). */
+.liveops-hub-overview-hidden {
+    display: none;
+}
+
+/* ---------------------------------------------------------------- Cửa sổ hẹp (< 900 px) [FD §4.2] */
+
+/*
+ * [FD §4.2] cho --narrow đúng một dòng ở màn này: "Metric tile 2×2". Bốn tile flex 1 1 132 xếp một hàng thì ở 820 px chúng
+ * co dưới bề rộng đọc được; cho hàng xuống dòng và mỗi tile chiếm nửa hàng là ra đúng 2×2.
+ */
+/*
+ * flex-shrink:0 đi kèm: `.liveops-hub-overview-default` có flex-grow:1 nên khi thân cao hơn cửa sổ, flexbox co từng con
+ * xuống dưới chiều cao nội dung — chữ vẫn vẽ nguyên và tràn RA NGOÀI hộp, đè lên card dưới (ảnh hs-shell-narrow-820 và
+ * hs-shell-compact-700 của W5).
+ *
+ * (Q-W5-1, user chốt 17/9/2026) Từ W6 thân màn nằm trong một ScrollView dọc, nên khoá co lại KHÔNG còn nghĩa là "cắt ở
+ * đáy" nữa: nó giữ cho mỗi card cao đúng chiều cao nội dung, và ScrollView có cái để CUỘN. Câu cũ ở đây ("cắt còn đọc
+ * được, để thì không") là lý lẽ của bản trước — chính thứ user đã bác ở cổng W5, đừng đọc nó như luật còn hiệu lực.
+ * Cửa sổ ≥ 900 px không đổi gì vì ở đó thân vốn đã vừa và thanh cuộn (Auto) tự ẩn.
+ */
+.liveops-hub--narrow .liveops-hub-overview-metric-row {
+    flex-wrap: wrap;
+    flex-shrink: 0;
+}
+
+.liveops-hub--narrow .liveops-hub-overview-metric-row .liveops-hub-metric {
+    flex-basis: 45%;
+    margin-bottom: var(--liveops-hub-space-6);
+}
+
+.liveops-hub--narrow .liveops-hub-overview-default > .liveops-hub-card {
+    flex-shrink: 0;
+}
+
+/*
+ * (W9-03) Câu chú cuối thân: class khung liveops-hub-note không khai white-space nên câu dài bị cắt (cần 769px, có 593px ở
+ * cửa sổ 700). Đây là câu giải thích "vòng rỗng không phải là đạt" — cắt nó đi là mất đúng phần nói VÌ SAO.
+ */
+.liveops-hub-overview-footer-note {
+    white-space: normal;
+}
+
+/*
+ * (W9-03) Dòng chân của metric tile ("2 bị bỏ · 1 mất tiến độ · 2 nên xem") dài hơn tile ở 1024px (cần 188, có 174). Tile
+ * có min-width 132 và chia đều bề rộng hàng, nên không nới được — cho xuống dòng, hàng metric đã align-items: stretch nên
+ * bốn tile vẫn bằng nhau. Chỉ áp trong hàng metric của màn này, không đụng class khung.
+ */
+.liveops-hub-overview-metric-foot-row .liveops-hub-metric-foot {
+    white-space: normal;
+}

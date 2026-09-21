@@ -1,0 +1,315 @@
+using System;
+using System.Globalization;
+
+namespace DreamTech.LiveOps.Editor
+{
+    /// <summary>
+    /// Nháp tại ô của màn Luật lặp ([SD1 §4.2], mục 7.4) — lớp thuần, không đụng UI. Gõ tiền tố / neo / chu kỳ / thời gian chạy
+    /// làm đổi id hay giờ khép của lần lặp ĐANG CHẠY thì giá trị mới chưa được ghi: nó sống ở đây, form vẽ viền warning + câu
+    /// hậu quả, và Main.asset (nên cả Lịch, Kiểm lịch, Xuất JSON) vẫn thấy giá trị cũ tới khi người dùng đi hết bước hai.
+    /// <para>
+    /// Mức xác nhận KHÔNG tự nghĩ ra ở đây: gọi <see cref="LiveOpsConfirmationPolicy.Decide"/> như mọi màn khác (PD-24) —
+    /// đổi id lần lặp đang chạy = cấp 2 gõ tên, rút ngắn thời gian chạy = cấp 1, không ai đang chạy = ghi thẳng. Nhờ đó luật
+    /// C-6 ("lấy lần lặp đang chạy từ BẢN ĐÃ ĐĂNG nếu có") nằm ở đúng một chỗ cho cả Lịch lẫn màn này.
+    /// </para>
+    /// </summary>
+    internal sealed class RecurringPrefixDraft
+    {
+        private static readonly RecurringPrefixDraft NoDraft = new RecurringPrefixDraft();
+
+        private readonly LiveOpsConfirmDecision _decision;
+        private readonly LiveOpsHubFormat _format;
+        private readonly string _assetFileName;
+        private readonly string _writtenIdPrefix;
+
+        private RecurringPrefixDraft()
+        {
+            EventType = string.Empty;
+            FieldName = string.Empty;
+            _assetFileName = string.Empty;
+            _writtenIdPrefix = string.Empty;
+            RunningEventId = string.Empty;
+            NewRunningEventId = string.Empty;
+        }
+
+        private RecurringPrefixDraft(string fieldName, RecurringLiveEventRule draftRule, RecurringLiveEventRule writtenRule,
+            LiveOpsConfirmDecision decision, LiveEventInstance newRunning, string assetFileName, LiveOpsHubFormat format)
+        {
+            FieldName = fieldName;
+            DraftRule = draftRule;
+            WrittenRule = writtenRule;
+            EventType = draftRule.EventType;
+            _decision = decision;
+            _format = format;
+            _assetFileName = assetFileName ?? string.Empty;
+            _writtenIdPrefix = writtenRule.EffectiveIdPrefix;
+            RunningEventId = decision.RunningEventId;
+            RunningEndUtc = decision.RunningEndUtc;
+            NewRunningEventId = newRunning != null ? newRunning.EventId : string.Empty;
+            NewRunningEndUtc = newRunning != null ? newRunning.EndUtc : (DateTime?)null;
+        }
+
+        /// <summary>Không có nháp nào đang mở.</summary>
+        public static RecurringPrefixDraft None => NoDraft;
+
+        /// <summary>
+        /// Dựng nháp cho một giá trị vừa gõ. Luôn trả về một đối tượng: <see cref="NeedsConfirmation"/> false nghĩa là không
+        /// ai đang chạy bị ảnh hưởng nên nơi gọi ghi ngay (mục 7.4), true nghĩa là phải giữ nháp tại ô rồi mới hỏi.
+        /// </summary>
+        /// <param name="draftDocument">Nháp TRƯỚC khi sửa — "đang chạy" luôn tính trên bản trước khi sửa (PD-24).</param>
+        /// <param name="publishedBaseline">Bản so đã đăng; null = chưa có dấu đã đăng.</param>
+        /// <param name="assetFileName">Tên file lịch để câu "chưa ghi vào Main.asset" nói đúng file người dùng đang mở.</param>
+        /// <param name="fieldName">Một hằng <see cref="RecurringRuleFields"/> — ô nào đang giữ nháp (chỗ treo khối cảnh báo).</param>
+        /// <param name="operation">
+        /// Thao tác để hỏi policy. Truyền vào chứ KHÔNG suy từ <paramref name="fieldName"/>: một thay đổi có thể vừa dời mốc
+        /// sinh id vừa đổi thời gian chạy (áp "Mẫu"), lúc đó nơi gọi phải hỏi cả hai thao tác rồi giữ mức nặng hơn.
+        /// </param>
+        /// <param name="draftRule">Luật SAU khi áp giá trị vừa gõ.</param>
+        public static RecurringPrefixDraft For(LiveEventCalendarDocument draftDocument, LiveEventCalendarDocument publishedBaseline,
+            DateTime nowUtc, string assetFileName, string fieldName, LiveOpsEditOperation operation, RecurringLiveEventRule draftRule,
+            LiveOpsHubFormat format)
+        {
+            if (draftDocument == null) throw new ArgumentNullException(nameof(draftDocument));
+            if (draftRule == null) throw new ArgumentNullException(nameof(draftRule));
+            if (format == null) throw new ArgumentNullException(nameof(format));
+
+            RecurringLiveEventRule writtenRule;
+            if (!draftDocument.TryGetRecurringRule(draftRule.EventType, out writtenRule)) return None;
+
+            LiveEventCalendarDocument documentAfter;
+            if (!LiveEventCalendarEdits.TryApply(draftDocument, new SetRecurringRuleEdit(draftRule), out documentAfter)) return None;
+
+            LiveOpsConfirmDecision decision = LiveOpsConfirmationPolicy.Decide(operation, draftDocument, documentAfter,
+                publishedBaseline, nowUtc, draftRule.EventType);
+
+            LiveEventInstance newRunning = FindOccurrenceAfterChange(draftRule, decision, nowUtc);
+            return new RecurringPrefixDraft(fieldName ?? string.Empty, draftRule, writtenRule, decision, newRunning, assetFileName, format);
+        }
+
+        /// <summary>
+        /// Lần lặp mà đợt đang chạy TRỞ THÀNH sau khi ghi. Tìm theo đúng cách policy tìm (<c>TryFindOccurrenceById</c>): trước
+        /// hết lấy lần lặp đang chạy ở luật mới, không có thì lấy lần lặp CÙNG CHU KỲ (không lọc giai đoạn) khi nó vẫn mang id
+        /// người chơi đang giữ — đó chính là ca rút ngắn làm đợt khép trước <paramref name="nowUtc"/>, ca mà hộp cấp 1 phải nêu
+        /// được giờ khép mới. Không khớp id thì trả null: lúc đó đợt cũ biến mất mà không ai thay chỗ, và câu riêng lo phần đó.
+        /// </summary>
+        private static LiveEventInstance FindOccurrenceAfterChange(RecurringLiveEventRule draftRule, LiveOpsConfirmDecision decision,
+            DateTime nowUtc)
+        {
+            LiveEventInstance running;
+            if (RecurringOccurrences.TryGetOccurrenceAt(draftRule, nowUtc, out running)) return running;
+            LiveEventInstance sameCycle;
+            if (!RecurringOccurrences.TryGetOccurrenceOfCycleAt(draftRule, nowUtc, out sameCycle)) return null;
+            return string.Equals(sameCycle.EventId, decision.RunningEventId, StringComparison.Ordinal) ? sameCycle : null;
+        }
+
+        public bool HasDraft => DraftRule != null;
+
+        /// <summary>Loại của luật đang giữ nháp; "" khi không có nháp.</summary>
+        public string EventType { get; }
+
+        /// <summary>Ô đang giữ nháp (<see cref="RecurringRuleFields"/>).</summary>
+        public string FieldName { get; }
+
+        /// <summary>Luật sau khi áp giá trị vừa gõ — form và bảng "đợt kế tiếp" hiện cái này, asset thì chưa.</summary>
+        public RecurringLiveEventRule DraftRule { get; }
+
+        /// <summary>Luật đang nằm trong asset — nút "Huỷ (Esc)" quay về đây.</summary>
+        public RecurringLiveEventRule WrittenRule { get; }
+
+        public LiveOpsConfirmRequirement Requirement => _decision != null ? _decision.Requirement : LiveOpsConfirmRequirement.None;
+
+        /// <summary>Phải đi qua bước hai (giữ nháp tại ô rồi mới hỏi) hay ghi được ngay.</summary>
+        public bool NeedsConfirmation => HasDraft && Requirement != LiveOpsConfirmRequirement.None;
+
+        /// <summary>Hậu quả là ĐỔI ID của lần lặp đang chạy (khác với chỉ rút ngắn giờ khép).</summary>
+        public bool ChangesRunningId => NeedsConfirmation && Requirement == LiveOpsConfirmRequirement.TypeToConfirm;
+
+        /// <summary>Id lần lặp người chơi đang giữ — lấy từ bản đã đăng khi có (C-6); "" khi không ai đang chạy.</summary>
+        public string RunningEventId { get; }
+
+        public string NewRunningEventId { get; }
+        public DateTime? RunningEndUtc { get; }
+        public DateTime? NewRunningEndUtc { get; }
+
+        /// <summary>Có một lần lặp thay chỗ đợt đang chạy sau khi ghi; false = đợt cũ biến mất mà không ai thế vào.</summary>
+        public bool HasReplacement => NewRunningEventId.Length > 0;
+
+        /// <summary>Dòng phụ ngay dưới ô: nói rõ nháp chỉ ở đây, các màn khác vẫn thấy giá trị cũ ([SD1 §4.2]).</summary>
+        public string CellNotice
+        {
+            get
+            {
+                if (!NeedsConfirmation) return string.Empty;
+                return string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.RecurringDraftNoticeFormat,
+                    _assetFileName, WrittenValueText());
+            }
+        }
+
+        /// <summary>Câu hậu quả trong HelpBox warning (PD-17: nói người chơi mất gì, và nói thẳng hub không biết số người chơi).</summary>
+        public string ConsequenceText
+        {
+            get
+            {
+                if (!NeedsConfirmation) return string.Empty;
+                // (UX-25) Id trong CÂU in bằng gạch nối không ngắt: HelpBox bẻ dòng giữa "weekly-" và "pass-35" thì người
+                // đọc thấy hai mảnh và tưởng đó là hai id. Thân hộp xác nhận KHÔNG dùng cách này — ở đó phải gõ lại id thật.
+                string runningId = RecurringRuleModel.NonBreakingId(RunningEventId);
+                string newRunningId = RecurringRuleModel.NonBreakingId(NewRunningEventId);
+                if (!HasReplacement)
+                {
+                    // Không đợt nào thay chỗ: "sẽ thành ___" với chỗ trống là câu nói dối bằng khoảng lặng — nói thẳng đợt biến mất.
+                    return WithPlayerCountCaveat(string.Format(CultureInfo.InvariantCulture,
+                        LiveOpsHubStrings.RecurringNoReplacementConsequenceFormat, runningId, OldEndText()));
+                }
+                if (string.Equals(FieldName, RecurringRuleFields.ActiveHours, StringComparison.Ordinal))
+                {
+                    return WithPlayerCountCaveat(string.Format(CultureInfo.InvariantCulture,
+                        LiveOpsHubStrings.RecurringActiveHoursConsequenceFormat, runningId, NewEndText(), OldEndText()));
+                }
+                if (string.Equals(FieldName, RecurringRuleFields.IdPrefix, StringComparison.Ordinal))
+                {
+                    return WithPlayerCountCaveat(string.Format(CultureInfo.InvariantCulture,
+                        LiveOpsHubStrings.RecurringPrefixConsequenceFormat, runningId, OldEndText(), newRunningId));
+                }
+                return WithPlayerCountCaveat(string.Format(CultureInfo.InvariantCulture,
+                    LiveOpsHubStrings.RecurringIdentityConsequenceFormat, runningId, OldEndText(), newRunningId));
+            }
+        }
+
+        /// <summary>Nút danger của hàng nút dưới ô.</summary>
+        public string WriteButtonText => string.Equals(FieldName, RecurringRuleFields.IdPrefix, StringComparison.Ordinal)
+            ? LiveOpsHubStrings.RecurringDraftWritePrefixButton
+            : LiveOpsHubStrings.RecurringDraftWriteValueButton;
+
+        /// <summary>
+        /// Câu toast = tên Undo group của lệnh ghi (8.5). (UX-26) Nó phải nêu TRƯỜNG vừa đổi và giá trị trước → sau:
+        /// status bar giữ câu này lại sau khi toast tắt, và "Đổi luật lặp sky-race" không nói được ⌘Z sẽ trả lại cái gì.
+        /// </summary>
+        public string ToastText
+        {
+            get
+            {
+                if (!HasDraft) return string.Empty;
+                string fieldLabel = FieldLabelText();
+                if (fieldLabel.Length == 0)
+                {
+                    return string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.RecurringWriteToastFormat, EventType);
+                }
+                return string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.RecurringFieldWriteToastFormat,
+                    fieldLabel, EventType, ValueTextOf(WrittenRule), ValueTextOf(DraftRule));
+            }
+        }
+
+        /// <summary>Nhãn của ô vừa đổi, đúng chữ người dùng vừa đọc trên form; "" khi thao tác không thuộc một ô nào (áp Mẫu).</summary>
+        private string FieldLabelText()
+        {
+            if (string.Equals(FieldName, RecurringRuleFields.IdPrefix, StringComparison.Ordinal)) return LiveOpsHubStrings.RecurringIdPrefixLabel;
+            if (string.Equals(FieldName, RecurringRuleFields.Anchor, StringComparison.Ordinal)) return LiveOpsHubStrings.RecurringAnchorLabel;
+            if (string.Equals(FieldName, RecurringRuleFields.PeriodHours, StringComparison.Ordinal)) return LiveOpsHubStrings.RecurringPeriodHoursLabel;
+            if (string.Equals(FieldName, RecurringRuleFields.ActiveHours, StringComparison.Ordinal)) return LiveOpsHubStrings.RecurringActiveHoursLabel;
+            return string.Empty;
+        }
+
+        private string ValueTextOf(RecurringLiveEventRule rule)
+        {
+            if (string.Equals(FieldName, RecurringRuleFields.IdPrefix, StringComparison.Ordinal)) return rule.EffectiveIdPrefix;
+            if (string.Equals(FieldName, RecurringRuleFields.Anchor, StringComparison.Ordinal)) return rule.AnchorUtcText;
+            if (string.Equals(FieldName, RecurringRuleFields.PeriodHours, StringComparison.Ordinal))
+            {
+                return RecurringRuleModel.PeriodText(rule.PeriodHours, _format);
+            }
+            return RecurringRuleModel.HoursText(rule.ActiveHours, _format);
+        }
+
+        /// <summary>
+        /// Hộp của bước hai. Cấp 2 (đổi id) gõ đúng id người chơi đang giữ; cấp 1 (rút ngắn) chỉ nêu giờ khép mới.
+        /// Enter trong ô gõ không chạy nút nào — hộp lo phần đó, ở đây chỉ dựng nội dung.
+        /// </summary>
+        public LiveOpsConfirmRequest BuildConfirmRequest()
+        {
+            if (!NeedsConfirmation) throw new InvalidOperationException(LiveOpsHubStrings.RecurringErrorNoConfirmationNeeded);
+            if (!HasReplacement) return BuildNoReplacementRequest();
+            if (Requirement == LiveOpsConfirmRequirement.Level1)
+            {
+                return new LiveOpsConfirmRequest.Builder()
+                    .WithLevel(LiveOpsConfirmLevel.Level1)
+                    .WithTitle(LiveOpsHubStrings.RecurringConfirmActiveTitle)
+                    .WithBody(string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.RecurringConfirmActiveBodyFormat,
+                        RunningEventId, NewEndText(), OldEndText()))
+                    .WithHelpBoxWarning()
+                    .WithKeyHint(LiveOpsHubStrings.RecurringConfirmActiveKeyHint)
+                    .WithButtons(LiveOpsHubStrings.RecurringConfirmActiveDestructive, LiveOpsHubStrings.KitConfirmKeepLabel)
+                    .Build();
+            }
+
+            bool isPrefix = string.Equals(FieldName, RecurringRuleFields.IdPrefix, StringComparison.Ordinal);
+            // WithTypeToConfirm tự đặt cấp 2 + HelpBox cảnh báo (8.6) — không gọi WithLevel thêm.
+            return new LiveOpsConfirmRequest.Builder()
+                .WithTitle(isPrefix ? LiveOpsHubStrings.RecurringConfirmPrefixTitle : LiveOpsHubStrings.RecurringConfirmIdentityTitle)
+                .WithBody(WithPlayerCountCaveat(string.Format(CultureInfo.InvariantCulture,
+                    LiveOpsHubStrings.RecurringConfirmPrefixBodyFormat, RunningEventId, NewRunningEventId, OldEndText())))
+                .WithHelpBoxWarning()
+                .WithKeyHint(LiveOpsHubStrings.RecurringConfirmPrefixKeyHint)
+                .WithButtons(isPrefix ? LiveOpsHubStrings.RecurringConfirmPrefixDestructive : LiveOpsHubStrings.RecurringConfirmIdentityDestructive,
+                    LiveOpsHubStrings.RecurringConfirmPrefixSafe)
+                .WithTypeToConfirm(_decision.TypeToConfirmText)
+                .Build();
+        }
+
+        /// <summary>
+        /// Hộp của ca "đợt đang chạy biến mất, không ai thay chỗ". Giữ nguyên cấp do policy quyết (cấp 1 khi chỉ là rút ngắn,
+        /// cấp 2 khi id không còn) — chỉ thân câu đổi, vì mức nguy hiểm không do câu chữ quyết.
+        /// </summary>
+        private LiveOpsConfirmRequest BuildNoReplacementRequest()
+        {
+            string body = WithPlayerCountCaveat(string.Format(CultureInfo.InvariantCulture,
+                LiveOpsHubStrings.RecurringConfirmNoReplacementBodyFormat, RunningEventId, OldEndText()));
+            if (Requirement == LiveOpsConfirmRequirement.Level1)
+            {
+                return new LiveOpsConfirmRequest.Builder()
+                    .WithLevel(LiveOpsConfirmLevel.Level1)
+                    .WithTitle(LiveOpsHubStrings.RecurringConfirmActiveTitle)
+                    .WithBody(body)
+                    .WithHelpBoxWarning()
+                    .WithKeyHint(LiveOpsHubStrings.RecurringConfirmActiveKeyHint)
+                    .WithButtons(LiveOpsHubStrings.RecurringConfirmActiveDestructive, LiveOpsHubStrings.KitConfirmKeepLabel)
+                    .Build();
+            }
+            bool isPrefixField = string.Equals(FieldName, RecurringRuleFields.IdPrefix, StringComparison.Ordinal);
+            return new LiveOpsConfirmRequest.Builder()
+                .WithTitle(isPrefixField ? LiveOpsHubStrings.RecurringConfirmPrefixTitle : LiveOpsHubStrings.RecurringConfirmIdentityTitle)
+                .WithBody(body)
+                .WithHelpBoxWarning()
+                .WithKeyHint(LiveOpsHubStrings.RecurringConfirmPrefixKeyHint)
+                .WithButtons(isPrefixField ? LiveOpsHubStrings.RecurringConfirmPrefixDestructive : LiveOpsHubStrings.RecurringConfirmIdentityDestructive,
+                    LiveOpsHubStrings.RecurringConfirmPrefixSafe)
+                .WithTypeToConfirm(_decision.TypeToConfirmText)
+                .Build();
+        }
+
+        /// <summary>
+        /// Nối hai câu dùng chung của hub (PD-17): hub KHÔNG biết số người chơi toàn cục, và bản này chưa đọc dữ liệu thử.
+        /// Nói thẳng chỗ mình không biết còn hơn để người đọc tự suy ra một con số không có thật.
+        /// </summary>
+        internal static string WithPlayerCountCaveat(string sentence)
+        {
+            return sentence + " " + LiveOpsHubStrings.KitUnknownPlayerCountSentence + " " + LiveOpsHubStrings.KitNoTestDataSentence;
+        }
+
+        /// <summary>Giá trị mà các màn khác vẫn thấy (trong asset) — in vào câu "vẫn thấy …".</summary>
+        private string WrittenValueText()
+        {
+            return ValueTextOf(WrittenRule);
+        }
+
+        private string OldEndText()
+        {
+            return RunningEndUtc.HasValue ? _format.ShortDateTimeUtc(RunningEndUtc.Value) : string.Empty;
+        }
+
+        private string NewEndText()
+        {
+            return NewRunningEndUtc.HasValue ? _format.ShortDateTimeUtc(NewRunningEndUtc.Value) : string.Empty;
+        }
+    }
+}

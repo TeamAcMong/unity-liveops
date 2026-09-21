@@ -1,0 +1,601 @@
+/*
+ * Màn Kiểm lịch (Hình 15/16, [SD2 §2.1–2.3]). Số đo bám hình: thân padding 10 · dải summary cao 24 padding 0 8 ·
+ * card nhóm cách nhau 8 · hàng phát hiện sọc 3px + icon 16 + khối nút min-width 54 · pane Chi tiết 300px (drawer 280px).
+ * Mọi màu đi qua token của liveops-hub-theme.uss (hai skin); USS không có gap/:last-child nên khoảng cách dùng margin và
+ * class `--last` bật từ C#.
+ */
+
+/* Ẩn bằng class: trạng thái không được gán style inline ([FD §2.14]). */
+.liveops-hub-validation-hidden {
+    display: none;
+}
+
+.liveops-hub-validation-page {
+    flex-grow: 1;
+    padding: var(--liveops-hub-space-10);
+}
+
+/*
+ * (W9-06) flex-wrap: ở cửa sổ 700 nhóm tab + ToolbarMenu "Loại event: …" + ô tìm 190px không cùng nằm trên một hàng được,
+ * ToolbarMenu bị ép còn 9–64px và chữ bị cắt cả ngang lẫn dọc. Cho toolbar xuống dòng thay vì bóp: ô tìm rơi xuống hàng
+ * hai (luật --narrow ngay dưới) và ToolbarMenu lấy lại đủ chỗ cho câu đầy đủ.
+ */
+.liveops-hub-validation-toolbar {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    margin-bottom: var(--liveops-hub-space-8);
+}
+
+.liveops-hub-validation-toolbar-spacer {
+    flex-grow: 1;
+}
+
+/* Khe 6px giữa nhóm tab và ToolbarMenu "Loại event: …" ([SD2 §2.1]) — hai nhóm lọc khác nhau, không dính vào nhau. */
+.liveops-hub-validation-type-menu {
+    margin-left: var(--liveops-hub-space-6);
+}
+
+.liveops-hub-validation-search {
+    width: 190px;
+}
+
+/*
+ * (W9-06) Dưới 900px ô tìm chiếm trọn hàng hai. width: 100% làm nó không bao giờ chia hàng với nhóm tab, nên phần chỗ nó
+ * đang giữ (190px + khe) trả hết về cho ToolbarMenu ở hàng một. margin-top là khe giữa hai hàng (USS không có row-gap).
+ */
+.liveops-hub--narrow .liveops-hub-validation-search {
+    width: 100%;
+    margin-left: 0;
+    margin-right: 0;
+    margin-top: var(--liveops-hub-space-4);
+}
+
+/* Icon nằm TRONG ô tìm: ô không có nhãn, icon là thứ duy nhất nói ô này để làm gì. Icon phủ tuyệt đối nên chữ gõ vào và
+ * nhãn mờ phải tự lùi sang phải, nếu không chúng chồng lên icon. */
+.liveops-hub-validation-search-icon {
+    position: absolute;
+    left: 3px;
+    top: 4px;
+}
+
+.liveops-hub-validation-search .unity-text-input {
+    padding-left: 15px;
+}
+
+.liveops-hub-validation-search .liveops-hub-placeholder {
+    padding-left: 16px;
+}
+
+/*
+ * (W9-06) Nút "[Refresh] Kiểm lại" của section header. Button LÀ một TextElement: chữ của `Button.text` được chính nút vẽ
+ * trên toàn bộ hộp nội dung, nhưng khi nút CÓ con (ở đây là icon Refresh) thì nút đo mình theo con chứ không theo chữ —
+ * nó co về min-width 54px và chữ bị cắt ở MỌI cỡ cửa sổ, kể cả 1920 (cần 66px, có 38px). Cách chữa đã dùng cho nút "Kiểm
+ * lại tất cả" của Tổng quan: bỏ `text`, xếp icon và một Label thành hàng ngang, để nút đo theo cả hai.
+ */
+.liveops-hub-validation-recheck-button-row {
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+}
+
+.liveops-hub-validation-recheck-button-label {
+    margin: 0 0 0 var(--liveops-hub-space-4);
+    padding: 0;
+}
+
+/*
+ * (J2-02) Banner "kết quả cũ" (validation-notice). Không có luật nào cho nó thì nó là hộp xếp DỌC mặc định của
+ * UI Toolkit: trục chéo là trục ngang và align-items mặc định là stretch, nên NÚT bên dưới HelpBox nhận trọn bề ngang
+ * banner — ở cửa sổ 1440 là một dải nút ~1080px, thứ không chỗ nào khác trong hub có và ở skin sáng thì gần như tàng hình.
+ * Xếp NGANG: chữ trái lấy chỗ còn lại, nút phải đúng bằng chữ của nó.
+ * align-items: flex-start chứ không center — HelpBox có thể gập nhiều dòng ở cửa sổ hẹp, lúc ấy nút phải đứng cạnh DÒNG ĐẦU
+ * (chỗ mắt đọc vào), không trôi xuống giữa một khối chữ cao.
+ */
+.liveops-hub-validation-notice {
+    flex-direction: row;
+    align-items: flex-start;
+}
+
+/* Chữ lấy chỗ còn lại và ĐƯỢC co: min-width 0 vì con flex không tự co xuống dưới bề rộng nội dung của nó, không có dòng ấy
+   thì câu dài đẩy nút ra ngoài mép phải banner. */
+.liveops-hub-validation-notice-text {
+    flex-grow: 1;
+    flex-shrink: 1;
+    min-width: 0;
+}
+
+/* Nút không dãn và không co: co là mất chữ. align-self giữ chiều cao 18px của nút khi banner cao hơn. */
+.liveops-hub-validation-notice-button {
+    flex-grow: 0;
+    flex-shrink: 0;
+    align-self: flex-start;
+    margin-top: var(--liveops-hub-space-4);
+}
+
+/*
+ * (W9-06) Dải summary được phép xuống dòng và cao thêm. Năm chip "2 bị bỏ · 1 mất tiến độ · …" có flex-shrink mặc định 1
+ * nên ở cửa sổ hẹp CHÍNH CHIP bị bóp trong khi Label bên trong thì không — chữ tràn ra ngoài chip 7–9px mỗi bên rồi bị cắt.
+ * min-height thay height: ở cửa sổ rộng năm chip vẫn nằm một hàng nên dải vẫn cao đúng 24px của Hình 15.
+ */
+.liveops-hub-validation-summary {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    min-height: 24px;
+    padding: 2px 8px;
+    border-width: 1px;
+    border-radius: 3px;
+    border-color: var(--unity-colors-window-border);
+    background-color: var(--unity-colors-toolbar-background);
+}
+
+/*
+ * (W9-06) flex-shrink 0: chip giữ đúng bề rộng chữ của nó. Thiếu chỗ thì dải xuống dòng (luật trên), KHÔNG bóp chip —
+ * bóp chip là cách duy nhất chữ chui ra ngoài được.
+ */
+.liveops-hub-validation-summary-item {
+    flex-direction: row;
+    flex-shrink: 0;
+    align-items: center;
+    margin-right: var(--liveops-hub-space-12);
+}
+
+.liveops-hub-validation-summary-right {
+    font-size: 10px;
+    opacity: 0.7;
+}
+
+/* Hộp đang kiểm: spinner + thanh tiến trình tự vẽ; không khoá cửa sổ nên nó chỉ là một hàng trong thân. */
+.liveops-hub-validation-progress {
+    flex-direction: row;
+    align-items: center;
+    height: 24px;
+    padding: 0 8px;
+    margin-top: var(--liveops-hub-space-8);
+    border-width: 1px;
+    border-radius: 3px;
+    border-color: var(--unity-colors-window-border);
+    background-color: var(--unity-colors-toolbar-background);
+}
+
+.liveops-hub-validation-progress-track {
+    width: 120px;
+    height: 4px;
+    margin-left: var(--liveops-hub-space-8);
+    border-radius: 2px;
+    background-color: var(--unity-colors-window-border);
+}
+
+.liveops-hub-validation-progress-fill {
+    height: 4px;
+    border-radius: 2px;
+    background-color: var(--liveops-hub-color-warning-fill);
+}
+
+.liveops-hub-validation-progress-label {
+    margin-left: var(--liveops-hub-space-6);
+    font-size: 10px;
+    opacity: 0.7;
+}
+
+.liveops-hub-validation-content {
+    flex-direction: row;
+    flex-grow: 1;
+    margin-top: var(--liveops-hub-space-8);
+}
+
+.liveops-hub-validation-groups {
+    flex-grow: 1;
+}
+
+/* Cho xuống dòng: card "Đã bỏ qua" khi MỞ chiếm cả bề ngang nên nó phải rơi xuống hàng dưới, không ép card "n luật đã qua"
+ * teo lại (soát W5 F-1). Thu gọn thì cả hai vẫn nằm đúng một hàng như [SD2 §2.1]. */
+.liveops-hub-validation-cards-row {
+    flex-direction: row;
+    align-items: flex-start;
+    flex-wrap: wrap;
+}
+
+.liveops-hub-validation-group {
+    margin-bottom: var(--liveops-hub-space-8);
+}
+
+.liveops-hub-validation-group-title {
+    font-size: 11px;
+}
+
+.liveops-hub-validation-group--dropped .liveops-hub-validation-group-title {
+    -unity-font-style: bold;
+}
+
+.liveops-hub-validation-group--progress-lost .liveops-hub-validation-group-title {
+    -unity-font-style: bold;
+}
+
+.liveops-hub-validation-group-meta {
+    margin-left: var(--liveops-hub-space-8);
+    font-size: 10px;
+    opacity: 0.7;
+}
+
+.liveops-hub-validation-group-blurb {
+    padding: var(--liveops-hub-space-6) var(--liveops-hub-space-8);
+    font-size: 10px;
+    opacity: 0.82;
+    white-space: normal;
+}
+
+/* Card "n luật đã qua" chiếm phần còn lại của hàng, card "Đã bỏ qua (n)" cố định 170px đúng mockup. */
+.liveops-hub-validation-group--passed {
+    flex-grow: 1;
+    margin-right: var(--liveops-hub-space-8);
+}
+
+.liveops-hub-validation-group--ignored {
+    width: 170px;
+    flex-shrink: 0;
+}
+
+/* Mở ra là một DANH SÁCH mục (V-15): 170px thì meta "long-gap-between-events · lava-quest · 20/9 00:00 → 1/10 00:00" vỡ
+ * sáu dòng đứt giữa từ và ghi chú vỡ ba dòng (soát W5 F-1). Hai class để thắng luật một class ở trên bằng ĐỘ CỤ THỂ,
+ * không bằng thứ tự dòng trong file (bài học D-1 của W4). */
+.liveops-hub-validation-group--ignored.liveops-hub-validation-group--ignored-open {
+    width: 100%;
+    flex-shrink: 1;
+}
+
+.liveops-hub-validation-passed-ids {
+    padding: var(--liveops-hub-space-6) var(--liveops-hub-space-8);
+    font-size: 9px;
+    opacity: 0.7;
+    white-space: normal;
+}
+
+.liveops-hub-validation-stale-tag {
+    margin-left: var(--liveops-hub-space-6);
+    height: 15px;
+}
+
+/* ----- hàng phát hiện ----- */
+
+.liveops-hub-validation-row-stripe {
+    width: 3px;
+    flex-shrink: 0;
+    align-self: stretch;
+}
+
+.liveops-hub-validation-row-icon {
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+    margin: 3px 4px 0 4px;
+}
+
+.liveops-hub-validation-row-text {
+    flex-grow: 1;
+    flex-shrink: 1;
+    padding: var(--liveops-hub-space-4) 0;
+}
+
+.liveops-hub-validation-row-headline {
+    font-size: 11px;
+    white-space: normal;
+}
+
+.liveops-hub-validation-row-meta {
+    font-size: 10px;
+    opacity: 0.7;
+    white-space: normal;
+}
+
+.liveops-hub-validation-row-rule-id {
+    font-size: 9px;
+    opacity: 0.7;
+}
+
+.liveops-hub-validation-row-manual-fix {
+    font-size: 10px;
+    opacity: 0.82;
+    white-space: normal;
+}
+
+.liveops-hub-validation-row-actions {
+    flex-direction: row;
+    align-items: center;
+    flex-shrink: 0;
+    min-width: 54px;
+    justify-content: flex-end;
+    padding-right: var(--liveops-hub-space-6);
+}
+
+.liveops-hub-validation-row-link {
+    margin-left: var(--liveops-hub-space-10);
+    background-color: transparent;
+    border-width: 0;
+    color: var(--liveops-hub-color-link);
+    white-space: nowrap;
+}
+
+/* Kết quả cũ: hàng mờ đi nhưng chữ trạng thái vẫn đọc được.
+ *
+ * (W10-07) Trước đây luật này đặt `opacity: 0.82` lên CHÍNH HÀNG. Sai ở hai chỗ, cả hai đều là chỗ mắt không thấy mà máy
+ * đo ra:
+ *   1. opacity của tổ tiên NHÂN xuống con. Hàng bọc `-row-meta` và `-row-rule-id` vốn đã tự mờ 0,7, nên tích thật là
+ *      0,574 — chữ nền tảng chỉ còn 3,83:1 (skin tối) / 4,10:1 (skin sáng), dưới bậc chữ 4,5:1.
+ *   2. headline của phát hiện CHƯA ĐO mang `liveops-hub-text--quiet`, mà quiet là màu chữ đã được tinh chỉnh để vừa đủ
+ *      4,5:1 Ở OPACITY 1 (5,05:1 tối / 4,90:1 sáng). Nhân thêm 0,82 là 3,94:1 / 3,50:1 — trượt.
+ *
+ * Vì sao không chữa bằng `opacity: 1` trên con: trong UI Toolkit con KHÔNG gỡ được opacity của tổ tiên. Vì sao không nâng
+ * 0,82 lên cho đủ: quiet skin sáng cần tới ≥ 0,96 mới qua 4,5:1, tức là bỏ hẳn hiệu ứng mờ mà vẫn giả vờ còn nó.
+ *
+ * Đường đúng: bỏ opacity khỏi HÀNG, chỉ làm mờ đúng dòng đang ở cường độ đầy — headline. Hai dòng dưới (`-row-meta`,
+ * `-row-rule-id`) đã mờ 0,7 sẵn, tức vẫn mờ hơn headline cũ, nên hàng "kết quả cũ" vẫn đọc ra là nhạt hơn hàng mới mà
+ * không dòng nào rơi xuống dưới bậc. Hai luật này phải đứng TRƯỚC khối `--selected` ngay dưới: cùng độ đặc hiệu nên
+ * hàng ĐANG CHỌN thắng theo thứ tự nguồn và sáng lên đủ, đúng như [SD2 §2.2] đòi. */
+.liveops-hub-validation-row--stale .liveops-hub-validation-row-headline {
+    opacity: 0.82;
+}
+
+/* Headline CHƯA ĐO vẽ bằng quiet — màu ấy đã là mức nhạt nhất còn đọc được, làm mờ thêm là đẩy xuống dưới 4,5:1. */
+.liveops-hub-validation-row--stale .liveops-hub-validation-row-headline.liveops-hub-text--quiet {
+    opacity: 1;
+}
+
+/* [SD2 §2.2] hàng đang chọn chuyển CẢ BA dòng sang opacity 1: headline, meta và id luật. Chỉ nâng headline thì hai dòng
+ * dưới vẫn mờ 0,7 trên nền đã chọn — chỗ khó đọc nhất của hàng. */
+.liveops-hub-validation-row--selected .liveops-hub-validation-row-headline {
+    opacity: 1;
+}
+
+.liveops-hub-validation-row--selected .liveops-hub-validation-row-meta {
+    opacity: 1;
+}
+
+.liveops-hub-validation-row--selected .liveops-hub-validation-row-rule-id {
+    opacity: 1;
+}
+
+/* ----- pane Chi tiết ----- */
+
+.liveops-hub-validation-detail {
+    width: 300px;
+    flex-shrink: 0;
+    margin-left: var(--liveops-hub-space-8);
+    border-width: 1px;
+    border-radius: 3px;
+    border-color: var(--unity-colors-window-border);
+}
+
+.liveops-hub-validation-detail--drawer {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 280px;
+    background-color: var(--unity-colors-window-background);
+}
+
+.liveops-hub-validation-detail-title {
+    flex-grow: 1;
+    font-size: 11px;
+    -unity-font-style: bold;
+}
+
+.liveops-hub-validation-detail-close {
+    width: 16px;
+    height: 16px;
+    background-color: transparent;
+    border-width: 0;
+}
+
+.liveops-hub-validation-detail-heading {
+    margin: var(--liveops-hub-space-8) var(--liveops-hub-space-8) var(--liveops-hub-space-2) var(--liveops-hub-space-8);
+    font-size: 9px;
+    -unity-font-style: bold;
+    opacity: 0.7;
+}
+
+.liveops-hub-validation-detail-paragraph {
+    margin: 0 var(--liveops-hub-space-8);
+    font-size: 11px;
+    white-space: normal;
+}
+
+.liveops-hub-validation-detail-fix-button {
+    margin: var(--liveops-hub-space-4) var(--liveops-hub-space-8) 0 var(--liveops-hub-space-8);
+    white-space: normal;
+}
+
+.liveops-hub-validation-detail-help-row {
+    flex-direction: row;
+    align-items: center;
+    margin: var(--liveops-hub-space-10) var(--liveops-hub-space-8);
+}
+
+/* ----- popover Đề xuất… ----- */
+
+/* 320px là bề rộng chung của mọi popover hub ([FD §7]) — khoá ở USS chứ không chỉ ở GetWindowSize, để cây dựng ngoài
+ * PopupWindow (ảnh chụp ô 7 Hình 17, inspector Lịch ở W5) vẫn đúng bề rộng của thiết kế. */
+.liveops-hub-validation-proposal {
+    width: 320px;
+    padding: var(--liveops-hub-space-10);
+}
+
+.liveops-hub-validation-proposal-header {
+    font-size: 11px;
+    -unity-font-style: bold;
+    margin-bottom: var(--liveops-hub-space-8);
+}
+
+/* Dòng chi tiết là con của chính RadioButton (RadioButtonGroup chỉ dựng nhãn một dòng), mà RadioButton xếp con theo HÀNG:
+ * không cho xuống dòng thì trong popover 320px câu "bắt đầu … → … · dài …" bị cắt mất nửa sau. `flex-wrap` + chiều rộng
+ * đầy đủ đẩy nó xuống dòng dưới tiêu đề, đúng bố cục [SD2 §2.6]. */
+.liveops-hub-validation-proposal-option {
+    flex-wrap: wrap;
+    margin-bottom: var(--liveops-hub-space-6);
+}
+
+.liveops-hub-validation-proposal-option-detail {
+    width: 100%;
+    margin-left: var(--liveops-hub-space-16);
+    font-size: 10px;
+    opacity: 0.82;
+    white-space: normal;
+}
+
+.liveops-hub-validation-proposal-quick-check {
+    flex-direction: row;
+    align-items: center;
+    margin-top: var(--liveops-hub-space-4);
+    font-size: 10px;
+}
+
+.liveops-hub-validation-proposal-consequence {
+    margin-top: var(--liveops-hub-space-4);
+    font-size: 10px;
+    white-space: normal;
+}
+
+.liveops-hub-validation-proposal-footer {
+    flex-direction: row;
+    align-items: center;
+    margin-top: var(--liveops-hub-space-10);
+}
+
+.liveops-hub-validation-proposal-hint {
+    flex-grow: 1;
+    font-size: 10px;
+    opacity: 0.82;
+}
+
+/* ----- card xem trước sửa hàng loạt ([SD2 §2.5], Hình 17 ô 1) ----- */
+
+/* Card CHEN ngay dưới dải summary, không phải popover và không phải hộp modal: người dùng vẫn đọc được số của dải summary và
+ * các hàng phát hiện ở dưới trong lúc soát danh sách thay đổi. */
+.liveops-hub-validation-bulk-preview {
+    margin-top: var(--liveops-hub-space-8);
+}
+
+.liveops-hub-validation-bulk-preview-meta {
+    margin-left: var(--liveops-hub-space-8);
+    font-size: 10px;
+    opacity: 0.7;
+}
+
+/* Hàng cao tối thiểu 22 và cách nhau 6 ([SD2 §2.5]); USS không có gap nên khe nằm ở margin của chính hàng. */
+.liveops-hub-validation-bulk-preview-row {
+    flex-direction: row;
+    align-items: center;
+    min-height: 22px;
+    margin-bottom: var(--liveops-hub-space-6);
+}
+
+.liveops-hub-validation-bulk-preview-change {
+    margin-left: var(--liveops-hub-space-6);
+    font-size: 10px;
+    white-space: normal;
+}
+
+/* Thụt 20px cho thẳng với chữ của hàng thay đổi (Toggle 14 + khe 6), không phải một con số trang trí. */
+.liveops-hub-validation-bulk-preview-undo {
+    margin-left: 20px;
+    font-size: 10px;
+    opacity: 0.7;
+}
+
+.liveops-hub-validation-bulk-preview-footer {
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-end;
+    margin-top: var(--liveops-hub-space-8);
+}
+
+/* Headline + tag trên một dòng; tag tự co nên headline vẫn chiếm phần còn lại. */
+.liveops-hub-validation-row-headline-line {
+    flex-direction: row;
+    align-items: center;
+}
+
+/* ----- popover Bỏ qua cảnh báo… ([SD2 §2.7], Hình 17 ô 5) ----- */
+
+/* 300px theo mockup — hẹp hơn popover Đề xuất… 320px vì chỉ có một Toggle và một ô ghi chú; khoá ở USS để cây dựng ngoài
+ * PopupWindow (ảnh chụp ô 5) vẫn đúng bề rộng của thiết kế. */
+.liveops-hub-validation-ignore-popover {
+    width: 300px;
+    padding: var(--liveops-hub-space-10);
+}
+
+/* Câu phạm vi dài hơn một dòng trong 300px: không cho xuống dòng thì vế "hiện lại nếu khoảng này đổi" bị cắt mất — mà đó
+ * chính là vế nói cho người dùng biết bỏ qua KHÔNG phải tắt luật vĩnh viễn.
+ * Vì sao câu là một Label RIÊNG chứ không phải `label` của Toggle: Toggle là BaseField, nó vẽ nhãn TRƯỚC ô tick và cho nhãn
+ * giãn — câu hai dòng đẩy ô tick ra sát mép phải và cắt cụt còn ~6px, người dùng không nhìn ra phạm vi đang bật
+ * (soát W5 F-2). Ô tick đứng trước và không co, câu chiếm phần còn lại. */
+.liveops-hub-validation-ignore-scope {
+    flex-direction: row;
+    align-items: flex-start;
+    /* 10 chứ không 8: Yoga đo Label hai dòng bằng chiều cao MỘT dòng trong hàng flex, nên dòng thứ hai tràn khỏi hộp của
+     * chính nó — thiếu khe thì nó dính vào nhãn "Ghi chú (bắt buộc)" ngay dưới. */
+    margin-bottom: var(--liveops-hub-space-10);
+}
+
+.liveops-hub-validation-ignore-scope-box {
+    flex-grow: 0;
+    flex-shrink: 0;
+    margin-right: var(--liveops-hub-space-6);
+}
+
+.liveops-hub-validation-ignore-scope-label {
+    flex-grow: 1;
+    flex-shrink: 1;
+    font-size: 11px;
+    white-space: normal;
+}
+
+.liveops-hub-validation-ignore-note-label {
+    margin-bottom: var(--liveops-hub-space-2);
+    font-size: 11px;
+}
+
+.liveops-hub-validation-ignore-footer {
+    flex-direction: row;
+    align-items: center;
+    margin-top: var(--liveops-hub-space-10);
+}
+
+.liveops-hub-validation-ignore-hint {
+    flex-grow: 1;
+    font-size: 10px;
+    opacity: 0.82;
+}
+
+/* ----- nhóm "Đã bỏ qua (n)" mở ra (V-15, [SD2 §2.7] ô 6) ----- */
+
+.liveops-hub-validation-ignored-row {
+    flex-direction: row;
+    align-items: center;
+    min-height: 22px;
+}
+
+/* Ghi chú của HÀNG là bản rút gọn, đúng một dòng (mục 7.5): cho xuống dòng thì hàng cao dần theo độ dài ghi chú và danh
+ * sách mất nhịp. Chữ đã bị cắt trong ViewModel; `text-overflow` chỉ là lưới an toàn cho chữ rộng bất thường. */
+.liveops-hub-validation-ignored-note {
+    flex-shrink: 1;
+    font-size: 10px;
+    opacity: 0.82;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Hover card ghim của "Xem ghi chú": ghi chú ĐỦ (hàng chỉ hiện bản rút gọn), nên thẻ phải cho chữ xuống dòng. */
+.liveops-hub-validation-ignored-note-card {
+    width: 260px;
+    white-space: normal;
+}
+
+.liveops-hub-validation-ignored-note-full {
+    font-size: 10px;
+    opacity: 0.82;
+    white-space: normal;
+}

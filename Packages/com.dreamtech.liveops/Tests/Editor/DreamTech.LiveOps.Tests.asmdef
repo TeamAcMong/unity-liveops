@@ -3,6 +3,7 @@
     "rootNamespace": "DreamTech.LiveOps.Tests",
     "references": [
         "DreamTech.LiveOps",
+        "DreamTech.LiveOps.Tests.Support",
         "UnityEngine.TestRunner",
         "UnityEditor.TestRunner"
     ],

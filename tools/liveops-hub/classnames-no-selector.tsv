@@ -1,0 +1,24 @@
+# classnames-no-selector.tsv — hằng class KHÔNG cần selector USS (ngoại lệ của check-class-names.py --strict).
+#
+# Vì sao có file này: bảng class ở kế hoạch mục 8.10 là hợp đồng ĐÓNG (câu cuối: "Bảng này không sửa sau W0"), trong đó có
+# những tên chỉ là CỜ TRẠNG THÁI: C# bật/tắt class để test và kịch bản chụp đọc được trạng thái, còn phần NHÌN THẤY do cơ chế
+# khác vẽ (child element tự vẽ, LiveOpsHubStyle.SetStateText, icon…). Bắt mỗi cờ như vậy phải có một luật USS là ép đẻ style
+# thừa hoặc ép xoá hằng khỏi bảng đóng — cả hai đều sai. --strict vẫn giữ nguyên tác dụng chính: bắt hằng MỚI gõ sai tên.
+#
+# Dòng: <tên hằng><TAB><vì sao không cần selector>. Hằng ghi ở đây mà không còn tồn tại → công cụ báo lỗi (không để rác).
+# Thêm dòng mới = phải nói được phần nhìn thấy do đâu vẽ.
+#
+# Ghi ngày 17/9/2026 ở cổng đợt W5 (13 dòng, đo trên merge-base ee1cd67 ra đúng 13 dòng này ⇒ không dòng nào do W5 đẻ ra).
+JsonGutterIcon	cờ đặt cạnh Icon + SizeClassOf: phần nhìn thấy là chính icon, class chỉ để test tìm ra máng gutter
+OutcomeBlocked	cờ trạng thái; màu chữ do LiveOpsHubStyle.SetStateText(HealthState.Blocked) đặt
+ConfirmLevel2	cờ "hộp cấp 2 (gõ tên)"; phần thêm của cấp 2 là ô nhập, hiện/ẩn bằng element chứ không bằng style
+TimelineLaneRecurring	cờ làn sinh từ luật; phần nhìn thấy là tooltip + chính các thanh --recurring
+TimelineLegendSampleFixed	mẫu đợt cố định dùng ĐÚNG style nền của liveops-hub-timeline-legend-sample (không biến thể)
+ValidationGroupRows	khối chứa hàng trong card; khe và thụt do luật của card đặt
+ValidationGroupShouldReview	cờ phân loại nhóm; màu/đánh dấu do state mark của tiêu đề nhóm vẽ
+ValidationGroupNotMeasured	như trên
+RailBadgeStale	cờ badge cũ; màu do LiveOpsHubStyle.SetStateText đặt theo BadgeState
+TimelineBarRunning	cờ đợt đang chạy; phần nhìn thấy là tay nắm đầu bị thay bằng icon khoá (element), [SD1 §3.3]
+TimelineBarDropped	cờ đợt bị bỏ; phần nhìn thấy là tag "bị bỏ" + gạch ngang, cả hai là child element, [SD1 §3.3]
+TimelineOverlap	tên đặt sẵn trong bảng 8.10 cho vùng chồng lấn; nay vẽ bằng liveops-hub-timeline-overlap-label + màu làn
+CreateFlow	tên đặt sẵn trong bảng 8.10 cho luồng ⌘+kéo tạo đợt; luồng nay vẽ bằng thanh nháp của chính timeline

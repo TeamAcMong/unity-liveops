@@ -1,0 +1,560 @@
+using System;
+using System.Globalization;
+using UnityEngine.UIElements;
+
+namespace DreamTech.LiveOps.Editor
+{
+    /// <summary>
+    /// Ô giờ UTC của inspector đợt, popover Thêm đợt và Neo luật lặp ([FD §2.15], [SD1 §3.1]): HÀNG GIÁ TRỊ (ô ngày 88px
+    /// <c>yyyy-MM-dd</c> + ô giờ 44px <c>HH:mm</c> + nhãn "UTC"), rồi dòng phụ giờ máy ("19:00 16/9 giờ máy"), rồi DÒNG LỖI (biểu
+    /// tượng 12px + câu lỗi). Hai ô riêng thay cho một hộp chuỗi ISO vì chuỗi ISO mời lỗi "2026-10-3" và không cho thấy đang gõ giờ
+    /// UTC hay giờ máy ([FD] bảng lỗi hệ cũ #7).
+    ///
+    /// (W9-30) Biểu tượng lỗi thuộc DÒNG LỖI, không thuộc hàng giá trị: hàng giá trị đã dùng 161px trong 168px mà cột field của pane
+    /// 280px cho, và mọi phần tử trong hàng đều <c>flex-shrink: 0</c> — thêm 16px biểu tượng là hàng tràn và mép cửa sổ cắt đúng nửa
+    /// biểu tượng. Hệ quả cần giữ: bề rộng hàng giá trị KHÔNG đổi giữa trạng thái sạch và trạng thái lỗi.
+    ///
+    /// Chuỗi không đọc được KHÔNG bị nuốt hay tự sửa: ô giữ nguyên chữ người dùng gõ ("2026-10-3"), viền blocked-fill, dòng lỗi 10px
+    /// nêu dạng đúng, và <see cref="TextCommitted"/> đưa chuỗi thô cho phiên lịch ghi nguyên văn vào asset — để luật
+    /// <c>utc-time-format</c> báo đúng chuỗi và "Sửa an toàn" đề xuất đúng giá trị. Đọc chặt (<c>yyyy-MM-dd</c>, <c>HH:mm</c> hoặc
+    /// <c>HH:mm:ss</c>): thiếu số 0 là lỗi ở ô, dù <see cref="LiveEventUtcText.TryNormalize"/> hiểu được — sửa được thì là việc của
+    /// đề xuất, không phải của ô.
+    ///
+    /// Ghi khi rời ô hoặc Enter (<c>isDelayed</c>), không theo từng phím: gõ dở "2026-1" không được thành một lần sửa asset. Cùng lý do,
+    /// Tab từ ô ngày vừa gõ sang ô giờ còn trống (hay ngược lại) KHÔNG ghi và KHÔNG báo lỗi — người dùng đang nhập dở cặp ngày/giờ; ô
+    /// chỉ báo "còn trống" và đưa chuỗi thô ra khi focus rời hẳn field mà cặp vẫn thiếu một nửa.
+    /// </summary>
+#if UNITY_2023_2_OR_NEWER
+    [UxmlElement]
+#endif
+    public sealed partial class LiveOpsUtcDateTimeField : BaseField<DateTime>
+    {
+        internal const string DateFormat = "yyyy-MM-dd";
+        private static readonly string[] TimeFormats = { "hh\\:mm", "hh\\:mm\\:ss" };
+        private const string TimeWithoutSecondsFormat = "HH:mm";
+        private const string TimeWithSecondsFormat = "HH:mm:ss";
+        private const int ErrorIconSize = 12;
+
+        private readonly LiveOpsPlaceholder _datePlaceholder;
+        private readonly LiveOpsPlaceholder _timePlaceholder;
+        private bool _showDeviceTimeLine = true;
+        private TimeSpan _deviceOffset = TimeSpan.Zero;
+        private bool _hasValue;
+        private bool _hasParseError;
+        private bool _errorTextFromCaller;
+        // Một ô con vừa ghi mà ô kia còn trống, trong lúc focus vẫn ở trong field: chờ người dùng gõ nốt thay vì ghi nửa cặp vào asset.
+        private bool _pendingIncompleteInput;
+        // Lần FocusOutEvent gần nhất chuyển focus sang một phần của chính field (Tab ngày → giờ). Đọc trong lần ghi của ô con ngay sau:
+        // 2022.3 ghi ô isDelayed lúc BlurEvent, 6000.6 lúc FocusOutEvent — cả hai đều SAU pha trickle-down của FocusOutEvent trên field.
+        private bool _focusMovingWithinField;
+
+        public LiveOpsUtcDateTimeField() : this(null)
+        {
+        }
+
+        public LiveOpsUtcDateTimeField(string label) : this(label, new VisualElement())
+        {
+        }
+
+        private LiveOpsUtcDateTimeField(string label, VisualElement input) : base(label, input)
+        {
+            AddToClassList(LiveOpsHubClassNames.UtcField);
+            InputContainer = input;
+            input.AddToClassList(LiveOpsHubClassNames.UtcFieldInput);
+
+            VisualElement row = new VisualElement();
+            row.AddToClassList(LiveOpsHubClassNames.UtcFieldRow);
+            input.Add(row);
+            ValueRow = row;
+
+            DateInput = CreatePart(LiveOpsHubClassNames.UtcFieldDate);
+            TimeInput = CreatePart(LiveOpsHubClassNames.UtcFieldTime);
+            row.Add(DateInput);
+            row.Add(TimeInput);
+            _datePlaceholder = LiveOpsPlaceholder.Attach(DateInput, LiveOpsHubStrings.UtcFieldDatePlaceholder);
+            _timePlaceholder = LiveOpsPlaceholder.Attach(TimeInput, LiveOpsHubStrings.UtcFieldTimePlaceholder);
+
+            ZoneLabel = new Label(LiveOpsHubStrings.UtcLabel) { pickingMode = PickingMode.Ignore };
+            ZoneLabel.AddToClassList(LiveOpsHubClassNames.UtcFieldZone);
+            row.Add(ZoneLabel);
+
+            DeviceTimeLabel = new Label();
+            DeviceTimeLabel.AddToClassList(LiveOpsHubClassNames.UtcFieldDeviceLine);
+            input.Add(DeviceTimeLabel);
+
+            // (W9-30) Biểu tượng lỗi nằm ở DÒNG LỖI, không nằm cuối hàng ô ngày/ô giờ/"UTC". Đo ở cửa sổ 1280x760: hàng ấy
+            // đã dùng 161px (88 + 4 + 44 + 4 + 21) trong 168px mà cột field của pane 280px cho, và mọi phần tử trong hàng đều
+            // flex-shrink: 0 — nên thêm 4 + 12px biểu tượng là hàng cần 177px, tràn 9px và mép cửa sổ cắt đúng nửa biểu
+            // tượng. Trạng thái "đẹp" không bao giờ thấy vì biểu tượng chỉ hiện khi có lỗi.
+            // Dời xuống dòng lỗi vừa trả lại 16px cho hàng vừa đặt biểu tượng ngay cạnh CÂU giải thích nó; hàng vẫn còn dấu
+            // riêng của mình là viền blocked-fill trên đúng ô không đọc được, nên không mất tín hiệu nào.
+            ErrorRow = new VisualElement();
+            ErrorRow.AddToClassList(LiveOpsHubClassNames.UtcFieldRow);
+            input.Add(ErrorRow);
+
+            ErrorIcon = LiveOpsHubIcons.CreateImage(ErrorIconName, ErrorIconSize);
+            ErrorIcon.AddToClassList(LiveOpsHubClassNames.UtcFieldErrorIcon);
+            ErrorRow.Add(ErrorIcon);
+
+            ErrorLabel = new Label();
+            ErrorLabel.AddToClassList(LiveOpsHubClassNames.UtcFieldError);
+            ErrorLabel.AddToClassList(LiveOpsHubClassNames.TextBlocked);
+            ErrorRow.Add(ErrorLabel);
+
+            DateInput.RegisterValueChangedCallback(OnPartCommitted);
+            TimeInput.RegisterValueChangedCallback(OnPartCommitted);
+            // Ô isDelayed không đổi value khi gõ nên LiveOpsPlaceholder (ẩn theo value) sẽ để gợi ý "yyyy-MM-dd" đè lên chữ đang gõ tới
+            // khi Enter/rời ô. InputEvent bắn theo từng lần sửa chữ ở cả hai bản (TextElement.UpdateText) — ẩn/hiện theo chữ đang có.
+            DateInput.RegisterCallback<InputEvent>(inputEvent => SetPlaceholderHidden(_datePlaceholder, inputEvent.newData));
+            TimeInput.RegisterCallback<InputEvent>(inputEvent => SetPlaceholderHidden(_timePlaceholder, inputEvent.newData));
+            RegisterCallback<FocusOutEvent>(OnFocusOutTrickleDown, TrickleDown.TrickleDown);
+            RefreshDecorations();
+        }
+
+        /// <summary>Thuộc tính UXML <c>show-device-time-line</c>: hiện dòng phụ giờ máy dưới hai ô (mặc định bật).</summary>
+#if UNITY_2023_2_OR_NEWER
+        [UxmlAttribute]
+#endif
+        public bool ShowDeviceTimeLine
+        {
+            get => _showDeviceTimeLine;
+            set
+            {
+                _showDeviceTimeLine = value;
+                RefreshDecorations();
+            }
+        }
+
+        /// <summary>Chữ đang ở ô ngày — giữ nguyên "2026-10-3" khi không đọc được.</summary>
+        public string RawDateText => DateInput.value ?? string.Empty;
+
+        /// <summary>Chữ đang ở ô giờ.</summary>
+        public string RawTimeText => TimeInput.value ?? string.Empty;
+
+        /// <summary>Chữ trong ô không thành một giờ UTC — <see cref="BaseField{T}.value"/> vẫn là giá trị đọc được gần nhất.</summary>
+        public bool HasParseError => _hasParseError;
+
+        /// <summary>
+        /// MỘT sự kiện chốt duy nhất: bắn ĐÚNG MỘT LẦN mỗi lần người dùng chốt chữ (Enter, Tab, bấm ra ngoài), dù chữ đọc được
+        /// hay không, kèm (ngày, giờ) CUỐI CÙNG của hai ô — dạng chuẩn khi đọc được, nguyên văn người dùng gõ khi không.
+        /// <para>
+        /// Một sự kiện chứ không phải hai (trước đây: chuỗi đọc được đi bằng <c>ChangeEvent&lt;DateTime&gt;</c>, chuỗi hỏng đi
+        /// bằng sự kiện này) vì nơi nghe chỉ đăng ký một đường là mất nửa số lần ghi mà không có lỗi biên dịch nào: popover
+        /// Thêm đợt chỉ nghe đường chuỗi hỏng nên gõ ngày/giờ HỢP LỆ rồi Enter là bước 3 vẫn hiện giờ cũ và đợt được thêm với
+        /// giờ cũ (UJ-03/UX-04). Muốn giá trị đã đọc thì dùng <see cref="ToAssetText"/> hoặc <see cref="TryParseParts"/>.
+        /// </para>
+        /// </summary>
+        public event Action<string, string> TextCommitted;
+
+        /// <summary>
+        /// Gán giá trị. <see cref="BaseField{T}"/> bỏ qua lần gán bằng giá trị hiện tại, mà khi ô đang giữ chuỗi hỏng thì giá trị hiện tại
+        /// chính là lần đọc được gần nhất: presenter "Sửa thành 2026-09-20 00:00" gán lại đúng giá trị đó sẽ là no-op — chữ hỏng, viền
+        /// và dòng lỗi còn nguyên trong khi asset đã đúng. Trường hợp này áp thẳng chữ chuẩn, không bắn ChangeEvent (giá trị không đổi).
+        /// </summary>
+        public override DateTime value
+        {
+            get => base.value;
+            set
+            {
+                if ((_hasParseError || _pendingIncompleteInput) && value == base.value)
+                {
+                    SetValueWithoutNotify(value);
+                    return;
+                }
+                base.value = value;
+            }
+        }
+
+        internal TextField DateInput { get; }
+        internal TextField TimeInput { get; }
+        internal VisualElement InputContainer { get; }
+        internal Label ZoneLabel { get; }
+
+        /// <summary>Hàng ô ngày + ô giờ + nhãn "UTC" — hàng GIÁ TRỊ, không bao giờ chứa biểu tượng lỗi (W9-30).</summary>
+        internal VisualElement ValueRow { get; }
+
+        /// <summary>Dòng lỗi: biểu tượng 12px + câu lỗi xuống dòng được. Ẩn cả dòng khi ô không có lỗi nào.</summary>
+        internal VisualElement ErrorRow { get; }
+
+        internal Image ErrorIcon { get; }
+        internal Label DeviceTimeLabel { get; }
+        internal Label ErrorLabel { get; }
+        internal LiveOpsPlaceholder DatePlaceholder => _datePlaceholder;
+        internal LiveOpsPlaceholder TimePlaceholder => _timePlaceholder;
+
+        private const string ErrorIconName = "console.erroricon.sml";
+
+        /// <summary>
+        /// Đặt chữ thô từ asset (chuỗi đợt đang lưu có thể hỏng sẵn) mà không bắn sự kiện. Đọc được thì cập nhật giá trị; không đọc
+        /// được thì hiện lỗi mặc định của ô — presenter muốn câu của phát hiện thì gọi <see cref="SetErrorText"/> sau.
+        /// </summary>
+        public void SetRawTextWithoutNotify(string dateText, string timeText)
+        {
+            DateInput.SetValueWithoutNotify(dateText ?? string.Empty);
+            TimeInput.SetValueWithoutNotify(timeText ?? string.Empty);
+            _pendingIncompleteInput = false;
+            RefreshPlaceholders();
+            if (TryParseParts(RawDateText, RawTimeText, out DateTime parsed))
+            {
+                ApplyValue(parsed);
+                return;
+            }
+            ShowParseError();
+        }
+
+        /// <summary>Độ lệch giờ máy (port múi giờ tiêm vào — test cố định +7) cho dòng phụ "07:00 18/9 giờ máy".</summary>
+        public void SetDeviceOffset(TimeSpan deviceOffset)
+        {
+            _deviceOffset = deviceOffset;
+            RefreshDecorations();
+        }
+
+        /// <summary>
+        /// Viền blocked-fill + dòng lỗi 10px với câu của người gọi (vd câu phát hiện <c>utc-time-format</c>); rỗng/null = bỏ lỗi do
+        /// người gọi đặt (lỗi đọc chuỗi của chính ô vẫn giữ tới khi chữ đọc được).
+        /// </summary>
+        public void SetErrorText(string errorText)
+        {
+            if (string.IsNullOrEmpty(errorText))
+            {
+                _errorTextFromCaller = false;
+                if (_hasParseError)
+                {
+                    ErrorLabel.text = DescribeParseError(RawDateText, RawTimeText);
+                }
+                else
+                {
+                    ErrorLabel.text = string.Empty;
+                }
+            }
+            else
+            {
+                _errorTextFromCaller = true;
+                ErrorLabel.text = errorText;
+            }
+            RefreshDecorations();
+        }
+
+        public override void SetValueWithoutNotify(DateTime newValue)
+        {
+            DateTime utc = DateTime.SpecifyKind(newValue, DateTimeKind.Utc);
+            base.SetValueWithoutNotify(utc);
+            _hasValue = true;
+            _hasParseError = false;
+            _pendingIncompleteInput = false;
+            DateInput.SetValueWithoutNotify(utc.ToString(DateFormat, CultureInfo.InvariantCulture));
+            string timeFormat = utc.Second == 0 && utc.Millisecond == 0 ? TimeWithoutSecondsFormat : TimeWithSecondsFormat;
+            TimeInput.SetValueWithoutNotify(utc.ToString(timeFormat, CultureInfo.InvariantCulture));
+            RefreshPlaceholders();
+            if (!_errorTextFromCaller) ErrorLabel.text = string.Empty;
+            RefreshDecorations();
+        }
+
+        /// <summary>Đọc chặt hai ô thành một giờ UTC; false khi một ô trống hoặc sai dạng.</summary>
+        internal static bool TryParseParts(string dateText, string timeText, out DateTime utc)
+        {
+            utc = default;
+            if (string.IsNullOrEmpty(dateText)) return false;
+            if (!DateTime.TryParseExact(dateText.Trim(), DateFormat, CultureInfo.InvariantCulture, DateTimeStyles.None, out DateTime date)) return false;
+            if (!TryParseTimeOfDay(timeText, out TimeSpan timeOfDay)) return false;
+            utc = DateTime.SpecifyKind(date.Date + timeOfDay, DateTimeKind.Utc);
+            return true;
+        }
+
+        /// <summary>
+        /// Ghép nửa ngày và nửa giờ THÔ thành chuỗi ghi vào asset. Dấu cách là dấu ngăn cố ý (chữ người dùng gõ chưa phải ISO nên
+        /// ghép bằng "T" là bịa thêm dạng chuẩn cho một chuỗi hỏng); <see cref="SplitRawText"/> tách lại được đúng hai nửa đó.
+        /// Ghép và tách ở CÙNG một chỗ để hai nửa của một vòng không trôi khỏi nhau.
+        /// </summary>
+        internal static string JoinRawText(string dateText, string timeText)
+        {
+            string date = (dateText ?? string.Empty).Trim();
+            string time = (timeText ?? string.Empty).Trim();
+            if (time.Length == 0) return date;
+            if (date.Length == 0) return time;
+            return date + " " + time;
+        }
+
+        /// <summary>
+        /// Chuỗi CUỐI CÙNG sẽ nằm trong asset cho một cặp (ngày, giờ) vừa chốt: dạng chuẩn khi đọc được, nguyên văn người dùng gõ
+        /// khi không (tài liệu phải chứa được đợt hỏng để bộ kiểm báo đúng chuỗi).
+        /// </summary>
+        internal static string ToAssetText(string dateText, string timeText)
+        {
+            return TryParseParts(dateText, timeText, out DateTime utc)
+                ? LiveEventUtcText.Format(utc)
+                : JoinRawText(dateText, timeText);
+        }
+
+        /// <summary>
+        /// Tách chuỗi giờ THÔ của asset thành (ngày, giờ) cho hai ô. Nhận CẢ dấu ngăn "T" của ISO LẪN dấu cách: khi chuỗi không
+        /// đọc được, inspector ghi nguyên văn thứ người dùng gõ và ghép hai nửa bằng DẤU CÁCH ("2026-09-1 12:00"), nên bộ tách chỉ
+        /// biết "T" sẽ dồn cả chuỗi vào ô ngày và để ô giờ trống — người dùng thấy giờ mình KHÔNG đụng tới tự biến mất, Dài về 0 và
+        /// câu lỗi vừa trích "12:00" vừa bảo "Ô giờ còn trống" (UJ-04).
+        /// <para>
+        /// "T" là dấu ngăn KHÔNG nhập nhằng nên cắt ở "T" đầu tiên. Dấu cách thì NHẬP NHẰNG: nửa ngày của người dùng có thể chứa
+        /// dấu cách ("16 09 2026"), nên cắt ở dấu cách ĐẦU TIÊN là xé đôi chữ người dùng gõ — ô ngày còn "16", ô giờ thành
+        /// "09 2026 12:00". Cắt ở dấu cách CUỐI và chỉ khi đuôi là một lần gõ giờ (đọc được, hoặc có dấu ":"), còn lại để nguyên
+        /// cả chuỗi ở ô ngày: hợp đồng "ô giữ nguyên chữ người dùng gõ" không được vỡ vì một dấu cách.
+        /// </para>
+        /// Phần giây giữ nguyên (<c>HH:mm:ss</c> vẫn đọc được): cắt còn <c>HH:mm</c> là lặng lẽ đổi giờ của đợt khi asset có giây.
+        /// </summary>
+        internal static void SplitRawText(string rawText, out string dateText, out string timeText)
+        {
+            dateText = string.Empty;
+            timeText = string.Empty;
+            if (string.IsNullOrEmpty(rawText)) return;
+            string text = rawText.Trim();
+            if (text.Length == 0) return;
+            int isoSeparatorIndex = text.IndexOf('T');
+            if (isoSeparatorIndex >= 0)
+            {
+                dateText = text.Substring(0, isoSeparatorIndex).Trim();
+                timeText = TrimZoneSuffix(text.Substring(isoSeparatorIndex + 1));
+                return;
+            }
+            int lastSpaceIndex = text.LastIndexOf(' ');
+            if (lastSpaceIndex >= 0)
+            {
+                string tail = TrimZoneSuffix(text.Substring(lastSpaceIndex + 1));
+                // Dấu ":" cũng tính là một lần gõ giờ dù đọc không ra ("99:99"): có thế ô giờ mới giữ được chữ hỏng của chính nó
+                // thay vì đẩy sang ô ngày, và câu lỗi mới trỏ đúng ô.
+                if (tail.Length > 0 && (tail.IndexOf(':') >= 0 || IsTimeReadable(tail)))
+                {
+                    dateText = text.Substring(0, lastSpaceIndex).Trim();
+                    timeText = tail;
+                    return;
+                }
+            }
+            dateText = text;
+        }
+
+        private static string TrimZoneSuffix(string timeText)
+        {
+            return timeText.Trim().TrimEnd('Z').Trim();
+        }
+
+        /// <summary>
+        /// Câu lỗi mặc định: nói chuỗi nào không đọc được và dạng cần gõ; ngày thiếu số 0 thì nêu luôn cách viết đúng. Hai ô cùng hỏng thì
+        /// nêu cả hai — chỉ nêu ô ngày thì lỗi giờ chỉ lộ ra sau khi sửa xong ngày, người dùng phải sửa hai lượt.
+        /// </summary>
+        internal static string DescribeParseError(string dateText, string timeText)
+        {
+            string date = dateText ?? string.Empty;
+            string time = timeText ?? string.Empty;
+            string dateError = DescribeDateError(date);
+            string timeError = IsTimeReadable(time) ? null : DescribeTimeError(time);
+            if (dateError == null) return timeError ?? string.Empty;
+            return timeError == null ? dateError : dateError + " " + timeError;
+        }
+
+        private static string DescribeDateError(string date)
+        {
+            if (IsDateReadable(date)) return null;
+            if (date.Trim().Length == 0) return LiveOpsHubStrings.UtcFieldDateEmpty;
+            // Chuỗi người dùng gõ vào Label rich text: "2026-10-<b>3" không được thành chữ đậm hay nuốt thẻ — bọc noparse như mọi giá
+            // trị thô của hub (7.6), để dòng lỗi nêu đúng từng ký tự đã gõ.
+            string literal = LiveOpsJsonView.ProtectRawText(date);
+            if (LiveEventUtcText.TryNormalize(date, out string canonical) && LiveEventUtcText.TryParse(canonical, out DateTime normalized))
+            {
+                return string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.UtcFieldDateUnreadableWithSuggestionFormat, literal,
+                    normalized.ToString(DateFormat, CultureInfo.InvariantCulture));
+            }
+            return string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.UtcFieldDateUnreadableFormat, literal);
+        }
+
+        private static string DescribeTimeError(string time)
+        {
+            if (time.Trim().Length == 0) return LiveOpsHubStrings.UtcFieldTimeEmpty;
+            return string.Format(CultureInfo.InvariantCulture, LiveOpsHubStrings.UtcFieldTimeUnreadableFormat, LiveOpsJsonView.ProtectRawText(time));
+        }
+
+        private static bool IsDateReadable(string dateText)
+        {
+            if (string.IsNullOrEmpty(dateText)) return false;
+            return DateTime.TryParseExact(dateText.Trim(), DateFormat, CultureInfo.InvariantCulture, DateTimeStyles.None, out DateTime _);
+        }
+
+        private static bool IsTimeReadable(string timeText)
+        {
+            return TryParseTimeOfDay(timeText, out TimeSpan _);
+        }
+
+        /// <summary>Đọc riêng nửa giờ (<c>HH:mm</c> hoặc <c>HH:mm:ss</c>) — đúng hai dạng mà ô giờ nhận, một chỗ khai.</summary>
+        internal static bool TryParseTimeOfDay(string timeText, out TimeSpan timeOfDay)
+        {
+            timeOfDay = default;
+            if (string.IsNullOrEmpty(timeText)) return false;
+            if (!TimeSpan.TryParseExact(timeText.Trim(), TimeFormats, CultureInfo.InvariantCulture, out timeOfDay)) return false;
+            return timeOfDay >= TimeSpan.Zero && timeOfDay < TimeSpan.FromDays(1);
+        }
+
+        private TextField CreatePart(string className)
+        {
+            TextField part = new TextField { isDelayed = true };
+            part.AddToClassList(className);
+            part.AddToClassList(LiveOpsHubClassNames.Mono);
+            return part;
+        }
+
+        private void OnPartCommitted(ChangeEvent<string> changeEvent)
+        {
+            // ChangeEvent<string> của ô con không được nổi lên như giá trị của field — nơi nghe chỉ dùng ChangeEvent<DateTime>.
+            changeEvent.StopPropagation();
+            RefreshPlaceholders();
+            // Text element bên trong ô cũng bắn ChangeEvent<string> (Esc trả lại chữ cũ) và nó nổi tới đây — chỉ lần ghi value của chính
+            // ô con mới là một lần người dùng chốt chữ.
+            if (changeEvent.target != DateInput && changeEvent.target != TimeInput) return;
+            bool focusStaysInField = _focusMovingWithinField;
+            _focusMovingWithinField = false;
+
+            if (TryParseParts(RawDateText, RawTimeText, out DateTime parsed))
+            {
+                bool wasBroken = _hasParseError;
+                DateTime previous = value;
+                ApplyValue(parsed);
+                if (previous != parsed || wasBroken)
+                {
+                    // Chữ hỏng được sửa về đúng giá trị cũ cũng phải báo: asset vẫn đang giữ chuỗi thô, phiên phải ghi lại chuỗi chuẩn.
+                    SendDateTimeChange(previous, parsed);
+                }
+                // Chốt được một giờ đọc được cũng là một lần chốt: báo cùng đường với chuỗi hỏng để nơi nghe chỉ phải đăng ký một chỗ.
+                TextCommitted?.Invoke(RawDateText, RawTimeText);
+                return;
+            }
+
+            if (focusStaysInField && IsIncomplete())
+            {
+                // Tab từ ô vừa gõ sang ô còn trống: ghi nửa cặp thành chuỗi thô là một bước Undo + phát hiện utc-time-format nháy lên
+                // trước khi người dùng kịp gõ nửa kia. Chờ tới lần ghi sau hoặc tới khi focus rời hẳn field (OnFocusOutTrickleDown).
+                _pendingIncompleteInput = true;
+                if (_hasParseError) ShowParseError();
+                return;
+            }
+            ReportUnreadableInput();
+        }
+
+        private void OnFocusOutTrickleDown(FocusOutEvent focusOutEvent)
+        {
+            VisualElement nextFocused = focusOutEvent.relatedTarget as VisualElement;
+            _focusMovingWithinField = nextFocused != null && (nextFocused == this || Contains(nextFocused));
+            if (_focusMovingWithinField || !_pendingIncompleteInput) return;
+            // Rời hẳn field khi cặp vẫn thiếu một nửa. Ô đang rời còn chữ chưa ghi thì lần ghi của nó chạy ngay sau (cờ đã false) và tự báo;
+            // báo ở đây nữa là hai lần TextCommitted cho cùng một lần rời ô.
+            if (HasUncommittedText(DateInput) || HasUncommittedText(TimeInput)) return;
+            ReportUnreadableInput();
+        }
+
+        private static bool HasUncommittedText(TextField part)
+        {
+            return !string.Equals(part.text ?? string.Empty, part.value ?? string.Empty, StringComparison.Ordinal);
+        }
+
+        private bool IsIncomplete()
+        {
+            return RawDateText.Trim().Length == 0 || RawTimeText.Trim().Length == 0;
+        }
+
+        private void ReportUnreadableInput()
+        {
+            _pendingIncompleteInput = false;
+            ShowParseError();
+            TextCommitted?.Invoke(RawDateText, RawTimeText);
+        }
+
+        private void RefreshPlaceholders()
+        {
+            SetPlaceholderHidden(_datePlaceholder, DateInput.text);
+            SetPlaceholderHidden(_timePlaceholder, TimeInput.text);
+        }
+
+        private static void SetPlaceholderHidden(LiveOpsPlaceholder placeholder, string text)
+        {
+            placeholder.EnableInClassList(LiveOpsHubClassNames.PlaceholderHidden, !string.IsNullOrEmpty(text));
+        }
+
+        private void ApplyValue(DateTime parsed)
+        {
+            _hasParseError = false;
+            SetValueWithoutNotify(parsed);
+        }
+
+        private void ShowParseError()
+        {
+            _hasParseError = true;
+            if (!_errorTextFromCaller) ErrorLabel.text = DescribeParseError(RawDateText, RawTimeText);
+            RefreshDecorations();
+        }
+
+        private void SendDateTimeChange(DateTime previous, DateTime next)
+        {
+            using (ChangeEvent<DateTime> changeEvent = ChangeEvent<DateTime>.GetPooled(previous, next))
+            {
+                changeEvent.target = this;
+                SendEvent(changeEvent);
+            }
+        }
+
+        private void RefreshDecorations()
+        {
+            // Viền đúng từng ô không đọc được (cả hai khi cả hai hỏng), khớp câu của DescribeParseError.
+            bool dateBroken = _hasParseError && !IsDateReadable(RawDateText);
+            bool timeBroken = _hasParseError && !IsTimeReadable(RawTimeText);
+            bool showError = _hasParseError || _errorTextFromCaller;
+            // Lỗi do người gọi đặt mà chữ vẫn đọc được: viền cả ô ngày (thứ người dùng sửa trước) để không có lỗi mà không có chỗ nhìn.
+            DateInput.EnableInClassList(LiveOpsHubClassNames.UtcFieldPartError, dateBroken || (_errorTextFromCaller && !_hasParseError));
+            TimeInput.EnableInClassList(LiveOpsHubClassNames.UtcFieldPartError, timeBroken);
+            ErrorIcon.EnableInClassList(LiveOpsHubClassNames.UtcFieldHidden, !showError);
+            ErrorLabel.EnableInClassList(LiveOpsHubClassNames.UtcFieldHidden, !showError || string.IsNullOrEmpty(ErrorLabel.text));
+            // Ẩn CẢ dòng lỗi khi không có lỗi: dòng còn trong cây mà cao 0 là đúng dạng "đang bày ra mà không vẽ gì" mà phép
+            // đo AssertNoZeroSize đi tìm, và nó vẫn ăn margin-top của câu lỗi.
+            ErrorRow.EnableInClassList(LiveOpsHubClassNames.UtcFieldHidden, !showError);
+
+            bool showDeviceLine = _showDeviceTimeLine && _hasValue && !_hasParseError;
+            DeviceTimeLabel.text = showDeviceLine ? new LiveOpsHubFormat(_deviceOffset).DeviceTimeLine(value) : string.Empty;
+            DeviceTimeLabel.EnableInClassList(LiveOpsHubClassNames.UtcFieldHidden, !showDeviceLine);
+        }
+
+#if !UNITY_2023_2_OR_NEWER
+        public new sealed class UxmlFactory : UxmlFactory<LiveOpsUtcDateTimeField, UxmlTraits>
+        {
+        }
+
+        public new sealed class UxmlTraits : BaseField<DateTime>.UxmlTraits
+        {
+            // Tên thuộc tính trùng tên kebab-case mà [UxmlAttribute] của Unity 6 sinh từ property (ShowDeviceTimeLine → "show-device-time-line");
+            // "label" đọc bởi traits của BaseField như Unity 6.
+            private readonly UxmlBoolAttributeDescription _showDeviceTimeLine =
+                new UxmlBoolAttributeDescription { name = "show-device-time-line", defaultValue = true };
+
+            public override void Init(VisualElement visualElement, IUxmlAttributes bag, CreationContext context)
+            {
+                base.Init(visualElement, bag, context);
+                ((LiveOpsUtcDateTimeField)visualElement).ShowDeviceTimeLine = _showDeviceTimeLine.GetValueFromBag(bag, context);
+            }
+        }
+#endif
+    }
+
+#if UNITY_2023_2_OR_NEWER
+    /// <summary>
+    /// Unity 6 khai thuộc tính UXML <c>value</c> cho mọi <c>BaseField&lt;T&gt;</c> có <c>[UxmlElement]</c>; không có bộ đổi cho
+    /// <see cref="DateTime"/> thì mỗi lần nạp domain Unity log Error "define a custom UxmlAttributeConverter&lt;DateTime&gt;" (thấy ở lượt
+    /// import của gói) — log lạ làm đỏ test có <c>LogAssert.NoUnexpectedReceived</c>. Bộ đổi chỉ để tắt lỗi đó: đặt giá trị bằng UXML
+    /// KHÔNG phải hợp đồng của ô (đo ở 6000.6: <c>value="…"</c> không tới được ô; 2022.3 không có đường đọc) — giá trị luôn đặt từ C#
+    /// (<see cref="LiveOpsUtcDateTimeField.SetRawTextWithoutNotify"/> / <c>SetValueWithoutNotify</c>).
+    /// </summary>
+    internal sealed class LiveOpsUtcDateTimeUxmlConverter : UnityEditor.UIElements.UxmlAttributeConverter<DateTime>
+    {
+        public override DateTime FromString(string value)
+        {
+            return LiveEventUtcText.TryParse(value, out DateTime utc) ? utc : default;
+        }
+
+        public override string ToString(DateTime value)
+        {
+            return LiveEventUtcText.Format(value);
+        }
+    }
+#endif
+}

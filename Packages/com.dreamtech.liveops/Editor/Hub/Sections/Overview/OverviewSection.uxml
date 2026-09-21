@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Thân màn Tổng quan (Hình 4/5): hàng metric → card Việc cần làm → card Đường đi của lịch → card 7 ngày tới → note cuối.
+  Empty (a) "chưa có asset" nằm SẴN trong cây và chỉ bật/tắt bằng `hidden` từ C#: tên element sống còn phải Q được ở CẢ hai
+  ngữ cảnh (không asset và dữ liệu mẫu) vì probe 9.3 và HubWindowTests duyệt cả hai.
+  Không câu chữ nào trong file này — mọi label do C# đổ từ LiveOpsHubStrings (lint chặn chữ hiển thị trong UXML).
+-->
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:liveops="DreamTech.LiveOps.Editor">
+    <ui:VisualElement name="overview-body" class="liveops-hub-overview-page">
+        <ui:VisualElement name="overview-empty" class="liveops-hub-empty">
+            <ui:Label name="overview-empty-title" class="liveops-hub-empty-title" />
+            <ui:Label name="overview-empty-body" class="liveops-hub-empty-body" />
+            <ui:VisualElement name="overview-empty-steps" class="liveops-hub-overview-step-list" />
+            <ui:VisualElement name="overview-empty-actions" class="liveops-hub-overview-empty-actions" />
+        </ui:VisualElement>
+
+        <!-- Q-W5-1 (user chốt 17/9/2026): thân mặc định nằm trong một ScrollView DỌC ở MỌI bề rộng. Dưới 900px thân dài
+             hơn cửa sổ nên phần dư bị cắt ở đáy — cắt là mất thông tin, cuộn thì không. Không gắn theo breakpoint: một
+             đường vẽ, một đường đo. Hướng cuộn và cách hiện thanh cuộn do C# đặt (tên thuộc tính UXML lệch giữa hai bản). -->
+        <ui:ScrollView name="overview-scroll" class="liveops-hub-overview-scroll">
+            <ui:VisualElement name="overview-default" class="liveops-hub-overview-default">
+                <!-- (b) nhiều asset lịch [SD1 §1.3]: HelpBox info ở ĐẦU thân, phần thân còn lại vẫn là Tổng quan bình thường.
+                     Icon và nút "Đổi…" do C# chèn (icon theo skin, menu liệt kê đường dẫn asset). -->
+                <ui:VisualElement name="overview-multiple-assets" class="liveops-hub-overview-multiple-assets liveops-hub-overview-hidden">
+                    <ui:Label name="overview-multiple-assets-text" class="liveops-hub-overview-multiple-assets-text" />
+                    <ui:VisualElement class="liveops-hub-overview-card-spacer" />
+                </ui:VisualElement>
+
+                <ui:VisualElement name="overview-metrics" class="liveops-hub-overview-metric-row" />
+
+                <ui:VisualElement name="overview-needs-action-card" class="liveops-hub-card">
+                    <ui:VisualElement class="liveops-hub-card-header">
+                        <ui:Label name="overview-needs-action-title" class="liveops-hub-overview-card-title" />
+                        <ui:Label name="overview-needs-action-subtitle" class="liveops-hub-overview-card-subtitle" />
+                    </ui:VisualElement>
+                    <ui:VisualElement name="overview-needs-action-body" class="liveops-hub-overview-card-body" />
+                </ui:VisualElement>
+
+                <ui:VisualElement name="overview-flow-card" class="liveops-hub-card">
+                    <ui:VisualElement class="liveops-hub-card-header">
+                        <ui:Label name="overview-flow-title" class="liveops-hub-overview-card-title" />
+                        <ui:Label name="overview-flow-subtitle" class="liveops-hub-overview-card-subtitle" />
+                    </ui:VisualElement>
+                    <ui:VisualElement name="overview-flow" class="liveops-hub-overview-flow" />
+                </ui:VisualElement>
+
+                <ui:VisualElement name="overview-upcoming-card" class="liveops-hub-card">
+                    <ui:VisualElement class="liveops-hub-card-header">
+                        <ui:Label name="overview-upcoming-title" class="liveops-hub-overview-card-title" />
+                        <ui:Label name="overview-upcoming-subtitle" class="liveops-hub-overview-card-subtitle" />
+                        <ui:VisualElement class="liveops-hub-overview-card-spacer" />
+                        <liveops:LiveOpsTabStrip name="overview-upcoming-tabs" />
+                    </ui:VisualElement>
+                    <ui:VisualElement name="overview-upcoming" class="liveops-hub-overview-upcoming-table" />
+                </ui:VisualElement>
+
+                <ui:Label name="overview-footer-note" class="liveops-hub-note liveops-hub-overview-footer-note" />
+            </ui:VisualElement>
+        </ui:ScrollView>
+    </ui:VisualElement>
+</ui:UXML>
