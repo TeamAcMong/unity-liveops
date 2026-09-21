@@ -181,6 +181,23 @@ namespace UxJourney
         /// </summary>
         internal static List<string> CalendarContextMenu(UxRunner runner, string title, Vector2 worldPoint, string choose)
         {
+            return CalendarContextMenuCore(runner, title, worldPoint, choose, null);
+        }
+
+        /// <summary>
+        /// Như <see cref="CalendarContextMenu"/> nhưng chọn mục theo ID (tên hằng <c>CalendarMenuItemId</c>) thay vì theo CHỮ.
+        /// Vì sao cần: chữ của mục đổi theo ngôn ngữ đang chạy của hub ("Copy id" tiếng Việt / "Copy the id" tiếng Anh), nên
+        /// một bước dò theo chữ sẽ lặng lẽ KHÔNG chạy ở bản tiếng Anh, rồi vẫn chụp một tấm ảnh mang tên cảnh mà cảnh ấy chưa
+        /// được dựng — một bức ảnh trông như bằng chứng. ID thì không theo ngôn ngữ.
+        /// </summary>
+        internal static List<string> CalendarContextMenuById(UxRunner runner, string title, Vector2 worldPoint, string chooseIdName)
+        {
+            return CalendarContextMenuCore(runner, title, worldPoint, null, chooseIdName);
+        }
+
+        private static List<string> CalendarContextMenuCore(UxRunner runner, string title, Vector2 worldPoint, string choose,
+            string chooseIdName)
+        {
             object section = CalendarSectionObject();
             VisualElement timeline = (VisualElement)section.GetType().GetProperty("Timeline", AnyInstance).GetValue(section, null);
             Vector2 local = timeline.WorldToLocal(worldPoint);
@@ -201,9 +218,13 @@ namespace UxJourney
                     builder.Append("   · ").Append(text).Append('\n');
                     string itemText = (string)item.GetType().GetProperty("Text").GetValue(item, null);
                     bool enabled = (bool)item.GetType().GetProperty("IsEnabled").GetValue(item, null);
-                    if (!string.IsNullOrEmpty(choose) && chosenId == null && enabled && itemText.Contains(choose))
+                    object itemId = item.GetType().GetProperty("Id").GetValue(item, null);
+                    if (chosenId != null || !enabled) continue;
+                    if (!string.IsNullOrEmpty(choose) && itemText.Contains(choose)) chosenId = itemId;
+                    else if (!string.IsNullOrEmpty(chooseIdName) && itemId != null
+                             && string.Equals(itemId.ToString(), chooseIdName, StringComparison.Ordinal))
                     {
-                        chosenId = item.GetType().GetProperty("Id").GetValue(item, null);
+                        chosenId = itemId;
                     }
                 }
             }
@@ -212,12 +233,13 @@ namespace UxJourney
                 builder.Append("   (không có menu)\n");
             }
             File.AppendAllText(Path.Combine(runner.Options.OutputDirectory, "menus.txt"), builder.ToString());
-            if (!string.IsNullOrEmpty(choose))
+            string wanted = string.IsNullOrEmpty(choose) ? chooseIdName : choose;
+            if (!string.IsNullOrEmpty(wanted))
             {
-                if (chosenId == null) Note(runner, "menu " + title + " không có mục bật chứa '" + choose + "'");
+                if (chosenId == null) Note(runner, "menu " + title + " không có mục bật khớp '" + wanted + "'");
                 else
                 {
-                    runner.Log("chạy mục menu '" + choose + "' (" + chosenId + ")");
+                    runner.Log("chạy mục menu '" + wanted + "' (" + chosenId + ")");
                     section.GetType().GetMethod("ActivateMenuItem", AnyInstance).Invoke(section, new[] { chosenId, context });
                 }
             }

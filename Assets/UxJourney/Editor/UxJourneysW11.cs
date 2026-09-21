@@ -33,11 +33,13 @@ namespace UxJourney
         private const string W11RuleTokenClassName = "liveops-hub-rule-token";
 
         /// <summary>
-        /// (J3-04) Mục menu chuột phải dùng để sinh toast mà KHÔNG chọn thanh. Chép chuỗi vi của catalog
-        /// (<c>CalendarDepthMenuCopyId</c>) vì bộ đi dạo không tham chiếu được assembly của package; CalendarContextMenu dò
-        /// theo Contains nên một lần đổi câu sẽ ghi thẳng ra notes.txt ("menu … không có mục bật chứa …") chứ không im lặng.
+        /// (J3-04) Mục menu chuột phải dùng để sinh toast mà KHÔNG chọn thanh, chọn theo ID chứ không theo CHỮ.
+        /// Vì sao ID: chữ của mục theo ngôn ngữ đang chạy ("Copy id" vi / "Copy the id" en) nên một literal tiếng Việt sẽ
+        /// KHÔNG khớp ở lượt tiếng Anh — bước tụt xuống một dòng Note rồi vẫn chụp một tấm ảnh mang tên "toast ngăn kéo
+        /// đóng" mà không có toast nào, tức một bức ảnh trông như bằng chứng. Tên này là hằng <c>CalendarMenuItemId.CopyId</c>
+        /// của package; đổi tên hằng thì bước ghi thẳng ra notes.txt chứ không im lặng.
         /// </summary>
-        private const string W11CopyIdMenuItemText = "Copy id";
+        private const string W11CopyIdMenuItemId = "CopyId";
 
         static partial void RegisterW11(Dictionary<string, Func<UxRunner, IEnumerator>> registry)
         {
@@ -136,9 +138,15 @@ namespace UxJourney
                 VisualElement barAgain = Bar(LavaMid);
                 if (barAgain != null)
                 {
-                    CalendarContextMenu(runner, "thanh " + LavaMid + " (sinh toast không chọn thanh)",
-                        barAgain.worldBound.center, W11CopyIdMenuItemText);
+                    CalendarContextMenuById(runner, "thanh " + LavaMid + " (sinh toast không chọn thanh)",
+                        barAgain.worldBound.center, W11CopyIdMenuItemId);
                     yield return new WaitFrames(12);
+                    // (R-F5 lượt soát G-W11-EYE2) Khẳng định TRƯỚC khi chụp: bước 4 chỉ là đối chứng khi toast THẬT SỰ hiện.
+                    // Không có câu này thì một lần mục menu không khớp vẫn để lại đúng một tấm ảnh mang tên cảnh đối chứng.
+                    VisualElement toastAfterMenu = UxFind.ByClass(Root, "liveops-hub-toast");
+                    bool toastShown = toastAfterMenu != null && UxFind.Shown(toastAfterMenu);
+                    MeasureLine(runner, "W11a-" + size + "-4-toast-ngan-keo-dong | toast hiện=" + toastShown);
+                    if (!toastShown) Note(runner, "bước 4: KHÔNG có toast sau mục menu — cảnh đối chứng chưa dựng được, ảnh dưới đây không phải bằng chứng");
                     yield return Snap(runner, "W11a-" + size + "-4-toast-ngan-keo-dong", "đối chứng: cùng toast khi ngăn kéo ĐÓNG");
                     ReportW11Drawer(runner, "W11a-" + size + "-4-toast-ngan-keo-dong");
                     ReportToastLegendHint(runner, "W11a-" + size + "-4-toast-ngan-keo-dong");
