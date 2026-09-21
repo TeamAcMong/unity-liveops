@@ -110,9 +110,15 @@
     --liveops-hub-color-blocked-fill: #A80000;
     --liveops-hub-color-warning-text: #4F3600;
     --liveops-hub-color-warning-fill: #6E4E00;
-    /* Quiet Light trên cửa sổ #C8C8C8; trên rail #A5A5A5 shell dùng --unity-colors-default-text × 0,6 riêng nếu cần.
-       #555555 cũ 4,46:1 — thiếu bậc chữ thường; #4F4F4F đo ra 4,90:1. */
-    --liveops-hub-color-quiet: #4F4F4F;
+    /* Quiet Light. #555555 đời đầu chỉ 4,46:1 trên cửa sổ #C8C8C8 — thiếu bậc chữ thường; #4F4F4F đo ra 4,90:1 ở đó.
+       (W10-12) Nhưng RAIL của skin sáng không phải nền cửa sổ: nó là --unity-colors-default-background #A5A5A5, tối hơn
+       hẳn, và ở đó #4F4F4F chỉ còn 3,33:1. Chỗ đó có chữ thật: vòng rỗng "chưa kiểm" của rail vẽ bằng quiet, và cảnh đo
+       thứ 9 (màn Kiểm lịch, KẾT QUẢ CŨ — thêm ở phiếu W10-07) là cảnh đầu tiên dựng ra trạng thái ấy, nên đây là nợ có
+       sẵn vừa lộ ra chứ không phải lỗi mới. #393939 đo ra 4,69:1 trên rail, 6,90:1 trên cửa sổ và 7,26:1 trên nền thẻ
+       #CBCBCB — vẫn là xám trung tính cùng tông, và vẫn nhạt hơn hẳn chữ nền tảng #090909 nên "quiet" còn đọc ra là quiet.
+       Chữa ở MÀU GỐC chứ không ở riêng cái badge, đúng lối mà W10-03 đã đi với --liveops-hub-color-link (#1D5087 →
+       #143A60, cũng vì nền chip/rail): một token lo hết mọi chỗ dùng, thay vì rải luật theo từng màn. */
+    --liveops-hub-color-quiet: #393939;
     /* (W10-09) Skin sáng là chỗ TRƯỢT mà phiếu W10-09 đo được: quiet #4F4F4F × 0,7 trên cửa sổ #C8C8C8 hợp thành #737373
        = 2,82:1, dưới bậc hình khối 3:1. Không chữa bằng cách hạ opacity của hàng (0,7 là mức mờ của thiết kế Hình 10b cho
        "hàng chưa khai báo") và không chữa bằng opacity: 1 trên con (opacity của tổ tiên nhân xuống, con không gỡ được):

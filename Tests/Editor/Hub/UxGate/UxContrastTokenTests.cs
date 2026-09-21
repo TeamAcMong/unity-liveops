@@ -543,7 +543,7 @@ namespace DreamTech.LiveOps.Editor.Tests
         /// Vì sao không đo tại chỗ: cửa sổ hub thật vẽ theo skin ĐANG CHẠY của Editor và mọi lượt cổng chạy skin TỐI — đổi
         /// <c>EditorPrefs UserSkin</c> là việc riêng của <c>capture.sh</c> (SP-4). Không được suy sang skin sáng từ bảng
         /// token: bảng token đo TRƯỚC khi nhân opacity, đúng thứ ca màu-đã-hợp-thành chứng minh là không đủ, và hai skin
-        /// khai token khác hẳn nhau (<c>--liveops-hub-color-quiet</c> #A3A3A3 tối / #4F4F4F sáng).
+        /// khai token khác hẳn nhau (<c>--liveops-hub-color-quiet</c> xám sáng ở skin tối / xám tối ở skin sáng).
         /// </para>
         /// <para>
         /// Ca này ĐỎ khi: thiếu file bằng chứng · khuôn JSON khác đời · bằng chứng của bản Unity khác · bằng chứng của skin

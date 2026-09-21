@@ -195,6 +195,10 @@ namespace DreamTech.LiveOps.Editor.Tests
             // dòng này khoá đúng điều đó lại — hạ opacity của nó xuống là ca đỏ ngay, ở cả hai skin.
             new UxComposedSite("--liveops-hub-color-quiet", 1f, UxComposedBackdrop.WindowBackground, TextContrastRatio,
                 "headline CHƯA ĐO của hàng 'kết quả cũ' màn Kiểm lịch — phiếu W10-07"),
+            // (W10-12) Vòng rỗng "chưa kiểm" của RAIL. Nền rail là --unity-colors-default-background, tức đúng nền chip:
+            // ở skin sáng nó là #A5A5A5, tối hơn nền cửa sổ hẳn hai nấc rưỡi, và quiet cũ chỉ đạt 3,33:1 ở đó.
+            new UxComposedSite("--liveops-hub-color-quiet", 1f, UxComposedBackdrop.ChipBackground, TextContrastRatio,
+                "vòng rỗng 'chưa kiểm' của rail — phiếu W10-12"),
             // (W10-09) Dòng HÌNH KHỐI đầu tiên của bảng: viền swatch "loại chưa khai báo" nằm trong ô mang opacity 0,70.
             // Trước bản vá viền ấy lấy màu quiet và skin sáng chỉ đạt 2,82:1; token riêng #444444 đo ra 3,16:1.
             new UxComposedSite("--liveops-hub-color-undeclared-border", 0.70f, UxComposedBackdrop.WindowBackground,
