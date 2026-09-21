@@ -171,6 +171,22 @@ Hai tình huống khác nhau, hai cách xử khác nhau — cả hai đều **kh
   phát hành làm mọi cảnh báo đã bỏ qua mất hiệu lực. Vì thế id chỉ được viết ở đúng một nơi
   (`LiveEventCalendarRuleIds`) và có mục riêng trong README.
 
+### 3.14 Giới hạn độ dài là HẰNG CÓ TÀI LIỆU, không phải cửa ném lỗi (W11)
+
+- **Vì sao phải có một con số.** `ValidateIdentifier` chỉ kiểm ký tự, nên trước W11 không ai trả lời được bằng số câu
+  "hub phải vẽ vừa id dài tới đâu". Hệ quả là bộ dữ liệu "xấu nhất" của cổng bố cục dựng bằng chuỗi dài tuỳ hứng: đo ra
+  178 chỗ hỏng thì con số ấy nói về dữ liệu người dùng hay nói về trí tưởng tượng của người viết fixture, không phân
+  biệt được. Đặt giới hạn biến "xấu nhất" thành một mức ĐO ĐƯỢC.
+- **Vì sao KHÔNG ném khi vượt.** Bất biến của package: dữ liệu xấu từ xa không được làm đường chạy của game ném — mục
+  hỏng thì bị bỏ và ghi lý do. Thêm một cửa ném ở `ValidateIdentifier` sẽ làm đúng cái nó cấm, và còn là thay đổi phá
+  vỡ với game đã đặt id dài hơn 64. Nên giới hạn sống ở `LiveOpsIdentifierLimits` như hợp đồng soạn thảo, và chỗ THẬT
+  SỰ đọc nó hôm nay là bộ dữ liệu xấu nhất của cổng bố cục (`LiveOpsWorstCaseSample`, có test đo từng chuỗi).
+- **Vì sao con số suy ra chứ không chọn tay.** `MaxRecurringIdPrefixLength` = `MaxIdentifierLength` −
+  `MaxOccurrenceIndexLength`: id một lần lặp là tiền tố + số thứ tự, nên một tiền tố "trông vẫn ngắn" vẫn sinh ra id
+  vượt giới hạn. `MaxOccurrenceIndexLength` = bề rộng chữ của `long.MinValue`, đo được chứ không ước lượng.
+  `MaxIdentifierLength` = 64 chốt từ hai phía: hơn hai lần mục dài nhất người thật đã soạn trong repo (29 ký tự), và
+  giữ grant id `liveops.claim#…#…` ở 143 ký tự — dưới mốc 255 của các kho khoá-giá trị hay dùng.
+
 ## 4. Đã kiểm chứng
 
 Xem bảng kết quả trong `CHANGELOG.md` của phiên bản tương ứng.

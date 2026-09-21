@@ -5,8 +5,8 @@ using UnityEngine.UIElements;
 namespace DreamTech.LiveOps.Editor.Tests
 {
     /// <summary>
-    /// Hai LOẠI ô mà user chốt (21/9/2026) là được phép rút chữ có điều kiện. Không có loại thứ ba: mọi ô khác rút chữ vẫn là
-    /// LỖI, y như trước.
+    /// BA LOẠI ô mà user chốt là được phép rút chữ có điều kiện — hai loại đầu chốt 21/9/2026, loại thứ ba (J2-03) chốt cùng
+    /// ngày sau lượt đi thử màn Lịch. Không có loại thứ tư: mọi ô khác rút chữ vẫn là LỖI, y như trước.
     /// </summary>
     internal enum UxTruncatableCellKind
     {
@@ -18,6 +18,22 @@ namespace DreamTech.LiveOps.Editor.Tests
 
         /// <summary>Ô NHẬP: chữ dài hơn ô thì con trỏ cuộn theo, phần ngoài khung không mất đi.</summary>
         InputField,
+
+        /// <summary>
+        /// (J2-03) NHÃN NẰM TRONG MỘT HÌNH KHỐI DO DỮ LIỆU ĐỊNH BỀ RỘNG — hôm nay đúng một chỗ: nhãn thanh đợt trên trục.
+        /// <para>
+        /// Vì sao đây là loại RIÊNG chứ không gộp vào <see cref="FixedWidthTableCell"/>: ô cột cố định rộng bao nhiêu là do
+        /// BỐ CỤC chọn, nên về nguyên tắc vẫn nới được. Bề rộng một thanh đợt thì bằng khoảng thời gian của đợt nhân tỉ lệ
+        /// zoom — một đợt hai giờ ở mức zoom "Tháng" chỉ có vài pixel dù cửa sổ to cỡ nào. Không có bề rộng nào nới được để
+        /// chữ vừa, nên đòi "không được rút" ở đây là đòi bỏ luôn nhãn trên thanh, tức mất nhiều hơn được.
+        /// </para>
+        /// <para>
+        /// Khác hai loại kia ở một điểm nữa: hub TỰ rút chuỗi (<c>LiveOpsTimelineGeometry.BarLabel</c> cắt tại dấu phân cách
+        /// rồi thêm "…") chứ không để UI Toolkit tự elide, nên phần tử chỉ còn mẩu chữ. Điều kiện (a) vì thế phải so tooltip
+        /// với MẨU còn lại — <see cref="UxTruncationExemption.CarriesFullTextTooltip"/> đã có sẵn nhánh ấy.
+        /// </para>
+        /// </summary>
+        GeometryDrivenBarLabel,
     }
 
     /// <summary>
@@ -109,7 +125,30 @@ namespace DreamTech.LiveOps.Editor.Tests
                 nameof(UxTruncationExemptionTests.EventTypesConfigKeyCell_TruncatesWithTooltipAndInspectorShowsFullText),
                 "Cột 'Config key' khai cứng 140px và là cột PHỤ (bị bỏ hẳn ở cửa sổ hẹp). Chữ đủ đọc lại ở tooltip của ô và "
                 + "ở ô nhập 'Config key' của inspector."),
+            new UxTruncationExemptionEntry(AnyScreen, TimelineBarSelector,
+                UxTruncatableCellKind.GeometryDrivenBarLabel, CalendarInspectorTitleIdSurface,
+                nameof(UxTruncationExemptionTests.TimelineBarLabel_ShortensWithTooltipAndInspectorShowsFullText),
+                "Bề rộng thanh đợt là HÌNH HỌC suy từ dữ liệu (khoảng thời gian × tỉ lệ zoom), không phải bề rộng do bố "
+                + "cục chọn — một đợt ngắn ở mức zoom rộng chỉ có vài pixel ở MỌI cỡ cửa sổ. Chữ đủ đọc lại ở tooltip của "
+                + "chính thanh (id + khoảng UTC) và ở dòng tiêu đề inspector sau khi chọn thanh. LƯU Ý: mục này KHÔNG tha "
+                + "cho dòng tiêu đề inspector — trên dữ liệu dài nhất, chính dòng ấy cũng bị pane cắt, và chỗ cắt đó vẫn "
+                + "là một phát hiện ĐỎ nằm trong nợ W11-01. Miễn trừ ở đây chỉ nói về nhãn trên thanh."),
         };
+
+        /// <summary>
+        /// Selector của mục J2-03 là class của CẢ THANH chứ không phải class của nhãn, vì tooltip nằm trên thanh còn nhãn
+        /// thì không mang tooltip nào (<c>LiveOpsTimelineBar</c> đặt <c>pickingMode = Ignore</c> cho nhãn để chuột vẫn bắt
+        /// vào thân thanh). <c>TooltipWithin</c> dừng ở ô đã khớp, nên khai nhãn là tự cắt mất đường đọc tooltip.
+        /// <para>
+        /// Khai cả thanh KHÔNG tha rộng hơn ý định: trong một thanh chỉ có đúng một phần tử mang chữ — cái nhãn này. Mọi
+        /// phần con khác (dải màu, icon, vuông "khác bản đã đăng", gạch bị bỏ, dấu cắt mép, vùng bắt mép) không có chữ nên
+        /// không bao giờ sinh ra phát hiện chữ.
+        /// </para>
+        /// </summary>
+        internal const string TimelineBarSelector = LiveOpsHubClassNames.TimelineBar;
+
+        /// <summary>Class của dòng id trên tiêu đề inspector Lịch — chỗ khai cho điều kiện (b) của mục J2-03.</summary>
+        internal const string CalendarInspectorTitleIdSurface = LiveOpsHubClassNames.CalendarInspectorTitleId;
 
         /// <summary>Tên element ô nhập "Id loại" của inspector Loại event — chỗ khai cho điều kiện (b).</summary>
         internal const string EventTypeInspectorTypeIdSurface = EventTypeInspector.TypeIdFieldName;

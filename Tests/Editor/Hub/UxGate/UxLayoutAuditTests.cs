@@ -80,25 +80,35 @@ namespace DreamTech.LiveOps.Editor.Tests
         private const int HoverCardCloseFrames = 30;
 
         /// <summary>
-        /// Tập mã phiếu hoãn ĐƯỢC DUYỆT của cổng W8-UX. USER chốt ngày 18/9/2026: chỉ "chỗ không dùng được" của các màn
-        /// NGOÀI đợt (Xuất JSON, Tổng quan, Loại event, Kiểm lịch, khung) mới được đánh dấu hoãn — đúng năm phiếu này.
-        /// Dãy số không liền vì giữ nguyên mã của bảng kế hoạch: W9-02 và W9-07…W9-15 là màn TRONG đợt, đã bị rút khỏi
-        /// danh sách hoãn ngày 19/9/2026 và trả về cho một gói sửa bố cục riêng.
+        /// Tập mã phiếu hoãn ĐƯỢC DUYỆT, theo đúng câu chốt gần nhất của USER. Lịch sử: cổng W8-UX mở năm phiếu cho các
+        /// màn NGOÀI đợt (USER chốt 18/9/2026); đợt W9 rút dần và đóng nốt phiếu cuối (W9-01) ngày 20/9/2026, tập trở về
+        /// RỖNG; đợt W11 mở lại với mười hai phiếu W11-NN (USER chốt 21/9/2026) — xem chú thích ngay trên mảng.
         /// </summary>
         /// <remarks>
-        /// (G-W9-SCREENS, 20/9/2026) Bốn phiếu W9-03/04/05/06 đã được RÚT khỏi danh sách hoãn vì bốn màn của chúng đã xanh.
-        /// Danh sách duyệt của USER chỉ NGẮN LẠI, không dài thêm — tức cổng chặt hơn trước, không lỏng hơn; phần còn nợ là
-        /// W9-01 (màn Xuất JSON, gói G-W9-EXPORT).
+        /// Luật của chỗ này không đổi qua ba lần: tập chỉ dài thêm khi có CÂU TRẢ LỜI của USER, và mỗi mã phải tra lại
+        /// được ra một màn cụ thể với một con số cụ thể. Sửa hai mảng này mà không có câu chốt là tự cấp phép.
         /// </remarks>
-        // Đợt W9 đã đóng phiếu cuối cùng (W9-01, màn Xuất JSON) nên tập này RỖNG: từ đây không màn nào được hoãn. Thêm một
-        // mã vào đây lại là mở lại cửa hoãn — phải có câu trả lời của USER trước, đúng như câu chốt 18/9/2026 ở trên.
-        private static readonly string[] ApprovedDeferralIds = new string[0];
+        // (W11, 21/9/2026) USER mở lại cửa hoãn với ĐÚNG 12 mã dưới đây. Nguyên văn quyết định: "Sửa lỗi mắt thấy rồi phát
+        // hành; nợ bố cục dữ liệu xấu nhất để đợt W11. Ghi nợ thành id + số liệu rõ trong CHANGELOG và sổ kế hoạch, KHÔNG
+        // giấu." 12 mã này là đúng 12 ca đỏ mà cổng W10 đã khai công khai, không phải một tập rộng hơn. Thêm mã thứ 13 là
+        // mở rộng phạm vi USER đã duyệt — phải có câu trả lời của USER trước.
+        private static readonly string[] ApprovedDeferralIds =
+        {
+            "W11-01", "W11-02", "W11-03", "W11-04", "W11-05", "W11-06",
+            "W11-07", "W11-08", "W11-09", "W11-10", "W11-11", "W11-12",
+        };
 
         /// <summary>
-        /// Năm màn NGOÀI đợt đi kèm năm phiếu trên. Khoá cả MÀN chứ không chỉ mã phiếu: chặn đúng đường lách "thêm một
-        /// mã phiếu mới cho một màn TRONG đợt", thứ mà kiểm từng mục không nhìn ra.
+        /// Mười hai màn đi kèm mười hai phiếu trên. Khoá cả MÀN chứ không chỉ mã phiếu: chặn đúng đường lách "thêm một
+        /// mã phiếu mới cho một màn chưa ai duyệt", thứ mà kiểm từng mục không nhìn ra.
         /// </summary>
-        private static readonly string[] ApprovedDeferralScreens = new string[0];
+        private static readonly string[] ApprovedDeferralScreens =
+        {
+            "calendar-worst-data", "event-types-worst-data", "recurring-worst-data", "overview-worst-data",
+            "export-worst-data", "calendar-multi-selection-worst-data", "calendar-medium-drawer-worst-data",
+            "add-event-popover-worst-data", "calendar-inspector-fielderror", "calendar-empty", "export-no-baseline",
+            "overview-empty",
+        };
 
         private static readonly UxWindowSize Narrow700 = new UxWindowSize(700, 560);
         private static readonly UxWindowSize Medium820 = new UxWindowSize(820, 560);
@@ -701,8 +711,12 @@ namespace DreamTech.LiveOps.Editor.Tests
             List<string> actualScreenIds = new List<string>();
             foreach (UxLayoutDeferralEntry entry in UxLayoutDeferralList.All)
             {
-                StringAssert.IsMatch("^W9-[0-9][0-9]$", entry.DeferralId,
-                    "mục hoãn của màn '" + entry.ScreenId + "' không mang mã phiếu dạng W9-NN nên không tra lại được");
+                // Nhận cả W9-NN (đợt W8-UX/W9) lẫn W11-NN (đợt W11) — hai đợt duy nhất USER đã mở cửa hoãn. Không nhận
+                // dạng chung "W<số>-NN": mã của một đợt chưa ai duyệt mà lọt vào đây thì hai mảng duyệt ở trên là chỗ
+                // chặn cuối, và một regex rộng làm chỗ chặn ấy trông như đã có phép.
+                StringAssert.IsMatch("^W(9|11)-[0-9][0-9]$", entry.DeferralId,
+                    "mục hoãn của màn '" + entry.ScreenId + "' không mang mã phiếu dạng W9-NN hay W11-NN nên không tra "
+                    + "lại được");
                 Assert.IsTrue(seenDeferralIds.Add(entry.DeferralId),
                     "mã phiếu hoãn '" + entry.DeferralId + "' bị khai hai lần — hai màn dùng chung một phiếu thì gỡ phiếu "
                     + "xong vẫn còn màn im lặng");

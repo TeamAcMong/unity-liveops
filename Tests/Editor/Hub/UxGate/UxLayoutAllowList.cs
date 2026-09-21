@@ -59,10 +59,11 @@ namespace DreamTech.LiveOps.Editor.Tests
 
         private static readonly UxLayoutAllowEntry[] Entries =
         {
-            new UxLayoutAllowEntry(AnyScreen, UxLayoutFindingKinds.TextCut, "liveops-hub-timeline-bar__label",
-                "Nhãn trong thanh timeline rút gọn theo bề rộng thanh là thiết kế ([SD2] §3.2, LiveOpsTimelineGeometry cắt bằng "
-                + "TimelineBarLabelEllipsis): một đợt 2 giờ ở mức thu nhỏ tháng không thể chứa id đầy đủ. Tên đầy đủ đọc ở hover "
-                + "card và ở inspector."),
+            // (J2-03, 21/9/2026) Mục "liveops-hub-timeline-bar__label" ĐÃ RỜI khỏi đây sang UxTruncationExemption. Nó tha
+            // đúng chỗ ấy, nhưng tha bằng LỜI KHAI: câu "tên đầy đủ đọc ở hover card và ở inspector" không được đo lại lượt
+            // nào, nên gỡ tooltip của thanh đi thì cổng vẫn im lặng. Bản mới tha cùng chỗ mà đo cả hai điều kiện mỗi lượt.
+            // Đừng khai lại ở đây: allow-list được hỏi TRƯỚC (xem UxLayoutAuditor.Add), nên một dòng ở đây làm điều kiện
+            // của bản mới không bao giờ được hỏi tới.
             new UxLayoutAllowEntry(AnyScreen, UxLayoutFindingKinds.TextCut, "liveops-hub-chip-text",
                 "Chip có max-width 240px kèm text-overflow: ellipsis ([SD1] §2.6) — chip là nhãn tóm tắt, câu đầy đủ nằm ở "
                 + "status bar và ở card tương ứng."),
