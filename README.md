@@ -282,13 +282,22 @@ grant id có thể dài hơn ngân sách khoá của kho lưu bên game.
 | `MaxGrantIdLength` | 143 | `liveops.claim#<eventId>#<claimKey>` khi cả hai vế chạm 64 |
 
 Vì sao 64 chứ không phải một số tròn hơn: mục dài nhất mà người thật đã soạn trong repo này là `entry-star-tournament-2026-10`
-(29 ký tự), nên 64 còn hơn hai lần chỗ; và ở mức 64 mỗi vế, grant id dài nhất là 143 ký tự — vẫn dưới mốc 255 mà các kho
-khoá-giá trị game hay dùng để lưu grant id đã phát nhận được. Ghi chú lấy 160 vì nó là **một** câu kể lại một lần đăng,
-gấp đôi bề rộng 72 ký tự quen thuộc của dòng tiêu đề commit rồi làm tròn lên.
+(29 ký tự), nên 64 còn hơn hai lần chỗ; tên hiển thị dài nhất người thật đặt là `Nhiệm vụ dung nham` (18 ký tự), nên 64 hơn
+ba lần. Và ở mức 64 mỗi vế, grant id dài nhất là 143 ký tự — vẫn dưới mốc 255 mà các kho khoá-giá trị game hay dùng để lưu
+grant id đã phát nhận được. Ghi chú lấy 160 vì nó là **một** câu kể lại một lần đăng, gấp đôi bề rộng 72 ký tự quen thuộc
+của dòng tiêu đề commit rồi làm tròn lên.
+
+> **Đếm trên chuỗi đã giải mã, không đếm trên dòng YAML thô.** `Main.asset` ghi tên hiển thị dưới dạng escape
+> (`"Nhi\u1EC7m v\u1EE5 dung nham"`), dài 30 ký tự trên đĩa nhưng chỉ 18 ký tự khi đọc ra. Lấy số của dòng thô là tự
+> thổi phồng ngân sách.
 
 > **Chưa có luật kiểm cho giới hạn này.** Màn Kiểm lịch (mục 5.1) hiện **không** cảnh báo khi một id vượt 64 — 12 luật giữ
-> nguyên. Bộ dữ liệu "xấu nhất" của cổng bố cục thì dựng đúng theo bảng trên, nên giao diện hub được nghiệm thu ở đúng mức
-> này. Một luật cảnh báo là việc của đợt sau.
+> nguyên. Bộ dữ liệu "xấu nhất" của cổng bố cục thì dựng đúng theo bảng trên (trừ tên asset — xem ghi chú dưới), nên giao
+> diện hub được nghiệm thu ở đúng mức này. Một luật cảnh báo là việc của đợt sau.
+
+> **Sáu trên bảy giới hạn đã có ca đo; `MaxAssetNameLength` thì chưa được ma trận bố cục nghiệm thu.** Tên asset lịch mới có
+> mẩu dữ liệu dài đúng mức (`LiveOpsWorstCaseSample.LongAssetName`) và ca đo độ dài; chưa màn nào của ma trận đứng trên
+> một tên asset 64 ký tự, nên chip tên lịch của khung chưa được nghiệm thu ở mức ấy — khai thành nợ W11-14 ở CHANGELOG.
 
 ## 5. LiveOps Hub (chỉ Editor)
 

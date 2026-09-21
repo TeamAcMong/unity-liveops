@@ -104,14 +104,33 @@ namespace DreamTech.LiveOps.Editor.Tests
     /// dấu đã đăng) đứng trên dữ liệu ĐẸP hoặc dữ liệu RỖNG — số của chúng không nhúc nhích khi fixture đổi. Ghi rõ ở đây
     /// thay vì gộp chung một lý do cho cả 12, vì gộp là nói sai về bốn màn và đợt W11 sẽ tìm nhầm chỗ.
     /// </para>
+    /// <para>
+    /// (soát W11 R-03/R-04) BỐN MỤC ẤY HOÃN THEO CỠ, KHÔNG HOÃN CẢ MÀN. Chúng chỉ đỏ ở 2/7, 1/7, 3/7 và 1/7 cỡ, nên khai
+    /// <c>DeferredSizes</c> RỖNG là tắt kiểm 46 cặp cỡ × ngôn ngữ đang SẠCH — đúng cái lỗi mà W9-18 sinh ra
+    /// <see cref="UxLayoutDeferralEntry.DeferredSizes"/> để chặn, và trái chính chú thích của lớp này. Ba trong bốn mục
+    /// còn có MỘT nguyên nhân duy nhất mỗi mục (nhãn zone 'UTC' tràn hàng · câu 'not published' thiếu 5px · phụ đề Tổng
+    /// quan thiếu 31px), nên lý do của chúng nói thẳng con số ấy: đợt W11 nhìn vào là biết mình nhận việc nhỏ, không phải
+    /// một đợt đổi hình dạng màn.
+    /// </para>
     /// </summary>
     internal static class UxLayoutDeferralList
     {
-        /// <summary>Số chỗ đo trên Unity 6000.6.0f1, lượt EditMode category UxGate ngày 21/9/2026, trên cây của G-W11-LIMITS.</summary>
+        /// <summary>
+        /// Số chỗ đo trên Unity 6000.6.0f1, lượt EditMode category UxGate ngày 21/9/2026, trên cây của G-W11-LIMITS.
+        /// <para>
+        /// (soát W11 R-09) ĐÂY LÀ ẢNH CHỤP, KHÔNG PHẢI SỐ ĐO LẠI MỖI LƯỢT. Với mục hoãn CẢ màn,
+        /// <see cref="IgnoreWhenDeferred"/> gọi <c>Assert.Ignore</c> TRƯỚC khi quét, nên màn ấy thôi được đo và
+        /// <c>FindingCount</c> không còn gì gác ngoài câu "phải lớn hơn 0". Con số vì vậy chỉ đúng tại ngày đo: nó là mốc
+        /// để đợt W11 biết mình nhận việc to hay nhỏ, KHÔNG phải một lời hứa rằng hôm nay vẫn đúng bấy nhiêu. Muốn đo lại
+        /// thì gỡ dòng của màn khỏi mảng (hoặc khai <c>DeferredSizes</c> hẹp lại) rồi chạy category UxGate — cách chính
+        /// gói này đã dùng để ra bảng dưới đây. Bốn mục hoãn THEO CỠ thì ngược lại: phần cỡ không hoãn vẫn được đo đầy đủ
+        /// mỗi lượt, nên chúng có một phần tự gác.
+        /// </para>
+        /// </summary>
         private static readonly UxLayoutDeferralEntry[] Entries =
         {
-            new UxLayoutDeferralEntry("W11-01", "calendar-worst-data", 176,
-                "Nợ bố cục dữ liệu dài, hẹn đợt W11. textCut 98 · childOverflow 70 · siblingOverlap 8. Màn Lịch trên dữ "
+            new UxLayoutDeferralEntry("W11-01", "calendar-worst-data", 178,
+                "Nợ bố cục dữ liệu dài, hẹn đợt W11. textCut 98 · childOverflow 70 · siblingOverlap 8 · textTight 2. Màn Lịch trên dữ "
                 + "liệu bằng đúng giới hạn: id đợt 64 ký tự không vừa hàng danh sách lẫn tiêu đề inspector ở mọi cỡ. Sửa "
                 + "là đổi hình dạng hàng (xuống dòng hoặc cho co), tức việc của một đợt thiết kế."),
             new UxLayoutDeferralEntry("W11-02", "event-types-worst-data", 157,
@@ -128,28 +147,41 @@ namespace DreamTech.LiveOps.Editor.Tests
             new UxLayoutDeferralEntry("W11-05", "export-worst-data", 56,
                 "Nợ bố cục dữ liệu dài, hẹn đợt W11. textCut 56, toàn bộ là chữ bị cắt. Màn Xuất JSON in tên người đăng "
                 + "64 ký tự, ghi chú 160 ký tự và sha 64 ký tự trên các hàng một dòng."),
-            new UxLayoutDeferralEntry("W11-06", "calendar-multi-selection-worst-data", 42,
-                "Nợ bố cục dữ liệu dài, hẹn đợt W11. textCut 28 · childOverflow 14. Thanh hành động hàng loạt của trạng "
+            new UxLayoutDeferralEntry("W11-06", "calendar-multi-selection-worst-data", 44,
+                "Nợ bố cục dữ liệu dài, hẹn đợt W11. textCut 28 · childOverflow 14 · textTight 2. Thanh hành động hàng loạt của trạng "
                 + "thái chọn nhiều đợt ghép id của các đợt đã chọn vào một câu."),
             new UxLayoutDeferralEntry("W11-07", "calendar-medium-drawer-worst-data", 20,
-                "Nợ bố cục dữ liệu dài, hẹn đợt W11. textCut · childOverflow · siblingOverlap. Ở bậc --medium inspector "
+                "Nợ bố cục dữ liệu dài, hẹn đợt W11. textCut 10 · childOverflow 8 · siblingOverlap 2. Ở bậc --medium inspector "
                 + "là DRAWER hẹp, nên id 64 ký tự vỡ sớm hơn hẳn so với bậc rộng."),
             new UxLayoutDeferralEntry("W11-08", "add-event-popover-worst-data", 16,
-                "Nợ bố cục dữ liệu dài, hẹn đợt W11. textCut · childOverflow · siblingOverlap. Danh sách chọn loại trong "
+                "Nợ bố cục dữ liệu dài, hẹn đợt W11. textCut 4 · childOverflow 4 · siblingOverlap 4 · scrollViews 4. "
+                + "Danh sách chọn loại trong "
                 + "popover Thêm đợt rộng cố định 320px, id loại 64 ký tự làm danh sách sinh thanh cuộn NGANG."),
             new UxLayoutDeferralEntry("W11-09", "calendar-inspector-fielderror", 16,
-                "KHÔNG phải nợ dữ liệu dài — hẹn đợt W11 cùng nhóm bố cục. textCut 8 · childOverflow 8. Màn đứng trên "
-                + "mẫu ĐẸP: đợt có giờ kết thúc không đọc được làm hàng ô ngày giờ mọc thêm biểu tượng lỗi rồi đẩy nhau ra "
-                + "khỏi hàng. Số không đổi khi bộ dữ liệu xấu nhất đổi, đúng như dự đoán."),
+                "KHÔNG phải nợ dữ liệu dài, và là MỘT nguyên nhân chứ không phải 16 việc — hẹn đợt W11 cùng nhóm bố cục. "
+                + "textCut 8 · childOverflow 8. Màn đứng trên mẫu ĐẸP: đợt có giờ kết thúc không đọc được làm hàng ô ngày "
+                + "giờ mọc thêm biểu tượng lỗi, và nhãn 'UTC' (liveops-hub-utc-field__zone) tràn khỏi hàng 7px. Con số 16 "
+                + "là 1 nguyên nhân × 2 ô ngày giờ × 2 cỡ hẹp × 2 ngôn ngữ × 2 loại phát hiện. Số không đổi khi bộ dữ liệu "
+                + "xấu nhất đổi, đúng như dự đoán. Sửa RẺ (nhường chỗ cho nhãn zone khi hàng mọc thêm biểu tượng lỗi) "
+                + "nhưng chạm file sản phẩm ngoài phạm vi gói G-W11-LIMITS, nên đợt W11 nhận nó trước tiên.",
+                "700x560", "820x560"),
             new UxLayoutDeferralEntry("W11-10", "calendar-empty", 5,
-                "KHÔNG phải nợ dữ liệu dài — hẹn đợt W11 cùng nhóm bố cục. textCut 5. Màn Lịch khi lịch RỖNG: câu 'chưa "
-                + "có gì' và nhóm nút của trạng thái rỗng bị cắt ở cỡ hẹp."),
+                "KHÔNG phải nợ dữ liệu dài — hẹn đợt W11 cùng nhóm bố cục. textCut 5, tất cả ở ĐÚNG MỘT cỡ (1024x700: "
+                + "en 2 · vi 3). Màn Lịch khi lịch RỖNG: câu 'chưa có gì' và nhóm nút của trạng thái rỗng bị cắt ở đúng "
+                + "bậc breakpoint ấy. Sáu cỡ còn lại của màn này đang SẠCH và vẫn được kiểm đầy đủ mỗi lượt.",
+                "1024x700"),
             new UxLayoutDeferralEntry("W11-11", "export-no-baseline", 3,
-                "KHÔNG phải nợ dữ liệu dài — hẹn đợt W11 cùng nhóm bố cục. textCut 3. Màn Xuất JSON khi CHƯA có dấu đã "
-                + "đăng: câu giải thích 'chưa có bản so' bị cắt."),
+                "KHÔNG phải nợ dữ liệu dài, và là MỘT nguyên nhân — hẹn đợt W11 cùng nhóm bố cục. textCut 3, chỉ ở bản "
+                + "TIẾNG ANH của ba cỡ rộng. Màn Xuất JSON khi CHƯA có dấu đã đăng: câu 'not published' cần 120px mà ô "
+                + "chỉ có 115px, thiếu đúng 5px. Bản tiếng Việt vừa chỗ nên không đỏ. Sửa RẺ (nới ô hoặc cho câu xuống "
+                + "dòng) nhưng chạm file sản phẩm ngoài phạm vi gói G-W11-LIMITS.",
+                "1280x760", "1440x900", "1920x1040"),
             new UxLayoutDeferralEntry("W11-12", "overview-empty", 1,
-                "KHÔNG phải nợ dữ liệu dài — hẹn đợt W11 cùng nhóm bố cục. textCut 1, đúng một chỗ. Màn Tổng quan khi "
-                + "không có đợt nào sắp diễn ra và không có việc cần làm."),
+                "KHÔNG phải nợ dữ liệu dài, và là MỘT nguyên nhân — hẹn đợt W11 cùng nhóm bố cục. textCut 1, đúng một "
+                + "chỗ, ở đúng một cặp cỡ × ngôn ngữ (700x560 en). Màn Tổng quan khi không có đợt nào sắp diễn ra: phụ đề "
+                + "'13/9 08:47 → 20/9 08:47 UTC' cần 142px mà ô chỉ có 111px. Sửa RẺ nhưng chạm file sản phẩm ngoài phạm "
+                + "vi gói G-W11-LIMITS.",
+                "700x560"),
         };
 
         /// <summary>Mọi mục — dùng cho test gác danh sách và cho báo cáo của cổng người.</summary>

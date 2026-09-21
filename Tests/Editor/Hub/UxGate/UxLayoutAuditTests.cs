@@ -731,12 +731,16 @@ namespace DreamTech.LiveOps.Editor.Tests
                 actualScreenIds.Add(entry.ScreenId);
             }
 
+            // (soát W11 R-08) Hai câu dưới đây từng nói về câu chốt 18/9/2026 (5 màn NGOÀI đợt). Câu chốt ấy đã bị THAY
+            // bằng câu chốt 21/9/2026, và câu mới hoãn đúng 12 màn — trong đó CÓ màn Lịch và màn Luật lặp. Giữ nguyên
+            // câu cũ là để lại một dòng chẩn đoán nói NGƯỢC chính sách đang chạy: người đọc lần sau sẽ tưởng danh sách
+            // đang sai, trong khi thứ sai là câu nói về nó.
             CollectionAssert.AreEquivalent(ApprovedDeferralIds, actualDeferralIds,
-                "tập mã phiếu hoãn lệch phần USER đã duyệt 18/9/2026 (đúng 5 màn NGOÀI đợt) — thêm hay bớt một phiếu là "
-                + "đổi phạm vi của cổng, phải có câu trả lời của USER rồi mới sửa ApprovedDeferralIds");
+                "tập mã phiếu hoãn lệch phần USER đã duyệt 21/9/2026 (đúng 12 phiếu W11-01…W11-12 của nợ bố cục) — thêm "
+                + "hay bớt một phiếu là đổi phạm vi của cổng, phải có câu trả lời của USER rồi mới sửa ApprovedDeferralIds");
             CollectionAssert.AreEquivalent(ApprovedDeferralScreens, actualScreenIds,
-                "tập MÀN được hoãn lệch phần USER đã duyệt 18/9/2026 — màn TRONG đợt (Lịch, trục, Luật lặp) đỏ thì phải "
-                + "sửa, hoãn nó là tự cấp phép cho chính mình");
+                "tập MÀN được hoãn lệch phần USER đã duyệt 21/9/2026 (đúng 12 màn của bảng nợ W11) — hoãn thêm một màn "
+                + "chưa ai duyệt là tự cấp phép cho chính mình, kể cả khi màn ấy đỏ thật");
         }
 
         /// <summary>

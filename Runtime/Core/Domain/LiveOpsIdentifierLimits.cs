@@ -18,7 +18,8 @@ namespace DreamTech.LiveOps
     /// <para>
     /// Các con số dưới đây suy ra từ hai chỗ, không phải chọn cho đẹp: (1) dữ liệu người thật đã soạn trong repo này — mục
     /// dài nhất của lịch mẫu <c>Assets/Demo/LiveOps/Calendars/Main.asset</c> là khoá mục
-    /// <c>entry-star-tournament-2026-10</c> (29 ký tự), tên hiển thị dài nhất 28 ký tự; (2) phép ghép khoá của chính package.
+    /// <c>entry-star-tournament-2026-10</c> (29 ký tự), tên hiển thị dài nhất <c>"Nhiệm vụ dung nham"</c> (18 ký tự);
+    /// (2) phép ghép khoá của chính package.
     /// </para>
     /// </summary>
     public static class LiveOpsIdentifierLimits
@@ -53,8 +54,9 @@ namespace DreamTech.LiveOps
         /// Số ký tự tối đa của một TÊN HIỂN THỊ do người đặt: tên loại event, tên người đăng bản lịch.
         /// <para>
         /// Vì sao cùng 64 với định danh: tên hiển thị và định danh đứng cạnh nhau trong cùng một hàng bảng của hub, nên hai
-        /// ngân sách khác nhau chỉ làm cột này phải rộng hơn cột kia mà không đổi được điều gì. 64 cũng hơn hai lần tên dài
-        /// nhất người thật đã đặt trong repo (28 ký tự).
+        /// ngân sách khác nhau chỉ làm cột này phải rộng hơn cột kia mà không đổi được điều gì. 64 cũng hơn BA lần tên dài
+        /// nhất người thật đã đặt trong repo ("Nhiệm vụ dung nham", 18 ký tự) — con số đếm trên chuỗi đã giải mã escape
+        /// của YAML, không đếm trên dòng thô <c>"Nhi\u1EC7m v\u1EE5 dung nham"</c> (soát W11 R-07).
         /// </para>
         /// </summary>
         public const int MaxDisplayNameLength = 64;

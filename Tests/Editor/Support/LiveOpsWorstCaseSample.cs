@@ -86,6 +86,19 @@ namespace DreamTech.LiveOps.Tests
 
         public const string LongSha256Hex = "5eecb84064b0b21a9d587c3d95e3a471f78c38595216415aba016f3e58702696";
 
+        /// <summary>
+        /// (soát W11 R-06) Tên asset lịch dài BẰNG ĐÚNG <see cref="LiveOpsIdentifierLimits.MaxAssetNameLength"/> — hằng
+        /// thứ bảy của bảng giới hạn, và là hằng DUY NHẤT chưa có mẩu dữ liệu nào dựng theo.
+        /// <para>
+        /// Vì sao khai ở đây mà CHƯA nối vào ma trận kiểm bố cục: tên asset do
+        /// <c>LiveOpsHubTestServices.CreateMemoryAsset</c> đặt, mà file ấy nằm ngoài phạm vi gói G-W11-LIMITS và được
+        /// DÙNG CHUNG cho mọi màn của ma trận. Đổi nó ở đó là đổi chữ trên chip tên lịch của KHUNG, tức đổi số phát hiện
+        /// của cả những màn đang xanh và nằm ngoài 12 phiếu hoãn USER đã duyệt — tức tự mở phiếu thứ 13. Hằng và ca đo ở
+        /// đây làm xong phần dựng được; phần nối vào ma trận khai thành nợ W11-14 ở CHANGELOG.
+        /// </para>
+        /// </summary>
+        public const string LongAssetName = "Main-tournament-of-the-eternal-flame-season-twelve-internal-prev";
+
         /// <summary>Dựng lại mỗi lần gọi — một màn sửa tài liệu không được kéo theo màn sau (cùng luật với mẫu đẹp).</summary>
         public static LiveEventCalendarDocument Document
         {
