@@ -138,6 +138,11 @@ namespace DreamTech.LiveOps.Editor.Tests
                 "phát hiện có câu DÀI NHẤT: loại chưa khai + giờ không đọc được + id đợt dài nhất"),
             Services("validation-empty", LiveOpsHubSections.Ids.Validation,
                 "0 phát hiện — màn chỉ còn câu 'mọi thứ ổn' và thanh công cụ lọc"),
+            // (J2-02, soát R04) Banner "kết quả cũ" chỉ dựng được ở trạng thái kiểm-xong-rồi-sửa, nên đây là màn DUY NHẤT của
+            // ma trận nhìn thấy hàng ngang mới của banner. Khai Services chứ không Covered: nó tự dựng services riêng
+            // (StaleCheckScenario), và ba màn Kiểm lịch còn lại KHÔNG màn nào có banner để phủ hộ.
+            Services("validation-stale", LiveOpsHubSections.Ids.Validation,
+                "kiểm xong RỒI sửa lịch — banner 'kết quả cũ' với câu dài nhất của trạng thái ấy cộng nút không co được"),
             Services("export-worst-data", LiveOpsHubSections.Ids.Export, "số byte bảy chữ số, ghi chú dài, sha 64 ký tự"),
             Services("export-no-baseline", LiveOpsHubSections.Ids.Export, "CHƯA có bản đã đăng — không có bản nào để so"),
 

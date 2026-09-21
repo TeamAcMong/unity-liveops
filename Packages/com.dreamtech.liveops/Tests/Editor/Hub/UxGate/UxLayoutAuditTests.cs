@@ -227,6 +227,16 @@ namespace DreamTech.LiveOps.Editor.Tests
         /// <para>
         /// Giới hạn phát hiện vào đúng nhánh dòng gợi ý: câu đỏ phải nói về MỘT chỗ — dòng gợi ý — chứ không gom cả cửa sổ.
         /// </para>
+        /// <para>
+        /// (J2-04, soát R05) Lượt đi dạo W10 báo "ca xấu nhất của dòng gợi ý ở 950 chưa được nhìn": bộ đi dạo tìm thanh BỊ BỎ
+        /// bằng cách dò nhãn rồi lấy thanh GẦN NHẤT theo hình học, nên ở 950 nó trúng <c>lava-quest-2026-09a</c> (câu ngắn
+        /// "· đã khép — không dời được") thay vì <c>entry-hunt-0916-bonus</c>. Cổng MÁY không mắc lỗi ấy: ca này chọn thanh
+        /// theo KHOÁ (<see cref="SelectDroppedBar"/> → <c>LiveOpsDesignSample.HuntBonusEntryKey</c>), nên ĐÚNG cảnh xấu nhất
+        /// được đo ở cả 7 cỡ của ma trận, 950x700 trong đó, ở cả hai ngôn ngữ — 14 cặp, 0 chỗ không dùng được ở lượt cổng
+        /// gói G-W11-EYE. Phần còn nợ của J2-04 vì thế KHÔNG nằm trong package: đó là 1 chỗ trong bộ đi dạo dev
+        /// (<c>Assets/UxJourney/Editor/UxJourneysW10.cs</c>, chỉ có trên worktree <c>wt/G-UX-JOURNEY</c>) — chọn thanh theo
+        /// CỜ "bị bỏ" của model thay vì theo khoảng cách. Ghi nợ <b>W11-15</b>, đợt xử lý: W11, chủ: bước Journey.
+        /// </para>
         /// </summary>
         [UnityTest]
         public IEnumerator Calendar_TimelineHint_NotCut_WithDroppedEntrySelected()
@@ -348,6 +358,48 @@ namespace DreamTech.LiveOps.Editor.Tests
         public IEnumerator Validation_LayoutIsUsable_WhenEmpty()
         {
             yield return RunScreen(EmptyScreen("validation-empty", LiveOpsHubSections.Ids.Validation));
+        }
+
+        /// <summary>
+        /// (J2-02, soát R04) Màn Kiểm lịch khi tài liệu ĐÃ SỬA SAU LẦN KIỂM — trạng thái duy nhất dựng banner "kết quả cũ".
+        /// <para>
+        /// Vì sao phải là một màn RIÊNG của ma trận: bản vá J2-02 đổi banner từ hộp xếp DỌC sang hàng NGANG (chữ co được,
+        /// nút <c>flex-shrink: 0</c> <c>min-width: 54px</c>), mà ba màn Kiểm lịch đang có của ma trận — <c>validation</c>,
+        /// <c>validation-worst-data</c>, <c>validation-empty</c> — KHÔNG màn nào dựng trạng thái ấy. Tức bố cục mới chỉ
+        /// từng được đo ở ĐÚNG MỘT cỡ (1440x900) và MỘT ngôn ngữ, trong ca <c>W11EyeFixTests</c>. Chỗ nó dễ vỡ lại là cỡ
+        /// HẸP: ở 700 · 820 HelpBox gập nhiều dòng và nút không co được có thể vượt mép phải banner.
+        /// </para>
+        /// <para>
+        /// Ba phần tử của banner đều BẮT BUỘC: thiếu một cái thì luật của màn im lặng bỏ qua và màn xanh vì không đo gì,
+        /// chứ không vì đạt — cùng cái bẫy mà màn <c>calendar-toast-legend</c> phải rào.
+        /// </para>
+        /// <para>
+        /// Vì sao <see cref="UxLayoutScreen.WithScreenRulesOnly"/> giới hạn phát hiện vào đúng nhánh BANNER — và cái đã tìm
+        /// thấy khi CHƯA giới hạn. Lượt đo đầu (21/9/2026, 6000.6, <c>fix-probe-6000.xml</c>) chạy màn này trên CẢ cây cửa sổ
+        /// và ra ĐÚNG 1 chỗ, ở 1/14 cặp cỡ × ngôn ngữ, và chỗ ấy KHÔNG thuộc banner:
+        /// <c>validation-stale 700x560 en — textCut: Label#hub-status-left-text.liveops-hub-status-text
+        /// 'Calendar changed at 08:46:50 UTC, after …' ngang cần 420 có 415</c> — tức câu chân trang của trạng thái
+        /// kiểm-cũ hụt 5px ở bản tiếng Anh, cỡ hẹp nhất. Banner sạch ở cả 14 cặp.
+        /// Câu chân trang là việc của <c>liveops-hub-shell.uss</c> + <c>LiveOpsHubStatusBarModel</c>, hai file nằm ngoài
+        /// quyền ghi của gói G-W11-EYE, và nó là nợ CÓ SẴN chứ không do bản vá J2-02 sinh ra (bản vá không chạm chân trang).
+        /// Ghi nợ <b>W11-17</b>: màn <c>validation-stale</c> · 1 chỗ · 700x560 tiếng Anh · textCut hụt 5px · đợt xử lý W11.
+        /// Giới hạn phạm vi ở đây theo đúng lối W9-26 đã đi cho <c>shell-rail-status</c>: một màn đo MỘT chỗ, còn chân trang
+        /// đã có hai màn riêng của nó (<c>shell-rail-status</c>, <c>shell-rail-status-worst-data</c>). Gỡ dòng
+        /// <c>WithScreenRulesOnly</c> là màn đo lại cả cửa sổ ngay lượt sau, không phải dựng lại gì.
+        /// </para>
+        /// </summary>
+        [UnityTest]
+        public IEnumerator Validation_LayoutIsUsable_WithStaleCheckNotice()
+        {
+            yield return RunScreen(new UxLayoutScreen("validation-stale", LiveOpsHubSections.Ids.Validation)
+                .WithServices(StaleCheckServices)
+                .WithRequiredElements(WithShell(LiveOpsHubPaths.ValidationElementNames.Body,
+                    LiveOpsHubPaths.ValidationElementNames.Toolbar, LiveOpsHubPaths.ValidationElementNames.Content,
+                    "." + LiveOpsHubClassNames.ValidationNotice, "." + LiveOpsHubClassNames.ValidationNoticeText,
+                    "." + LiveOpsHubClassNames.ValidationNoticeButton))
+                .WithStretchRules(SectionStretchRules(LiveOpsHubPaths.ValidationElementNames.Body))
+                .WithNoOverlapRules(StatusBarNoOverlapRules())
+                .WithScreenRulesOnly("." + LiveOpsHubClassNames.ValidationNotice));
         }
 
         /// <summary>Màn Xuất JSON trên dữ liệu xấu nhất: số byte bảy chữ số, tên người đăng dài, ghi chú dài, sha 64 ký tự.</summary>
@@ -473,7 +525,10 @@ namespace DreamTech.LiveOps.Editor.Tests
         /// Vì sao là một màn RIÊNG, không gộp vào <see cref="Calendar_Toast_DoesNotOverlapFooter"/>: màn kia đo toast với
         /// chân TRANG (status bar) trên màn Lịch KHÔNG mở ngăn kéo. Phiếu J2-01 là một hình học khác hẳn — ngăn kéo mở lấy
         /// mất bề ngang của dải chú giải, chú giải gập thêm hàng và trèo lên, rồi đứng đúng chỗ toast đang đậu. Số đo ở 820:
-        /// chú giải (36, 470, 504×68), toast (44, 478, 452×24), chồng lấn 452×24.
+        /// chú giải (36, 470, 504×68), toast (44, 478, 452×24), chồng lấn 452×24 — số đo trong KHUNG ĐI DẠO W10
+        /// (ảnh W10f-820x560-2-toast-grab.png). Chính màn này, chạy trên khung của cổng, đo ra chồng lấn 375–392×24 tuỳ
+        /// ngôn ngữ ở 820 vì câu của bước Undo ngắn hơn: bề ngang toast là hàm của CÂU, không phải của cỡ cửa sổ. Con số
+        /// SỐNG là câu pairOverlap mà ca này in ra khi đỏ; số dán ở đây chỉ để nhận ra cảnh (soát R08).
         /// </para>
         /// <para>
         /// Vì sao cổng tĩnh cũ không bắt: mọi phép đếm chữ bị cắt đo theo HỘP của chính phần tử, mà toast là
@@ -1110,6 +1165,16 @@ namespace DreamTech.LiveOps.Editor.Tests
         private static LiveOpsHubServices WorstCaseServices()
         {
             return BuildServices(LiveOpsWorstCaseSample.Document);
+        }
+
+        /// <summary>
+        /// (J2-02) Services ở trạng thái "kiểm xong RỒI sửa lịch" — trạng thái duy nhất dựng banner "kết quả cũ".
+        /// Dùng lại đúng kịch bản mà ảnh bằng chứng và test hành vi đã dùng (<c>LiveOpsHubTestServices.StaleCheckScenario</c>)
+        /// chứ không nặn tay trạng thái ấy: ba chỗ nặn ba kiểu thì ba chỗ đo ba cảnh khác nhau.
+        /// </summary>
+        private static LiveOpsHubServices StaleCheckServices()
+        {
+            return LiveOpsHubTestServices.ForScenario(LiveOpsHubTestServices.StaleCheckScenario);
         }
 
         /// <summary>Services trên lịch RỖNG.</summary>
