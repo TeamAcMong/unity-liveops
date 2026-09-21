@@ -629,7 +629,8 @@ namespace DreamTech.LiveOps.Editor.Tests
         }
 
         /// <summary>
-        /// Tên TỪNG cảnh mà lệnh đo phải đi qua, đúng thứ tự — sáu màn của hub cộng hai nhánh của inspector Lịch.
+        /// Tên TỪNG cảnh mà lệnh đo phải đi qua, đúng thứ tự — sáu màn của hub, hai nhánh của inspector Lịch, và biến thể
+        /// "kết quả cũ" của màn Kiểm lịch (thêm ở cổng đợt vét W10, phiếu W10-07).
         /// <para>
         /// Khai bằng TÊN chứ không bằng con số 8 (soát W10 R-02): một phép đếm khớp vẫn có thể là tám cảnh khác, nên bỏ đúng
         /// màn khó rồi thêm một màn dễ vẫn qua cổng. Danh sách này phải khớp từng chữ với <c>LiveOpsHubContrastCommand</c>;
@@ -645,6 +646,10 @@ namespace DreamTech.LiveOps.Editor.Tests
             "màn Lịch, đợt cố định",
             "màn Luật lặp",
             "màn Kiểm lịch",
+            // (W10-07) Trạng thái DUY NHẤT của hub từng có opacity nhân dồn (hàng cũ 0,82 × dòng meta 0,7 = 0,574) và cũng
+            // là chỗ duy nhất vẽ headline CHƯA ĐO bằng quiet trong một khối đã mờ. Không có cảnh này thì bản vá W10-07 chỉ
+            // là một lời khai đọc từ USS.
+            "màn Kiểm lịch, kết quả cũ",
             "màn Xuất JSON",
         };
 
