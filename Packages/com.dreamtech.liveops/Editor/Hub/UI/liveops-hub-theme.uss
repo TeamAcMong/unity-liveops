@@ -129,6 +129,30 @@
        nó được chỉnh theo bậc 4,5:1 trên những nền khác; lần sau ai nâng quiet cho sáng lên một nấc là viền hình khối lại
        tụt dưới 3:1 mà không có gì báo. Hai bậc khác nhau thì hai token khác nhau. */
     --liveops-hub-color-undeclared-border: #444444;
+    /* (J2-02) Viền HÌNH KHỐI của nút ở skin sáng. Cảnh phát hiện: ảnh h17-2a-stale-edited-light.png. Mọi con số dưới đây
+       tính bằng CHÍNH hàm của repo (UxLayoutAuditor.RelativeLuminance + ContrastRatio, WCAG 2.1) trên mã hex ghi ngay cạnh,
+       nên người soát tính lại ra đúng số này — không phải số đọc bằng mắt từ ảnh:
+         nền nút #E4E4E4 trên nền trang #C8C8C8 = 1,32:1 — tự nó nút KHÔNG đọc ra là nút, chỉ còn viền làm việc ấy;
+         viền mạnh nhất của Unity ở đó (mép dưới #939393) = 2,42:1 so với nền nút và 1,84:1 so với nền trang — dưới bậc 3:1;
+         #6B6B6B = 3,18:1 trên nền trang #C8C8C8 và 4,19:1 trên nền nút #E4E4E4 — qua bậc hình khối trên CẢ HAI nền ấy.
+       (R06, 21/9/2026) Hai con số đầu của bản trước là 1,29 và 4,11 — đọc từ ảnh chứ không tính; đã tính lại và sửa.
+       GIỚI HẠN CỦA LỜI KHAI NÀY — đọc trước khi đặt một nút ở chỗ mới. Bậc 3:1 ở trên chỉ nói về HAI nền: nền trang
+       #C8C8C8 và nền nút #E4E4E4. Skin sáng còn một nền thứ ba, --unity-colors-default-background #A5A5A5, và trên nó
+       #6B6B6B chỉ 2,16:1 — DƯỚI bậc. Các mặt phẳng tô nền ấy hôm nay là: .liveops-hub-rail · .liveops-hub-chip ·
+       .liveops-hub-goto · .liveops-hub-json-overview · .liveops-hub-timeline-lane-chip ·
+       .liveops-hub-timeline-unplaceable-chip · .liveops-hub-timeline-minimap · .liveops-hub-rule-token ·
+       .liveops-hub-gutter .liveops-hub-state-mark--not-measured. LUẬT: không đặt phần tử mang class .liveops-hub-button
+       BÊN TRONG những mặt phẳng ấy ở skin sáng; cần nút ở đó thì phải khai một token viền RIÊNG đo trên #A5A5A5.
+       Hôm nay không chỗ nào vi phạm: nút ghim của rail dùng class riêng (RailPin) chứ không phải .liveops-hub-button, và
+       chip token của câu Luật lặp tuy LÀ Button nhưng chỉ mang class .liveops-hub-rule-token. Chỗ này CHƯA có cổng máy
+       gác — nợ W11-16, xem phần khai nợ ở báo cáo gói G-W11-EYE.
+       Khai RIÊNG một token cho viền, không dùng lại --liveops-hub-color-quiet: quiet là màu CHỮ, nó được chỉnh theo bậc
+       4,5:1; hai bậc khác nhau thì hai token khác nhau (đúng lối mà --liveops-hub-color-undeclared-border ở ngay trên đã đi).
+       Chỉ khai ở khối skin SÁNG, và luật tiêu thụ nó (liveops-hub-components.uss) cũng chỉ sống trong khối .liveops-hub--skin-light:
+       skin tối đặt nút trên nền tối và không phải chỗ phiếu J2-02 đo được trượt, đổi viền ở đó là dời một bằng chứng đang xanh
+       mà không có phiếu nào đòi. */
+    --liveops-hub-color-button-border: #6B6B6B;
+
     /* (W10-03) #1D5087 cũ đạt bậc chữ trên nền CỬA SỔ #C8C8C8 nhưng chữ bấm được của chip asset nằm trên nền CHIP
        #A5A5A5 (--unity-colors-default-background của skin sáng), ở đó chỉ 3,34:1. #143A60 đo ra 4,73:1 trên nền chip
        và 6,96:1 trên nền cửa sổ. Giữ nguyên tông lam của bảng màu, chỉ hạ độ sáng đúng mức cần; focus đi cùng link

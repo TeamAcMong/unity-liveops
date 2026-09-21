@@ -150,6 +150,13 @@ namespace DreamTech.LiveOps.Editor
         // Recurring
         internal const string RuleSentence = "liveops-hub-rule-sentence";
         internal const string RuleToken = "liveops-hub-rule-token";
+
+        /// <summary>
+        /// (J2-06) Chip token mà mảnh chữ đứng ngay sau bắt đầu bằng DẤU CÂU (", neo từ ", ", id = "). Padding 0 3px là khoảng
+        /// thở của chip, không phải khoảng cách của câu — để nguyên thì câu đọc thành "Mỗi [7 ngày] , neo từ". Chỉ gắn khi
+        /// sau nó là dấu câu: mảnh " + số thứ tự." bắt đầu bằng KHOẢNG TRẮNG thật, kéo nó lại là dính "pass-+".
+        /// </summary>
+        internal const string RuleTokenFollowedByPunctuation = "liveops-hub-rule-token--followed-by-punctuation";
         internal const string RuleTokenHighlighted = "liveops-hub-rule-token--highlighted";
         internal const string RuleTokenWarning = "liveops-hub-rule-token--warning";
         internal const string CycleBar = "liveops-hub-cycle-bar";

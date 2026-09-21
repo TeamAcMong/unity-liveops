@@ -37,6 +37,19 @@ namespace DreamTech.LiveOps.Editor
         /// <summary>Label chữ của nút "Kiểm lại" — xem <see cref="ValidationRecheckButtonRow"/>.</summary>
         internal const string ValidationRecheckButtonLabel = "liveops-hub-validation-recheck-button-label";
 
+        /// <summary>
+        /// (J2-02) Banner "kết quả cũ" (<c>validation-notice</c>): HelpBox trái, nút phải, XẾP NGANG. Không có class này thì
+        /// banner là hộp xếp DỌC mặc định của UI Toolkit (<c>align-items: stretch</c>) và nút nhận trọn bề ngang banner — mắt thấy
+        /// một dải nút ~1080px ở 1440, thứ không chỗ nào khác trong hub có.
+        /// </summary>
+        internal const string ValidationNotice = "liveops-hub-validation-notice";
+
+        /// <summary>Chữ của banner "kết quả cũ" — lấy hết chỗ còn lại để nút không phải co; xem <see cref="ValidationNotice"/>.</summary>
+        internal const string ValidationNoticeText = "liveops-hub-validation-notice-text";
+
+        /// <summary>Nút của banner "kết quả cũ" — không dãn, không co; xem <see cref="ValidationNotice"/>.</summary>
+        internal const string ValidationNoticeButton = "liveops-hub-validation-notice-button";
+
         internal const string ValidationSummary = "liveops-hub-validation-summary";
         internal const string ValidationSummaryItem = "liveops-hub-validation-summary-item";
         internal const string ValidationSummaryRight = "liveops-hub-validation-summary-right";

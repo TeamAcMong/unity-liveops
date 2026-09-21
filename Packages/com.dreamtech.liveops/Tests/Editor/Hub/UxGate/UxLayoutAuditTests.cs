@@ -227,6 +227,16 @@ namespace DreamTech.LiveOps.Editor.Tests
         /// <para>
         /// Giới hạn phát hiện vào đúng nhánh dòng gợi ý: câu đỏ phải nói về MỘT chỗ — dòng gợi ý — chứ không gom cả cửa sổ.
         /// </para>
+        /// <para>
+        /// (J2-04, soát R05) Lượt đi dạo W10 báo "ca xấu nhất của dòng gợi ý ở 950 chưa được nhìn": bộ đi dạo tìm thanh BỊ BỎ
+        /// bằng cách dò nhãn rồi lấy thanh GẦN NHẤT theo hình học, nên ở 950 nó trúng <c>lava-quest-2026-09a</c> (câu ngắn
+        /// "· đã khép — không dời được") thay vì <c>entry-hunt-0916-bonus</c>. Cổng MÁY không mắc lỗi ấy: ca này chọn thanh
+        /// theo KHOÁ (<see cref="SelectDroppedBar"/> → <c>LiveOpsDesignSample.HuntBonusEntryKey</c>), nên ĐÚNG cảnh xấu nhất
+        /// được đo ở cả 7 cỡ của ma trận, 950x700 trong đó, ở cả hai ngôn ngữ — 14 cặp, 0 chỗ không dùng được ở lượt cổng
+        /// gói G-W11-EYE. Phần còn nợ của J2-04 vì thế KHÔNG nằm trong package: đó là 1 chỗ trong bộ đi dạo dev
+        /// (<c>Assets/UxJourney/Editor/UxJourneysW10.cs</c>, chỉ có trên worktree <c>wt/G-UX-JOURNEY</c>) — chọn thanh theo
+        /// CỜ "bị bỏ" của model thay vì theo khoảng cách. Ghi nợ <b>W11-15</b>, đợt xử lý: W11, chủ: bước Journey.
+        /// </para>
         /// </summary>
         [UnityTest]
         public IEnumerator Calendar_TimelineHint_NotCut_WithDroppedEntrySelected()
@@ -350,6 +360,48 @@ namespace DreamTech.LiveOps.Editor.Tests
             yield return RunScreen(EmptyScreen("validation-empty", LiveOpsHubSections.Ids.Validation));
         }
 
+        /// <summary>
+        /// (J2-02, soát R04) Màn Kiểm lịch khi tài liệu ĐÃ SỬA SAU LẦN KIỂM — trạng thái duy nhất dựng banner "kết quả cũ".
+        /// <para>
+        /// Vì sao phải là một màn RIÊNG của ma trận: bản vá J2-02 đổi banner từ hộp xếp DỌC sang hàng NGANG (chữ co được,
+        /// nút <c>flex-shrink: 0</c> <c>min-width: 54px</c>), mà ba màn Kiểm lịch đang có của ma trận — <c>validation</c>,
+        /// <c>validation-worst-data</c>, <c>validation-empty</c> — KHÔNG màn nào dựng trạng thái ấy. Tức bố cục mới chỉ
+        /// từng được đo ở ĐÚNG MỘT cỡ (1440x900) và MỘT ngôn ngữ, trong ca <c>W11EyeFixTests</c>. Chỗ nó dễ vỡ lại là cỡ
+        /// HẸP: ở 700 · 820 HelpBox gập nhiều dòng và nút không co được có thể vượt mép phải banner.
+        /// </para>
+        /// <para>
+        /// Ba phần tử của banner đều BẮT BUỘC: thiếu một cái thì luật của màn im lặng bỏ qua và màn xanh vì không đo gì,
+        /// chứ không vì đạt — cùng cái bẫy mà màn <c>calendar-toast-legend</c> phải rào.
+        /// </para>
+        /// <para>
+        /// Vì sao <see cref="UxLayoutScreen.WithScreenRulesOnly"/> giới hạn phát hiện vào đúng nhánh BANNER — và cái đã tìm
+        /// thấy khi CHƯA giới hạn. Lượt đo đầu (21/9/2026, 6000.6, <c>fix-probe-6000.xml</c>) chạy màn này trên CẢ cây cửa sổ
+        /// và ra ĐÚNG 1 chỗ, ở 1/14 cặp cỡ × ngôn ngữ, và chỗ ấy KHÔNG thuộc banner:
+        /// <c>validation-stale 700x560 en — textCut: Label#hub-status-left-text.liveops-hub-status-text
+        /// 'Calendar changed at 08:46:50 UTC, after …' ngang cần 420 có 415</c> — tức câu chân trang của trạng thái
+        /// kiểm-cũ hụt 5px ở bản tiếng Anh, cỡ hẹp nhất. Banner sạch ở cả 14 cặp.
+        /// Câu chân trang là việc của <c>liveops-hub-shell.uss</c> + <c>LiveOpsHubStatusBarModel</c>, hai file nằm ngoài
+        /// quyền ghi của gói G-W11-EYE, và nó là nợ CÓ SẴN chứ không do bản vá J2-02 sinh ra (bản vá không chạm chân trang).
+        /// Ghi nợ <b>W11-17</b>: màn <c>validation-stale</c> · 1 chỗ · 700x560 tiếng Anh · textCut hụt 5px · đợt xử lý W11.
+        /// Giới hạn phạm vi ở đây theo đúng lối W9-26 đã đi cho <c>shell-rail-status</c>: một màn đo MỘT chỗ, còn chân trang
+        /// đã có hai màn riêng của nó (<c>shell-rail-status</c>, <c>shell-rail-status-worst-data</c>). Gỡ dòng
+        /// <c>WithScreenRulesOnly</c> là màn đo lại cả cửa sổ ngay lượt sau, không phải dựng lại gì.
+        /// </para>
+        /// </summary>
+        [UnityTest]
+        public IEnumerator Validation_LayoutIsUsable_WithStaleCheckNotice()
+        {
+            yield return RunScreen(new UxLayoutScreen("validation-stale", LiveOpsHubSections.Ids.Validation)
+                .WithServices(StaleCheckServices)
+                .WithRequiredElements(WithShell(LiveOpsHubPaths.ValidationElementNames.Body,
+                    LiveOpsHubPaths.ValidationElementNames.Toolbar, LiveOpsHubPaths.ValidationElementNames.Content,
+                    "." + LiveOpsHubClassNames.ValidationNotice, "." + LiveOpsHubClassNames.ValidationNoticeText,
+                    "." + LiveOpsHubClassNames.ValidationNoticeButton))
+                .WithStretchRules(SectionStretchRules(LiveOpsHubPaths.ValidationElementNames.Body))
+                .WithNoOverlapRules(StatusBarNoOverlapRules())
+                .WithScreenRulesOnly("." + LiveOpsHubClassNames.ValidationNotice));
+        }
+
         /// <summary>Màn Xuất JSON trên dữ liệu xấu nhất: số byte bảy chữ số, tên người đăng dài, ghi chú dài, sha 64 ký tự.</summary>
         [UnityTest]
         public IEnumerator Export_LayoutIsUsable_WithWorstCaseData()
@@ -464,6 +516,32 @@ namespace DreamTech.LiveOps.Editor.Tests
         public IEnumerator Calendar_Toast_DoesNotOverlapFooter()
         {
             yield return RunScreen(ToastScreen("calendar-toast").WithAfterOpen(DragBarToRaiseToast, true));
+        }
+
+        /// <summary>
+        /// (J2-01) Toast không được ĐÈ lên chân màn Lịch — dải chú giải, dòng gợi ý, minimap — ở BẤT KỲ cỡ nào, KHI NGĂN
+        /// KÉO INSPECTOR ĐANG MỞ.
+        /// <para>
+        /// Vì sao là một màn RIÊNG, không gộp vào <see cref="Calendar_Toast_DoesNotOverlapFooter"/>: màn kia đo toast với
+        /// chân TRANG (status bar) trên màn Lịch KHÔNG mở ngăn kéo. Phiếu J2-01 là một hình học khác hẳn — ngăn kéo mở lấy
+        /// mất bề ngang của dải chú giải, chú giải gập thêm hàng và trèo lên, rồi đứng đúng chỗ toast đang đậu. Số đo ở 820:
+        /// chú giải (36, 470, 504×68), toast (44, 478, 452×24), chồng lấn 452×24 — số đo trong KHUNG ĐI DẠO W10
+        /// (ảnh W10f-820x560-2-toast-grab.png). Chính màn này, chạy trên khung của cổng, đo ra chồng lấn 375–392×24 tuỳ
+        /// ngôn ngữ ở 820 vì câu của bước Undo ngắn hơn: bề ngang toast là hàm của CÂU, không phải của cỡ cửa sổ. Con số
+        /// SỐNG là câu pairOverlap mà ca này in ra khi đỏ; số dán ở đây chỉ để nhận ra cảnh (soát R08).
+        /// </para>
+        /// <para>
+        /// Vì sao cổng tĩnh cũ không bắt: mọi phép đếm chữ bị cắt đo theo HỘP của chính phần tử, mà toast là
+        /// <c>position: absolute</c> NỔI LÊN TRÊN — nó không làm hộp nào nhỏ lại nên không chỗ nào "bị cắt". Che nhau là
+        /// quan hệ GIỮA HAI phần tử; luật <see cref="UxLayoutNoOverlapRule"/> là phép đo duy nhất của cổng nói được chuyện
+        /// đó, nên mọi cặp "nổi lên trên / nội dung" mới sau này khai thêm một luật ở đây là đo được.
+        /// </para>
+        /// </summary>
+        [UnityTest]
+        public IEnumerator Calendar_Toast_DoesNotCoverLegend_AtEveryWidth()
+        {
+            yield return RunScreen(ToastOverFooterScreen("calendar-toast-legend")
+                .WithAfterOpen(SelectBarThenDragToRaiseToast, true));
         }
 
         /// <summary>UX-16: dòng thông tin của làn (tên loại, số đợt) không được cắt ở cỡ nào, tiếng nào.</summary>
@@ -1015,6 +1093,26 @@ namespace DreamTech.LiveOps.Editor.Tests
                 .WithScreenRulesOnly("." + LiveOpsHubClassNames.Toast);
         }
 
+        /// <summary>
+        /// (J2-01) Khuôn của màn "toast không đè chân màn Lịch". Khác <see cref="ToastScreen"/> ở ba chỗ: ngăn kéo inspector
+        /// MỞ (đó là điều kiện làm chú giải gập thêm hàng), ba luật không-đè thay vì một, và ba phần tử chân màn đều là phần
+        /// tử BẮT BUỘC — thiếu một trong ba thì luật không-đè tương ứng tự bỏ qua trong im lặng và màn xanh vì không đo gì,
+        /// chứ không vì đạt.
+        /// </summary>
+        private static UxLayoutScreen ToastOverFooterScreen(string screenId)
+        {
+            return new UxLayoutScreen(screenId, LiveOpsHubSections.Ids.Calendar)
+                .WithRebuildPerSize()
+                .WithReadyCondition(IsToastShown, ToastReadyTimeoutMilliseconds)
+                .WithRequiredElements("." + LiveOpsHubClassNames.Toast, "." + LiveOpsHubClassNames.TimelineLegend,
+                    "." + LiveOpsHubClassNames.TimelineHint, "." + LiveOpsHubClassNames.TimelineMinimap)
+                .WithNoOverlapRules(
+                    new UxLayoutNoOverlapRule("." + LiveOpsHubClassNames.Toast, "." + LiveOpsHubClassNames.TimelineLegend),
+                    new UxLayoutNoOverlapRule("." + LiveOpsHubClassNames.Toast, "." + LiveOpsHubClassNames.TimelineHint),
+                    new UxLayoutNoOverlapRule("." + LiveOpsHubClassNames.Toast, "." + LiveOpsHubClassNames.TimelineMinimap))
+                .WithScreenRulesOnly("." + LiveOpsHubClassNames.Toast);
+        }
+
         private static UxLayoutScreen LegendContrastScreen(string screenId)
         {
             return new UxLayoutScreen(screenId, LiveOpsHubSections.Ids.Calendar)
@@ -1067,6 +1165,16 @@ namespace DreamTech.LiveOps.Editor.Tests
         private static LiveOpsHubServices WorstCaseServices()
         {
             return BuildServices(LiveOpsWorstCaseSample.Document);
+        }
+
+        /// <summary>
+        /// (J2-02) Services ở trạng thái "kiểm xong RỒI sửa lịch" — trạng thái duy nhất dựng banner "kết quả cũ".
+        /// Dùng lại đúng kịch bản mà ảnh bằng chứng và test hành vi đã dùng (<c>LiveOpsHubTestServices.StaleCheckScenario</c>)
+        /// chứ không nặn tay trạng thái ấy: ba chỗ nặn ba kiểu thì ba chỗ đo ba cảnh khác nhau.
+        /// </summary>
+        private static LiveOpsHubServices StaleCheckServices()
+        {
+            return LiveOpsHubTestServices.ForScenario(LiveOpsHubTestServices.StaleCheckScenario);
         }
 
         /// <summary>Services trên lịch RỖNG.</summary>
@@ -1303,6 +1411,21 @@ namespace DreamTech.LiveOps.Editor.Tests
         /// hết hạn nghĩa là cú kéo KHÔNG ghi được gì, không phải toast đã sống rồi tắt — hai chuyện ấy cần hai câu khác nhau.
         /// </summary>
         private const int ToastReadyTimeoutMilliseconds = 1500;
+
+        /// <summary>
+        /// (J2-01) Mở ngăn kéo inspector TRƯỚC rồi mới kéo một thanh để dựng toast. Thứ tự này là điều kiện của phiếu: ngăn
+        /// kéo mở lấy mất bề ngang của dải chú giải, chú giải gập thêm hàng và trèo lên vào đúng chỗ toast đậu.
+        /// </summary>
+        private static IEnumerator SelectBarThenDragToRaiseToast(UxHubWindowFixture fixture)
+        {
+            // Ở cỡ --narrow (700, 820) dải chú giải ẨN theo thiết kế, chỗ của nó là menu ⋮. Cảnh của phiếu J2-01 là cảnh người
+            // dùng ĐÃ BẬT nó lại (ảnh W10f-820x560-1-chu-giai-grab.png), nên bật ở đây — không bật thì ở hai cỡ hẹp nhất luật
+            // không-đè tự bỏ qua và màn xanh vì không đo gì, chứ không vì đạt.
+            fixture.Calendar.Toolbar.SetLegendVisible(true);
+            yield return fixture.WaitForLayout();
+            yield return SelectFirstBar(fixture);
+            yield return DragBarToRaiseToast(fixture);
+        }
 
         private static IEnumerator DragBarToRaiseToast(UxHubWindowFixture fixture)
         {
