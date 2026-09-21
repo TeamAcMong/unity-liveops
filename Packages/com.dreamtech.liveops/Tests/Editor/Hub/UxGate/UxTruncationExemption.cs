@@ -5,8 +5,8 @@ using UnityEngine.UIElements;
 namespace DreamTech.LiveOps.Editor.Tests
 {
     /// <summary>
-    /// Hai LOẠI ô mà user chốt (21/9/2026) là được phép rút chữ có điều kiện. Không có loại thứ ba: mọi ô khác rút chữ vẫn là
-    /// LỖI, y như trước.
+    /// BA LOẠI ô mà user chốt là được phép rút chữ có điều kiện — hai loại đầu chốt 21/9/2026, loại thứ ba (J2-03) chốt cùng
+    /// ngày sau lượt đi thử màn Lịch. Không có loại thứ tư: mọi ô khác rút chữ vẫn là LỖI, y như trước.
     /// </summary>
     internal enum UxTruncatableCellKind
     {
@@ -18,6 +18,28 @@ namespace DreamTech.LiveOps.Editor.Tests
 
         /// <summary>Ô NHẬP: chữ dài hơn ô thì con trỏ cuộn theo, phần ngoài khung không mất đi.</summary>
         InputField,
+
+        /// <summary>
+        /// (J2-03) NHÃN NẰM TRONG MỘT HÌNH KHỐI DO DỮ LIỆU ĐỊNH BỀ RỘNG — hôm nay đúng một chỗ: nhãn thanh đợt trên trục.
+        /// <para>
+        /// Vì sao đây là loại RIÊNG chứ không gộp vào <see cref="FixedWidthTableCell"/>: ô cột cố định rộng bao nhiêu là do
+        /// BỐ CỤC chọn, nên về nguyên tắc vẫn nới được. Bề rộng một thanh đợt thì bằng khoảng thời gian của đợt nhân tỉ lệ
+        /// zoom — một đợt hai giờ ở mức zoom "Tháng" chỉ có vài pixel dù cửa sổ to cỡ nào. Không có bề rộng nào nới được để
+        /// chữ vừa, nên đòi "không được rút" ở đây là đòi bỏ luôn nhãn trên thanh, tức mất nhiều hơn được.
+        /// </para>
+        /// <para>
+        /// Khác hai loại kia ở một điểm nữa: hub TỰ rút chuỗi (<c>LiveOpsTimelineGeometry.BarLabel</c> cắt tại dấu phân cách
+        /// rồi thêm "…") chứ không để UI Toolkit tự elide, nên phần tử chỉ còn mẩu chữ. Điều kiện (a) vì thế phải so tooltip
+        /// với MẨU còn lại, và mẩu ấy thường là HẬU TỐ chứ không phải tiền tố — xem ba nhánh của
+        /// <see cref="UxTruncationExemption.CarriesFullTextTooltip"/>.
+        /// </para>
+        /// <para>
+        /// Loại này CHỈ được miễn cho <c>textCut</c>. Khoảng dư mỏng (<c>textTight</c>, W9-25) của nhãn thanh vẫn phải đi
+        /// qua điều kiện (a) như mọi phát hiện khác — hai loại ô trên được miễn suông vế ấy, nhãn thanh thì không, vì câu
+        /// chốt của user chỉ nói về việc RÚT chữ (soát W11 R-02).
+        /// </para>
+        /// </summary>
+        GeometryDrivenBarLabel,
     }
 
     /// <summary>
@@ -109,7 +131,31 @@ namespace DreamTech.LiveOps.Editor.Tests
                 nameof(UxTruncationExemptionTests.EventTypesConfigKeyCell_TruncatesWithTooltipAndInspectorShowsFullText),
                 "Cột 'Config key' khai cứng 140px và là cột PHỤ (bị bỏ hẳn ở cửa sổ hẹp). Chữ đủ đọc lại ở tooltip của ô và "
                 + "ở ô nhập 'Config key' của inspector."),
+            new UxTruncationExemptionEntry(AnyScreen, TimelineBarSelector,
+                UxTruncatableCellKind.GeometryDrivenBarLabel, CalendarInspectorTitleIdSurface,
+                nameof(UxTruncationExemptionTests.TimelineBarLabel_ShortensWithTooltipAndInspectorShowsFullText),
+                "Bề rộng thanh đợt là HÌNH HỌC suy từ dữ liệu (khoảng thời gian × tỉ lệ zoom), không phải bề rộng do bố "
+                + "cục chọn — một đợt ngắn ở mức zoom rộng chỉ có vài pixel ở MỌI cỡ cửa sổ. Chữ đủ đọc lại ở tooltip của "
+                + "chính thanh (id + khoảng UTC) và ở dòng tiêu đề inspector sau khi chọn thanh. LƯU Ý: mục này KHÔNG tha "
+                + "cho dòng tiêu đề inspector — trên dữ liệu dài nhất, chính dòng ấy cũng bị pane cắt, và chỗ cắt đó vẫn "
+                + "là một phát hiện ĐỎ nằm trong nợ W11-01. Miễn trừ ở đây chỉ nói về nhãn trên thanh, và chỉ về việc "
+                + "RÚT chữ: khoảng dư mỏng (textTight, W9-25) của nhãn thanh vẫn phải đi qua điều kiện (a)."),
         };
+
+        /// <summary>
+        /// Selector của mục J2-03 là class của CẢ THANH chứ không phải class của nhãn, vì tooltip nằm trên thanh còn nhãn
+        /// thì không mang tooltip nào (<c>LiveOpsTimelineBar</c> đặt <c>pickingMode = Ignore</c> cho nhãn để chuột vẫn bắt
+        /// vào thân thanh). <c>TooltipWithin</c> dừng ở ô đã khớp, nên khai nhãn là tự cắt mất đường đọc tooltip.
+        /// <para>
+        /// Khai cả thanh KHÔNG tha rộng hơn ý định: trong một thanh chỉ có đúng một phần tử mang chữ — cái nhãn này. Mọi
+        /// phần con khác (dải màu, icon, vuông "khác bản đã đăng", gạch bị bỏ, dấu cắt mép, vùng bắt mép) không có chữ nên
+        /// không bao giờ sinh ra phát hiện chữ.
+        /// </para>
+        /// </summary>
+        internal const string TimelineBarSelector = LiveOpsHubClassNames.TimelineBar;
+
+        /// <summary>Class của dòng id trên tiêu đề inspector Lịch — chỗ khai cho điều kiện (b) của mục J2-03.</summary>
+        internal const string CalendarInspectorTitleIdSurface = LiveOpsHubClassNames.CalendarInspectorTitleId;
 
         /// <summary>Tên element ô nhập "Id loại" của inspector Loại event — chỗ khai cho điều kiện (b).</summary>
         internal const string EventTypeInspectorTypeIdSurface = EventTypeInspector.TypeIdFieldName;
@@ -140,9 +186,15 @@ namespace DreamTech.LiveOps.Editor.Tests
                     && !string.Equals(entry.ScreenId, screenId, StringComparison.Ordinal)) continue;
                 VisualElement cell = MatchedCell(entry.Selector, element);
                 if (cell == null) continue;
-                // W9-25 được MIỄN hẳn cho hai loại ô này: ở đó không có chữ nào bị giấu đi, chỉ có khoảng dư mỏng — mà khoảng
-                // dư mỏng trong một ô có bề rộng CỐ ĐỊNH là điều đương nhiên, không phải rủi ro cắt im lặng của W9-19.
-                if (isTextTight) return true;
+                // W9-25 được MIỄN hẳn cho HAI loại ô đầu: ở đó không có chữ nào bị giấu đi, chỉ có khoảng dư mỏng — mà
+                // khoảng dư mỏng trong một ô có bề rộng CỐ ĐỊNH là điều đương nhiên, không phải rủi ro cắt im lặng của
+                // W9-19.
+                // (soát W11 R-02) Loại thứ ba KHÔNG thừa hưởng vế miễn này. Câu chốt 21/9/2026 của user nói về việc RÚT
+                // chữ trên nhãn thanh trục (textCut), không nói gì về khoảng dư mỏng; mục J2-03 rời khỏi UxLayoutAllowList
+                // cũng chỉ khai đúng loại textCut. Cho textTight của nhãn thanh đi thẳng về true là nới phạm vi mà không
+                // ai duyệt — nó im lặng nuốt mất 4 chỗ textTight của hai màn (xem nợ W11-01 và W11-06). Vì thế ở đây
+                // textTight của nhãn thanh đi QUA điều kiện (a) y như textCut.
+                if (isTextTight && entry.CellKind != UxTruncatableCellKind.GeometryDrivenBarLabel) return true;
                 if (CarriesFullTextTooltip(element, cell, out string missing)) return true;
                 note = "mục miễn trừ có điều kiện '" + entry.Selector + "' KHÔNG áp dụng: " + missing;
                 return false;
@@ -153,10 +205,15 @@ namespace DreamTech.LiveOps.Editor.Tests
         /// <summary>
         /// Điều kiện (a) đo được: ô (hoặc phần tử chữ bên trong nó) đang mang tooltip chứa ĐỦ chữ.
         /// <para>
-        /// Hai đường rút gọn cần hai phép so khác nhau. UI Toolkit tự rút (<c>isElided</c>) hoặc cha cắt cứng thì
-        /// <c>TextElement.text</c> vẫn là chuỗi ĐẦY ĐỦ — tooltip chỉ cần chứa nó. Hub tự rút (nhãn thanh trục) thì chuỗi
-        /// trong element đã mất đuôi và chỉ còn "…" — lúc ấy phải hỏi tooltip có dài HƠN phần còn lại không, vì chuỗi đầy đủ
-        /// không còn nằm ở đâu trong cây để so.
+        /// BA đường rút gọn cần ba phép so khác nhau. (1) UI Toolkit tự rút (<c>isElided</c>) hoặc cha cắt cứng thì
+        /// <c>TextElement.text</c> vẫn là chuỗi ĐẦY ĐỦ — tooltip chỉ cần chứa nó. (2) Hub tự rút mà giữ TIỀN TỐ ("star-…")
+        /// thì tooltip phải mở đầu bằng mẩu còn lại và dài hơn nó. (3) Hub tự rút mà giữ HẬU TỐ ("…round-2" — hình dạng
+        /// <c>LiveOpsTimelineGeometry.ShortenedIdentifier</c> ƯU TIÊN) thì tooltip phải có một TỪ kết thúc đúng bằng mẩu
+        /// còn lại, và còn chữ đứng trước từ ấy.
+        /// </para>
+        /// <para>
+        /// Vì sao ba chứ không hai (soát W11 R-01): gộp (3) vào (2) là so tooltip với một TIỀN TỐ RỖNG, và mọi chuỗi đều mở
+        /// đầu bằng chuỗi rỗng — điều kiện (a) khi ấy không đo gì cả trên đúng hình dạng mà sản phẩm dùng nhiều nhất.
         /// </para>
         /// </summary>
         internal static bool CarriesFullTextTooltip(VisualElement element, VisualElement cell, out string missing)
@@ -184,14 +241,68 @@ namespace DreamTech.LiveOps.Editor.Tests
                 missing = "tooltip '" + tooltip + "' không chứa đủ chữ của ô '" + shown + "'";
                 return false;
             }
-            string kept = shown.Substring(0, ellipsis);
-            if (tooltip.Length > kept.Length && tooltip.StartsWith(kept, StringComparison.Ordinal))
+            // (soát W11 R-01) Hub tự rút ra HAI hình dạng, và hai hình dạng cần hai phép so khác nhau.
+            // "…" đứng GIỮA hoặc CUỐI ⇒ mẩu giữ lại là TIỀN TỐ ("star-…"). "…" đứng ĐẦU ⇒ mẩu giữ lại là HẬU TỐ
+            // ("…round-2") — và LiveOpsTimelineGeometry.ShortenedIdentifier ƯU TIÊN hậu tố, nên đây mới là hình dạng
+            // thường gặp của sản phẩm. Bản đầu chỉ có phép so tiền tố: với hình dạng hậu tố thì tiền tố giữ lại là chuỗi
+            // RỖNG, mà "tooltip bắt đầu bằng chuỗi rỗng" luôn đúng — điều kiện (a) khi ấy rút xuống còn đúng một vế "có
+            // tooltip nào đó", tức tha suông đúng thứ bảng này sinh ra để không chấp nhận.
+            if (ellipsis > 0)
+            {
+                string keptPrefix = shown.Substring(0, ellipsis);
+                if (tooltip.Length > keptPrefix.Length && tooltip.StartsWith(keptPrefix, StringComparison.Ordinal))
+                {
+                    missing = string.Empty;
+                    return true;
+                }
+                // Giữ NGUYÊN câu của bản đầu: UxTruncationExemptionRuleTests đối chiếu đúng cụm "không phải bản đầy đủ",
+                // và câu ấy vẫn nói đúng về nhánh tiền tố.
+                missing = "tooltip '" + tooltip + "' không phải bản đầy đủ của chuỗi đã rút '" + shown + "'";
+                return false;
+            }
+            string keptSuffix = shown.Substring(ellipsis + 1);
+            if (keptSuffix.Length > 0 && TooltipEndsATokenWith(tooltip, keptSuffix))
             {
                 missing = string.Empty;
                 return true;
             }
-            missing = "tooltip '" + tooltip + "' không phải bản đầy đủ của chuỗi đã rút '" + shown + "'";
+            missing = "tooltip '" + tooltip + "' không có từ nào kết thúc bằng mẩu hậu tố đã giữ '" + keptSuffix
+                + "' của '" + shown + "'";
             return false;
+        }
+
+        /// <summary>
+        /// Tooltip có một TỪ kết thúc đúng bằng <paramref name="keptSuffix"/>, và trước từ ấy còn chữ khác.
+        /// <para>
+        /// Vì sao không so <c>EndsWith</c> trên cả tooltip: tooltip của thanh đợt là "&lt;id&gt; · &lt;đầu&gt; →
+        /// &lt;cuối&gt; UTC" (<c>LiveOpsTimelineElement.BarTooltip</c>), nên id đầy đủ nằm ở TỪ ĐẦU chứ không ở cuối chuỗi
+        /// — đòi EndsWith là đòi một hình dạng tooltip mà sản phẩm không có.
+        /// </para>
+        /// <para>
+        /// Vì sao không so <c>Contains</c> suông: "…round-2" nằm gọn trong "other-round-20" mà hai chuỗi ấy là hai đợt
+        /// KHÁC nhau. Đòi biên ngay sau mẩu giữ lại chặn đúng đường nhầm ấy. Và đòi có chữ đứng TRƯỚC vì một tooltip bằng
+        /// đúng mẩu đã rút thì không đọc lại được thêm gì — nó không phải chỗ tra chữ đầy đủ.
+        /// </para>
+        /// </summary>
+        private static bool TooltipEndsATokenWith(string tooltip, string keptSuffix)
+        {
+            int start = tooltip.IndexOf(keptSuffix, StringComparison.Ordinal);
+            while (start >= 0)
+            {
+                int after = start + keptSuffix.Length;
+                bool endsToken = after == tooltip.Length || IsTooltipWordSeparator(tooltip[after]);
+                if (start > 0 && endsToken) return true;
+                if (start + 1 >= tooltip.Length) return false;
+                start = tooltip.IndexOf(keptSuffix, start + 1, StringComparison.Ordinal);
+            }
+
+            return false;
+        }
+
+        /// <summary>Ký tự ngăn từ trong tooltip. Dấu "·" của các format chuỗi luôn đi kèm khoảng trắng nên khoảng trắng là đủ.</summary>
+        private static bool IsTooltipWordSeparator(char value)
+        {
+            return value == ' ' || value == '\n' || value == '\r' || value == '\t';
         }
 
         /// <summary>

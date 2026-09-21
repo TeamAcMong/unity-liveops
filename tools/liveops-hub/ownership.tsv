@@ -1119,3 +1119,77 @@ package	G-FIX-W10-11	W10.5-FIXB	S	G-FIX-W10-10
 file	Packages/com.dreamtech.liveops/Editor/Hub/UI/liveops-hub-theme.uss	G-FIX-W10-11	chú thích token viền: số đo hôm nay + vì sao vẫn tách token
 file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/EventTypes/EventTypesSection.uss	G-FIX-W10-11	như trên, phía chỗ dùng
 file	tools/liveops-hub/ownership.tsv	G-FIX-W10-11	khối đăng ký ở trên
+#
+# ==================================================================================================== ĐỢT W11
+#
+# G-W11-EYE — ba lỗi NGƯỜI DÙNG GIẢ NHÌN THẤY ở lượt đi dạo W10 (W10-JOURNEY-2.md), user chốt 21/9/2026 là phải sửa
+#   TRƯỚC khi phát hành; nợ bố cục "dữ liệu xấu nhất" (12 ca đỏ) để đợt W11 sau.
+#   J2-01 toast màn Lịch đè hàng đầu dải chú giải ở 820 khi ngăn kéo inspector mở (chồng 452×24). Toast là
+#     position:absolute nên MỌI phép đếm chữ-bị-cắt của cổng đều mù với nó — gói này thêm một màn đo CHỒNG LẤN giữa
+#     toast và ba phần tử chân màn, tức phép đo còn thiếu hẳn cho mọi cặp "nổi lên trên / nội dung".
+#   J2-02 nút trong banner "kết quả cũ" màn Kiểm lịch dãn hết bề ngang + trùng chữ "Kiểm lại" với nút header +
+#     viền nút skin sáng 2,42:1 < 3:1.
+#   J2-06 dấu phẩy rời khỏi chip token trong câu Luật lặp (padding 0 3px của .liveops-hub-rule-token).
+package	G-W11-EYE	W11	M	W10
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Calendar/CalendarSection.cs	G-W11-EYE	J2-01 — chỗ đậu toast theo chân màn ĐO ĐƯỢC (world y) thay cho hai bậc class 64/96
+file	Packages/com.dreamtech.liveops/Editor/Hub/Services/LiveOpsHubSectionBus.cs	G-W11-EYE	J2-01 — kênh SetToastFloor(worldTopY) từ màn lên cửa sổ
+file	Packages/com.dreamtech.liveops/Editor/Hub/Shell/LiveOpsHubWindow.cs	G-W11-EYE	J2-01 — cửa sổ đổi world y thành bottom của toast + hằng khe thủ + kẹp HAI đầu (soát R07)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Validation/ValidationSection.cs	G-W11-EYE	J2-02 — banner "kết quả cũ" xếp ngang, nút thôi dãn, chữ khác nút header, khoá cùng nhịp
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Validation/ValidationSection.uss	G-W11-EYE	J2-02 — luật USS của banner (hàng ngang, chữ co được, nút không dãn)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/RecurringRules/RecurringRulesSection.uss	G-W11-EYE	J2-06 — padding-right của chip khi sau nó là dấu câu (margin âm là bản vá SAI, đã bỏ: nó đẻ 42 chỗ childOverflow mỗi màn Luật lặp)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/RecurringRules/RecurringRuleSentence.cs	G-W11-EYE	J2-06 — nhìn tới mảnh kế để biết sau chip là dấu câu hay khoảng trắng thật
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubClassNames.cs	G-W11-EYE	J2-06 — hằng class RuleTokenFollowedByPunctuation
+file	Packages/com.dreamtech.liveops/Editor/Hub/UI/liveops-hub-theme.uss	G-W11-EYE	J2-02 — token --liveops-hub-color-button-border cho skin sáng (3:1); số đo tính lại bằng hàm của repo + khai giới hạn nền thứ ba (soát R06/R09)
+file	Packages/com.dreamtech.liveops/Editor/Hub/UI/liveops-hub-components.uss	G-W11-EYE	J2-02 — luật viền nút skin sáng đọc token trên + khai giới hạn nền (soát R09); chú thích nút nguy hiểm nói đúng thứ nó đặt (soát R10)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubClassNames.Validation.cs	G-W11-EYE	J2-02 — ba hằng class của banner
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubStrings.Validation.cs	G-W11-EYE	J2-02 — khoá chuỗi nút banner
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/Language/LiveOpsHubStringCatalog.Validation.cs	G-W11-EYE	J2-02 — câu vi + en của nút banner
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/UxGate/UxLayoutAuditTests.cs	G-W11-EYE	J2-01 màn calendar-toast-legend (ngăn kéo mở + ba luật không-đè); J2-02 màn validation-stale (soát R04); khai nợ W11-15 (J2-04) + W11-17
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/UxGate/UxLayoutScreenCatalog.cs	G-W11-EYE	dòng khai "màn này nhìn thấy dữ liệu xấu nhất ở đâu" cho calendar-toast-legend (J2-01) và validation-stale (J2-02)
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Sections/W11EyeFixTests.cs	G-W11-EYE	FILE MỚI — khoá J2-02 và J2-06; ca viền nút đo trên CẢ HAI nền skin sáng (soát R06/R09)
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Sections/CalendarUxFixTests.cs	G-W11-EYE	J2-01 — ca UX-11 đổi từ "nâng ≥ 64px" sang ràng buộc thật "toast không đè chân màn"
+file	tools/liveops-hub/ownership.tsv	G-W11-EYE	khối đăng ký ở trên
+#
+# ==================================================================================================== ĐỢT W11
+#
+# G-W11-LIMITS — điểm 2 của user chốt 21/9/2026: dữ liệu "xấu nhất" phải theo GIỚI HẠN THẬT của dữ liệu, không phải chuỗi
+#   dài tuỳ hứng. Lõi chưa có giới hạn độ dài nào (ValidateIdentifier chỉ kiểm KÝ TỰ) nên gói này ĐẶT giới hạn thành hằng
+#   có tài liệu, dựng lại fixture bằng ĐÚNG mức đó, rồi đo lại 12 ca đỏ của cổng W10. Gói cũng chốt J2-03 vào luật rút gọn
+#   có điều kiện (nhãn thanh trục rời khỏi danh sách tha suông sang danh sách tha CÓ ĐO).
+package	G-W11-LIMITS	W11.1-LIMITS	M	G-FIX-W10-11
+file	Packages/com.dreamtech.liveops/Runtime/Core/Domain/LiveOpsIdentifierLimits.cs	G-W11-LIMITS	MỚI — hằng giới hạn độ dài + vì sao từng con số
+file	Packages/com.dreamtech.liveops/Tests/Editor/LiveOpsIdentifierLimitsTests.cs	G-W11-LIMITS	MỚI — gác phép suy của hằng + fixture bằng ĐÚNG giới hạn
+file	Packages/com.dreamtech.liveops/Tests/Editor/Support/LiveOpsWorstCaseSample.cs	G-W11-LIMITS	mọi chuỗi dài dựng lại bằng đúng giới hạn
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/UxGate/UxTruncationExemption.cs	G-W11-LIMITS	loại ô thứ ba (J2-03) + mục nhãn thanh trục
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/UxGate/UxTruncationExemptionTests.cs	G-W11-LIMITS	hai ca chứng minh của mục J2-03
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/UxGate/UxLayoutAllowList.cs	G-W11-LIMITS	gỡ mục tha suông của nhãn thanh trục
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/UxGate/UxLayoutDeferralList.cs	G-W11-LIMITS	mục hoãn W11-nn của nợ bố cục dữ liệu dài
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/UxGate/UxLayoutAuditTests.cs	G-W11-LIMITS	mã phiếu hoãn nhận thêm dạng W11-NN + hai mảng duyệt
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Capture/LiveOpsHubCaptureScenarioIds.WorstCase.cs	G-W11-LIMITS	MỚI — id hai ảnh bằng chứng nợ W11
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Capture/LiveOpsHubCaptureScenarios.WorstCase.cs	G-W11-LIMITS	MỚI — kịch bản chụp hai màn trên dữ liệu xấu nhất
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Capture/LiveOpsHubCaptureScenarios.cs	G-W11-LIMITS	đăng ký RegisterWorstCase
+file	Packages/com.dreamtech.liveops/README.md	G-W11-LIMITS	mục 4.5 bảng giới hạn + bẫy §8
+file	Packages/com.dreamtech.liveops/Documentation/DESIGN_NOTES.md	G-W11-LIMITS	3.14 vì sao giới hạn là hằng chứ không phải cửa ném
+file	Packages/com.dreamtech.liveops/CHANGELOG.md	G-W11-LIMITS	khối giới hạn + khai nợ W11
+file	CHANGELOG.md	G-W11-LIMITS	bản sao y hệt
+file	tools/liveops-hub/ownership.tsv	G-W11-LIMITS	khối đăng ký ở trên
+#
+# G-FIX-W11-1 — việc của CỔNG đợt W11, không của gói nào: ba mục nợ W11-15/16/17 do gói G-W11-EYE khai ra phải có
+#   một dòng THẬT trong CHANGELOG (hai bản), mà CHANGELOG thuộc quyền ghi của G-W11-LIMITS trong cùng đợt — hai gói
+#   cùng nối vào một khối "Chưa làm" là đúng kiểu xung đột merge mà bảng quyền ghi sinh ra để chặn. Cổng chép sau khi
+#   gộp. Cùng commit ghi luôn quyết định GIỮ NỢ ba mục W11-09/11/12 kèm số đo đã truy tới dòng, để đợt W11 không đo lại.
+package	G-FIX-W11-1	W11.5-FIXA	S	G-W11-LIMITS
+file	CHANGELOG.md	G-FIX-W11-1	ba mục nợ W11-15/16/17 + quyết định giữ nợ W11-09/11/12 của cổng
+file	Packages/com.dreamtech.liveops/CHANGELOG.md	G-FIX-W11-1	bản sao y hệt (ReadmeSnippetCompileTests đối chiếu hai bản)
+file	tools/liveops-hub/ownership.tsv	G-FIX-W11-1	khối đăng ký ở trên
+#
+# G-FIX-W11-2 — việc của CỔNG đợt W11, sinh ra từ một THÍ NGHIỆM ĐO ĐƯỢC chứ không từ phỏng đoán. Cổng chạy 11 lượt
+#   EditMode toàn bộ trên CÙNG một cây, khác nhau đúng một biến là số lượt Unity chạy song song: 5 lượt "một mình"
+#   cho 3 lượt SẠCH TUYỆT ĐỐI + 2 lượt 1 ca đỏ; 6 lượt "hai Unity song song" cho 8 ca đỏ, và CẢ TÁM đều là ca chờ
+#   focus. Phương án từng được đề nghị cho W11-FLAKY-01 — "chờ lâu hơn" — bị chính số đo bác bỏ: CtrlK_OpensPalette
+#   đã chờ 60 khung VÀ 5 giây rồi vẫn đỏ. Gốc nằm ở luật slot, không ở từng ca: unity-slot.sh cho 2 slot song song,
+#   mà test UI gửi sự kiện chuột/phím THẬT thì không chia nhau được focus. Bản vá: lượt EditMode có test UI tự lấy
+#   Unity ĐỘC QUYỀN. KHÔNG một câu assert hay ngưỡng nào đổi.
+package	G-FIX-W11-2	W11.5-FIXB	S	G-FIX-W11-1
+file	tools/liveops-hub/run-editmode.sh	G-FIX-W11-2	lượt có test UI lấy Unity độc quyền (slot 1 + chờ hết lượt batchmode khác)
+file	tools/liveops-hub/ownership.tsv	G-FIX-W11-2	khối đăng ký ở trên

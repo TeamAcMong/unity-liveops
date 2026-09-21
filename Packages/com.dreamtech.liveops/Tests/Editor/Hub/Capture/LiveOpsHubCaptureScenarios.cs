@@ -32,6 +32,7 @@ namespace DreamTech.LiveOps.Editor.Tests
             RegisterOptTimeline(scenarios);
             RegisterShortcutHelp(scenarios);
             RegisterUxSizes(scenarios);
+            RegisterWorstCase(scenarios);
 
             HashSet<string> ids = new HashSet<string>(StringComparer.Ordinal);
             foreach (LiveOpsHubCaptureScenario scenario in scenarios)
@@ -74,6 +75,7 @@ namespace DreamTech.LiveOps.Editor.Tests
 
         /// <summary>Ma trận cỡ cửa sổ của đợt W8-UX (§3.4) — bí danh <c>capture.sh --scenarios ux-sizes</c>.</summary>
         static partial void RegisterUxSizes(List<LiveOpsHubCaptureScenario> scenarios);
+        static partial void RegisterWorstCase(List<LiveOpsHubCaptureScenario> scenarios);
 
         /// <summary>
         /// Khung số đo của hộp xác nhận: đo BỀ RỘNG 400px, KHÔNG đo chiều cao (W9-17).

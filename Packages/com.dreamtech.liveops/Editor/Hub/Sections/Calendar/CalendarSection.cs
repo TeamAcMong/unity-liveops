@@ -353,7 +353,21 @@ namespace DreamTech.LiveOps.Editor
             _dragActiveChangedHandler = isDragging => _hoverCardHost?.Suppress(isDragging);
             _presenter.DragActiveChanged += _dragActiveChangedHandler;
             _timelineColumn.Add(_timeline);
+            // (J2-01) Chân màn đổi hình học MÀ GỐC MÀN KHÔNG đổi: ngăn kéo inspector mở làm dải chú giải hẹp lại rồi gập thêm hàng,
+            // minimap và chú giải trèo lên, còn gốc màn vẫn đúng khung cũ nên KHÔNG có GeometryChangedEvent nào trên gốc. Đo ở đó một mình
+            // thì số đo trễ một lượt bố cục và toast đậu theo chỗ chân màn đứng Ở LƯỢT TRƯỚC — đo được 20px lệch ở 1024, đủ để đè minimap.
+            // Nghe trên CHÍNH ba phần tử chân màn: chúng là thứ duy nhất biết mình vừa dịch.
+            _timeline.Minimap.RegisterCallback<GeometryChangedEvent>(OnFooterGeometryChanged);
+            _timeline.Legend.RegisterCallback<GeometryChangedEvent>(OnFooterGeometryChanged);
+            _timeline.HintLine.RegisterCallback<GeometryChangedEvent>(OnFooterGeometryChanged);
             ApplySnapStep();
+        }
+
+        /// <summary>(J2-01) Một phần tử chân màn vừa dịch hoặc đổi chiều cao — đo lại chỗ đậu của toast.</summary>
+        private void OnFooterGeometryChanged(GeometryChangedEvent geometryEvent)
+        {
+            if (_activeRoot == null) return;
+            ApplyToastRaiseStep();
         }
 
         private void BuildListPane()
@@ -1205,6 +1219,16 @@ namespace DreamTech.LiveOps.Editor
             float footerHeight = FooterHeight();
             bool isTall = footerHeight > DefaultToastRaisePixels;
             _services.Bus.SetContentClass(LiveOpsHubClassNames.CalendarDepthContentRaisedToastTall, isTall);
+            // (J2-01) Hai bậc class ở trên là SÀN TRƯỚC KHI ĐO (màn vừa dựng, chưa có hình học); con số dưới đây là chỗ ĐÚNG.
+            // Vì sao hai bậc không đủ: chiều cao chân màn đổi theo SỐ HÀNG mà dải chú giải gập, mà số hàng ấy đổi theo bề ngang
+            // CÒN LẠI sau khi ngăn kéo inspector mở. Ở 820 ngăn kéo mở, chú giải rộng 504px và cao 68px thay vì 36px, mép trên của nó
+            // trèo từ y=512 lên y=470 — giữa hai bậc 64 và 96, nên CẢ HAI đều sai và toast đè 452×24 lên hàng đầu chú giải (phiếu J2-01).
+            // (R08) 452×24 là số của KHUNG ĐI DẠO — cửa sổ hub 820x560 do bộ đi dạo W10 mở, ảnh W10f-820x560-2-toast-grab.png.
+            // Cùng một lỗi đo trong khung KHÁC ra số khác vì bề ngang toast đổi theo độ dài câu của bước Undo đang hiện:
+            // khung test dev của gói này (ảnh shots/before/j2-01-toast-820.png) ra 405×22, và màn cổng calendar-toast-legend ra
+            // 375–392×24 tuỳ ngôn ngữ. Ba con số KHÔNG mâu thuẫn — chúng là ba khung. Số SỐNG, đo lại mỗi lượt cổng, nằm ở câu
+            // pairOverlap của màn calendar-toast-legend; ba con số dán ở đây chỉ để người đọc nhận ra cảnh.
+            _services.Bus.SetToastFloor(FooterTopWorldY());
         }
 
         /// <summary>
@@ -1222,11 +1246,33 @@ namespace DreamTech.LiveOps.Editor
         {
             Rect column = _timelineColumn.worldBound;
             if (float.IsNaN(column.yMax)) return 0f;
+            return column.yMax - FooterTopWorldYOf(column);
+        }
+
+        /// <summary>
+        /// (J2-01) Mép TRÊN của chân màn ở toạ độ world — thứ cửa sổ cần để đậu toast. Trả <c>float.NaN</c> khi chưa đo được
+        /// (bố cục chưa chạy), để cửa sổ giữ nguyên luật USS thay vì nhảy về một con số bịa.
+        /// <para>
+        /// Đo bằng toạ độ world chứ không bằng chiều cao: màn đo theo CỘT TIMELINE của nó, còn toast đậu theo hộp NỘI DUNG của khung —
+        /// hai hộp khác nhau. Gửi chiều cao là bắt cửa sổ phải đoán hai hộp ấy đáy trùng nhau; gửi toạ độ world thì phép trừ ở cửa sổ
+        /// đúng kể cả khi khung có padding hay chân trang riêng.
+        /// </para>
+        /// </summary>
+        private float FooterTopWorldY()
+        {
+            if (_timelineColumn == null || _timeline == null) return float.NaN;
+            Rect column = _timelineColumn.worldBound;
+            if (float.IsNaN(column.yMax)) return float.NaN;
+            return FooterTopWorldYOf(column);
+        }
+
+        private float FooterTopWorldYOf(Rect column)
+        {
             float top = column.yMax;
             top = Math.Min(top, TopOf(_timeline.Minimap, column.yMax));
             top = Math.Min(top, TopOf(_timeline.Legend, column.yMax));
             top = Math.Min(top, TopOf(_timeline.HintLine, column.yMax));
-            return column.yMax - top;
+            return top;
         }
 
         private static float TopOf(VisualElement element, float fallbackTop)
@@ -1293,6 +1339,9 @@ namespace DreamTech.LiveOps.Editor
                 _activeRoot = null;
                 _services.Bus.SetContentClass(LiveOpsHubClassNames.ContentRaisedToast, false);
                 _services.Bus.SetContentClass(LiveOpsHubClassNames.CalendarDepthContentRaisedToastTall, false);
+                // (J2-01) Sàn đo được cũng phải trả lại: nó là style inline nên nó thắng mọi luật USS, để lại thì toast của màn
+                // KHÁC cũng đậu theo chân của màn Lịch — tức lơ lửng giữa màn, không phải 8px mặc định.
+                _services.Bus.SetToastFloor(float.NaN);
             }
             _presenter.AbortDrag();
             _host?.SetSectionViewState(Id, CaptureViewState());

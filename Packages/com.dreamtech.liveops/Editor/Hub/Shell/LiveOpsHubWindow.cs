@@ -30,6 +30,13 @@ namespace DreamTech.LiveOps.Editor
         /// <summary>Nhịp hỏi trạng thái biên dịch khi note đang hiện — lịch trên view, tự dừng khi view rời panel.</summary>
         internal const long CompilationPollMilliseconds = 500;
 
+        /// <summary>
+        /// (J2-01) Khe giữa mép DƯỚI của toast và mép TRÊN của chân màn. 8px đúng bằng <c>bottom: 8px</c> mặc định của toast trong
+        /// <c>liveops-hub-feedback.uss</c>: màn không có chân thì toast đậu đúng chỗ cũ, có chân thì nó trượt lên nguyên khối — một con số,
+        /// hai tình huống. <c>internal</c> để test đọc đúng con số này thay vì chép lại 8.
+        /// </summary>
+        internal const float ToastFloorGapPixels = 8f;
+
         internal const float MinimumWidth = 620f;
         internal const float MinimumHeight = 420f;
 
@@ -516,6 +523,40 @@ namespace DreamTech.LiveOps.Editor
             VisualElement content = _hubRoot.Q(LiveOpsHubPaths.ShellElementNames.Content);
             if (content == null) return;
             content.EnableInClassList(className, enabled);
+        }
+
+        /// <summary>
+        /// (J2-01) Đậu toast trên chân màn đã ĐO ĐƯỢC. Màn gửi mép TRÊN của chân ở toạ độ world; đây đổi sang <c>bottom</c> theo đúng
+        /// hộp đang làm gốc toạ độ cho toast (<c>hub-content</c>), cộng một khe thủ để toast không dính sát chữ.
+        /// <para>
+        /// <c>float.NaN</c> trả toast về luật USS — dùng khi rời màn Lịch. Luật USS vẫn là SÀN TRƯỚC KHI ĐO: giữa lúc dựng màn và lần
+        /// <c>GeometryChangedEvent</c> đầu tiên chưa có số đo nào, và 64px của class vẫn tốt hơn 8px mặc định.
+        /// </para>
+        /// </summary>
+        private void OnToastFloorRequested(float worldTopY)
+        {
+            if (_toast == null || _hubRoot == null) return;
+            if (float.IsNaN(worldTopY))
+            {
+                _toast.style.bottom = StyleKeyword.Null; // style-inline-allowed: 6
+                return;
+            }
+            VisualElement content = _hubRoot.Q(LiveOpsHubPaths.ShellElementNames.Content);
+            if (content == null) return;
+            Rect contentBound = content.worldBound;
+            if (float.IsNaN(contentBound.yMax)) return;
+            float bottom = contentBound.yMax - worldTopY + ToastFloorGapPixels;
+            // (R07) KẸP HAI ĐẦU, và mỗi đầu chặn một kiểu số rác khác nhau — một đầu thôi là không đủ.
+            // Sàn: chân màn nằm DƯỚI đáy cột nội dung (worldTopY > yMax) cho ra số âm, toast sẽ tụt ra ngoài khung; về khe thủ.
+            // Trần: chân màn đo ra 0 — đúng cảnh "chưa bố cục xong", vì worldBound của phần tử chưa có hình học là (0,0,0,0) —
+            // cho ra yMax + 8, tức vài trăm pixel, và toast BAY LÊN TRÊN nóc cửa sổ. Phép kẹp dưới không chạm tới cảnh ấy, còn
+            // FooterTopWorldY chỉ chặn NaN chứ không chặn 0. Trần = chiều cao cột nội dung: toast không bao giờ đậu cao hơn
+            // chính cái hộp đang làm gốc toạ độ cho nó (hai bậc class cũ cũng bị chặn ở 96px, cùng tinh thần).
+            // Trần TRƯỚC rồi mới sàn: cột nội dung chưa có hình học thì height = 0, kẹp trần trước sẽ kéo bottom về 0 và
+            // sàn ngay sau đó trả nó về khe thủ 8px — đúng chỗ mặc định. Làm ngược thứ tự thì trần ghi đè mất phép kẹp sàn.
+            if (bottom > contentBound.height) bottom = contentBound.height;
+            if (bottom < ToastFloorGapPixels) bottom = ToastFloorGapPixels;
+            _toast.style.bottom = bottom; // style-inline-allowed: 6
         }
 
         /// <summary>Mục của palette: 6 màn + id luật của lần kiểm gần nhất ([FD §3.8]). Không bao giờ có lệnh.</summary>
@@ -1386,6 +1427,7 @@ namespace DreamTech.LiveOps.Editor
             bus.OutcomeRequested += OnOutcomeRequested;
             bus.OutcomeCleared += OnOutcomeCleared;
             bus.ContentClassRequested += OnContentClassRequested;
+            bus.ToastFloorRequested += OnToastFloorRequested;
             _isServicesSubscribed = true;
         }
 
@@ -1403,6 +1445,7 @@ namespace DreamTech.LiveOps.Editor
             bus.OutcomeRequested -= OnOutcomeRequested;
             bus.OutcomeCleared -= OnOutcomeCleared;
             bus.ContentClassRequested -= OnContentClassRequested;
+            bus.ToastFloorRequested -= OnToastFloorRequested;
             _isServicesSubscribed = false;
         }
 

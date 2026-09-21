@@ -33,6 +33,9 @@ namespace DreamTech.LiveOps.Editor
             table.Add(nameof(LiveOpsHubStrings.ValidationRecheckButton),
                 vietnamese: "Kiểm lại",
                 english: "Check again");
+            table.Add(nameof(LiveOpsHubStrings.ValidationStaleRecheckButton),
+                vietnamese: "Kiểm lại ngay",
+                english: "Check again now");
             table.Add(nameof(LiveOpsHubStrings.ValidationRecheckRunningButton),
                 vietnamese: "Đang kiểm",
                 english: "Checking");

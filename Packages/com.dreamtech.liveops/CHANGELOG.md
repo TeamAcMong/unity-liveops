@@ -64,6 +64,15 @@ không đổi: `Parse`, `LiveOpsSystem` và mọi port của 0.1.0 giữ nguyên
 - Hai bộ chữ đầy đủ **Tiếng Việt + English**, mặc định English; mọi chuỗi đọc qua catalog theo khoá.
 
 ### Changed
+- **`LiveOpsIdentifierLimits` (core): giới hạn độ dài của dữ liệu lịch, dạng hằng có tài liệu.** Trước bản này lõi chỉ
+  kiểm KÝ TỰ của định danh (`ValidateIdentifier`: không rỗng, không `#`, không xuống dòng) mà không có giới hạn ĐỘ DÀI
+  nào, nên "id dài tới đâu thì hub vẫn vẽ được" là câu không ai trả lời được bằng số. Nay: `MaxIdentifierLength = 64`
+  (id đợt, id loại, khoá mục, config key, khoá nhận quà, `systemId`), `MaxRecurringIdPrefixLength = 44` (suy ra:
+  64 − 20, chừa chỗ cho số thứ tự lần lặp), `MaxOccurrenceIndexLength = 20`, `MaxDisplayNameLength = 64`,
+  `MaxNoteLength = 160`, `MaxAssetNameLength = 64`, `MaxGrantIdLength = 143`. Xem README mục 4.5 cho cách suy ra từng
+  con số. **Không có hành vi nào đổi:** vượt giới hạn vẫn không ném, không mục nào bị bỏ, 12 luật Kiểm lịch giữ nguyên —
+  đây là hợp đồng soạn thảo và là mức mà bộ dữ liệu "xấu nhất" của cổng bố cục dựng theo.
+
 - **Mặc định của `ParseOrDefault` khi remote không dùng được (Q-9) — KHÔNG phải đổi hành vi so với 0.1.0.** Bản 0.1.0
   không có `ParseOrDefault` (chỉ có `Parse`, và `Parse` giữ nguyên chữ ký lẫn từng chuỗi `Problems`), nên game bump
   `0.1.0` → `0.2.0` không bị đổi gì. Dòng này là để đối chiếu với **các bản dựng trước của nhánh 0.2.0**: hằng
@@ -83,6 +92,16 @@ không đổi: `Parse`, `LiveOpsSystem` và mọi port của 0.1.0 giữ nguyên
   đổi §5 thành lộ trình D6.
 
 ### Notes
+- **Luật rút gọn có điều kiện nhận LOẠI Ô THỨ BA (J2-03, USER chốt 21/9/2026): nhãn thanh đợt trên trục.** Bề rộng một
+  thanh bằng khoảng thời gian của đợt nhân tỉ lệ zoom, nên không có bề rộng cửa sổ nào làm id vừa nhãn. Chỗ này trước
+  đây được tha bằng LỜI KHAI trong `UxLayoutAllowList`; nay nó chuyển sang `UxTruncationExemption`, nơi mỗi lượt kiểm
+  ĐO lại hai điều kiện — (a) thanh đang mang tooltip nói đúng id của chính nó, (b) dòng id trên tiêu đề inspector giữ
+  chuỗi đầy đủ và đang hiện. Gỡ tooltip của thanh là miễn trừ biến mất và phát hiện đỏ lại ngay lượt sau.
+  **Phạm vi khai rõ, không rộng hơn mục cũ:** mục này chỉ tha loại `textCut`. Khoảng dư mỏng (`textTight`, luật W9-25)
+  của nhãn thanh vẫn phải đi qua điều kiện (a) như mọi chỗ khác, nên 4 chỗ `textTight` thật của hai màn Lịch **vẫn đỏ và
+  vẫn nằm trong nợ W11-01/W11-06** — không bị nuốt mất. Điều kiện (a) cũng đo được trên ĐÚNG hình dạng mà sản phẩm dùng:
+  `LiveOpsTimelineGeometry.ShortenedIdentifier` ưu tiên giữ HẬU TỐ ("…mega-final-round-2"), và phép so riêng cho hình
+  dạng ấy đòi tooltip có một TỪ kết thúc đúng bằng mẩu còn lại — một tooltip nói về đợt KHÁC là đỏ.
 - **Đã kiểm: Unity 2022.3.62f2 và Unity 6000.6.0f1** — EditMode ở cả hai bản (số test khớp nhau), PlayMode trên dev
   project Unity 6, và ảnh cửa sổ hub chụp hai skin × hai bản. **6000.0 – 6000.5: chưa kiểm** — nhánh
   `#if UNITY_2023_2_OR_NEWER` / `UNITY_6000_0_OR_NEWER` mới chỉ chạy trên 6000.6.
@@ -93,6 +112,86 @@ không đổi: `Parse`, `LiveOpsSystem` và mọi port của 0.1.0 giữ nguyên
   "strip không ảnh hưởng game" chờ bản demo IL2CPP của R-28.
 
 ### Chưa có ở bản này
+- **Nợ bố cục trên dữ liệu dài — 12 màn, 739 chỗ người dùng không dùng được (đo 21/9/2026, Unity 6000.6.0f1).** USER chốt
+  ngày 21/9/2026: sửa lỗi mắt thấy rồi phát hành, phần bố cục này để đợt W11. Không ngưỡng nào bị nới, không câu assert
+  nào đổi, và danh sách tha SUÔNG còn ngắn đi một dòng — 12 ca vẫn là 12 ca, chỉ chuyển sang trạng thái HOÃN CÓ TÊN trong
+  `UxLayoutDeferralList`, gỡ một dòng là ca chạy lại đầy đủ ngay lượt sau.
+
+  | Mã | Màn | Chỗ | Loại lỗi | Cỡ còn hoãn |
+  |---|---|---|---|---|
+  | W11-01 | `calendar-worst-data` | 178 | chữ bị cắt 98 · con tràn cha 70 · anh em chồng nhau 8 · chữ chật 2 | cả 7 |
+  | W11-02 | `event-types-worst-data` | 157 | con tràn cha 79 · chữ bị cắt 78 | cả 7 |
+  | W11-03 | `recurring-worst-data` | 145 | chữ bị cắt 120 · con tràn cha 25 | cả 7 |
+  | W11-04 | `overview-worst-data` | 98 | chữ bị cắt 56 · con tràn cha 42 | cả 7 |
+  | W11-05 | `export-worst-data` | 56 | chữ bị cắt 56 | cả 7 |
+  | W11-06 | `calendar-multi-selection-worst-data` | 44 | chữ bị cắt 28 · con tràn cha 14 · chữ chật 2 | cả 7 |
+  | W11-07 | `calendar-medium-drawer-worst-data` | 20 | chữ bị cắt 10 · con tràn cha 8 · anh em chồng nhau 2 | cả 7 |
+  | W11-08 | `add-event-popover-worst-data` | 16 | chữ bị cắt 4 · con tràn cha 4 · anh em chồng nhau 4 · cuộn ngang 4 | cả 7 |
+  | W11-09 | `calendar-inspector-fielderror` | 16 | chữ bị cắt 8 · con tràn cha 8 | 700x560 · 820x560 |
+  | W11-10 | `calendar-empty` | 5 | chữ bị cắt 5 | 1024x700 |
+  | W11-11 | `export-no-baseline` | 3 | chữ bị cắt 3 (chỉ bản tiếng Anh) | 1280x760 · 1440x900 · 1920x1040 |
+  | W11-12 | `overview-empty` | 1 | chữ bị cắt 1 | 700x560 |
+
+  Bốn mục **W11-09 · W11-10 · W11-11 · W11-12 KHÔNG phải nợ "dữ liệu dài"**: chúng đứng trên dữ liệu đẹp hoặc dữ liệu
+  RỖNG, nên số của chúng không nhúc nhích khi bộ dữ liệu xấu nhất được dựng lại theo giới hạn. Bốn mục ấy còn **hoãn
+  THEO CỠ chứ không hoãn cả màn** (cột cuối của bảng): chúng chỉ đỏ ở 2/7, 1/7, 3/7 và 1/7 cỡ, nên 46 cặp cỡ × ngôn ngữ
+  đang SẠCH của bốn màn ấy vẫn được kiểm đầy đủ mỗi lượt. Ba trong bốn còn là **MỘT nguyên nhân** mỗi mục, đã truy được
+  tới dòng: nhãn `UTC` của ô ngày giờ tràn hàng 7px (W11-09) · câu "not published" cần 120px mà ô có 115px (W11-11) ·
+  phụ đề `13/9 08:47 → 20/9 08:47 UTC` cần 142px mà ô có 111px (W11-12). Cả ba sửa RẺ, nhưng chạm file sản phẩm ngoài
+  phạm vi gói G-W11-LIMITS nên đợt W11 nhận trước tiên.
+   **(cổng đợt W11, 21/9/2026) Cổng đã cân nhắc sửa luôn ba mục ấy và QUYẾT ĐỊNH GIỮ NỢ.** Đo lại trên bằng chứng
+   `plan/w11/measure-uxgate-6000.xml` cho thấy không mục nào là một phép nới cơ học: hàng ô ngày giờ cần 161px trong
+   154px (88 ô ngày + 4 + 44 ô giờ + 4 + 21 nhãn `UTC`) và MỌI phần tử trong hàng đều `flex-shrink: 0`, nên đóng 7px
+   ấy là chọn xem CÁI GÌ nhường chỗ — ô ngày co lại, hai lề 4px hẹp đi, hay cả hàng xuống dòng; câu `not published` là
+   giá trị metric 18px đậm nên nới 5px là đổi đệm của MỌI thẻ metric ở cả Tổng quan lẫn Xuất JSON; phụ đề Tổng quan
+   thiếu 31px thì không có cách nào ngoài cho xuống dòng hoặc ẩn ở bậc `--narrow`. Cả ba là quyết định THIẾT KẾ cần một
+   lượt nhìn bằng mắt, mà cổng đợt thì không có bước nhìn — đúng lý do user đã duyệt hoãn chúng. Cổng ghi lại số đo
+   chính xác ở đây để đợt W11 vào việc ngay, không phải đo lại.
+
+  Tám mục "dữ liệu dài" đổi số sau khi siết fixture: tổng **719 → 739**, do `event-types` +9, `export` +6, `recurring`
+  +5. Màn Lịch và màn chọn nhiều đợt **KHÔNG đổi** (178 và 44, đúng bằng nền `G-W10-GATE`). Tăng là ĐÚNG hướng — bản
+  trước đo một ngày tồi tệ NHẸ hơn dữ liệu hợp lệ thật.
+
+  **Con số của tám mục hoãn CẢ màn là ẢNH CHỤP ngày 21/9/2026, không được đo lại mỗi lượt.** Mục hoãn cả màn dừng test
+  bằng `Assert.Ignore` TRƯỚC khi quét, nên `FindingCount` chỉ còn câu "phải lớn hơn 0" gác. Bảng trên ra từ một lượt đo
+  cố ý gỡ hết danh sách hoãn (bằng chứng: `plan/w11/measure-uxgate-6000.xml`). Bốn mục hoãn theo cỡ thì phần cỡ không
+  hoãn vẫn tự gác mỗi lượt.
+- **W11-13 — nhiều màn của hub bỏ trống phần lớn cửa sổ ở cỡ rộng (J2-05).** Các màn xếp nội dung trong một cột bề rộng
+  cố định và không giãn theo chiều cao, nên cửa sổ càng rộng thì phần trống càng lớn. Đo bằng mắt trên ảnh bằng chứng:
+  màn **Kiểm lịch** và màn **Xuất JSON** bỏ trống gần nửa BỀ NGANG ở 1440x900; màn **Loại event** chỉ dùng khoảng 1/4
+  CHIỀU CAO ở 1280x760 — tức ngay ở cỡ THIẾT KẾ, không phải chỉ ở cỡ rộng bất thường (ảnh
+  `w11-event-types-worst-data-1280x760-dark.png`). Hoãn sang đợt W11 vì sửa là đổi lưới của các màn ấy (cho cột giãn,
+  chia hai cột ở bậc rộng, cho bảng ăn hết chiều cao), không phải một bản vá rẻ. **Cổng bố cục hiện KHÔNG bắt được lỗi
+  này**: máy chạy cổng kẹp 1440x900 còn 1440x881, và luật `notStretched` chỉ hỏi "có giãn không", không hỏi "giãn tới
+  đâu" — nên đây là nợ nhìn bằng MẮT, không có con số máy đo.
+- **W11-14 — `MaxAssetNameLength` chưa được nối vào ma trận kiểm bố cục.** Sáu trong bảy giới hạn đã được
+  `LiveOpsIdentifierLimitsTests` đo: bốn bằng chuỗi fixture dài ĐÚNG mức mà ma trận 12 màn vẽ ra (định danh, tiền tố
+  luật lặp, tên hiển thị, ghi chú) và hai bằng phép suy (bề rộng chữ của `long.MinValue`, phép ghép grant id). Giới hạn
+  thứ bảy (tên asset lịch) mới có hằng
+  `LiveOpsWorstCaseSample.LongAssetName` + ca đo độ dài; chưa màn nào đứng trên một tên asset 64 ký tự, nên chip tên
+  lịch của KHUNG chưa được nghiệm thu ở mức ấy. Lý do hoãn: tên asset do `LiveOpsHubTestServices.CreateMemoryAsset` đặt
+  — file dùng chung cho MỌI màn của ma trận, nên đổi nó là đổi số phát hiện của cả những màn đang xanh và nằm ngoài 12
+  phiếu USER đã duyệt, tức tự mở phiếu thứ 13.
+- **W11-15 — bộ ĐI DẠO chọn thanh "bị bỏ" theo khoảng cách hình học thay vì theo cờ của model (J2-04).** Bộ đi dạo dev
+  dò nhãn rồi lấy thanh GẦN NHẤT theo hình học, nên ở cửa sổ 950 nó trúng `lava-quest-2026-09a` (câu ngắn) thay vì
+  `entry-hunt-0916-bonus` — 1/3 cỡ của cảnh (b) lượt W10 nhìn nhầm thanh. **Cổng MÁY không mắc lỗi này**: ca
+  `Calendar_TimelineHint_NotCut_WithDroppedEntrySelected` chọn thanh theo KHOÁ và đo đúng cảnh xấu nhất ở 14 cặp cỡ ×
+  ngôn ngữ (có 950x700), 0 chỗ không dùng được. Nợ nằm ở `Assets/UxJourney/Editor/UxJourneysW10.cs`, chỉ có trên
+  worktree `wt/G-UX-JOURNEY` — ngoài package. Chủ: bước Journey của đợt W11.
+- **W11-16 — chưa có cổng máy chặn việc đặt một nút lên mặt phẳng nền `#A5A5A5` ở skin sáng.** Token viền nút
+  `--liveops-hub-color-button-border` (`#6B6B6B`) đạt bậc hình khối 3:1 trên hai nền đã khai — nền trang `#C8C8C8`
+  (3,18:1) và nền nút `#E4E4E4` (4,19:1) — nhưng trên nền thứ ba `--unity-colors-default-background` `#A5A5A5` nó chỉ
+  **2,16:1**, DƯỚI bậc. Chín mặt phẳng tô nền ấy phải canh (rail · chip · goto · json-overview · chip làn trục · chip
+  không đặt được · minimap · chip token · dấu "chưa đo" của gutter). **0 chỗ vi phạm hôm nay** và luật đã thành văn
+  trong chú thích token, nhưng luật ấy là LỜI: một ca quét cần dựng cả sáu màn + mọi popover trong một root skin sáng,
+  tức một khuôn test mới chứ không phải một assert. Đợt xử lý: W11.
+- **W11-17 — câu chân trang của trạng thái "kiểm rồi sửa" bị cắt ở cỡ hẹp bản tiếng Anh.** Màn `validation-stale` đo ra
+  **1 chỗ / 14 cặp cỡ × ngôn ngữ**: ở 700x560 tiếng Anh, `Calendar changed at 08:46:50 UTC, after …` cần 420px mà ô chỉ
+  có 415px — hụt **5px**. Banner "kết quả cũ" của J2-02 thì SẠCH ở cả 14 cặp, nên đây là nợ CÓ SẴN của chân trang chứ
+  không do bản vá J2-02 sinh ra. Sửa chạm `liveops-hub-shell.uss` + `LiveOpsHubStatusBarModel`, hai file nằm ngoài
+  quyền ghi của gói G-W11-EYE. Đợt xử lý: W11.
+- **Chưa có luật kiểm cho giới hạn độ dài.** `LiveOpsIdentifierLimits` là hằng có tài liệu; màn Kiểm lịch vẫn đúng 12
+  luật và không cảnh báo khi một id vượt 64 ký tự.
 - **Màn P2 của hub** (Trực tiếp, Dữ liệu người chơi) và **màn P3** (Mô phỏng): chưa đăng ký, rail và ⌘7–9 **ẩn** chứ
   không hiện dạng khoá.
 - **Mốc thưởng / battle pass** là module 0.3.0; **backend** (định danh người chơi, cloud save, điểm

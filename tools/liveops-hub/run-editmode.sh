@@ -180,6 +180,57 @@ fi
 # (trước/sau đợt) không ghi đè nhau. Test đọc biến này (UxHubWindowFixture.DiagnosticsLabelVariable).
 export LIVEOPS_UX_GATE_LABEL=${LIVEOPS_UX_GATE_LABEL:-$(package_name)}
 
+# ----------------------------------------------------------------------------------------------------------------
+# (W11) Lượt có test UI phải chạy MỘT MÌNH — đo được, không phải phỏng đoán.
+#
+# Test UI/UxGate gửi sự kiện chuột và phím THẬT vào một cửa sổ Editor thật. Khi có một lượt Unity batchmode KHÁC
+# cùng mở cửa sổ, focus bàn phím không tới được cửa sổ đích, và MỘT ca bất kỳ trong họ phụ thuộc focus sẽ đỏ —
+# mỗi lượt một ca khác nhau, nên nhìn từng lượt thì tưởng là lỗi rải rác.
+#
+# Thí nghiệm của cổng W11 (plan/w11/flaky/), cùng MỘT cây nguồn, khác nhau đúng một biến là số lượt Unity:
+#   1 lượt Unity   — 4 lượt --category all (6000.6 ×2, 2022.3 ×2): 2 lượt SẠCH TUYỆT ĐỐI, 2 lượt 1 ca đỏ
+#   2 lượt song song — 6 lượt --category all: 6/6 lượt đỏ, 9 ca đỏ, và CẢ CHÍN đều là ca chờ focus
+#     (mở popover · cửa sổ đích đã đóng · rail nhận focus phím · ô nhập palette nhận focus · cửa sổ lấy lại
+#      focus · timeline giữ focus · tiền đề làn không dựng được).
+#
+# Vì sao KHÔNG chữa bằng cách chờ lâu hơn — đây là phương án đã bị SỐ ĐO bác bỏ, đừng thử lại:
+# `HubShortcutTests.CtrlK_OpensPalette_FocusesQuery` đã chờ 60 khung VÀ 5 giây rồi vẫn đỏ ở vòng 2. Không thể
+# chờ được một cái focus mà tiến trình khác đang giữ; chờ lâu hơn chỉ làm lượt chạy dài ra.
+#
+# Hai lớp chặn, vì mỗi lớp bịt một khe khác nhau:
+#   (a) LIVEOPS_UNITY_SLOTS=1 — khoá slot chỉ cho MỘT lượt của công cụ chạy. Bịt khe "hai lượt cùng xin slot".
+#   (b) chờ tới khi không còn lượt Unity batchmode nào — bịt khe một lượt đã CHẠY RỒI (bằng khoá khác, hoặc do
+#       ai đó gọi thẳng Unity). Cùng phép chờ mà capture.sh đã dùng để giữ EditorPrefs UserSkin.
+# Unity GUI của user KHÔNG bị chờ (nó không chạy -batchmode): chờ nó là chờ mãi.
+# Lượt category Logic chạy -nographics, không có cửa sổ, không có focus để mất — không phải chờ.
+readonly EXCLUSIVE_UNITY_POLL_SECONDS=10
+readonly EXCLUSIVE_UNITY_TIMEOUT_SECONDS=1800
+needs_exclusive_unity() {
+  [ "$platform" = EditMode ] || return 1
+  case "$category" in
+    UI|UxGate|all) return 0;;
+    *) return 1;;
+  esac
+}
+wait_for_exclusive_unity() {
+  local waited=0 running
+  while true; do
+    running=$(pgrep -f "Unity.app/Contents/MacOS/Unity -batchmode" | wc -l | tr -d ' ')
+    [ "${running:-0}" = 0 ] && return 0
+    if [ "$waited" -ge "$EXCLUSIVE_UNITY_TIMEOUT_SECONDS" ]; then
+      echo "run-editmode.sh: vẫn còn $running lượt Unity batchmode sau ${waited}s — chạy tiếp, ca chờ focus có thể đỏ oan" >&2
+      return 0
+    fi
+    [ "$waited" = 0 ] && echo "run-editmode.sh: lượt có test UI — chờ $running lượt Unity batchmode khác thoát (tối đa ${EXCLUSIVE_UNITY_TIMEOUT_SECONDS}s)" >&2
+    sleep "$EXCLUSIVE_UNITY_POLL_SECONDS"
+    waited=$((waited + EXCLUSIVE_UNITY_POLL_SECONDS))
+  done
+}
+if needs_exclusive_unity; then
+  export LIVEOPS_UNITY_SLOTS=1
+  wait_for_exclusive_unity
+fi
+
 echo "run-editmode.sh: $platform $unity_label category=$category filter='${filter}' project=$project"
 echo "   results: $results"
 echo "   log:     $log_file"
