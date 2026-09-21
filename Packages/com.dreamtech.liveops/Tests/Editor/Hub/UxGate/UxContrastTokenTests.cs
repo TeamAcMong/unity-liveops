@@ -187,6 +187,12 @@ namespace DreamTech.LiveOps.Editor.Tests
                 "dấu chú giải 'đợt lặp'"),
             new UxColorTokenRule("--liveops-hub-legend-ended", ShapeContrastRatio, UxColorTokenBackdrop.WindowBackground,
                 "dấu chú giải 'đã khép'"),
+            // (W10-09) Viền swatch của hàng "loại chưa khai báo". Nhóm hình khối vì nó chỉ xuất hiện trong khai báo
+            // `border-color`, và nó là thứ DUY NHẤT vẽ ra ô màu của một loại hub chưa biết màu — bỏ viền đi thì ô trống
+            // không còn đọc ra là một ô. Bảng này đo ở opacity 1; phép đo SAU khi nhân opacity 0,70 của hàng nằm ở
+            // UxComposedTokenContrastTests.Sites, vì chính phép nhân ấy mới là chỗ phiếu W10-09 trượt.
+            new UxColorTokenRule("--liveops-hub-color-undeclared-border", ShapeContrastRatio,
+                UxColorTokenBackdrop.WindowBackground, "viền swatch 'loại chưa khai báo' màn Loại event"),
         };
 
         /// <summary>

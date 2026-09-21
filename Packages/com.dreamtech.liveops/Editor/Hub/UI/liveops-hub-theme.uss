@@ -34,6 +34,12 @@
        hơn, ở đó chỉ còn 4,37:1. #AAAAAA đo ra 4,75:1 trên nền thẻ và 5,05:1 trên nền cửa sổ — vẫn là xám trung tính
        cùng tông, chỉ nâng đúng ba nấc cần để qua bậc chữ thường. */
     --liveops-hub-color-quiet: #AAAAAA;
+    /* (W10-09) Viền của swatch "loại chưa khai báo". Vì sao KHÔNG dùng lại --liveops-hub-color-quiet: swatch ấy nằm trong
+       một ô mang .liveops-hub-event-types-row--undeclared (opacity 0,7), và opacity của tổ tiên NHÂN xuống — viền là hình
+       khối nên phải đạt bậc 3:1 SAU khi nhân. Ở skin tối quiet × 0,7 trên nền cửa sổ #383838 hợp thành #888888 = 3,30:1,
+       vẫn đạt, nên giá trị ở đây bằng đúng quiet; token vẫn tách riêng để lần sau ai chỉnh quiet (màu CHỮ, bậc 4,5:1)
+       không vô tình kéo viền hình khối xuống dưới 3:1 mà không ai báo. Skin sáng phải lệch hẳn — xem khối skin sáng. */
+    --liveops-hub-color-undeclared-border: #AAAAAA;
     /* (W10-06) Màu CHỮ nền tảng của hub. Vì sao thành token thay vì dùng thẳng --unity-colors-default-text: chữ phụ khắp
        hub (caption thẻ, dòng chân thẻ, dòng meta status bar) là chữ nền tảng NHÂN opacity 0,7 của khối cha, và
        #D2D2D2 của Unity × 0,7 hợp thành ra #A5A5A5 trên nền thẻ #3C3C3C — 4,48:1, thiếu 0,02 so với bậc chữ thường.
@@ -107,6 +113,12 @@
     /* Quiet Light trên cửa sổ #C8C8C8; trên rail #A5A5A5 shell dùng --unity-colors-default-text × 0,6 riêng nếu cần.
        #555555 cũ 4,46:1 — thiếu bậc chữ thường; #4F4F4F đo ra 4,90:1. */
     --liveops-hub-color-quiet: #4F4F4F;
+    /* (W10-09) Skin sáng là chỗ TRƯỢT mà phiếu W10-09 đo được: quiet #4F4F4F × 0,7 trên cửa sổ #C8C8C8 hợp thành #737373
+       = 2,82:1, dưới bậc hình khối 3:1. Không chữa bằng cách hạ opacity của hàng (0,7 là mức mờ của thiết kế Hình 10b cho
+       "hàng chưa khai báo") và không chữa bằng opacity: 1 trên con (opacity của tổ tiên nhân xuống, con không gỡ được):
+       chữa bằng một màu viền TỐI HƠN đủ để sống sót phép nhân. #444444 × 0,7 hợp thành #6C6C6C = 3,16:1 — vẫn xám trung
+       tính cùng tông, chỉ tối hơn ba nấc so với quiet. */
+    --liveops-hub-color-undeclared-border: #444444;
     /* (W10-03) #1D5087 cũ đạt bậc chữ trên nền CỬA SỔ #C8C8C8 nhưng chữ bấm được của chip asset nằm trên nền CHIP
        #A5A5A5 (--unity-colors-default-background của skin sáng), ở đó chỉ 3,34:1. #143A60 đo ra 4,73:1 trên nền chip
        và 6,96:1 trên nền cửa sổ. Giữ nguyên tông lam của bảng màu, chỉ hạ độ sáng đúng mức cần; focus đi cùng link
