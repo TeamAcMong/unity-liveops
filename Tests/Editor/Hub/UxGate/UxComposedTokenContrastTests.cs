@@ -92,20 +92,12 @@ namespace DreamTech.LiveOps.Editor.Tests
     public sealed class UxComposedTokenContrastTests
     {
         /// <summary>
-        /// Bậc WCAG 2.1 AA cho chữ thường.
-        /// <para>
-        /// NỢ GỘP (F5 của soát 21/9): đây là lần khai thứ HAI của cùng một bậc trong bộ cổng —
-        /// <c>UxContrastTokenTests</c> cũng giữ một literal 4,5. Gói <c>G-W10-MATRIX</c> (chưa gộp) gom bậc ấy về một
-        /// hằng dùng chung <c>UxComposedContrast.TextContrastRatio</c>; lượt GỘP phải cho hằng dưới đây đọc hằng chung ấy
-        /// thay vì giữ literal riêng. Vì sao chưa làm ngay ở gói này: hằng chung chỉ tồn tại trên nhánh
-        /// <c>wt/G-W10-MATRIX</c>, tham chiếu sang là không compile được.
-        /// </para>
-        /// <para>
-        /// Mọi dòng của <see cref="Sites"/> đều là dòng CHỮ nên chỉ dùng bậc này. Nửa "chữ to và hình khối 3:1" của chốt
-        /// USER 19/9 CHƯA có phép đo hợp thành nào ở đây — xem chú thích của <see cref="Sites"/>.
-        /// </para>
+        /// Bậc WCAG 2.1 AA cho chữ thường — đọc hằng dùng chung, KHÔNG khai lại literal 4,5 (nợ F5 của soát 21/9, trả ở
+        /// cổng đợt vét W10 khi <c>G-W10-MATRIX</c> đã vào cây). Ba chỗ của bộ cổng (bảng token, bảng chỗ dùng hợp thành,
+        /// phép đo trên cây thật) nay cùng đọc một nguồn, nên không thể có hai con số về cùng một bậc.
         /// </summary>
-        private const float TextContrastRatio = 4.5f;
+        private const float TextContrastRatio = UxComposedContrast.TextContrastRatio;
+
 
         /// <summary>Số khung chờ cho lượt style của root mới gắn vào panel.</summary>
         private const int StyleResolveFrames = 4;

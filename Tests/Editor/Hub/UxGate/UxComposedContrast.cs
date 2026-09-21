@@ -21,6 +21,13 @@ namespace DreamTech.LiveOps.Editor.Tests
         internal const float TextContrastRatio = 4.5f;
 
         /// <summary>
+        /// Bậc WCAG 2.1 AA cho chữ to và cho thành phần đồ hoạ / thành phần giao diện (viền, ô màu, đường kẻ) — nửa còn lại
+        /// của chốt USER 19/9/2026. Ở đây cùng với bậc chữ vì từ cổng đợt vét W10 cả hai bậc đều có chỗ dùng trong phép đo
+        /// màu ĐÃ HỢP THÀNH (phiếu W10-09: viền swatch loại chưa khai báo nằm trong ô mờ 0,7).
+        /// </summary>
+        internal const float ShapeContrastRatio = 3f;
+
+        /// <summary>
         /// Mọi chữ ĐANG HIỆN trong <paramref name="root"/> phải đạt bậc chữ sau khi nhân opacity của tổ tiên. Phần tử không
         /// hoạt động được bỏ qua theo WCAG 2.1 §1.4.3 ("thành phần giao diện không hoạt động" không có yêu cầu tương phản);
         /// nơi gọi có trách nhiệm khẳng định riêng rằng thứ nó quan tâm KHÔNG nằm trong diện miễn trừ đó.
