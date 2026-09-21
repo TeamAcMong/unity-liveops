@@ -32,6 +32,13 @@ namespace UxJourney
 
         private const string W11RuleTokenClassName = "liveops-hub-rule-token";
 
+        /// <summary>
+        /// (J3-04) Mục menu chuột phải dùng để sinh toast mà KHÔNG chọn thanh. Chép chuỗi vi của catalog
+        /// (<c>CalendarDepthMenuCopyId</c>) vì bộ đi dạo không tham chiếu được assembly của package; CalendarContextMenu dò
+        /// theo Contains nên một lần đổi câu sẽ ghi thẳng ra notes.txt ("menu … không có mục bật chứa …") chứ không im lặng.
+        /// </summary>
+        private const string W11CopyIdMenuItemText = "Copy id";
+
         static partial void RegisterW11(Dictionary<string, Func<UxRunner, IEnumerator>> registry)
         {
             registry["W11a"] = W11aToastVersusLegendWithDrawerOpen;
@@ -121,18 +128,20 @@ namespace UxJourney
                 yield return new WaitFrames(8);
                 yield return UxInput.PressKey(Hub, KeyCode.Escape, EventModifiers.None, (char)27);
                 yield return new WaitFrames(8);
+                // (J3-04) Toast thứ hai KHÔNG được sinh bằng một cú KÉO nữa. Lượt trước kéo lại đúng thanh ấy, mà kéo là CHỌN,
+                // nên ngăn kéo vừa đóng bằng Esc lại mở ra ngay và cảnh "ngăn kéo ĐÓNG" chưa lần nào dựng được
+                // (`ngăn kéo hiện=True` ở cả hai cỡ, W11-JOURNEY §1). Đường thay thế là mục menu chuột phải "Copy id":
+                // nó sinh toast thật qua đúng CalendarCommandHandler mà người dùng đi, và nó KHÔNG đụng tới ô chọn —
+                // menu dựng từ hit-test rồi kích hoạt theo id, không gửi một cú bấm nào lên thanh.
                 VisualElement barAgain = Bar(LavaMid);
                 if (barAgain != null)
                 {
-                    Vector2 secondStart = barAgain.worldBound.center;
-                    yield return UxInput.WaitRealCursorAway(Hub);
-                    yield return UxInput.Drag(Hub, secondStart, secondStart + new Vector2(60, 0), 10, EventModifiers.None, EventModifiers.None, null);
+                    CalendarContextMenu(runner, "thanh " + LavaMid + " (sinh toast không chọn thanh)",
+                        barAgain.worldBound.center, W11CopyIdMenuItemText);
                     yield return new WaitFrames(12);
                     yield return Snap(runner, "W11a-" + size + "-4-toast-ngan-keo-dong", "đối chứng: cùng toast khi ngăn kéo ĐÓNG");
                     ReportW11Drawer(runner, "W11a-" + size + "-4-toast-ngan-keo-dong");
                     ReportToastLegendHint(runner, "W11a-" + size + "-4-toast-ngan-keo-dong");
-                    yield return Undo(runner);
-                    yield return new WaitFrames(8);
                 }
             }
             DrainModalPlans(runner);
