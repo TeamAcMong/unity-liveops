@@ -1111,3 +1111,11 @@ file	tools/liveops-hub/ownership.tsv	G-FIX-W10-9	khối đăng ký ở trên
 package	G-FIX-W10-10	W10.5-FIXA	S	G-FIX-W10-9
 file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/UxGate/UxContrastEvidence.cs	G-FIX-W10-10	băm thêm LiveOpsHubTestServices.cs vào dấu nguồn
 file	tools/liveops-hub/ownership.tsv	G-FIX-W10-10	khối đăng ký ở trên
+#
+# G-FIX-W10-11 — chú thích của G-FIX-W10-5 nói SAI sự thật sau khi G-FIX-W10-9 hạ quiet skin sáng: nó viết viền
+#   "#444444 chỉ tối hơn ba nấc so với quiet", mà quiet nay là #393939, tức viền SÁNG hơn quiet. Chú thích sai là lỗi
+#   thật trong kho này (chú thích phải nói VÌ SAO, và phải đúng), nên sửa chứ không để lại.
+package	G-FIX-W10-11	W10.5-FIXB	S	G-FIX-W10-10
+file	Packages/com.dreamtech.liveops/Editor/Hub/UI/liveops-hub-theme.uss	G-FIX-W10-11	chú thích token viền: số đo hôm nay + vì sao vẫn tách token
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/EventTypes/EventTypesSection.uss	G-FIX-W10-11	như trên, phía chỗ dùng
+file	tools/liveops-hub/ownership.tsv	G-FIX-W10-11	khối đăng ký ở trên
