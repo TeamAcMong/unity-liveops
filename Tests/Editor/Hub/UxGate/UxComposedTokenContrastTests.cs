@@ -31,8 +31,8 @@ namespace DreamTech.LiveOps.Editor.Tests
     }
 
     /// <summary>
-    /// Một CHỖ DÙNG có thật của một token màu chữ: token nào, nằm trong khối có opacity bao nhiêu, trên nền nào, phải đạt bậc
-    /// nào. Khác bảng token của <see cref="UxContrastTokenTests"/> ở đúng một điểm và đó là điểm sinh ra phiếu W10-03/W10-06:
+    /// Một CHỖ DÙNG có thật của một token màu (chữ, hoặc nét vẽ từ W10-09): token nào, nằm trong khối có opacity bao nhiêu,
+    /// trên nền nào, phải đạt bậc nào. Khác bảng token của <see cref="UxContrastTokenTests"/> ở đúng một điểm và đó là điểm sinh ra phiếu W10-03/W10-06:
     /// bảng kia đo màu TRƯỚC khi nhân opacity và luôn đo trên nền CỬA SỔ, nên một token xanh ở bảng kia vẫn có thể là chữ
     /// không đọc nổi ở màn thật.
     /// </summary>
@@ -56,7 +56,7 @@ namespace DreamTech.LiveOps.Editor.Tests
         /// <summary>Nền đục gần nhất phía sau chỗ chữ.</summary>
         public UxComposedBackdrop Backdrop { get; }
 
-        /// <summary>Bậc phải đạt: 4,5:1 cho chữ thường (chốt của USER 19/9 theo WCAG 2.1).</summary>
+        /// <summary>Bậc phải đạt theo chốt của USER 19/9 (WCAG 2.1): 4,5:1 cho chữ thường, 3:1 cho hình khối.</summary>
         public float MinimumRatio { get; }
 
         /// <summary>Chỗ ấy ở đâu trong hub — để câu đỏ chỉ được tay vào màn phải mở ra xem.</summary>
@@ -97,6 +97,12 @@ namespace DreamTech.LiveOps.Editor.Tests
         /// phép đo trên cây thật) nay cùng đọc một nguồn, nên không thể có hai con số về cùng một bậc.
         /// </summary>
         private const float TextContrastRatio = UxComposedContrast.TextContrastRatio;
+
+        /// <summary>
+        /// Bậc WCAG 2.1 AA cho hình khối — nửa còn lại của chốt USER 19/9, từ phiếu W10-09 đã có chỗ dùng ở
+        /// <see cref="Sites"/> (viền swatch "loại chưa khai báo" nằm trong ô mờ 0,70).
+        /// </summary>
+        private const float ShapeContrastRatio = UxComposedContrast.ShapeContrastRatio;
 
 
         /// <summary>Số khung chờ cho lượt style của root mới gắn vào panel.</summary>
@@ -148,10 +154,10 @@ namespace DreamTech.LiveOps.Editor.Tests
         /// 0,574, và ở đó chữ nền tảng chỉ còn 3,83:1 (skin tối) / 4,10:1 (skin sáng). Trạng thái ấy KHÔNG có trong 8
         /// cảnh chụp nên chưa lượt đo nào chạm tới; nó là phiếu <b>W10-07</b> (biến thể "dữ liệu xấu nhất") của
         /// <c>G-W10-MATRIX</c>, không phải việc đã xong;</item>
-        /// <item>chỉ phủ bậc CHỮ 4,5:1. Bậc "chữ to và hình khối 3:1" của chốt USER 19/9 chưa có phép đo hợp thành nào,
-        /// và đã có ít nhất một chỗ trượt: viền swatch <c>.liveops-hub-event-types-swatch--undeclared</c> nằm trong cell
-        /// mờ 0,7 của màn Loại event, skin SÁNG đo 2,82:1 (skin tối 3,30:1 — đạt). File ấy thuộc quyền ghi
-        /// <c>G-W10-FIELD</c> nên gói này KHÔNG sửa; đã ghi thành phiếu.</item>
+        /// <item>bậc "chữ to và hình khối 3:1" nay CÓ một dòng: viền swatch
+        /// <c>.liveops-hub-event-types-swatch--undeclared</c> nằm trong cell mờ 0,70 của màn Loại event. Trước bản vá
+        /// W10-09 viền ấy lấy màu quiet và skin SÁNG chỉ đạt 2,82:1; token riêng đo ra 3,16:1. Vẫn chưa phải phép quét
+        /// toàn bộ nét vẽ của hub — mới là một chỗ trượt đã biết, đo được, và đã vá.</item>
         /// </list>
         /// </para>
         /// </summary>
@@ -178,6 +184,10 @@ namespace DreamTech.LiveOps.Editor.Tests
                 "cùng dòng lỗi ấy khi nó nằm trong một thẻ thay vì thẳng trên nền cửa sổ"),
             new UxComposedSite("--liveops-hub-color-link", 1f, UxComposedBackdrop.ChipBackground, TextContrastRatio,
                 "chữ bấm được của chip asset ở header (tên calendar đang mở) — 8 dòng của W10-03"),
+            // (W10-09) Dòng HÌNH KHỐI đầu tiên của bảng: viền swatch "loại chưa khai báo" nằm trong ô mang opacity 0,70.
+            // Trước bản vá viền ấy lấy màu quiet và skin sáng chỉ đạt 2,82:1; token riêng #444444 đo ra 3,16:1.
+            new UxComposedSite("--liveops-hub-color-undeclared-border", 0.70f, UxComposedBackdrop.WindowBackground,
+                ShapeContrastRatio, "viền swatch 'loại chưa khai báo' màn Loại event — phiếu W10-09"),
         };
 
         private TimelineTestPanel _panel;
