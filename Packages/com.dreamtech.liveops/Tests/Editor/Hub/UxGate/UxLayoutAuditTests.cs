@@ -73,6 +73,13 @@ namespace DreamTech.LiveOps.Editor.Tests
         private const int RulerZoomOutNotches = 6;
 
         /// <summary>
+        /// (W10-10) Trần khung chờ thẻ hover tắt hẳn trước lượt quét. <see cref="UxHubWindowFixture.HideHoverCards"/> gỡ class
+        /// ngay trong lượt gọi nên bình thường vòng chờ thoát ở khung đầu; trần này chỉ để một thẻ "cứng đầu" thành ca ĐỎ có
+        /// tên màn, chứ không thành một vòng chờ vô hạn.
+        /// </summary>
+        private const int HoverCardCloseFrames = 30;
+
+        /// <summary>
         /// Tập mã phiếu hoãn ĐƯỢC DUYỆT của cổng W8-UX. USER chốt ngày 18/9/2026: chỉ "chỗ không dùng được" của các màn
         /// NGOÀI đợt (Xuất JSON, Tổng quan, Loại event, Kiểm lịch, khung) mới được đánh dấu hoãn — đúng năm phiếu này.
         /// Dãy số không liền vì giữ nguyên mã của bảng kế hoạch: W9-02 và W9-07…W9-15 là màn TRONG đợt, đã bị rút khỏi
@@ -804,6 +811,7 @@ namespace DreamTech.LiveOps.Editor.Tests
                     if (_fixture.ClampNote.Length > 0 && !clampedSizes.Contains(_fixture.ClampNote)) clampedSizes.Add(_fixture.ClampNote);
                     EditorWindow audited = screen.WindowPicker == null ? _fixture.Window : screen.WindowPicker(_fixture);
                     Assert.IsNotNull(audited, "màn '" + screen.Id + "' không có cửa sổ nào để kiểm ở cỡ " + size);
+                    yield return CloseHoverCardsBeforeAudit(screen, size, audited);
                     UxLayoutRules rules = screen.Rules();
                     UxLayoutAuditResult result = UxLayoutAuditor.Audit(audited, screen.Id, size, language, rules);
                     result.Clamped = _fixture.IsClamped;
@@ -1145,6 +1153,41 @@ namespace DreamTech.LiveOps.Editor.Tests
                 new UxLayoutStretchRule(LiveOpsHubPaths.CalendarElementNames.Main, LiveOpsHubPaths.CalendarElementNames.Root, true, TimelineMainRatio),
                 RulerTrackStretchRule(),
             };
+        }
+
+        /// <summary>
+        /// (W10-10) Tắt thẻ hover NGAY TRƯỚC lượt quét, rồi chờ THEO ĐIỀU KIỆN (không theo số khung cố định) cho tới khi cây
+        /// sạch thẻ, và khẳng định là sạch.
+        /// <para>
+        /// Vì sao phải đứng ở đây, trong <see cref="RunScreen"/>, chứ không chỉ trong vài hàm dựng trạng thái có bấm thanh:
+        /// thẻ hover có thể còn dính lại từ ca CHẠY TRƯỚC (cùng cửa sổ Editor, cùng nhịp update), nên màn nào cũng có thể
+        /// nhận nhầm. Đặt ở đường chung thì mọi màn đếm cùng một thứ, bất kể thứ tự chạy — đó là điều phiếu W10-10 đòi.
+        /// </para>
+        /// <para>
+        /// Khẳng định cuối cùng là chốt chống xanh giả: nếu một ngày nào đó có thẻ hover không tắt được bằng
+        /// <see cref="UxHubWindowFixture.HideHoverCards"/> (màn mới quên khai chủ thẻ), ca đỏ ngay với tên màn và cỡ, thay
+        /// vì con số của màn lại trôi âm thầm như trước.
+        /// </para>
+        /// </summary>
+        private IEnumerator CloseHoverCardsBeforeAudit(UxLayoutScreen screen, UxWindowSize size, EditorWindow audited)
+        {
+            _fixture.HideHoverCards();
+            for (int frame = 0; frame < HoverCardCloseFrames; frame++)
+            {
+                if (!UxHubWindowFixture.HasVisibleHoverCard(_fixture.Root)
+                    && !UxHubWindowFixture.HasVisibleHoverCard(audited.rootVisualElement))
+                {
+                    break;
+                }
+                yield return null;
+            }
+
+            bool stillVisible = UxHubWindowFixture.HasVisibleHoverCard(_fixture.Root)
+                || UxHubWindowFixture.HasVisibleHoverCard(audited.rootVisualElement);
+            Assert.IsFalse(stillVisible,
+                "màn '" + screen.Id + "' ở cỡ " + size + " còn thẻ hover đang hiện sau " + HoverCardCloseFrames
+                + " khung kể từ lúc gọi HideHoverCards — số chỗ của màn sẽ gồm cả dòng của thẻ hover và phụ thuộc thứ tự "
+                + "chạy (phiếu W10-10). Màn nào mới có thẻ hover thì khai chủ thẻ vào UxHubWindowFixture.HideHoverCards");
         }
 
         // ================================================================================================ thao tác dựng trạng thái

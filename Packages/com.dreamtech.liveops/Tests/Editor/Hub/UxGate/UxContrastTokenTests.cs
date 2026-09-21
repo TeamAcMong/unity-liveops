@@ -79,7 +79,7 @@ namespace DreamTech.LiveOps.Editor.Tests
         private const float TextContrastRatio = UxComposedContrast.TextContrastRatio;
 
         /// <summary>Bậc WCAG 2.1 AA cho chữ to và cho thành phần đồ hoạ / thành phần giao diện.</summary>
-        private const float ShapeContrastRatio = 3f;
+        private const float ShapeContrastRatio = UxComposedContrast.ShapeContrastRatio;
 
         /// <summary>
         /// Nền hàng đang chọn của Unity, skin tối. Không phải lời khai suông: chính <c>liveops-hub-theme.uss</c> lấy màu này
@@ -187,6 +187,12 @@ namespace DreamTech.LiveOps.Editor.Tests
                 "dấu chú giải 'đợt lặp'"),
             new UxColorTokenRule("--liveops-hub-legend-ended", ShapeContrastRatio, UxColorTokenBackdrop.WindowBackground,
                 "dấu chú giải 'đã khép'"),
+            // (W10-09) Viền swatch của hàng "loại chưa khai báo". Nhóm hình khối vì nó chỉ xuất hiện trong khai báo
+            // `border-color`, và nó là thứ DUY NHẤT vẽ ra ô màu của một loại hub chưa biết màu — bỏ viền đi thì ô trống
+            // không còn đọc ra là một ô. Bảng này đo ở opacity 1; phép đo SAU khi nhân opacity 0,70 của hàng nằm ở
+            // UxComposedTokenContrastTests.Sites, vì chính phép nhân ấy mới là chỗ phiếu W10-09 trượt.
+            new UxColorTokenRule("--liveops-hub-color-undeclared-border", ShapeContrastRatio,
+                UxColorTokenBackdrop.WindowBackground, "viền swatch 'loại chưa khai báo' màn Loại event"),
         };
 
         /// <summary>
@@ -537,7 +543,7 @@ namespace DreamTech.LiveOps.Editor.Tests
         /// Vì sao không đo tại chỗ: cửa sổ hub thật vẽ theo skin ĐANG CHẠY của Editor và mọi lượt cổng chạy skin TỐI — đổi
         /// <c>EditorPrefs UserSkin</c> là việc riêng của <c>capture.sh</c> (SP-4). Không được suy sang skin sáng từ bảng
         /// token: bảng token đo TRƯỚC khi nhân opacity, đúng thứ ca màu-đã-hợp-thành chứng minh là không đủ, và hai skin
-        /// khai token khác hẳn nhau (<c>--liveops-hub-color-quiet</c> #A3A3A3 tối / #4F4F4F sáng).
+        /// khai token khác hẳn nhau (<c>--liveops-hub-color-quiet</c> xám sáng ở skin tối / xám tối ở skin sáng).
         /// </para>
         /// <para>
         /// Ca này ĐỎ khi: thiếu file bằng chứng · khuôn JSON khác đời · bằng chứng của bản Unity khác · bằng chứng của skin
@@ -623,7 +629,8 @@ namespace DreamTech.LiveOps.Editor.Tests
         }
 
         /// <summary>
-        /// Tên TỪNG cảnh mà lệnh đo phải đi qua, đúng thứ tự — sáu màn của hub cộng hai nhánh của inspector Lịch.
+        /// Tên TỪNG cảnh mà lệnh đo phải đi qua, đúng thứ tự — sáu màn của hub, hai nhánh của inspector Lịch, và biến thể
+        /// "kết quả cũ" của màn Kiểm lịch (thêm ở cổng đợt vét W10, phiếu W10-07).
         /// <para>
         /// Khai bằng TÊN chứ không bằng con số 8 (soát W10 R-02): một phép đếm khớp vẫn có thể là tám cảnh khác, nên bỏ đúng
         /// màn khó rồi thêm một màn dễ vẫn qua cổng. Danh sách này phải khớp từng chữ với <c>LiveOpsHubContrastCommand</c>;
@@ -639,6 +646,10 @@ namespace DreamTech.LiveOps.Editor.Tests
             "màn Lịch, đợt cố định",
             "màn Luật lặp",
             "màn Kiểm lịch",
+            // (W10-07) Trạng thái DUY NHẤT của hub từng có opacity nhân dồn (hàng cũ 0,82 × dòng meta 0,7 = 0,574) và cũng
+            // là chỗ duy nhất vẽ headline CHƯA ĐO bằng quiet trong một khối đã mờ. Không có cảnh này thì bản vá W10-07 chỉ
+            // là một lời khai đọc từ USS.
+            "màn Kiểm lịch, kết quả cũ",
             "màn Xuất JSON",
         };
 

@@ -31,8 +31,8 @@ namespace DreamTech.LiveOps.Editor.Tests
     }
 
     /// <summary>
-    /// Một CHỖ DÙNG có thật của một token màu chữ: token nào, nằm trong khối có opacity bao nhiêu, trên nền nào, phải đạt bậc
-    /// nào. Khác bảng token của <see cref="UxContrastTokenTests"/> ở đúng một điểm và đó là điểm sinh ra phiếu W10-03/W10-06:
+    /// Một CHỖ DÙNG có thật của một token màu (chữ, hoặc nét vẽ từ W10-09): token nào, nằm trong khối có opacity bao nhiêu,
+    /// trên nền nào, phải đạt bậc nào. Khác bảng token của <see cref="UxContrastTokenTests"/> ở đúng một điểm và đó là điểm sinh ra phiếu W10-03/W10-06:
     /// bảng kia đo màu TRƯỚC khi nhân opacity và luôn đo trên nền CỬA SỔ, nên một token xanh ở bảng kia vẫn có thể là chữ
     /// không đọc nổi ở màn thật.
     /// </summary>
@@ -56,7 +56,7 @@ namespace DreamTech.LiveOps.Editor.Tests
         /// <summary>Nền đục gần nhất phía sau chỗ chữ.</summary>
         public UxComposedBackdrop Backdrop { get; }
 
-        /// <summary>Bậc phải đạt: 4,5:1 cho chữ thường (chốt của USER 19/9 theo WCAG 2.1).</summary>
+        /// <summary>Bậc phải đạt theo chốt của USER 19/9 (WCAG 2.1): 4,5:1 cho chữ thường, 3:1 cho hình khối.</summary>
         public float MinimumRatio { get; }
 
         /// <summary>Chỗ ấy ở đâu trong hub — để câu đỏ chỉ được tay vào màn phải mở ra xem.</summary>
@@ -92,20 +92,18 @@ namespace DreamTech.LiveOps.Editor.Tests
     public sealed class UxComposedTokenContrastTests
     {
         /// <summary>
-        /// Bậc WCAG 2.1 AA cho chữ thường.
-        /// <para>
-        /// NỢ GỘP (F5 của soát 21/9): đây là lần khai thứ HAI của cùng một bậc trong bộ cổng —
-        /// <c>UxContrastTokenTests</c> cũng giữ một literal 4,5. Gói <c>G-W10-MATRIX</c> (chưa gộp) gom bậc ấy về một
-        /// hằng dùng chung <c>UxComposedContrast.TextContrastRatio</c>; lượt GỘP phải cho hằng dưới đây đọc hằng chung ấy
-        /// thay vì giữ literal riêng. Vì sao chưa làm ngay ở gói này: hằng chung chỉ tồn tại trên nhánh
-        /// <c>wt/G-W10-MATRIX</c>, tham chiếu sang là không compile được.
-        /// </para>
-        /// <para>
-        /// Mọi dòng của <see cref="Sites"/> đều là dòng CHỮ nên chỉ dùng bậc này. Nửa "chữ to và hình khối 3:1" của chốt
-        /// USER 19/9 CHƯA có phép đo hợp thành nào ở đây — xem chú thích của <see cref="Sites"/>.
-        /// </para>
+        /// Bậc WCAG 2.1 AA cho chữ thường — đọc hằng dùng chung, KHÔNG khai lại literal 4,5 (nợ F5 của soát 21/9, trả ở
+        /// cổng đợt vét W10 khi <c>G-W10-MATRIX</c> đã vào cây). Ba chỗ của bộ cổng (bảng token, bảng chỗ dùng hợp thành,
+        /// phép đo trên cây thật) nay cùng đọc một nguồn, nên không thể có hai con số về cùng một bậc.
         /// </summary>
-        private const float TextContrastRatio = 4.5f;
+        private const float TextContrastRatio = UxComposedContrast.TextContrastRatio;
+
+        /// <summary>
+        /// Bậc WCAG 2.1 AA cho hình khối — nửa còn lại của chốt USER 19/9, từ phiếu W10-09 đã có chỗ dùng ở
+        /// <see cref="Sites"/> (viền swatch "loại chưa khai báo" nằm trong ô mờ 0,70).
+        /// </summary>
+        private const float ShapeContrastRatio = UxComposedContrast.ShapeContrastRatio;
+
 
         /// <summary>Số khung chờ cho lượt style của root mới gắn vào panel.</summary>
         private const int StyleResolveFrames = 4;
@@ -148,18 +146,19 @@ namespace DreamTech.LiveOps.Editor.Tests
         /// màn có thật, và dòng nào hết chỗ dùng thì xoá đi chứ không để lại cho đẹp bảng.
         /// </para>
         /// <para>
-        /// BẢNG NÀY PHỦ ĐẾN ĐÂU, nói thẳng để không ai đọc nó rộng hơn thứ nó chứng minh (F2 + F3 của soát 21/9):
+        /// BẢNG NÀY PHỦ ĐẾN ĐÂU, nói thẳng để không ai đọc nó rộng hơn thứ nó chứng minh (F2 + F3 của soát 21/9, cập
+        /// nhật ở cổng đợt vét W10):
         /// <list type="bullet">
-        /// <item>chỉ phủ những opacity XUẤT HIỆN TRONG 8 CẢNH ĐÃ CHỤP của đợt W10 — đúng bốn giá trị 1 · 0,70 · 0,82 ·
-        /// 0,85. KHÔNG dòng nào là TÍCH của nhiều khối cha, trong khi cây thật có tích: hàng "kết quả cũ" của màn Kiểm
-        /// lịch là <c>.liveops-hub-validation-row--stale</c> (0,82) bọc <c>.liveops-hub-validation-row-meta</c> (0,7) =
-        /// 0,574, và ở đó chữ nền tảng chỉ còn 3,83:1 (skin tối) / 4,10:1 (skin sáng). Trạng thái ấy KHÔNG có trong 8
-        /// cảnh chụp nên chưa lượt đo nào chạm tới; nó là phiếu <b>W10-07</b> (biến thể "dữ liệu xấu nhất") của
-        /// <c>G-W10-MATRIX</c>, không phải việc đã xong;</item>
-        /// <item>chỉ phủ bậc CHỮ 4,5:1. Bậc "chữ to và hình khối 3:1" của chốt USER 19/9 chưa có phép đo hợp thành nào,
-        /// và đã có ít nhất một chỗ trượt: viền swatch <c>.liveops-hub-event-types-swatch--undeclared</c> nằm trong cell
-        /// mờ 0,7 của màn Loại event, skin SÁNG đo 2,82:1 (skin tối 3,30:1 — đạt). File ấy thuộc quyền ghi
-        /// <c>G-W10-FIELD</c> nên gói này KHÔNG sửa; đã ghi thành phiếu.</item>
+        /// <item>phủ những opacity xuất hiện trong CHÍN cảnh đã đo — 1 · 0,70 · 0,82 · 0,85;</item>
+        /// <item>KHÔNG còn dòng nào là TÍCH của nhiều khối cha, vì tích ấy đã bị gỡ ở nguồn (phiếu <b>W10-07</b>): hàng
+        /// "kết quả cũ" của màn Kiểm lịch không còn mang opacity của riêng nó, chỉ headline mờ 0,82 và headline CHƯA ĐO
+        /// (màu quiet) giữ nguyên cường độ. Ba dòng W10-07 dưới đây đo đúng ba chỗ ấy. Nếu ai đặt lại opacity lên HÀNG
+        /// thì cảnh "màn Kiểm lịch, kết quả cũ" của <c>capture.sh --contrast</c> đỏ — bảng này là lời khai, cảnh kia là
+        /// phép đo, và cổng giữ cả hai;</item>
+        /// <item>bậc "chữ to và hình khối 3:1" nay CÓ một dòng: viền swatch
+        /// <c>.liveops-hub-event-types-swatch--undeclared</c> nằm trong cell mờ 0,70 của màn Loại event. Trước bản vá
+        /// W10-09 viền ấy lấy màu quiet và skin SÁNG chỉ đạt 2,82:1; token riêng đo ra 3,16:1. Vẫn chưa phải phép quét
+        /// toàn bộ nét vẽ của hub — mới là một chỗ trượt đã biết, đo được, và đã vá.</item>
         /// </list>
         /// </para>
         /// </summary>
@@ -186,6 +185,24 @@ namespace DreamTech.LiveOps.Editor.Tests
                 "cùng dòng lỗi ấy khi nó nằm trong một thẻ thay vì thẳng trên nền cửa sổ"),
             new UxComposedSite("--liveops-hub-color-link", 1f, UxComposedBackdrop.ChipBackground, TextContrastRatio,
                 "chữ bấm được của chip asset ở header (tên calendar đang mở) — 8 dòng của W10-03"),
+            // (W10-07) Hàng "kết quả cũ" của màn Kiểm lịch sau bản vá: hàng KHÔNG còn opacity riêng, nên dòng meta và dòng
+            // id luật chỉ còn 0,70 của chính chúng (trước là tích 0,574 = 3,83:1 tối / 4,10:1 sáng), còn headline mờ 0,82.
+            new UxComposedSite("--liveops-hub-color-text", 0.70f, UxComposedBackdrop.WindowBackground, TextContrastRatio,
+                "dòng meta và dòng id luật của hàng 'kết quả cũ' màn Kiểm lịch — phiếu W10-07"),
+            new UxComposedSite("--liveops-hub-color-text", 0.82f, UxComposedBackdrop.WindowBackground, TextContrastRatio,
+                "headline của hàng 'kết quả cũ' màn Kiểm lịch — phiếu W10-07"),
+            // (W10-07) Headline CHƯA ĐO vẽ bằng quiet. Bản vá giữ nó ở cường độ đầy vì quiet chỉ vừa đủ bậc chữ ở opacity 1;
+            // dòng này khoá đúng điều đó lại — hạ opacity của nó xuống là ca đỏ ngay, ở cả hai skin.
+            new UxComposedSite("--liveops-hub-color-quiet", 1f, UxComposedBackdrop.WindowBackground, TextContrastRatio,
+                "headline CHƯA ĐO của hàng 'kết quả cũ' màn Kiểm lịch — phiếu W10-07"),
+            // (W10-12) Vòng rỗng "chưa kiểm" của RAIL. Nền rail là --unity-colors-default-background, tức đúng nền chip:
+            // ở skin sáng nó là #A5A5A5, tối hơn nền cửa sổ hẳn hai nấc rưỡi, và quiet cũ chỉ đạt 3,33:1 ở đó.
+            new UxComposedSite("--liveops-hub-color-quiet", 1f, UxComposedBackdrop.ChipBackground, TextContrastRatio,
+                "vòng rỗng 'chưa kiểm' của rail — phiếu W10-12"),
+            // (W10-09) Dòng HÌNH KHỐI đầu tiên của bảng: viền swatch "loại chưa khai báo" nằm trong ô mang opacity 0,70.
+            // Trước bản vá viền ấy lấy màu quiet và skin sáng chỉ đạt 2,82:1; token riêng #444444 đo ra 3,16:1.
+            new UxComposedSite("--liveops-hub-color-undeclared-border", 0.70f, UxComposedBackdrop.WindowBackground,
+                ShapeContrastRatio, "viền swatch 'loại chưa khai báo' màn Loại event — phiếu W10-09"),
         };
 
         private TimelineTestPanel _panel;

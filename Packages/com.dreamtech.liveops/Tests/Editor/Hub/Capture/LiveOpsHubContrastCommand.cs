@@ -91,18 +91,28 @@ namespace DreamTech.LiveOps.Editor.Tests
             EditorApplication.Exit(exitCode);
         }
 
-        /// <summary>Một cảnh đo: mở hub ở màn nào, và (tuỳ chọn) chọn sẵn thanh nào để inspector dựng pane tương ứng.</summary>
+        /// <summary>Một cảnh đo: mở hub ở màn nào, dựng bằng kịch bản dữ liệu nào, và (tuỳ chọn) chọn sẵn thanh nào để
+        /// inspector dựng pane tương ứng.</summary>
         private sealed class MeasureScene
         {
             public MeasureScene(string sectionId, string barKey, string place)
+                : this(sectionId, barKey, place, LiveOpsHubTestServices.DesignSampleScenario)
+            {
+            }
+
+            public MeasureScene(string sectionId, string barKey, string place, string scenarioName)
             {
                 SectionId = sectionId;
                 BarKey = barKey;
                 Place = place;
+                ScenarioName = scenarioName;
             }
 
             public string SectionId { get; }
             public string BarKey { get; }
+
+            /// <summary>Kịch bản dữ liệu của <see cref="LiveOpsHubTestServices"/> dùng để dựng cảnh.</summary>
+            public string ScenarioName { get; }
 
             /// <summary>Tên đọc được của cảnh — đi vào câu trượt để người soát biết ngay chỗ nào.</summary>
             public string Place { get; }
@@ -138,6 +148,13 @@ namespace DreamTech.LiveOps.Editor.Tests
                         "màn Lịch, đợt cố định"),
                     new MeasureScene(LiveOpsHubSections.Ids.RecurringRules, null, "màn Luật lặp"),
                     new MeasureScene(LiveOpsHubSections.Ids.Validation, null, "màn Kiểm lịch"),
+                    // (W10-07) Cảnh thứ 9, thêm ở lượt cổng đợt vét: màn Kiểm lịch với KẾT QUẢ CŨ. Hàng "cũ" là trạng thái
+                    // duy nhất của hub từng có opacity NHÂN DỒN (hàng 0,82 bọc dòng meta 0,7 = 0,574) và cũng là chỗ duy
+                    // nhất vẽ headline CHƯA ĐO bằng màu quiet trong một khối đã mờ. Tám cảnh cũ đều dựng từ
+                    // design-sample nên không cảnh nào đi qua nó — chính vì thế phiếu W10-07 chỉ được tìm ra bằng đọc USS
+                    // chứ không bằng phép đo. Thêm cảnh này để bản vá có bằng chứng máy chạy, ở cả hai skin.
+                    new MeasureScene(LiveOpsHubSections.Ids.Validation, null, "màn Kiểm lịch, kết quả cũ",
+                        LiveOpsHubTestServices.StaleCheckScenario),
                     new MeasureScene(LiveOpsHubSections.Ids.Export, null, "màn Xuất JSON"),
                 };
             }
@@ -163,7 +180,7 @@ namespace DreamTech.LiveOps.Editor.Tests
                 _languageScope = LiveOpsHubLanguage.Override(LiveOpsHubLanguageId.Vietnamese);
                 try
                 {
-                    LiveOpsHubServices services = LiveOpsHubTestServices.ForScenario(LiveOpsHubTestServices.DesignSampleScenario);
+                    LiveOpsHubServices services = LiveOpsHubTestServices.ForScenario(Current.ScenarioName);
                     List<IHubSection> sections = LiveOpsHubSections.Create(services);
                     if (Current.BarKey != null)
                     {
