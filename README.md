@@ -265,6 +265,40 @@ static async Task<LiveEventCalendarParseResult> LoadCalendarAsync(
 Hạn giờ nên ngắn (vài giây) — người chơi đang chờ ở màn loading. Đoạn này được chạy thật trong
 `ReadmeSnippetCompileTests`.
 
+### 4.5 Giới hạn độ dài của dữ liệu lịch
+
+`LiveOpsIdentifierLimits` (core) khai số ký tự tối đa mà package **thiết kế theo**. Đây là hợp đồng **soạn thảo**, không
+phải luật chặn lúc chạy: vượt giới hạn thì không có gì ném lỗi và không đợt nào bị bỏ — chỉ là hub không hứa vẽ vừa, và
+grant id có thể dài hơn ngân sách khoá của kho lưu bên game.
+
+| Hằng | Số | Áp cho |
+|---|---|---|
+| `MaxIdentifierLength` | 64 | id đợt, id loại event, khoá mục cố định, config key, khoá nhận quà, `systemId` |
+| `MaxRecurringIdPrefixLength` | 44 | `idPrefix` của luật lặp — suy ra: 64 − 20, chừa chỗ cho số thứ tự lần lặp |
+| `MaxOccurrenceIndexLength` | 20 | bề rộng chữ của `long.MinValue`, phần lịch lặp ghép vào sau tiền tố |
+| `MaxDisplayNameLength` | 64 | tên hiển thị của loại event, tên người đăng |
+| `MaxNoteLength` | 160 | ghi chú của một lần đăng, ghi chú "Bỏ qua" của một cảnh báo |
+| `MaxAssetNameLength` | 64 | tên asset lịch (không kèm `.asset`) |
+| `MaxGrantIdLength` | 143 | `liveops.claim#<eventId>#<claimKey>` khi cả hai vế chạm 64 |
+
+Vì sao 64 chứ không phải một số tròn hơn: mục dài nhất mà người thật đã soạn trong repo này là `entry-star-tournament-2026-10`
+(29 ký tự), nên 64 còn hơn hai lần chỗ; tên hiển thị dài nhất người thật đặt là `Nhiệm vụ dung nham` (18 ký tự), nên 64 hơn
+ba lần. Và ở mức 64 mỗi vế, grant id dài nhất là 143 ký tự — vẫn dưới mốc 255 mà các kho khoá-giá trị game hay dùng để lưu
+grant id đã phát nhận được. Ghi chú lấy 160 vì nó là **một** câu kể lại một lần đăng, gấp đôi bề rộng 72 ký tự quen thuộc
+của dòng tiêu đề commit rồi làm tròn lên.
+
+> **Đếm trên chuỗi đã giải mã, không đếm trên dòng YAML thô.** `Main.asset` ghi tên hiển thị dưới dạng escape
+> (`"Nhi\u1EC7m v\u1EE5 dung nham"`), dài 30 ký tự trên đĩa nhưng chỉ 18 ký tự khi đọc ra. Lấy số của dòng thô là tự
+> thổi phồng ngân sách.
+
+> **Chưa có luật kiểm cho giới hạn này.** Màn Kiểm lịch (mục 5.1) hiện **không** cảnh báo khi một id vượt 64 — 12 luật giữ
+> nguyên. Bộ dữ liệu "xấu nhất" của cổng bố cục thì dựng đúng theo bảng trên (trừ tên asset — xem ghi chú dưới), nên giao
+> diện hub được nghiệm thu ở đúng mức này. Một luật cảnh báo là việc của đợt sau.
+
+> **Sáu trên bảy giới hạn đã có ca đo; `MaxAssetNameLength` thì chưa được ma trận bố cục nghiệm thu.** Tên asset lịch mới có
+> mẩu dữ liệu dài đúng mức (`LiveOpsWorstCaseSample.LongAssetName`) và ca đo độ dài; chưa màn nào của ma trận đứng trên
+> một tên asset 64 ký tự, nên chip tên lịch của khung chưa được nghiệm thu ở mức ấy — khai thành nợ W11-14 ở CHANGELOG.
+
 ## 5. LiveOps Hub (chỉ Editor)
 
 `Tools → DreamTech → LiveOps → LiveOps Hub`, hoặc nút **"Mở trong LiveOps Hub"** ở inspector của asset lịch. Hub chỉ sửa
@@ -356,6 +390,8 @@ tua tới đầu hoặc cuối đợt / đồng bộ giờ, kết quả chờ, q
 - **Lịch chốt lúc `Build()`.** Không có API đổi lịch giữa phiên ở 0.2.0 — remote về muộn thì theo mục 4.4.
 - **Game 0.1.0 đọc JSON định dạng 2 bỏ `recurring` mà không báo** — xem thứ tự nâng cấp ở mục 4.2.
 - **Đổi id của một luật Kiểm lịch** làm mọi ghi chú "Bỏ qua" đã lưu trong asset mất hiệu lực (mục 5.1).
+- **Giới hạn độ dài ở mục 4.5 không được kiểm tự động.** Id dài hơn 64 ký tự vẫn chạy bình thường, chỉ là hub không hứa
+  vẽ vừa và grant id có thể vượt ngân sách khoá của kho lưu bên game.
 - **Chưa có backend:** chưa định danh người chơi, chưa cloud save, chưa bảng xếp hạng người thật. Nối bảng xếp hạng/League của
   `com.dreamtech.leaderboard` bằng adapter phía game — hai package không phụ thuộc nhau.
 
