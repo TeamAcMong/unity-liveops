@@ -84,6 +84,12 @@ namespace DreamTech.LiveOps.Editor
         internal const string ButtonFirst = "liveops-hub-button--first";
         internal const string ButtonPrimary = "liveops-hub-button--primary";
         internal const string ButtonDanger = "liveops-hub-button--danger";
+        /// <summary>
+        /// (J3-01) Nút KHÔNG dãn theo hộp chứa — dành cho nút nằm trong hộp xếp DỌC, nơi align-items mặc định của UI Toolkit
+        /// là stretch nên nút nhận trọn bề ngang pane. Không đặt luật này thẳng lên <see cref="Button"/>: trong một HÀNG
+        /// ngang có align-items: center thì align-self: flex-start kéo nút lên mép trên hàng.
+        /// </summary>
+        internal const string ButtonSelfStart = "liveops-hub-button--self-start";
         internal const string ButtonSlot = "liveops-hub-button-slot";
         internal const string ButtonReason = "liveops-hub-button-reason";
         internal const string Card = "liveops-hub-card";

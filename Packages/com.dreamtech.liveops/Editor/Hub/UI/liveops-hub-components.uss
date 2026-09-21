@@ -240,6 +240,19 @@
     margin-left: 0;
 }
 
+/* (J3-01) Nút KHÔNG dãn theo hộp chứa. Vì sao cần một class riêng thay vì đặt thẳng lên .liveops-hub-button: trong một hàng
+   ngang (align-items: center của hàng nút hộp xác nhận, của popover Thêm đợt) align-self: flex-start sẽ kéo nút lên mép trên
+   hàng — đúng thứ không ai đòi. Luật này vì vậy dành cho nút nằm trong hộp xếp DỌC, nơi align-items mặc định là stretch và
+   nút nhận trọn bề ngang pane.
+   Phiếu J3-01 của lượt đi dạo W11 đo được hai nút PHÁ HUỶ ở đúng cảnh ấy: "Xoá luật…" 637px (1280) / 504px (820) và
+   "Xoá đợt…" 265px / 264px — một hành động KHÔNG HOÀN TÁC ĐƯỢC là phần tử rộng nhất và dễ bấm nhầm nhất của màn.
+   flex-shrink: 0 đi kèm vì co nút là mất chữ (cùng lý do với .liveops-hub-validation-notice-button). */
+.liveops-hub-button--self-start {
+    align-self: flex-start;
+    flex-grow: 0;
+    flex-shrink: 0;
+}
+
 /* Nút chính không tô nền, chỉ chữ đậm. */
 .liveops-hub-button--primary {
     -unity-font-style: bold;
@@ -255,14 +268,19 @@
     background-color: var(--unity-colors-button-background);
 }
 
-/* (J2-02) Viền hình khối của nút ở skin sáng đạt bậc 3:1 — xem --liveops-hub-color-button-border trong liveops-hub-theme.uss.
+/* (J2-02 + J3-02) Viền hình khối của nút đạt bậc 3:1 ở CẢ HAI skin — xem --liveops-hub-color-button-border trong
+   liveops-hub-theme.uss, nơi token khai một giá trị cho mỗi khối skin (#6B6B6B sáng · #B0B0B0 tối).
    Chỉ đặt MÀU viền, KHÔNG đặt border-width: nút của Unity đã có viền 1px sẵn, khai lại bề dày là rủi ro dịch hình học
    một pixel ở một trong hai bản Unity mà không đổi lấy gì. Nút nguy hiểm (--danger) dùng chung luật viền này: nó chỉ đổi
    màu CHỮ và màu NỀN, không đổi viền.
-   (R09) Bậc 3:1 ấy chỉ đo trên hai nền: nền trang #C8C8C8 và nền nút #E4E4E4. Đặt một .liveops-hub-button lên mặt phẳng
-   --unity-colors-default-background #A5A5A5 (rail, chip, minimap, chip làn…) là tụt xuống 2,16:1 — danh sách mặt phẳng và
-   luật đầy đủ nằm ở chú thích của token trong liveops-hub-theme.uss. */
-.liveops-hub--skin-light .liveops-hub-button {
+   (J3-02) Vì sao một luật chung thay cho luật cũ khoá trong .liveops-hub--skin-light: giá trị đã theo skin nhờ token, nên
+   một luật là đủ và không còn khe "skin kia chưa ai đo". Lượt đi dạo W11 đo pixel ảnh chụp skin TỐI ra 1,13:1 (viền Unity
+   #303030 / nền trang) và 1,65:1 (nền nút #585858 / nền trang) — đúng khe ấy.
+   (R09) Giới hạn CÒN LẠI, chỉ của skin SÁNG: token #6B6B6B đạt bậc trên nền trang #C8C8C8 (3,19:1) và nền nút #E4E4E4
+   (4,19:1), nhưng đặt một .liveops-hub-button lên mặt phẳng --unity-colors-default-background #A5A5A5 (rail, chip,
+   minimap, chip làn…) là tụt xuống 2,16:1 — nợ W11-16. Skin tối KHÔNG có giới hạn ấy: #B0B0B0 đo 6,80:1 trên nền chip
+   #282828. Danh sách mặt phẳng và luật đầy đủ nằm ở chú thích của token trong liveops-hub-theme.uss. */
+.liveops-hub-button {
     border-color: var(--liveops-hub-color-button-border);
 }
 

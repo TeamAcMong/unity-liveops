@@ -40,6 +40,20 @@
        vẫn đạt, nên giá trị ở đây bằng đúng quiet; token vẫn tách riêng để lần sau ai chỉnh quiet (màu CHỮ, bậc 4,5:1)
        không vô tình kéo viền hình khối xuống dưới 3:1 mà không ai báo. Skin sáng phải lệch hẳn — xem khối skin sáng. */
     --liveops-hub-color-undeclared-border: #AAAAAA;
+    /* (J3-02) Viền hình khối của nút ở skin TỐI. Skin sáng đã có token này từ J2-02; skin tối lúc ấy KHÔNG được đụng vào
+       với lý do "không phiếu nào đòi", và lượt đi dạo W11 đo ra đúng chỗ ấy trượt: nút của Unity ở skin tối vẽ nền
+       --unity-colors-button-background #585858 trên nền trang #383838 (1,65:1) với viền --unity-colors-button-border
+       #303030 (1,13:1 so với nền trang) — cả HAI dưới bậc hình khối 3:1, tức nút không tự đọc ra là một nút.
+       Vì sao phải SÁNG HƠN nền chứ không tối hơn: ở skin tối, màu tối nhất có thể (đen) chỉ đạt 2,95:1 so với chính nền
+       nút #585858, nên không một viền tối nào qua nổi bậc — cùng lập luận mà dấu màu chú giải đã đi (xem
+       --liveops-hub-legend-*). Viền vì vậy là bản ÂM của lựa chọn skin sáng: sáng hơn cả nền trang lẫn nền nút.
+       #B0B0B0 đo ra 5,41:1 trên nền trang #383838 · 5,09:1 trên nền thẻ/toolbar #3C3C3C · 6,80:1 trên nền chip #282828 ·
+       3,28:1 trên nền nút #585858 — đạt cả BỐN mặt phẳng mà một .liveops-hub-button của hub đứng lên, khác skin sáng
+       (token #6B6B6B chỉ 2,16:1 trên nền chip #A5A5A5, giới hạn đang là nợ W11-16). Vẫn là xám trung tính của bảng màu,
+       không hue mới; sáng hơn quiet #AAAAAA đúng ba nấc nên nó đọc ra là nét viền chứ không lẫn vào chữ phụ.
+       Bốn số trên tính bằng cùng hàm của repo (UxLayoutAuditor.ContrastRatio) và có cổng máy canh:
+       UxShapeContrastTests đo CẠNH + NỀN của nút ở cả hai skin, không chỉ màu chữ như bộ cũ. */
+    --liveops-hub-color-button-border: #B0B0B0;
     /* (W10-06) Màu CHỮ nền tảng của hub. Vì sao thành token thay vì dùng thẳng --unity-colors-default-text: chữ phụ khắp
        hub (caption thẻ, dòng chân thẻ, dòng meta status bar) là chữ nền tảng NHÂN opacity 0,7 của khối cha, và
        #D2D2D2 của Unity × 0,7 hợp thành ra #A5A5A5 trên nền thẻ #3C3C3C — 4,48:1, thiếu 0,02 so với bậc chữ thường.
@@ -148,9 +162,10 @@
        gác — nợ W11-16, xem phần khai nợ ở báo cáo gói G-W11-EYE.
        Khai RIÊNG một token cho viền, không dùng lại --liveops-hub-color-quiet: quiet là màu CHỮ, nó được chỉnh theo bậc
        4,5:1; hai bậc khác nhau thì hai token khác nhau (đúng lối mà --liveops-hub-color-undeclared-border ở ngay trên đã đi).
-       Chỉ khai ở khối skin SÁNG, và luật tiêu thụ nó (liveops-hub-components.uss) cũng chỉ sống trong khối .liveops-hub--skin-light:
-       skin tối đặt nút trên nền tối và không phải chỗ phiếu J2-02 đo được trượt, đổi viền ở đó là dời một bằng chứng đang xanh
-       mà không có phiếu nào đòi. */
+       (J3-02, sửa lại lời khai cũ) Bản J2-02 viết "chỉ khai ở khối skin SÁNG… skin tối không phải chỗ phiếu đo được trượt".
+       Câu ấy đúng với những gì ĐÃ ĐO khi đó và SAI với thực tế: lượt đi dạo W11 đo trên pixel ảnh chụp skin tối ra
+       1,13:1 / 1,65:1. Nay token khai ở CẢ HAI khối skin và luật tiêu thụ nó (liveops-hub-components.uss) là một luật
+       chung .liveops-hub-button, không còn khoá trong .liveops-hub--skin-light. */
     --liveops-hub-color-button-border: #6B6B6B;
 
     /* (W10-03) #1D5087 cũ đạt bậc chữ trên nền CỬA SỔ #C8C8C8 nhưng chữ bấm được của chip asset nằm trên nền CHIP

@@ -32,8 +32,13 @@
 }
 
 /* Khe 6px giữa nhóm tab và ToolbarMenu "Loại event: …" ([SD2 §2.1]) — hai nhóm lọc khác nhau, không dính vào nhau. */
+/* (J3-01) align-items: flex-start — hộp này xếp DỌC nên ToolbarMenu con nhận align stretch mặc định. Hôm nay hộp tự co
+   theo con nên bề ngang không đổi, nhưng luật "nút trong hộp xếp dọc không lấy stretch" phải đúng ở MỌI chỗ để nó còn là
+   một luật: chỗ nào chừa một ngoại lệ vì "hôm nay chưa hại" thì lần sau hộp được cho flex-grow là menu dãn hết hàng mà
+   không ai báo — đúng cách hai nút phá huỷ của J3-01 lọt qua mười một đợt. */
 .liveops-hub-validation-type-menu {
     margin-left: var(--liveops-hub-space-6);
+    align-items: flex-start;
 }
 
 .liveops-hub-validation-search {

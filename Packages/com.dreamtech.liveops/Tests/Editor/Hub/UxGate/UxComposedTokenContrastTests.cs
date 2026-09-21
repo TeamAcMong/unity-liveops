@@ -124,14 +124,16 @@ namespace DreamTech.LiveOps.Editor.Tests
         /// <see cref="ComposedBackdropConstants_MatchMeasuredBackdrops_InRunningSkin"/> đối chiếu lại với
         /// <c>resolvedStyle.backgroundColor</c> của một header thẻ thật mỗi lượt chạy.
         /// </summary>
-        private const string DarkCardBackgroundHex = "#3C3C3C";
+        // (J3-02) Mở private → internal: UxShapeContrastTests đo CẠNH và NỀN của component trên đúng ba nền này, và hai
+        // bản chép tay của cùng một con số là đúng thứ mà ca đối chiếu nền ở dưới sinh ra để chặn.
+        internal const string DarkCardBackgroundHex = "#3C3C3C";
 
-        private const string LightCardBackgroundHex = "#CBCBCB";
+        internal const string LightCardBackgroundHex = "#CBCBCB";
 
         /// <summary>Nền chip header (<c>--unity-colors-default-background</c>) — cùng đường xác minh với nền header thẻ.</summary>
-        private const string DarkChipBackgroundHex = "#282828";
+        internal const string DarkChipBackgroundHex = "#282828";
 
-        private const string LightChipBackgroundHex = "#A5A5A5";
+        internal const string LightChipBackgroundHex = "#A5A5A5";
 
         /// <summary>Sai số so hằng nền với số đo thật: nền vẽ qua 8 bit/kênh nên 1 nấc là làm tròn, không phải lệch bảng.</summary>
         private const float BackgroundToleranceChannels = 1.5f / 255f;

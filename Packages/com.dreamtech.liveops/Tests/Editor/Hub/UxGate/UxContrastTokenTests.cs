@@ -193,6 +193,12 @@ namespace DreamTech.LiveOps.Editor.Tests
             // UxComposedTokenContrastTests.Sites, vì chính phép nhân ấy mới là chỗ phiếu W10-09 trượt.
             new UxColorTokenRule("--liveops-hub-color-undeclared-border", ShapeContrastRatio,
                 UxColorTokenBackdrop.WindowBackground, "viền swatch 'loại chưa khai báo' màn Loại event"),
+            // (J3-02) Viền hình khối của .liveops-hub-button. Trước đợt này token chỉ khai ở khối skin SÁNG nên nó KHÔNG lọt
+            // vào phép dò "token của khối skin tối" và bảng này không có dòng nào cho nó — tức cạnh của nút chưa bao giờ được
+            // một ca nào đo, đúng khe mà phiếu J3-02 rơi vào. Nay token khai ở cả hai khối và có dòng ở đây; phép đo trên
+            // CÂY THẬT (cạnh nút trên ba mặt phẳng, cả nền nút) nằm ở UxShapeContrastTests.
+            new UxColorTokenRule("--liveops-hub-color-button-border", ShapeContrastRatio,
+                UxColorTokenBackdrop.WindowBackground, "viền nút .liveops-hub-button"),
         };
 
         /// <summary>

@@ -89,7 +89,15 @@ namespace DreamTech.LiveOps.Editor
         {
             // Menu KHÔNG mang chữ: giá trị đã in ở dòng value của tile ("2" + "có recurring"), đặt thêm text vào ToolbarMenu là
             // in con số hai lần trên cùng một tile [SD2 §3.5]. Menu chỉ còn mũi tên để bấm đổi định dạng.
-            ToolbarMenu menu = new ToolbarMenu { name = FormatMenuElementName };
+            // (J3-03) "Không chữ" giữ nguyên, nhưng một ToolbarMenu trần vẫn vẽ trọn KHUNG của một ô nhập và dãn hết bề ngang
+            // thẻ, nên lượt đi dạo W11 đọc nó ra là một trường dữ liệu chưa nạp được. Hai thứ chữa điều đó mà không thêm chữ:
+            // class thu menu về bề rộng mũi tên + cho nó nền/viền của một nút, và tooltip nói thẳng nó dùng để làm gì.
+            ToolbarMenu menu = new ToolbarMenu
+            {
+                name = FormatMenuElementName,
+                tooltip = LiveOpsHubStrings.ExportMetricFormatMenuTooltip,
+            };
+            menu.AddToClassList(LiveOpsHubClassNames.ExportFormatMenu);
             menu.menu.AppendAction(LiveOpsHubStrings.ExportMetricFormatChoice2,
                 action => RaiseFormatSelected(LiveEventCalendarJsonFormat.Version2),
                 action => current == LiveEventCalendarJsonFormat.Version2 ? DropdownMenuAction.Status.Checked : DropdownMenuAction.Status.Normal);

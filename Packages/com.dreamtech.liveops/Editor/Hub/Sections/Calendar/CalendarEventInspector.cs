@@ -133,6 +133,8 @@ namespace DreamTech.LiveOps.Editor
             delete.AddToClassList(LiveOpsHubClassNames.Button);
             delete.AddToClassList(LiveOpsHubClassNames.CalendarWrapText);
             delete.AddToClassList(LiveOpsHubClassNames.ButtonDanger);
+            // (J3-01) _bodyHost là hộp xếp DỌC — nút phá huỷ không được lấy trọn bề ngang pane chọn nhiều.
+            delete.AddToClassList(LiveOpsHubClassNames.ButtonSelfStart);
             _bodyHost.Add(delete);
         }
 
@@ -227,6 +229,9 @@ namespace DreamTech.LiveOps.Editor
             Button add = new Button(() => AddEventRequested?.Invoke()) { text = LiveOpsHubStrings.CalendarAddEventButton };
             add.AddToClassList(LiveOpsHubClassNames.Button);
             add.AddToClassList(LiveOpsHubClassNames.ButtonPrimary);
+            // (J3-01) Khối rỗng xếp DỌC và canh TRÁI (max-width 520px) — nút phải rộng bằng chữ của nó, không bằng khối
+            // (đo được 233px ở 1280x760 trước bản vá).
+            add.AddToClassList(LiveOpsHubClassNames.ButtonSelfStart);
             empty.Add(add);
             _bodyHost.Add(empty);
         }
@@ -669,6 +674,9 @@ namespace DreamTech.LiveOps.Editor
             button.AddToClassList(LiveOpsHubClassNames.Button);
             button.AddToClassList(LiveOpsHubClassNames.CalendarWrapText);
             button.AddToClassList(LiveOpsHubClassNames.ButtonDanger);
+            // (J3-01) Nút "Xoá đợt…" đứng trong cột của inspector — đo được 265px (pane 1280) và 264px (pane 820) trước
+            // bản vá, tức trọn bề ngang pane trừ đệm.
+            button.AddToClassList(LiveOpsHubClassNames.ButtonSelfStart);
             return button;
         }
     }

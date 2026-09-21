@@ -58,6 +58,14 @@ namespace DreamTech.LiveOps.Editor
 
         /// <summary>Metric cuối hàng: bỏ margin-right (USS không có <c>:last-child</c>, class bật từ C#).</summary>
         internal const string ExportMetricLast = "liveops-hub-export-metric--last";
+
+        /// <summary>
+        /// (J3-03) Menu đổi định dạng trên tile ĐỊNH DẠNG. <c>ToolbarMenu</c> KHÔNG mang chữ (giá trị đã in ở dòng value của
+        /// tile) nhưng vẫn vẽ trọn khung của một ô nhập và, trong tile xếp dọc, dãn hết bề ngang thẻ — lượt đi dạo W11 đọc
+        /// nó ra là "một trường dữ liệu chưa nạp được". Class này thu menu về đúng bề rộng mũi tên và cho nó nền + viền của
+        /// một nút, tức ra dáng MENU thay vì ra dáng ô nhập rỗng.
+        /// </summary>
+        internal const string ExportFormatMenu = "liveops-hub-export-format-menu";
         internal const string ExportMetricValueRow = "liveops-hub-export-metric-value-row";
         internal const string ExportMetricFootRow = "liveops-hub-export-metric-foot-row";
 

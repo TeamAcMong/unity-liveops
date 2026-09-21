@@ -146,6 +146,8 @@ namespace DreamTech.LiveOps.Editor
                 text = LiveOpsHubStrings.EventTypesOpenInCalendarButton,
             };
             _showInCalendarButton.AddToClassList(LiveOpsHubClassNames.Button);
+            // (J3-01) Thẻ usage xếp DỌC — không có class này nút "Xem trên lịch" rộng trọn thẻ (đo được 200px ở 700x560).
+            _showInCalendarButton.AddToClassList(LiveOpsHubClassNames.ButtonSelfStart);
             _usageCard.Add(_showInCalendarButton);
             _fields.Add(_usageCard);
         }

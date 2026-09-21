@@ -68,6 +68,28 @@
     margin-right: 0;
 }
 
+/* (J3-03) Menu đổi định dạng của tile ĐỊNH DẠNG. Giữ "không chữ" theo [SD2 §3.5] — giá trị đã in ở dòng value của tile, đặt
+   thêm text là in con số hai lần — nhưng ToolbarMenu không chữ thì thứ mắt nhận được là khung của một ô nhập RỖNG, không
+   phải một nút đổi định dạng (phiếu J3-03).
+   Ba việc của luật này: (1) align-self: flex-start để menu thôi dãn hết bề ngang thẻ (tile là hộp xếp dọc, align-items mặc
+   định là stretch); (2) nền + viền của một NÚT thay vì của một ô nhập — viền đọc cùng token đã đạt bậc hình khối 3:1 ở cả
+   hai skin; (3) chừa chỗ cho mũi tên mà không chừa chỗ cho chữ. Bề rộng vì vậy do nội dung quyết (mũi tên + đệm), không
+   khai một con số pixel để lần đổi icon nào cũng phải sửa lại. */
+.liveops-hub-export-format-menu {
+    align-self: flex-start;
+    flex-grow: 0;
+    flex-shrink: 0;
+    min-width: 0;
+    height: 16px;
+    margin: 0;
+    padding: 0 2px;
+    border-width: 1px;
+    border-radius: 3px;
+    border-color: var(--liveops-hub-color-button-border);
+    background-color: var(--unity-colors-button-background);
+    justify-content: center;
+}
+
 .liveops-hub-export-metric-value-row {
     flex-direction: row;
     align-items: flex-end;

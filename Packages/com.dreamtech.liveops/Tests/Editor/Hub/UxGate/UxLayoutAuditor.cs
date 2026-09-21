@@ -5,6 +5,7 @@ using System.IO;
 using System.Reflection;
 using System.Text;
 using UnityEditor;
+using UnityEditor.UIElements;
 using UnityEngine;
 using UnityEngine.UIElements;
 
@@ -32,6 +33,12 @@ namespace DreamTech.LiveOps.Editor.Tests
         internal const string AbsoluteOverText = "absoluteOverText";
         internal const string SiblingOverlap = "siblingOverlap";
         internal const string NotStretched = "notStretched";
+
+        /// <summary>
+        /// (J3-01) Một nút nằm trong hộp xếp DỌC và lấy align stretch, tức nó rộng bằng cả hộp chứa thay vì bằng chữ của nó
+        /// — xem <see cref="UxLayoutAuditor.CheckButtonStretch"/>. Đây là lưới bắt hạng lỗi của phiếu J2-02/J3-01.
+        /// </summary>
+        internal const string ButtonStretched = "buttonStretched";
         internal const string MissingElement = "missingElement";
         internal const string LowContrast = "lowContrast";
         internal const string PairOverlap = "pairOverlap";
@@ -220,6 +227,9 @@ namespace DreamTech.LiveOps.Editor.Tests
         public List<UxLayoutFinding> AbsoluteOverText { get; } = new List<UxLayoutFinding>();
         public List<UxLayoutFinding> SiblingOverlap { get; } = new List<UxLayoutFinding>();
         public List<UxLayoutFinding> NotStretched { get; } = new List<UxLayoutFinding>();
+
+        /// <summary>Nút lấy trọn bề ngang hộp xếp dọc (J3-01).</summary>
+        public List<UxLayoutFinding> ButtonStretched { get; } = new List<UxLayoutFinding>();
         public List<UxLayoutFinding> MissingElement { get; } = new List<UxLayoutFinding>();
         public List<UxLayoutFinding> LowContrast { get; } = new List<UxLayoutFinding>();
 
@@ -284,6 +294,9 @@ namespace DreamTech.LiveOps.Editor.Tests
             AppendProblems(problems, UxLayoutFindingKinds.UntitledColumn, UntitledColumn, subtreeRoots);
             AppendProblems(problems, UxLayoutFindingKinds.AbsoluteOverText, AbsoluteOverText, subtreeRoots);
             AppendProblems(problems, UxLayoutFindingKinds.SiblingOverlap, SiblingOverlap, subtreeRoots);
+            // (J3-01) Nút dãn hết hộp chứa là lỗi CHUNG, không phải luật của một màn: phiếu J2-02 chữa đúng một banner rồi
+            // để lọt hai nút PHÁ HUỶ cùng hạng ở hai màn khác. Lưới nằm ở đây nên mọi màn × 7 cỡ của ma trận đều đi qua nó.
+            AppendProblems(problems, UxLayoutFindingKinds.ButtonStretched, ButtonStretched, subtreeRoots);
             foreach (UxLayoutFinding finding in ScrollViews)
             {
                 if (!UxLayoutAuditor.IsScrollViewProblem(finding.Text)) continue;
@@ -568,6 +581,7 @@ namespace DreamTech.LiveOps.Editor.Tests
             AppendArray(json, UxLayoutFindingKinds.AbsoluteOverText, result.AbsoluteOverText);
             AppendArray(json, UxLayoutFindingKinds.SiblingOverlap, result.SiblingOverlap);
             AppendArray(json, UxLayoutFindingKinds.NotStretched, result.NotStretched);
+            AppendArray(json, UxLayoutFindingKinds.ButtonStretched, result.ButtonStretched);
             AppendArray(json, UxLayoutFindingKinds.LowContrast, result.LowContrast);
             AppendArray(json, UxLayoutFindingKinds.PairOverlap, result.PairOverlap);
             json.Append("\n}\n");
@@ -631,6 +645,7 @@ namespace DreamTech.LiveOps.Editor.Tests
                         else relativeChildren.Add(child);
                         if (HasVisibleText(child)) textChildren.Add(child);
                         CheckChildOverflow(element, bound, child, childBound, result);
+                        CheckButtonStretch(element, child, childBound, result);
                     }
                 }
                 Visit(child, result, shown);
@@ -858,6 +873,51 @@ namespace DreamTech.LiveOps.Editor.Tests
                 Describe(child) + " tràn " + Describe(parent) + " [phải " + Number(right) + ", trái " + Number(left)
                 + ", dưới " + Number(bottom) + ", trên " + Number(top) + "] cha cắt con=" + (ClipsChildren(parent) ? "có" : "không")
                 + " @" + RectText(childBound, result.RootBound));
+        }
+
+        /// <summary>
+        /// (J3-01) Một nút của hub nằm trong hộp xếp DỌC không được lấy align <c>stretch</c>.
+        /// <para>
+        /// Vì sao đo CÁCH XẾP chứ không đo bề rộng: "nút rộng bao nhiêu px" đổi theo cỡ cửa sổ, theo ngôn ngữ và theo chữ của
+        /// chính nút, nên một ngưỡng px chỉ đúng ở đúng cảnh đã đo. Thứ KHÔNG đổi là nguyên nhân: <c>align-items</c> mặc định
+        /// của UI Toolkit là <c>stretch</c>, nên một nút thả vào hộp xếp dọc mà không khai gì thì nhận trọn bề ngang hộp — đó
+        /// là gốc của cả ba chỗ đã đo được (banner "kết quả cũ" ~1080px của J2-02, "Xoá luật…" 637px và "Xoá đợt…" 265px của
+        /// J3-01). Đo gốc thì lưới bắt được cả những chỗ chưa ai mở ra nhìn.
+        /// </para>
+        /// <para>
+        /// Chữa bằng <see cref="LiveOpsHubClassNames.ButtonSelfStart"/> (hoặc một luật <c>align-self</c> riêng của màn). Hàng
+        /// NGANG không nằm trong diện: ở đó stretch chỉ kéo chiều CAO nút theo hàng, không kéo bề ngang.
+        /// </para>
+        /// </summary>
+        private static void CheckButtonStretch(VisualElement parent, VisualElement child, Rect childBound,
+            UxLayoutAuditResult result)
+        {
+            if (!IsHubButton(child)) return;
+            if (parent.resolvedStyle.flexDirection != FlexDirection.Column) return;
+            // Nút XUỐNG DÒNG ra khỏi diện, và đây là miễn trừ có GỐC đo được chứ không phải một lỗ chừa sẵn: với
+            // white-space: normal, bề ngang do hộp chứa cấp CHÍNH LÀ bề ngang mà chữ gói vào. Bỏ stretch ở đó là quay về
+            // max-content, tức đúng lỗi C4 mà .liveops-hub-calendar-finding-card--stacked được dựng ra để chữa ("hàng ngang
+            // đẩy hai nút đề xuất ra ngoài pane 280px"). Nút không xuống dòng thì không có lý do ấy.
+            if (child.resolvedStyle.whiteSpace == WhiteSpace.Normal) return;
+            Align self = child.resolvedStyle.alignSelf;
+            Align effective = self == Align.Auto ? parent.resolvedStyle.alignItems : self;
+            if (effective != Align.Stretch) return;
+            Add(result, result.ButtonStretched, UxLayoutFindingKinds.ButtonStretched, child,
+                Describe(child) + " lấy align stretch trong hộp xếp dọc " + Describe(parent) + " nên rộng "
+                + Number(childBound.width) + "px theo hộp chứ không theo chữ của nó — thêm class "
+                + LiveOpsHubClassNames.ButtonSelfStart + " @" + RectText(childBound, result.RootBound));
+        }
+
+        /// <summary>
+        /// Phần tử này có phải một NÚT của hub không: <c>Button</c>, hoặc một <c>ToolbarMenu</c> (nút mở menu — phiếu J3-03 đo
+        /// được đúng một cái dãn hết bề ngang thẻ ĐỊNH DẠNG). Nút của Unity bên trong một control ghép (mũi tên của dropdown,
+        /// nút xoá của ô tìm kiếm) KHÔNG tính: bề rộng của chúng là việc của control mẹ, không phải của hub.
+        /// </summary>
+        private static bool IsHubButton(VisualElement element)
+        {
+            if (element is ToolbarMenu) return true;
+            if (!(element is Button)) return false;
+            return element.ClassListContains(LiveOpsHubClassNames.Button);
         }
 
         private static void CheckSiblingOverlap(List<VisualElement> relativeChildren, UxLayoutAuditResult result)

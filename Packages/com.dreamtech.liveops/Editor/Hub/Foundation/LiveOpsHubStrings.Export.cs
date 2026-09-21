@@ -107,6 +107,12 @@ namespace DreamTech.LiveOps.Editor
         internal static string ExportMetricFormatUnitVersion1 => LiveOpsHubStringCatalog.Text(nameof(ExportMetricFormatUnitVersion1));
         internal static string ExportMetricFormatChoice1 => LiveOpsHubStringCatalog.Text(nameof(ExportMetricFormatChoice1));
         internal static string ExportMetricFormatChoice2 => LiveOpsHubStringCatalog.Text(nameof(ExportMetricFormatChoice2));
+
+        /// <summary>
+        /// (J3-03) Tooltip của menu đổi định dạng trên tile ĐỊNH DẠNG. Menu cố ý KHÔNG mang chữ (giá trị đã in ở dòng value
+        /// của tile), nên tooltip là chỗ DUY NHẤT nói ra nó dùng để làm gì.
+        /// </summary>
+        internal static string ExportMetricFormatMenuTooltip => LiveOpsHubStringCatalog.Text(nameof(ExportMetricFormatMenuTooltip));
         internal static string ExportMetricShaCaption => LiveOpsHubStringCatalog.Text(nameof(ExportMetricShaCaption));
         internal static string ExportMetricCompareCaption => LiveOpsHubStringCatalog.Text(nameof(ExportMetricCompareCaption));
         internal static string ExportMetricCompareNone => LiveOpsHubStringCatalog.Text(nameof(ExportMetricCompareNone));

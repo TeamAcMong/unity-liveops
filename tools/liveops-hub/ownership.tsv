@@ -264,7 +264,7 @@ file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Calendar/CalendarSection
 file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Calendar/CalendarTimelinePresenter.cs	G-CALENDAR,G-CALENDAR-DEPTH,G-OPT-TIMELINE,G-FIX-W4-2,G-FIX-W6-1	G-CALENDAR tạo; G-CALENDAR-DEPTH sửa; G-OPT-TIMELINE sửa; G-FIX-W4-2 truyền tên bước cho toast dời (phiếu D-5); G-FIX-W6-1 đặt câu ngắn cho cả ba kiểu kéo (Q-W5-5)
 file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Calendar/CalendarToolbar.cs	G-CALENDAR,G-CALENDAR-DEPTH,G-FIX-W6-1	G-CALENDAR tạo; G-CALENDAR-DEPTH sửa; G-FIX-W6-1 đổi chỗ format câu có số đếm sang LiveOpsHubStringCatalog.Format(nameof(...)) để luật số ít/số nhiều tiếng Anh chạy được (Q-W5-2 — lệch kỹ thuật tự duyệt theo uỷ quyền user 15/9: 10.3 chỉ liệt catalog + StringTable, chưa lường rằng dấu phải chọn vế TRƯỚC string.Format nên chỗ gọi phải đưa KHOÁ thay vì câu)
 file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/EventTypes/AddEventTypePopover.cs	G-EVENTTYPES	G-EVENTTYPES tạo
-file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/EventTypes/EventTypeInspector.cs	G-EVENTTYPES	G-EVENTTYPES tạo
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/EventTypes/EventTypeInspector.cs	G-EVENTTYPES,G-W11-EYE2	G-EVENTTYPES tạo · (G-W11-EYE2) J3-01 — nút 'Xem trên lịch' thôi dãn hết thẻ usage
 file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/EventTypes/EventTypeTable.cs	G-EVENTTYPES	G-EVENTTYPES tạo
 file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/EventTypes/EventTypesModel.cs	G-EVENTTYPES,G-FIX-W6-1	G-EVENTTYPES tạo; G-FIX-W6-1 đổi chỗ format câu có số đếm sang LiveOpsHubStringCatalog.Format(nameof(...)) để luật số ít/số nhiều tiếng Anh chạy được (Q-W5-2 — lệch kỹ thuật tự duyệt theo uỷ quyền user 15/9: 10.3 chỉ liệt catalog + StringTable, chưa lường rằng dấu phải chọn vế TRƯỚC string.Format nên chỗ gọi phải đưa KHOÁ thay vì câu)
 file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/EventTypes/EventTypesSection.cs	G-SHELL,G-SESSION,G-EVENTTYPES	G-SHELL tạo; G-SESSION sửa; G-EVENTTYPES sửa
@@ -316,7 +316,7 @@ file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Validation/ValidationFil
 file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Validation/ValidationFindingRow.cs	G-VALIDATION,G-VALIDATION-DEPTH	G-VALIDATION tạo; G-VALIDATION-DEPTH sửa
 file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Validation/ValidationGroupCard.cs	G-VALIDATION,G-VALIDATION-DEPTH	G-VALIDATION tạo; G-VALIDATION-DEPTH sửa
 file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Validation/ValidationSection.cs	G-SHELL,G-SESSION,G-VALIDATION,G-VALIDATION-DEPTH,G-FIX-W6-1	G-SHELL tạo; G-SESSION sửa; G-VALIDATION sửa; G-VALIDATION-DEPTH sửa; G-FIX-W6-1 đổi chỗ format câu có số đếm sang LiveOpsHubStringCatalog.Format(nameof(...)) để luật số ít/số nhiều tiếng Anh chạy được (Q-W5-2 — lệch kỹ thuật tự duyệt theo uỷ quyền user 15/9: 10.3 chỉ liệt catalog + StringTable, chưa lường rằng dấu phải chọn vế TRƯỚC string.Format nên chỗ gọi phải đưa KHOÁ thay vì câu)
-file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Validation/ValidationSection.uss	G-VALIDATION,G-VALIDATION-DEPTH	G-VALIDATION tạo; G-VALIDATION-DEPTH sửa (class của card xem trước + popover Bỏ qua + hàng nhóm Đã bỏ qua; cùng cặp với CalendarSection.uss -> G-CALENDAR,G-CALENDAR-DEPTH, dòng này thiếu là sót của bảng — tự duyệt theo uỷ quyền user 15/9, ghi ở G-VALIDATION-DEPTH-build.md)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Validation/ValidationSection.uss	G-VALIDATION,G-VALIDATION-DEPTH,G-W11-EYE2	G-VALIDATION tạo; G-VALIDATION-DEPTH sửa (class của card xem trước + popover Bỏ qua + hàng nhóm Đã bỏ qua; cùng cặp với CalendarSection.uss -> G-CALENDAR,G-CALENDAR-DEPTH, dòng này thiếu là sót của bảng — tự duyệt theo uỷ quyền user 15/9, ghi ở G-VALIDATION-DEPTH-build.md) · (G-W11-EYE2) J3-01 — hộp ToolbarMenu lọc loại event thôi cho con lấy align stretch
 file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Validation/ValidationSection.uxml	G-VALIDATION,G-VALIDATION-DEPTH	G-VALIDATION tạo; G-VALIDATION-DEPTH sửa
 file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Validation/ValidationViewModel.cs	G-VALIDATION,G-VALIDATION-DEPTH,G-FIX-W6-1	G-VALIDATION tạo; G-VALIDATION-DEPTH sửa; G-FIX-W6-1 IgnoredRowOf: tag hẹn giờ THAY vế khoảng, không in hạn hai lần (Q-W5-4)
 file	Packages/com.dreamtech.liveops/Editor/Hub/Services/InterimUnavailableHubActions.cs	G-HUBKIT,G-I18N,G-PASTE	G-HUBKIT tạo; G-PASTE xoá; G-I18N sửa (ngôn ngữ, W3.5)
@@ -862,7 +862,7 @@ package	G-UX3-RECURRING	W8-UX3	M	W7
 package	G-FIX-UX3-1	W8-UX3	S	W7
 file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/UxGate/UxLayoutAuditor.cs	G-UX3-AUDIT	W8-UX3 — hai chỗ luật đo nói SAI sự thật (hàng dưới lằn cuộn bị báo "bị cắt"; màu có alpha đo như màu đục)
 file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/UxGate/UxLayoutAuditTests.cs	G-UX3-AUDIT	W8-UX3 — luật tương phản phủ cả bốn dấu chú giải, không chỉ ba
-file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/UxGate/UxContrastTokenTests.cs	G-UX3-AUDIT,G-FIX-UX3-1	W8-UX3 — file MỚI: kiểm tự động tỉ lệ tương phản WCAG của mọi token màu, CẢ HAI skin (chữ 4,5:1 / hình khối 3:1) | G-FIX-UX3-1: ba dấu chú giải mà G-UX3-TIMELINE khai thêm phải vào BẢNG ĐO (bậc hình khối 3:1), không vào miễn trừ
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/UxGate/UxContrastTokenTests.cs	G-UX3-AUDIT,G-FIX-UX3-1,G-W11-EYE2	W8-UX3 — file MỚI: kiểm tự động tỉ lệ tương phản WCAG của mọi token màu, CẢ HAI skin (chữ 4,5:1 / hình khối 3:1) | G-FIX-UX3-1: ba dấu chú giải mà G-UX3-TIMELINE khai thêm phải vào BẢNG ĐO (bậc hình khối 3:1), không vào miễn trừ · (G-W11-EYE2) J3-02 — dòng bảng token cho --liveops-hub-color-button-border
 file	Packages/com.dreamtech.liveops/Editor/Hub/UI/liveops-hub-components.uss	G-UX3-CALENDAR	W8-UX3 — ô số + ô chữ của inspector tràn khỏi hàng
 file	Packages/com.dreamtech.liveops/Editor/Hub/UI/liveops-hub-controls.uss	G-UX3-CALENDAR	W8-UX3 — chữ trong TextField và ToolbarToggle lệch 2px (2022.3)
 file	Packages/com.dreamtech.liveops/Editor/Hub/UI/liveops-hub-shell.uss	G-UX3-CALENDAR	W8-UX3 — hai chevron của nút ghim rail chồng khung nhau ở 700/820
@@ -991,7 +991,7 @@ package	G-W10-THEME	W10	S	W9
 file	Packages/com.dreamtech.liveops/Editor/Hub/UI/liveops-hub-theme.uss	G-W10-THEME	W10-03 + W10-06 — nâng token màu chữ cho đủ 4,5:1 SAU khi nhân opacity của tổ tiên, ở cả hai skin
 file	Packages/com.dreamtech.liveops/Editor/Hub/UI/liveops-hub-shell.uss	G-W10-THEME	W10-06 — .liveops-hub-root đọc màu chữ nền tảng qua token thay vì thẳng biến Unity (một dòng)
 file	Packages/com.dreamtech.liveops/Editor/Hub/UI/liveops-hub-components.uss	G-W10-THEME	W10-06 (lượt sửa 2, phát hiện F1 của soát 21/9) — luật .liveops-hub-text--ok còn đặt màu CHỮ bằng var(--unity-colors-default-text): ở skin tối là #D2D2D2, đúng màu sinh ra phiếu, và giải theo skin ĐANG CHẠY chứ không theo class skin. Đổi sang token, ĐÚNG MỘT luật color; không gói W10 nào khác giữ file này (G-W10-HINT giữ timeline.uss, G-W10-FIELD giữ controls.uss) nên không va chạm văn bản trong đợt
-file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/UxGate/UxComposedTokenContrastTests.cs	G-W10-THEME	FILE MỚI — cổng tương phản cho màu ĐÃ HỢP THÀNH, chạy cho CẢ HAI theme trong một lượt; hằng nền đối chiếu số đo thật của skin đang chạy
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/UxGate/UxComposedTokenContrastTests.cs	G-W10-THEME,G-W11-EYE2	FILE MỚI — cổng tương phản cho màu ĐÃ HỢP THÀNH, chạy cho CẢ HAI theme trong một lượt; hằng nền đối chiếu số đo thật của skin đang chạy · (G-W11-EYE2) J3-02 — mở ba hằng nền thành internal cho bộ đo hình khối
 file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/UxGate/UxContrastTokenTests.cs	G-W10-THEME	W10-06 — khai token màu chữ nền tảng vào bảng token (trước W10 bảng đo mọi màu phụ mà bỏ trống màu chính)
 file	tools/liveops-hub/ownership.tsv	G-W10-THEME	W10 — chính khối đăng ký G-W10-THEME ở trên (USER mở quyền 21/9); gói không đụng dòng nào của ba gói W10 cũ
 # (W10, CỔNG ĐỢT — G-FIX-W10-1, 21/9/2026) VA CHẠM NGỮ NGHĨA có thật khi gộp: G-W10-MATRIX đổi tên hằng ngưỡng
@@ -1193,3 +1193,27 @@ file	tools/liveops-hub/ownership.tsv	G-FIX-W11-1	khối đăng ký ở trên
 package	G-FIX-W11-2	W11.5-FIXB	S	G-FIX-W11-1
 file	tools/liveops-hub/run-editmode.sh	G-FIX-W11-2	lượt có test UI lấy Unity độc quyền (slot 1 + chờ hết lượt batchmode khác)
 file	tools/liveops-hub/ownership.tsv	G-FIX-W11-2	khối đăng ký ở trên
+#
+# G-W11-EYE2 — bốn phiếu NGƯỜI DÙNG GIẢ NHÌN THẤY ở lượt đi dạo W11 (plan/w11/W11-JOURNEY.md §6), user chốt 21/9/2026.
+#   J3-01 hai nút PHÁ HUỶ ("Xoá luật…" 637px/504px, "Xoá đợt…" 265px/264px) vẫn dãn hết bề ngang pane — nửa còn lại của
+#     phiếu J2-02 mà gói G-W11-EYE chưa rà. Gói này rà CẢ hub bằng một lưới MÁY: nút trong hộp xếp DỌC không được lấy
+#     align stretch. Lưới nằm trong UxLayoutAuditor nên nó chạy trên mọi màn × 7 cỡ của ma trận, không chỉ hai nút ấy.
+#   J3-02 viền + nền nút .liveops-hub-button ở skin TỐI: 1,13:1 (viền/nền trang) và 1,65:1 (nền nút/nền trang), dưới bậc
+#     hình khối 3:1. Gói khai token viền riêng cho skin tối và MỞ RỘNG bộ đo tương phản từ màu CHỮ sang CẠNH + NỀN của
+#     nút / ô nhập / chip / viền trạng thái ở CẢ HAI skin — khe mà cổng chưa bao giờ đo (cùng gốc với nợ W11-16).
+#   J3-03 thẻ ĐỊNH DẠNG màn Xuất JSON: ToolbarMenu không chữ vẽ trọn khung ô nhập, rộng hết thẻ, không tooltip.
+package	G-W11-EYE2	W11.6	M	G-W11-EYE
+file	Packages/com.dreamtech.liveops/Editor/Hub/UI/liveops-hub-theme.uss	G-W11-EYE2	J3-02 — token --liveops-hub-color-button-border cho skin TỐI (#B0B0B0)
+file	Packages/com.dreamtech.liveops/Editor/Hub/UI/liveops-hub-components.uss	G-W11-EYE2	J3-02 luật viền nút đọc token ở CẢ HAI skin; J3-01 class .liveops-hub-button--self-start
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubClassNames.cs	G-W11-EYE2	J3-01 — hằng class ButtonSelfStart
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubClassNames.Export.cs	G-W11-EYE2	J3-03 — hằng class ExportFormatMenu
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubStrings.Export.cs	G-W11-EYE2	J3-03 — khoá chuỗi tooltip của menu định dạng
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/Language/LiveOpsHubStringCatalog.Export.cs	G-W11-EYE2	J3-03 — câu vi + en của tooltip
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Export/ExportMetrics.cs	G-W11-EYE2	J3-03 — menu định dạng ra dáng menu (class + tooltip), giữ "không chữ"
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Export/ExportSection.uss	G-W11-EYE2	J3-03 — luật USS của menu định dạng
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/RecurringRules/RecurringRuleForm.cs	G-W11-EYE2	J3-01 — nút "Xoá luật…" thôi dãn
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Calendar/CalendarEventInspector.cs	G-W11-EYE2	J3-01 — nút "Xoá đợt…", nút xoá nhiều đợt, nút sửa giờ hỏng thôi dãn
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/UxGate/UxLayoutAuditor.cs	G-W11-EYE2	J3-01 — lưới buttonStretched (nút trong hộp xếp dọc lấy align stretch)
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/UxGate/UxShapeContrastTests.cs	G-W11-EYE2	FILE MỚI — J3-02, bộ đo tương phản CẠNH + NỀN ở cả hai skin
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Sections/W11Eye2FixTests.cs	G-W11-EYE2	FILE MỚI — khoá J3-01 (bề ngang nút phá huỷ ở 7 cỡ) và J3-03 (menu định dạng)
+file	tools/liveops-hub/ownership.tsv	G-W11-EYE2	khối đăng ký ở trên

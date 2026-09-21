@@ -208,6 +208,9 @@ namespace DreamTech.LiveOps.Editor
                 english: "without recurring");
             table.AddShared(nameof(LiveOpsHubStrings.ExportMetricFormatChoice1), "1");
             table.AddShared(nameof(LiveOpsHubStrings.ExportMetricFormatChoice2), "2");
+            table.Add(nameof(LiveOpsHubStrings.ExportMetricFormatMenuTooltip),
+                vietnamese: "Đổi định dạng JSON xuất ra",
+                english: "Change the exported JSON format");
             table.AddShared(nameof(LiveOpsHubStrings.ExportMetricShaCaption), "SHA");
             table.Add(nameof(LiveOpsHubStrings.ExportMetricCompareCaption),
                 vietnamese: "SO VỚI",

@@ -158,6 +158,9 @@ namespace DreamTech.LiveOps.Editor
             deleteButton.AddToClassList(LiveOpsHubClassNames.Button);
             deleteButton.AddToClassList(LiveOpsHubClassNames.ButtonDanger);
             deleteButton.AddToClassList(LiveOpsHubClassNames.ButtonFirst);
+            // (J3-01) Form luật là hộp xếp DỌC, nên không có class này thì nút xoá lấy trọn bề ngang pane (đo được 637px ở
+            // 1280 và 504px ở 820) — hành động KHÔNG hoàn tác được mà lại là phần tử rộng nhất màn.
+            deleteButton.AddToClassList(LiveOpsHubClassNames.ButtonSelfStart);
             Add(deleteButton);
 
             RegisterFieldCallbacks();
