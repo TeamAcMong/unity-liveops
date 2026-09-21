@@ -466,6 +466,29 @@ namespace DreamTech.LiveOps.Editor.Tests
             yield return RunScreen(ToastScreen("calendar-toast").WithAfterOpen(DragBarToRaiseToast, true));
         }
 
+        /// <summary>
+        /// (J2-01) Toast không được ĐÈ lên chân màn Lịch — dải chú giải, dòng gợi ý, minimap — ở BẤT KỲ cỡ nào, KHI NGĂN
+        /// KÉO INSPECTOR ĐANG MỞ.
+        /// <para>
+        /// Vì sao là một màn RIÊNG, không gộp vào <see cref="Calendar_Toast_DoesNotOverlapFooter"/>: màn kia đo toast với
+        /// chân TRANG (status bar) trên màn Lịch KHÔNG mở ngăn kéo. Phiếu J2-01 là một hình học khác hẳn — ngăn kéo mở lấy
+        /// mất bề ngang của dải chú giải, chú giải gập thêm hàng và trèo lên, rồi đứng đúng chỗ toast đang đậu. Số đo ở 820:
+        /// chú giải (36, 470, 504×68), toast (44, 478, 452×24), chồng lấn 452×24.
+        /// </para>
+        /// <para>
+        /// Vì sao cổng tĩnh cũ không bắt: mọi phép đếm chữ bị cắt đo theo HỘP của chính phần tử, mà toast là
+        /// <c>position: absolute</c> NỔI LÊN TRÊN — nó không làm hộp nào nhỏ lại nên không chỗ nào "bị cắt". Che nhau là
+        /// quan hệ GIỮA HAI phần tử; luật <see cref="UxLayoutNoOverlapRule"/> là phép đo duy nhất của cổng nói được chuyện
+        /// đó, nên mọi cặp "nổi lên trên / nội dung" mới sau này khai thêm một luật ở đây là đo được.
+        /// </para>
+        /// </summary>
+        [UnityTest]
+        public IEnumerator Calendar_Toast_DoesNotCoverLegend_AtEveryWidth()
+        {
+            yield return RunScreen(ToastOverFooterScreen("calendar-toast-legend")
+                .WithAfterOpen(SelectBarThenDragToRaiseToast, true));
+        }
+
         /// <summary>UX-16: dòng thông tin của làn (tên loại, số đợt) không được cắt ở cỡ nào, tiếng nào.</summary>
         [UnityTest]
         public IEnumerator Calendar_LaneMeta_NotCut()
@@ -1015,6 +1038,26 @@ namespace DreamTech.LiveOps.Editor.Tests
                 .WithScreenRulesOnly("." + LiveOpsHubClassNames.Toast);
         }
 
+        /// <summary>
+        /// (J2-01) Khuôn của màn "toast không đè chân màn Lịch". Khác <see cref="ToastScreen"/> ở ba chỗ: ngăn kéo inspector
+        /// MỞ (đó là điều kiện làm chú giải gập thêm hàng), ba luật không-đè thay vì một, và ba phần tử chân màn đều là phần
+        /// tử BẮT BUỘC — thiếu một trong ba thì luật không-đè tương ứng tự bỏ qua trong im lặng và màn xanh vì không đo gì,
+        /// chứ không vì đạt.
+        /// </summary>
+        private static UxLayoutScreen ToastOverFooterScreen(string screenId)
+        {
+            return new UxLayoutScreen(screenId, LiveOpsHubSections.Ids.Calendar)
+                .WithRebuildPerSize()
+                .WithReadyCondition(IsToastShown, ToastReadyTimeoutMilliseconds)
+                .WithRequiredElements("." + LiveOpsHubClassNames.Toast, "." + LiveOpsHubClassNames.TimelineLegend,
+                    "." + LiveOpsHubClassNames.TimelineHint, "." + LiveOpsHubClassNames.TimelineMinimap)
+                .WithNoOverlapRules(
+                    new UxLayoutNoOverlapRule("." + LiveOpsHubClassNames.Toast, "." + LiveOpsHubClassNames.TimelineLegend),
+                    new UxLayoutNoOverlapRule("." + LiveOpsHubClassNames.Toast, "." + LiveOpsHubClassNames.TimelineHint),
+                    new UxLayoutNoOverlapRule("." + LiveOpsHubClassNames.Toast, "." + LiveOpsHubClassNames.TimelineMinimap))
+                .WithScreenRulesOnly("." + LiveOpsHubClassNames.Toast);
+        }
+
         private static UxLayoutScreen LegendContrastScreen(string screenId)
         {
             return new UxLayoutScreen(screenId, LiveOpsHubSections.Ids.Calendar)
@@ -1303,6 +1346,21 @@ namespace DreamTech.LiveOps.Editor.Tests
         /// hết hạn nghĩa là cú kéo KHÔNG ghi được gì, không phải toast đã sống rồi tắt — hai chuyện ấy cần hai câu khác nhau.
         /// </summary>
         private const int ToastReadyTimeoutMilliseconds = 1500;
+
+        /// <summary>
+        /// (J2-01) Mở ngăn kéo inspector TRƯỚC rồi mới kéo một thanh để dựng toast. Thứ tự này là điều kiện của phiếu: ngăn
+        /// kéo mở lấy mất bề ngang của dải chú giải, chú giải gập thêm hàng và trèo lên vào đúng chỗ toast đậu.
+        /// </summary>
+        private static IEnumerator SelectBarThenDragToRaiseToast(UxHubWindowFixture fixture)
+        {
+            // Ở cỡ --narrow (700, 820) dải chú giải ẨN theo thiết kế, chỗ của nó là menu ⋮. Cảnh của phiếu J2-01 là cảnh người
+            // dùng ĐÃ BẬT nó lại (ảnh W10f-820x560-1-chu-giai-grab.png), nên bật ở đây — không bật thì ở hai cỡ hẹp nhất luật
+            // không-đè tự bỏ qua và màn xanh vì không đo gì, chứ không vì đạt.
+            fixture.Calendar.Toolbar.SetLegendVisible(true);
+            yield return fixture.WaitForLayout();
+            yield return SelectFirstBar(fixture);
+            yield return DragBarToRaiseToast(fixture);
+        }
 
         private static IEnumerator DragBarToRaiseToast(UxHubWindowFixture fixture)
         {

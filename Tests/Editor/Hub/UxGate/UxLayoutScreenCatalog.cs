@@ -166,6 +166,13 @@ namespace DreamTech.LiveOps.Editor.Tests
                 "cùng nhánh inspector, bản kia chọn đợt có giờ không đọc được"),
             Covered("calendar-toast", LiveOpsHubSections.Ids.Calendar, "calendar-toast-worst-data",
                 "cùng luật toast không đè chân trang, bản kia dựng toast trên tài liệu xấu nhất"),
+            // (J2-01) Màn này đo quan hệ HÌNH HỌC giữa toast và chân màn Lịch khi ngăn kéo inspector MỞ. Cái quyết định ở đây là BỀ
+            // NGANG CÒN LẠI (ngăn kéo lấy mất bao nhiêu ⇒ dải chú giải gập mấy hàng ⇒ mép trên của nó trèo lên tới đâu), không phải độ dài
+            // của chữ trong tài liệu: chú giải luôn là năm ký hiệu nền tảng cố định, không đọc một chữ nào của lịch. Phần tài liệu xấu nhất
+            // của ĐÚNG cặp toast/chân màn đã có bản riêng ở calendar-toast-worst-data.
+            Covered("calendar-toast-legend", LiveOpsHubSections.Ids.Calendar, "calendar-toast-worst-data",
+                "cùng cặp toast/chân màn Lịch, bản kia dựng toast trên tài liệu xấu nhất; chú giải là năm ký hiệu nền tảng cố "
+                + "định nên dữ liệu của lịch không đổi được hình học mà màn này đo"),
             Services("calendar-toast-worst-data", LiveOpsHubSections.Ids.Calendar,
                 "toast dựng trên tài liệu xấu nhất bằng cú kéo một đợt CHƯA bắt đầu — kéo đợt đang chạy đi đường hỏi xác "
                 + "nhận chứ không đường toast, nên đó không phải cách dựng trạng thái này"),

@@ -129,6 +129,17 @@
        nó được chỉnh theo bậc 4,5:1 trên những nền khác; lần sau ai nâng quiet cho sáng lên một nấc là viền hình khối lại
        tụt dưới 3:1 mà không có gì báo. Hai bậc khác nhau thì hai token khác nhau. */
     --liveops-hub-color-undeclared-border: #444444;
+    /* (J2-02) Viền HÌNH KHỐI của nút ở skin sáng. Đo trên ảnh h17-2a-stale-edited-light.png: nền nút #E4E4E4 trên nền trang
+       #C8C8C8 chỉ 1,29:1 — tự nó nút KHÔNG đọc ra là nút, chỉ còn viền làm việc ấy; mà viền mạnh nhất của Unity ở đó (mép dưới
+       #939393) chỉ 2,42:1 so với nền nút và 1,84:1 so với nền trang — dưới bậc hình khối 3:1. #6B6B6B đo ra 3,18:1 trên nền trang
+       #C8C8C8 và 4,11:1 trên nền nút #E4E4E4, tức qua bậc ở CẢ HAI nền mà nút có thể đứng trên.
+       Khai RIÊNG một token cho viền, không dùng lại --liveops-hub-color-quiet: quiet là màu CHỮ, nó được chỉnh theo bậc
+       4,5:1; hai bậc khác nhau thì hai token khác nhau (đúng lối mà --liveops-hub-color-undeclared-border ở ngay trên đã đi).
+       Chỉ khai ở khối skin SÁNG, và luật tiêu thụ nó (liveops-hub-components.uss) cũng chỉ sống trong khối .liveops-hub--skin-light:
+       skin tối đặt nút trên nền tối và không phải chỗ phiếu J2-02 đo được trượt, đổi viền ở đó là dời một bằng chứng đang xanh
+       mà không có phiếu nào đòi. */
+    --liveops-hub-color-button-border: #6B6B6B;
+
     /* (W10-03) #1D5087 cũ đạt bậc chữ trên nền CỬA SỔ #C8C8C8 nhưng chữ bấm được của chip asset nằm trên nền CHIP
        #A5A5A5 (--unity-colors-default-background của skin sáng), ở đó chỉ 3,34:1. #143A60 đo ra 4,73:1 trên nền chip
        và 6,96:1 trên nền cửa sổ. Giữ nguyên tông lam của bảng màu, chỉ hạ độ sáng đúng mức cần; focus đi cùng link

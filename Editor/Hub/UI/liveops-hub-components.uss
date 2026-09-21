@@ -255,6 +255,13 @@
     background-color: var(--unity-colors-button-background);
 }
 
+/* (J2-02) Viền hình khối của nút ở skin sáng đạt bậc 3:1 — xem --liveops-hub-color-button-border trong liveops-hub-theme.uss.
+   Chỉ đặt MÀU viền, KHÔNG đặt border-width: nút của Unity đã có viền 1px sẵn, khai lại bề dày là rủi ro dịch hình học
+   một pixel ở một trong hai bản Unity mà không đổi lấy gì. Nút nguy hiểm dùng chung luật này: nó chỉ đổi MÀU CHỮ. */
+.liveops-hub--skin-light .liveops-hub-button {
+    border-color: var(--liveops-hub-color-button-border);
+}
+
 .liveops-hub-button-slot {
     flex-direction: row;
     align-items: center;

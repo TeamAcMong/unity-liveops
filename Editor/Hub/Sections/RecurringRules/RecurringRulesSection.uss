@@ -51,6 +51,25 @@
     -unity-text-align: middle-center;
 }
 
+/* (J2-06) padding 0 3px là khoảng thở của CHIP — nền bo tròn phải rộng hơn chữ thì mới đọc ra chip. Nhưng nó KHÔNG được
+   biến thành khoảng cách của CÂU: mảnh chữ đứng ngay sau chip bắt đầu bằng dấu phẩy (", neo từ ", ", anchored at "), nên 3px
+   ấy đẩy dấu phẩy rời khỏi chữ đứng trước và câu đọc thành "Mỗi [7 ngày] , neo từ".
+   Chữa bằng cách BỎ BỚT PADDING PHẢI, không bằng margin âm. Bản vá lượt đầu của gói này dùng margin-right: -3px và nó
+   đúng về mắt nhưng SAI về hình học: cụm co lại 3px trong khi hộp của chip thì không, nên chip tràn khỏi cụm 3px và cổng
+   bố cục đếm ra 42 chỗ childOverflow mỗi màn Luật lặp. Hạ padding thì hộp và chỗ vẽ nói cùng một chuyện.
+   Chỉ đặt khi sau chip LÀ dấu câu (C# gắn class): mảnh cuối " + số thứ tự." bắt đầu bằng KHOẢNG TRẮNG thật, kéo nó lại thì
+   câu đọc thành "[pass-]+ số thứ tự" — đúng kiểu lỗi ngược lại (đo được trên ảnh chứng minh lượt đầu của gói này).
+   Viết hai class cho đủ độ ưu tiên (R-09): sắp xếp lại file không được làm luật này thua luật padding ở trên. */
+.liveops-hub-rule-token.liveops-hub-rule-token--followed-by-punctuation {
+    padding-right: 1px;
+}
+
+/* Bản --highlighted bù padding 2px bằng viền 1px để bật viền không làm câu nhảy một pixel; luật trên đổi padding nên bản
+   này phải đổi theo cho đúng phép bù ấy: 0 padding + 1 viền = 1px, bằng 1px padding của bản thường. */
+.liveops-hub-rule-token--highlighted.liveops-hub-rule-token--followed-by-punctuation {
+    padding-right: 0;
+}
+
 .liveops-hub-rule-token--highlighted {
     border-width: 1px;
     border-color: var(--liveops-hub-color-focus);
