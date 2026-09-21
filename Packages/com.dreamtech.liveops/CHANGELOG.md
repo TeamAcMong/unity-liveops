@@ -64,6 +64,15 @@ không đổi: `Parse`, `LiveOpsSystem` và mọi port của 0.1.0 giữ nguyên
 - Hai bộ chữ đầy đủ **Tiếng Việt + English**, mặc định English; mọi chuỗi đọc qua catalog theo khoá.
 
 ### Changed
+- **`LiveOpsIdentifierLimits` (core): giới hạn độ dài của dữ liệu lịch, dạng hằng có tài liệu.** Trước bản này lõi chỉ
+  kiểm KÝ TỰ của định danh (`ValidateIdentifier`: không rỗng, không `#`, không xuống dòng) mà không có giới hạn ĐỘ DÀI
+  nào, nên "id dài tới đâu thì hub vẫn vẽ được" là câu không ai trả lời được bằng số. Nay: `MaxIdentifierLength = 64`
+  (id đợt, id loại, khoá mục, config key, khoá nhận quà, `systemId`), `MaxRecurringIdPrefixLength = 44` (suy ra:
+  64 − 20, chừa chỗ cho số thứ tự lần lặp), `MaxOccurrenceIndexLength = 20`, `MaxDisplayNameLength = 64`,
+  `MaxNoteLength = 160`, `MaxAssetNameLength = 64`, `MaxGrantIdLength = 143`. Xem README mục 4.5 cho cách suy ra từng
+  con số. **Không có hành vi nào đổi:** vượt giới hạn vẫn không ném, không mục nào bị bỏ, 12 luật Kiểm lịch giữ nguyên —
+  đây là hợp đồng soạn thảo và là mức mà bộ dữ liệu "xấu nhất" của cổng bố cục dựng theo.
+
 - **Mặc định của `ParseOrDefault` khi remote không dùng được (Q-9) — KHÔNG phải đổi hành vi so với 0.1.0.** Bản 0.1.0
   không có `ParseOrDefault` (chỉ có `Parse`, và `Parse` giữ nguyên chữ ký lẫn từng chuỗi `Problems`), nên game bump
   `0.1.0` → `0.2.0` không bị đổi gì. Dòng này là để đối chiếu với **các bản dựng trước của nhánh 0.2.0**: hằng
@@ -83,6 +92,11 @@ không đổi: `Parse`, `LiveOpsSystem` và mọi port của 0.1.0 giữ nguyên
   đổi §5 thành lộ trình D6.
 
 ### Notes
+- **Luật rút gọn có điều kiện nhận LOẠI Ô THỨ BA (J2-03, USER chốt 21/9/2026): nhãn thanh đợt trên trục.** Bề rộng một
+  thanh bằng khoảng thời gian của đợt nhân tỉ lệ zoom, nên không có bề rộng cửa sổ nào làm id vừa nhãn. Chỗ này trước
+  đây được tha bằng LỜI KHAI trong `UxLayoutAllowList`; nay nó chuyển sang `UxTruncationExemption`, nơi mỗi lượt kiểm
+  ĐO lại hai điều kiện — (a) thanh đang mang tooltip mở đầu bằng id đầy đủ, (b) dòng id trên tiêu đề inspector giữ chuỗi
+  đầy đủ và đang hiện. Gỡ tooltip của thanh là miễn trừ biến mất và phát hiện đỏ lại ngay lượt sau.
 - **Đã kiểm: Unity 2022.3.62f2 và Unity 6000.6.0f1** — EditMode ở cả hai bản (số test khớp nhau), PlayMode trên dev
   project Unity 6, và ảnh cửa sổ hub chụp hai skin × hai bản. **6000.0 – 6000.5: chưa kiểm** — nhánh
   `#if UNITY_2023_2_OR_NEWER` / `UNITY_6000_0_OR_NEWER` mới chỉ chạy trên 6000.6.
@@ -93,6 +107,37 @@ không đổi: `Parse`, `LiveOpsSystem` và mọi port của 0.1.0 giữ nguyên
   "strip không ảnh hưởng game" chờ bản demo IL2CPP của R-28.
 
 ### Chưa có ở bản này
+- **Nợ bố cục trên dữ liệu dài — 12 màn, 735 chỗ người dùng không dùng được (đo 21/9/2026, Unity 6000.6.0f1).** USER chốt
+  ngày 21/9/2026: sửa lỗi mắt thấy rồi phát hành, phần bố cục này để đợt W11. Không ngưỡng nào bị nới, không câu assert
+  nào đổi, và danh sách tha SUÔNG còn ngắn đi một dòng — 12 ca vẫn là 12 ca, chỉ chuyển sang trạng thái HOÃN CÓ TÊN trong
+  `UxLayoutDeferralList`, gỡ một dòng là ca chạy lại đầy đủ ngay lượt sau.
+
+  | Mã | Màn | Chỗ | Loại lỗi nặng nhất |
+  |---|---|---|---|
+  | W11-01 | `calendar-worst-data` | 176 | chữ bị cắt 98 · con tràn cha 70 · anh em chồng nhau 8 |
+  | W11-02 | `event-types-worst-data` | 157 | con tràn cha 79 · chữ bị cắt 78 |
+  | W11-03 | `recurring-worst-data` | 145 | chữ bị cắt 120 · con tràn cha 25 |
+  | W11-04 | `overview-worst-data` | 98 | chữ bị cắt 56 · con tràn cha 42 |
+  | W11-05 | `export-worst-data` | 56 | chữ bị cắt 56 |
+  | W11-06 | `calendar-multi-selection-worst-data` | 42 | chữ bị cắt 28 · con tràn cha 14 |
+  | W11-07 | `calendar-medium-drawer-worst-data` | 20 | chữ bị cắt · con tràn cha · anh em chồng nhau |
+  | W11-08 | `add-event-popover-worst-data` | 16 | chữ bị cắt · con tràn cha · anh em chồng nhau |
+  | W11-09 | `calendar-inspector-fielderror` | 16 | chữ bị cắt 8 · con tràn cha 8 |
+  | W11-10 | `calendar-empty` | 5 | chữ bị cắt 5 |
+  | W11-11 | `export-no-baseline` | 3 | chữ bị cắt 3 |
+  | W11-12 | `overview-empty` | 1 | chữ bị cắt 1 |
+
+  Bốn mục **W11-09 · W11-10 · W11-11 · W11-12 KHÔNG phải nợ "dữ liệu dài"**: chúng đứng trên dữ liệu đẹp hoặc dữ liệu
+  RỖNG, nên số của chúng không nhúc nhích khi bộ dữ liệu xấu nhất được dựng lại theo giới hạn. Tám mục còn lại đổi số
+  sau khi siết fixture: tổng 719 → 735 (`event-types` +9, `export` +6, `recurring` +5, `calendar` −2,
+  `calendar-multi-selection` −2). Tăng là ĐÚNG hướng — bản trước đo một ngày tồi tệ NHẸ hơn dữ liệu hợp lệ thật.
+- **W11-13 — màn Kiểm lịch và màn Xuất JSON bỏ trống gần nửa cửa sổ ở 1440x900 (J2-05).** Hai màn xếp nội dung trong
+  một cột bề rộng cố định, nên cửa sổ càng rộng thì phần trống càng lớn; ở 1440x900 gần một nửa bề ngang không dùng vào
+  việc gì. Hoãn sang đợt W11 vì sửa là đổi lưới của hai màn (cho cột giãn, hoặc chia hai cột ở bậc rộng), không phải một
+  bản vá rẻ. **Cổng bố cục hiện KHÔNG bắt được lỗi này**: máy chạy cổng kẹp 1440x900 còn 1440x881 và luật `notStretched`
+  chỉ hỏi "có giãn không", không hỏi "giãn tới đâu" — nên đây là nợ nhìn bằng MẮT, không có con số máy đo.
+- **Chưa có luật kiểm cho giới hạn độ dài.** `LiveOpsIdentifierLimits` là hằng có tài liệu; màn Kiểm lịch vẫn đúng 12
+  luật và không cảnh báo khi một id vượt 64 ký tự.
 - **Màn P2 của hub** (Trực tiếp, Dữ liệu người chơi) và **màn P3** (Mô phỏng): chưa đăng ký, rail và ⌘7–9 **ẩn** chứ
   không hiện dạng khoá.
 - **Mốc thưởng / battle pass** là module 0.3.0; **backend** (định danh người chơi, cloud save, điểm
