@@ -546,7 +546,15 @@ namespace DreamTech.LiveOps.Editor
             Rect contentBound = content.worldBound;
             if (float.IsNaN(contentBound.yMax)) return;
             float bottom = contentBound.yMax - worldTopY + ToastFloorGapPixels;
-            // Không bao giờ thấp hơn khe thủ: chân màn đo ra 0 (chưa bố cục xong) thì toast về đúng chỗ mặc định của nó, không âm.
+            // (R07) KẸP HAI ĐẦU, và mỗi đầu chặn một kiểu số rác khác nhau — một đầu thôi là không đủ.
+            // Sàn: chân màn nằm DƯỚI đáy cột nội dung (worldTopY > yMax) cho ra số âm, toast sẽ tụt ra ngoài khung; về khe thủ.
+            // Trần: chân màn đo ra 0 — đúng cảnh "chưa bố cục xong", vì worldBound của phần tử chưa có hình học là (0,0,0,0) —
+            // cho ra yMax + 8, tức vài trăm pixel, và toast BAY LÊN TRÊN nóc cửa sổ. Phép kẹp dưới không chạm tới cảnh ấy, còn
+            // FooterTopWorldY chỉ chặn NaN chứ không chặn 0. Trần = chiều cao cột nội dung: toast không bao giờ đậu cao hơn
+            // chính cái hộp đang làm gốc toạ độ cho nó (hai bậc class cũ cũng bị chặn ở 96px, cùng tinh thần).
+            // Trần TRƯỚC rồi mới sàn: cột nội dung chưa có hình học thì height = 0, kẹp trần trước sẽ kéo bottom về 0 và
+            // sàn ngay sau đó trả nó về khe thủ 8px — đúng chỗ mặc định. Làm ngược thứ tự thì trần ghi đè mất phép kẹp sàn.
+            if (bottom > contentBound.height) bottom = contentBound.height;
             if (bottom < ToastFloorGapPixels) bottom = ToastFloorGapPixels;
             _toast.style.bottom = bottom; // style-inline-allowed: 6
         }

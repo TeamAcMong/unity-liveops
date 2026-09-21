@@ -65,7 +65,8 @@ namespace DreamTech.LiveOps.Editor
         /// <para>
         /// Vì sao là một con số ĐO ĐƯỢC chứ không phải một BẬC class: chân màn Lịch cao bao nhiêu là do dải chú giải gập mấy hàng,
         /// mà số hàng ấy đổi theo bề ngang CÒN LẠI sau khi ngăn kéo inspector mở — không có một tập bậc hữu hạn nào phủ hết (phiếu J2-01:
-        /// ở 820 ngăn kéo mở, chú giải cao 68px và hai bậc 64/96 đều trượt, toast đè 452×24 lên hàng đầu chú giải).
+        /// ở 820 ngăn kéo mở, chú giải cao 68px và hai bậc 64/96 đều trượt, toast đè 452×24 lên hàng đầu chú giải — số của
+        /// KHUNG ĐI DẠO W10, xem chú thích R08 trong <c>CalendarSection.ApplyToastRaiseStep</c> về ba khung ba số).
         /// </para>
         /// </summary>
         public void SetToastFloor(float worldTopY)

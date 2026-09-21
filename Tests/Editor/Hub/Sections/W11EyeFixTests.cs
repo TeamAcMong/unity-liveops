@@ -162,11 +162,19 @@ namespace DreamTech.LiveOps.Editor.Tests
         }
 
         /// <summary>
-        /// (J2-02) Viền hình khối của nút ở skin SÁNG phải đạt 3:1 trên nền cửa sổ.
+        /// (J2-02) Viền hình khối của nút ở skin SÁNG phải đạt 3:1 trên CẢ HAI nền mà một nút đứng lên: nền trang #C8C8C8
+        /// và nền của chính nút #E4E4E4.
         /// <para>
-        /// Vì sao viền chứ không phải nền nút: nền nút #E4E4E4 trên nền trang #C8C8C8 chỉ 1,29:1, tức tự nó nút KHÔNG đọc ra
+        /// Vì sao viền chứ không phải nền nút: nền nút #E4E4E4 trên nền trang #C8C8C8 chỉ 1,32:1, tức tự nó nút KHÔNG đọc ra
         /// là một nút — chỉ còn viền làm việc ấy. Viền mạnh nhất của Unity ở đó (mép dưới #939393) đo ra 2,42:1 so với nền
         /// nút và 1,84:1 so với nền trang, cả hai dưới bậc.
+        /// </para>
+        /// <para>
+        /// (R09) Vì sao đo HAI nền chứ không một: bản đầu chỉ đo nền trang, nên trong ba con số mà chú thích của token khai
+        /// (3,18 · 4,19 · 1,32) chỉ có 3,18 được máy gác — hai con số kia là lời. Nay 4,19 cũng có ca canh.
+        /// GIỚI HẠN của ca này: nó KHÔNG phủ nền thứ ba của skin sáng, <c>--unity-colors-default-background</c> #A5A5A5
+        /// (rail, chip, minimap…), nơi token chỉ đạt 2,16:1. Hôm nay không nút nào đứng trên nền ấy, và luật "đừng đặt nút
+        /// vào đó" khai ở chú thích token trong <c>liveops-hub-theme.uss</c> — nhưng chưa có cổng máy gác, nợ W11-16.
         /// </para>
         /// <para>
         /// Đo trên root dựng tay mang class skin sáng, KHÔNG đổi skin của Editor: <c>capture.sh</c> là chỗ duy nhất được đặt
@@ -186,16 +194,31 @@ namespace DreamTech.LiveOps.Editor.Tests
             Assert.IsTrue(lightRoot.customStyle.TryGetValue(property, out Color border),
                 "theme không khai " + ButtonBorderTokenName + " cho skin sáng — luật USS đọc nó sẽ về màu dự phòng của C#");
 
-            Color background = UxLayoutAuditor.WindowBackground(false);
+            AssertBorderMeetsShapeContrast(border, UxLayoutAuditor.WindowBackground(false), "nền trang #C8C8C8");
+            AssertBorderMeetsShapeContrast(border, LightButtonBackground, "nền nút #E4E4E4");
+        }
+
+        /// <summary>Một phép đo của ca trên: viền hợp thành lên <paramref name="background"/> rồi so bậc hình khối.</summary>
+        private static void AssertBorderMeetsShapeContrast(Color border, Color background, string backgroundName)
+        {
             Color seen = UxLayoutAuditor.CompositeOver(border, background);
             float ratio = UxLayoutAuditor.ContrastRatio(seen, background);
             Assert.GreaterOrEqual(ratio, ShapeContrastRatio,
-                "viền nút skin sáng " + ratio.ToString("0.00", CultureInfo.InvariantCulture) + ":1 — cần ≥ " + ShapeContrastRatio.ToString("0.##", CultureInfo.InvariantCulture)
+                "viền nút skin sáng trên " + backgroundName + " " + ratio.ToString("0.00", CultureInfo.InvariantCulture)
+                + ":1 — cần ≥ " + ShapeContrastRatio.ToString("0.##", CultureInfo.InvariantCulture)
                 + ":1 (bậc hình khối, chốt của USER 19/9)");
         }
 
         /// <summary>Tên token viền nút — khai ở <c>liveops-hub-theme.uss</c>, khối <c>.liveops-hub--skin-light</c>.</summary>
         private const string ButtonBorderTokenName = "--liveops-hub-color-button-border";
+
+        /// <summary>
+        /// Nền nút của skin SÁNG (<c>--unity-colors-button-background</c> = #E4E4E4). Viết thành hằng chứ không đọc
+        /// <c>customStyle</c>: biến ấy do stylesheet mặc định của Editor khai theo skin ĐANG CHẠY, mà lượt cổng chạy skin tối,
+        /// nên đọc ra sẽ là màu nút của skin TỐI — đúng cú pháp mà sai cảnh. Cùng lối với
+        /// <c>UxLayoutAuditor.LightWindowBackgroundChannel</c>: màu của skin không chạy thì khai thành hằng có nguồn.
+        /// </summary>
+        private static readonly Color LightButtonBackground = new Color(228f / 255f, 228f / 255f, 228f / 255f, 1f);
 
         // ------------------------------------------------------------------ J2-06 dấu phẩy rời khỏi chip token
 
@@ -268,7 +291,7 @@ namespace DreamTech.LiveOps.Editor.Tests
 
         // ------------------------------------------------------------------ trợ giúp
 
-        /// <summary>Chip token đứng CUỐI một cụm của câu (cụm = "chữ nối + token"); null khi cụm không kết thúc bằng token.</summary>
+        /// <summary>Ký tự mở đầu mảnh chữ kế có phải DẤU CÂU không — dấu câu thì nó thuộc về chữ trong chip đứng trước.</summary>
         private static bool IsSentencePunctuation(char character)
         {
             for (int index = 0; index < SentencePunctuation.Length; index++)
@@ -278,6 +301,7 @@ namespace DreamTech.LiveOps.Editor.Tests
             return false;
         }
 
+        /// <summary>Chip token đứng CUỐI một cụm của câu (cụm = "chữ nối + token"); null khi cụm không kết thúc bằng token.</summary>
         private static Button LastTokenOf(VisualElement group)
         {
             if (group.childCount == 0) return null;

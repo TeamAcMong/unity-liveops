@@ -1223,6 +1223,11 @@ namespace DreamTech.LiveOps.Editor
             // Vì sao hai bậc không đủ: chiều cao chân màn đổi theo SỐ HÀNG mà dải chú giải gập, mà số hàng ấy đổi theo bề ngang
             // CÒN LẠI sau khi ngăn kéo inspector mở. Ở 820 ngăn kéo mở, chú giải rộng 504px và cao 68px thay vì 36px, mép trên của nó
             // trèo từ y=512 lên y=470 — giữa hai bậc 64 và 96, nên CẢ HAI đều sai và toast đè 452×24 lên hàng đầu chú giải (phiếu J2-01).
+            // (R08) 452×24 là số của KHUNG ĐI DẠO — cửa sổ hub 820x560 do bộ đi dạo W10 mở, ảnh W10f-820x560-2-toast-grab.png.
+            // Cùng một lỗi đo trong khung KHÁC ra số khác vì bề ngang toast đổi theo độ dài câu của bước Undo đang hiện:
+            // khung test dev của gói này (ảnh shots/before/j2-01-toast-820.png) ra 405×22, và màn cổng calendar-toast-legend ra
+            // 375–392×24 tuỳ ngôn ngữ. Ba con số KHÔNG mâu thuẫn — chúng là ba khung. Số SỐNG, đo lại mỗi lượt cổng, nằm ở câu
+            // pairOverlap của màn calendar-toast-legend; ba con số dán ở đây chỉ để người đọc nhận ra cảnh.
             _services.Bus.SetToastFloor(FooterTopWorldY());
         }
 
