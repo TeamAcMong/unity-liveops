@@ -17,7 +17,10 @@ namespace UxJourney
             registry["J2b"] = J2b;
             registry["J7b"] = J7b;
             registry["J5b"] = J5b;
+            RegisterW10(registry);
         }
+
+        static partial void RegisterW10(Dictionary<string, Func<UxRunner, IEnumerator>> registry);
 
         /// <summary>
         /// Nhịp update của Editor bỏ qua delayCall sau chuỗi chuột giả (trạng thái nút chuột gốc không được xoá) — gọi tay đúng hàm
