@@ -513,9 +513,50 @@ namespace DreamTech.LiveOps.Editor.Tests
             // Đo bằng BỐ CỤC (`layout`, toạ độ trong cột nội dung) chứ không bằng `worldBound`: `worldBound` cộng cả `translate`
             // của hiệu ứng trượt lên 8px nên đo sớm vài khung sẽ hụt. Cũng không đọc `resolvedStyle.bottom` — Yoga trả số ÂM cho
             // `bottom` của element neo tuyệt đối.
-            float lift = HubContent().layout.height - toast.layout.yMax;
-            Assert.GreaterOrEqual(lift, CalendarSection.DefaultToastRaisePixels - 2f,
-                "toast của màn Lịch phải nằm trên chân màn, không rơi về 8px (nâng đo được: " + lift + "px)");
+            VisualElement content = HubContent();
+            float lift = content.layout.height - toast.layout.yMax;
+
+            // (J2-01) Ràng buộc THẬT là "toast không đè chân màn", không phải "nâng ≥ 64px". Hai thứ ấy từng trùng nhau khi chỗ
+            // đậu của toast là một trong hai BẬC cứng 64/96; nay nó là số ĐO ĐƯỢC từ chân màn, nên ở 820 (chú giải ẩn theo
+            // thiết kế --narrow, chân màn chỉ còn minimap 20px + gợi ý 18px) con số đúng là 46px — vừa khít, không dư 18px như
+            // bậc cũ. Khoá bằng 64 ở đây là khoá một CON SỐ cũ chứ không khoá điều người dùng thấy, và nó đỏ đúng lúc bản sửa
+            // J2-01 làm toast đậu CHÍNH XÁC hơn.
+            float footerTop = FooterTopInContent(content);
+            Assert.Less(footerTop, content.layout.height,
+                "không đo được phần tử chân màn nào — phép đo dưới đây sẽ vô nghĩa, ca này thành lời khai suông");
+            Assert.LessOrEqual(toast.layout.yMax, footerTop - LiveOpsHubWindow.ToastFloorGapPixels + LayoutTolerancePixels,
+                "toast của màn Lịch phải nằm TRÊN chân màn, cách một khe thủ (nâng đo được: " + lift
+                + "px, mép trên chân màn: " + footerTop + "px, đáy toast: " + toast.layout.yMax + "px)");
+            Assert.Greater(lift, LiveOpsHubWindow.ToastFloorGapPixels + LayoutTolerancePixels,
+                "toast rơi về chỗ mặc định 8px — tức lớp nâng của màn Lịch không tới nơi (nâng đo được: " + lift + "px)");
+        }
+
+        /// <summary>Sai số bố cục cho mọi phép so pixel của fixture này — một khung vẽ có thể lệch nửa pixel.</summary>
+        private const float LayoutTolerancePixels = 1f;
+
+        /// <summary>
+        /// (J2-01) Mép TRÊN của chân màn Lịch (minimap / chú giải / dòng gợi ý) quy về toạ độ của cột nội dung — cùng hệ toạ
+        /// độ với <c>toast.layout</c>. Phần tử nào đang ẩn thì không tính: chú giải ẩn theo thiết kế ở cỡ hẹp.
+        /// </summary>
+        private float FooterTopInContent(VisualElement content)
+        {
+            float contentTop = content.worldBound.yMin;
+            float top = content.layout.height;
+            string[] footerClasses =
+            {
+                LiveOpsHubClassNames.TimelineMinimap,
+                LiveOpsHubClassNames.TimelineLegend,
+                LiveOpsHubClassNames.TimelineHint,
+            };
+            foreach (string className in footerClasses)
+            {
+                VisualElement element = _window.HubRoot.Q(className: className);
+                if (element == null || element.resolvedStyle.display == DisplayStyle.None) continue;
+                Rect bound = element.worldBound;
+                if (float.IsNaN(bound.yMin) || bound.height <= 0f) continue;
+                top = Mathf.Min(top, bound.yMin - contentTop);
+            }
+            return top;
         }
 
         // ====================================================== UX-11 · V8/R-02 ghi chú pane So với

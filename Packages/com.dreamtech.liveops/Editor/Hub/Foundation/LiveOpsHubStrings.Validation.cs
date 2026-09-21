@@ -22,6 +22,12 @@ namespace DreamTech.LiveOps.Editor
 
         internal static string ValidationRecheckButton => LiveOpsHubStringCatalog.Text(nameof(ValidationRecheckButton));
 
+        /// <summary>
+        /// (J2-02) Nút của banner "kết quả cũ". Phải KHÁC chữ với nút header <see cref="ValidationRecheckButton"/>: hai nút cùng mang
+        /// đúng một chữ "Kiểm lại" hiện cùng lúc trên một màn hình thì người đọc không có cách nào biết chúng khác gì nhau.
+        /// </summary>
+        internal static string ValidationStaleRecheckButton => LiveOpsHubStringCatalog.Text(nameof(ValidationStaleRecheckButton));
+
         /// <summary>Nút Kiểm lại lúc đang chạy: đổi chữ chứ không chỉ disabled, để biết vì sao bấm không được.</summary>
         internal static string ValidationRecheckRunningButton => LiveOpsHubStringCatalog.Text(nameof(ValidationRecheckRunningButton));
 

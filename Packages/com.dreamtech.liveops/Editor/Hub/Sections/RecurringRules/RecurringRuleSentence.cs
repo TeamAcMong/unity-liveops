@@ -57,6 +57,10 @@ namespace DreamTech.LiveOps.Editor
                 button.EnableInClassList(LiveOpsHubClassNames.Mono, token.IsMono);
                 button.EnableInClassList(LiveOpsHubClassNames.RuleTokenWarning, token.State == RecurringTokenState.Warning);
                 button.EnableInClassList(LiveOpsHubClassNames.RuleTokenHighlighted, token.State == RecurringTokenState.Highlighted);
+                // (J2-06) Nhìn tới MẢNH KẾ: nó bắt đầu bằng dấu câu thì padding phải của chip đẩy dấu ấy rời khỏi chữ, phải kéo lại.
+                // Quyết định ở ĐÂY chứ không ở USS vì USS không đọc được ký tự đầu của phần tử đứng sau.
+                button.EnableInClassList(LiveOpsHubClassNames.RuleTokenFollowedByPunctuation,
+                    StartsWithPunctuation(index + 1 < tokens.Count ? tokens[index + 1] : null));
                 group.Add(button);
                 _tokenButtons.Add(button);
                 _tokenFields.Add(fieldName);
@@ -72,6 +76,30 @@ namespace DreamTech.LiveOps.Editor
                     fieldName != null && string.Equals(_tokenFields[index], fieldName, StringComparison.Ordinal));
             }
         }
+
+        /// <summary>
+        /// (J2-06) Mảnh đứng sau chip có mở đầu bằng dấu câu không — tức dấu ấy thuộc về chữ TRONG chip và phải dính vào nó.
+        /// Mảnh mở đầu bằng khoảng trắng (" + số thứ tự.") thì khoảng trắng ấy là khoảng cách THẬT của câu, không được kéo lại.
+        /// </summary>
+        private static bool StartsWithPunctuation(RecurringSentenceToken next)
+        {
+            if (next == null || next.IsToken) return false;
+            string text = next.Text;
+            if (string.IsNullOrEmpty(text)) return false;
+            return IsSentencePunctuation(text[0]);
+        }
+
+        /// <summary>Dấu câu có thể mở đầu một mảnh nối của câu luật ở cả hai ngôn ngữ — xem <see cref="StartsWithPunctuation"/>.</summary>
+        private static bool IsSentencePunctuation(char character)
+        {
+            for (int index = 0; index < SentencePunctuation.Length; index++)
+            {
+                if (SentencePunctuation[index] == character) return true;
+            }
+            return false;
+        }
+
+        private static readonly char[] SentencePunctuation = { ',', '.', ';', ':', ')', ']', '!', '?' };
 
         internal static string TokenElementName(string fieldName)
         {

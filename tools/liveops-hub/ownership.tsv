@@ -1119,3 +1119,33 @@ package	G-FIX-W10-11	W10.5-FIXB	S	G-FIX-W10-10
 file	Packages/com.dreamtech.liveops/Editor/Hub/UI/liveops-hub-theme.uss	G-FIX-W10-11	chú thích token viền: số đo hôm nay + vì sao vẫn tách token
 file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/EventTypes/EventTypesSection.uss	G-FIX-W10-11	như trên, phía chỗ dùng
 file	tools/liveops-hub/ownership.tsv	G-FIX-W10-11	khối đăng ký ở trên
+#
+# ==================================================================================================== ĐỢT W11
+#
+# G-W11-EYE — ba lỗi NGƯỜI DÙNG GIẢ NHÌN THẤY ở lượt đi dạo W10 (W10-JOURNEY-2.md), user chốt 21/9/2026 là phải sửa
+#   TRƯỚC khi phát hành; nợ bố cục "dữ liệu xấu nhất" (12 ca đỏ) để đợt W11 sau.
+#   J2-01 toast màn Lịch đè hàng đầu dải chú giải ở 820 khi ngăn kéo inspector mở (chồng 452×24). Toast là
+#     position:absolute nên MỌI phép đếm chữ-bị-cắt của cổng đều mù với nó — gói này thêm một màn đo CHỒNG LẤN giữa
+#     toast và ba phần tử chân màn, tức phép đo còn thiếu hẳn cho mọi cặp "nổi lên trên / nội dung".
+#   J2-02 nút trong banner "kết quả cũ" màn Kiểm lịch dãn hết bề ngang + trùng chữ "Kiểm lại" với nút header +
+#     viền nút skin sáng 2,42:1 < 3:1.
+#   J2-06 dấu phẩy rời khỏi chip token trong câu Luật lặp (padding 0 3px của .liveops-hub-rule-token).
+package	G-W11-EYE	W11	M	W10
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Calendar/CalendarSection.cs	G-W11-EYE	J2-01 — chỗ đậu toast theo chân màn ĐO ĐƯỢC (world y) thay cho hai bậc class 64/96
+file	Packages/com.dreamtech.liveops/Editor/Hub/Services/LiveOpsHubSectionBus.cs	G-W11-EYE	J2-01 — kênh SetToastFloor(worldTopY) từ màn lên cửa sổ
+file	Packages/com.dreamtech.liveops/Editor/Hub/Shell/LiveOpsHubWindow.cs	G-W11-EYE	J2-01 — cửa sổ đổi world y thành bottom của toast + hằng khe thủ
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Validation/ValidationSection.cs	G-W11-EYE	J2-02 — banner "kết quả cũ" xếp ngang, nút thôi dãn, chữ khác nút header, khoá cùng nhịp
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/Validation/ValidationSection.uss	G-W11-EYE	J2-02 — luật USS của banner (hàng ngang, chữ co được, nút không dãn)
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/RecurringRules/RecurringRulesSection.uss	G-W11-EYE	J2-06 — margin-right âm của chip token KHI sau nó là dấu câu
+file	Packages/com.dreamtech.liveops/Editor/Hub/Sections/RecurringRules/RecurringRuleSentence.cs	G-W11-EYE	J2-06 — nhìn tới mảnh kế để biết sau chip là dấu câu hay khoảng trắng thật
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubClassNames.cs	G-W11-EYE	J2-06 — hằng class RuleTokenFollowedByPunctuation
+file	Packages/com.dreamtech.liveops/Editor/Hub/UI/liveops-hub-theme.uss	G-W11-EYE	J2-02 — token --liveops-hub-color-button-border cho skin sáng (3:1)
+file	Packages/com.dreamtech.liveops/Editor/Hub/UI/liveops-hub-components.uss	G-W11-EYE	J2-02 — luật viền nút skin sáng đọc token trên
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubClassNames.Validation.cs	G-W11-EYE	J2-02 — ba hằng class của banner
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/LiveOpsHubStrings.Validation.cs	G-W11-EYE	J2-02 — khoá chuỗi nút banner
+file	Packages/com.dreamtech.liveops/Editor/Hub/Foundation/Language/LiveOpsHubStringCatalog.Validation.cs	G-W11-EYE	J2-02 — câu vi + en của nút banner
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/UxGate/UxLayoutAuditTests.cs	G-W11-EYE	J2-01 — màn calendar-toast-legend: ngăn kéo mở + ba luật không-đè
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/UxGate/UxLayoutScreenCatalog.cs	G-W11-EYE	J2-01 — dòng khai "màn này nhìn thấy dữ liệu xấu nhất ở đâu" cho calendar-toast-legend
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Sections/W11EyeFixTests.cs	G-W11-EYE	FILE MỚI — khoá J2-02 và J2-06
+file	Packages/com.dreamtech.liveops/Tests/Editor/Hub/Sections/CalendarUxFixTests.cs	G-W11-EYE	J2-01 — ca UX-11 đổi từ "nâng ≥ 64px" sang ràng buộc thật "toast không đè chân màn"
+file	tools/liveops-hub/ownership.tsv	G-W11-EYE	khối đăng ký ở trên

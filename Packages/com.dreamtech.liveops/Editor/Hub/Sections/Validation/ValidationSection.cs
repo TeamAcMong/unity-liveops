@@ -391,10 +391,18 @@ namespace DreamTech.LiveOps.Editor
             _notice.Clear();
             SetVisible(_notice, notice.Length > 0);
             if (notice.Length == 0) return;
+            // (J2-02) Banner xếp NGANG: chữ trái, nút phải. Hộp xếp dọc mặc định của UI Toolkit căng con theo trục ngang
+            // (align-items: stretch), nên nút ở đây từng nhận trọn bề ngang banner — một dải nút ~1080px ở cửa sổ 1440.
+            _notice.AddToClassList(LiveOpsHubClassNames.ValidationNotice);
             HelpBox helpBox = new HelpBox(notice, HelpBoxMessageType.Info);
+            helpBox.AddToClassList(LiveOpsHubClassNames.ValidationNoticeText);
             _notice.Add(helpBox);
-            Button recheck = new Button(OnRecheckClicked) { name = NoticeButtonElementName, text = LiveOpsHubStrings.ValidationRecheckButton };
+            // Chữ KHÁC nút header: hai nút cùng đọc "Kiểm lại" hiện cùng lúc thì không ai phân biệt được chúng.
+            Button recheck = new Button(OnRecheckClicked) { name = NoticeButtonElementName, text = LiveOpsHubStrings.ValidationStaleRecheckButton };
             recheck.AddToClassList(LiveOpsHubClassNames.Button);
+            recheck.AddToClassList(LiveOpsHubClassNames.ValidationNoticeButton);
+            // Khoá cùng nhịp với nút header: banner không được cho bấm "kiểm lại" trong lúc một lượt kiểm đang chạy.
+            recheck.SetEnabled(Services.Session.Asset != null && !Services.Session.Check.IsRunning);
             _notice.Add(recheck);
         }
 

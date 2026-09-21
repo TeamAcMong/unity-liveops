@@ -85,6 +85,35 @@
 }
 
 /*
+ * (J2-02) Banner "kết quả cũ" (validation-notice). Không có luật nào cho nó thì nó là hộp xếp DỌC mặc định của
+ * UI Toolkit: trục chéo là trục ngang và align-items mặc định là stretch, nên NÚT bên dưới HelpBox nhận trọn bề ngang
+ * banner — ở cửa sổ 1440 là một dải nút ~1080px, thứ không chỗ nào khác trong hub có và ở skin sáng thì gần như tàng hình.
+ * Xếp NGANG: chữ trái lấy chỗ còn lại, nút phải đúng bằng chữ của nó.
+ * align-items: flex-start chứ không center — HelpBox có thể gập nhiều dòng ở cửa sổ hẹp, lúc ấy nút phải đứng cạnh DÒNG ĐẦU
+ * (chỗ mắt đọc vào), không trôi xuống giữa một khối chữ cao.
+ */
+.liveops-hub-validation-notice {
+    flex-direction: row;
+    align-items: flex-start;
+}
+
+/* Chữ lấy chỗ còn lại và ĐƯỢC co: min-width 0 vì con flex không tự co xuống dưới bề rộng nội dung của nó, không có dòng ấy
+   thì câu dài đẩy nút ra ngoài mép phải banner. */
+.liveops-hub-validation-notice-text {
+    flex-grow: 1;
+    flex-shrink: 1;
+    min-width: 0;
+}
+
+/* Nút không dãn và không co: co là mất chữ. align-self giữ chiều cao 18px của nút khi banner cao hơn. */
+.liveops-hub-validation-notice-button {
+    flex-grow: 0;
+    flex-shrink: 0;
+    align-self: flex-start;
+    margin-top: var(--liveops-hub-space-4);
+}
+
+/*
  * (W9-06) Dải summary được phép xuống dòng và cao thêm. Năm chip "2 bị bỏ · 1 mất tiến độ · …" có flex-shrink mặc định 1
  * nên ở cửa sổ hẹp CHÍNH CHIP bị bóp trong khi Label bên trong thì không — chữ tràn ra ngoài chip 7–9px mỗi bên rồi bị cắt.
  * min-height thay height: ở cửa sổ rộng năm chip vẫn nằm một hàng nên dải vẫn cao đúng 24px của Hình 15.
