@@ -37,13 +37,15 @@ namespace DreamTech.LiveOps.Editor.Tests
     internal readonly struct UxShapeComponent
     {
         public UxShapeComponent(string name, Func<VisualElement> build, string measuredChildSelector,
-            UxShapeBackdrop backdrop, string place)
+            UxShapeBackdrop backdrop, string place, string borderTokenName = null, string backgroundTokenName = null)
         {
             Name = name;
             Build = build;
             MeasuredChildSelector = measuredChildSelector;
             Backdrop = backdrop;
             Place = place;
+            BorderTokenName = borderTokenName;
+            BackgroundTokenName = backgroundTokenName;
         }
 
         public string Name { get; }
@@ -56,6 +58,17 @@ namespace DreamTech.LiveOps.Editor.Tests
         public UxShapeBackdrop Backdrop { get; }
 
         public string Place { get; }
+
+        /// <summary>
+        /// Tên custom property của hub mà luật USS của component này đọc cho MÀU CẠNH — rỗng nghĩa là cạnh lấy màu từ một
+        /// biến của chính Unity. Khai NGUỒN chứ không khai GIÁ TRỊ: giá trị vẫn đọc từ <c>resolvedStyle</c> của phần tử
+        /// thật, dòng này chỉ trả lời "màu ấy của ai", và <see cref="UxShapeContrastTests"/> đối chiếu lại với giá trị
+        /// token đọc trên chính root ấy nên một lời khai sai là cổng đỏ chứ không phải một dòng ghi chú mốc.
+        /// </summary>
+        public string BorderTokenName { get; }
+
+        /// <summary>Như <see cref="BorderTokenName"/> nhưng cho MẶT NỀN.</summary>
+        public string BackgroundTokenName { get; }
     }
 
     /// <summary>
@@ -103,8 +116,9 @@ namespace DreamTech.LiveOps.Editor.Tests
     /// hub — nó theo class <c>liveops-hub--skin-light</c> nên một lượt đọc được CẢ HAI skin. Nguồn THỨ HAI là biến của
     /// chính Unity (<c>--unity-colors-button-background</c>, <c>--unity-colors-window-border</c>…) — nó theo skin ĐANG
     /// CHẠY của Editor, mà đổi <c>EditorPrefs UserSkin</c> là độc quyền của <c>capture.sh</c> (SP-4). Bộ test này KHÔNG
-    /// đoán nguồn: nó dựng hai root, so màu đọc được, và chỉ khẳng định cho skin không-đang-chạy những màu THẬT SỰ đổi
-    /// theo class. Màu không đổi được ghi ra bằng chứng dưới dạng "chưa đo được ở skin kia", không tính là đạt.
+    /// đoán nguồn và cũng KHÔNG đoán theo giá trị: bảng <see cref="UxShapeContrastTests"/> khai TÊN token là nguồn của
+    /// từng nét, và ở skin không-đang-chạy chỉ những nét có nguồn ấy — đối chiếu lại đúng giá trị token đọc trên chính
+    /// root ấy — mới được tính. Nét còn lại ghi ra bằng chứng dưới dạng "chưa đo được ở skin kia", không tính là đạt.
     /// </para>
     /// </summary>
     [TestFixture]
@@ -129,6 +143,9 @@ namespace DreamTech.LiveOps.Editor.Tests
 
         private const string ThemeRelativePath = "Editor/Hub/UI/liveops-hub-theme.uss";
 
+        /// <summary>Token viền nút của hub — nguồn màu cạnh của MỌI dòng nút trong bảng dưới đây.</summary>
+        private const string ButtonBorderTokenName = "--liveops-hub-color-button-border";
+
         /// <summary>
         /// Khai báo custom property MÀU của hub trong theme — dò trên văn bản file, không chép tay một danh sách sẽ mốc.
         /// Chỉ nhận giá trị mở đầu bằng <c>#</c> hoặc <c>rgb</c>: theme còn khai token khoảng cách (<c>--liveops-hub-space-4:
@@ -144,11 +161,17 @@ namespace DreamTech.LiveOps.Editor.Tests
         private static readonly UxShapeComponent[] Components =
         {
             new UxShapeComponent("nút thường", BuildButton, null, UxShapeBackdrop.Window,
-                "nút của mọi section header và mọi pane — diện mạo nút chung của hub"),
+                "nút của mọi section header và mọi pane — diện mạo nút chung của hub", ButtonBorderTokenName),
             new UxShapeComponent("nút phá huỷ", BuildDangerButton, null, UxShapeBackdrop.Window,
-                "'Xoá luật…' màn Luật lặp và 'Xoá đợt…' inspector Lịch"),
+                "'Xoá luật…' màn Luật lặp và 'Xoá đợt…' inspector Lịch", ButtonBorderTokenName),
             new UxShapeComponent("nút trên nền thẻ", BuildButton, null, UxShapeBackdrop.Card,
-                "nút nằm trong header thẻ / dải công cụ (thẻ Xuất JSON, toolbar màn Kiểm lịch)"),
+                "nút nằm trong header thẻ / dải công cụ (thẻ Xuất JSON, toolbar màn Kiểm lịch)", ButtonBorderTokenName),
+            // (R-F3 lượt soát G-W11-EYE2) Mặt phẳng THỨ TƯ mà chú thích của token đã khai từ J2-02 và bảng này bỏ trắng ở
+            // lượt đầu: nền chip / rail / minimap. Đó là mặt phẳng DUY NHẤT đã biết là trượt (nợ W11-16), nên để nó ngoài
+            // bảng là để nợ ấy không có số bị khoá trong khi ba nợ mới W11-18/19/20 thì có — hai chuẩn cho cùng một thứ.
+            new UxShapeComponent("nút trên nền chip", BuildButton, null, UxShapeBackdrop.Chip,
+                "nút đặt trên .liveops-hub-rail / .liveops-hub-chip / minimap — mặt phẳng của nợ W11-16",
+                ButtonBorderTokenName),
             new UxShapeComponent("ô nhập", BuildTextField, "unity-base-text-field__input", UxShapeBackdrop.Window,
                 "mọi ô nhập của inspector Lịch và form Luật lặp"),
             new UxShapeComponent("chip header", BuildChip, null, UxShapeBackdrop.Window,
@@ -169,6 +192,9 @@ namespace DreamTech.LiveOps.Editor.Tests
             // chúng, vì mắt người chỉ bắt được cái nút. Cả ba KHÔNG phải màu của hub: chúng là mặc định của chính Unity
             // (ô nhập, chip, khung thẻ) dùng nguyên khắp hub, nên sửa là một quyết định diện mạo toàn cục chứ không phải
             // một bản vá — và phiếu J3-02 chỉ mang quyết định của user cho NÚT. Ghi nợ kèm số đo, khoá số lại ở đây.
+            // (R-F3) Nợ W11-16 mở từ đợt J2-02: viền nút skin SÁNG #6B6B6B trên nền chip #A5A5A5 chỉ 2,16:1. Nay có dòng
+            // trong bảng nên nó là một con số BỊ KHOÁ như ba nợ mới — trượt thêm một nấc hay sửa xong đều làm cổng đỏ.
+            new UxShapeDebt("nút trên nền chip", LightSkinName, "W11-16", 2.16f),
             new UxShapeDebt("ô nhập", DarkSkinName, "W11-18", 1.7f),
             new UxShapeDebt("chip header", DarkSkinName, "W11-19", 1.3f),
             new UxShapeDebt("viền trạng thái (dải summary)", DarkSkinName, "W11-20", 1.3f),
@@ -205,10 +231,7 @@ namespace DreamTech.LiveOps.Editor.Tests
                 "hai root đo hình khối chưa có layout");
             for (int frame = 0; frame < StyleResolveFrames; frame++) yield return null;
 
-            List<Color> darkTokens = HubTokenColorsOf(darkRoot);
-            List<Color> lightTokens = HubTokenColorsOf(lightRoot);
-            Assert.IsNotEmpty(darkTokens, "không đọc được token màu nào của hub — phép lọc 'màu này của ai' sẽ vô nghĩa");
-            Assert.IsNotEmpty(lightTokens, "không đọc được token màu nào của hub ở skin sáng");
+            AssertDeclaredTokenNamesExist();
 
             List<string> failures = new List<string>();
             List<string> evidence = new List<string>();
@@ -219,12 +242,9 @@ namespace DreamTech.LiveOps.Editor.Tests
                 UxShapeComponent component = Components[index];
                 VisualElement darkProbe = Measured(darkProbes[component.Name], component);
                 VisualElement lightProbe = Measured(lightProbes[component.Name], component);
-                Color[] darkColors = ShapeColorsOf(darkProbe);
-                Color[] lightColors = ShapeColorsOf(lightProbe);
-
-                measuredCount += AppendSkin(component, DarkSkinName, darkColors, darkTokens, true,
+                measuredCount += AppendSkin(component, DarkSkinName, darkProbe, darkRoot, true,
                     runningSkinName, failures, evidence);
-                measuredCount += AppendSkin(component, LightSkinName, lightColors, lightTokens, false,
+                measuredCount += AppendSkin(component, LightSkinName, lightProbe, lightRoot, false,
                     runningSkinName, failures, evidence);
             }
 
@@ -390,17 +410,47 @@ namespace DreamTech.LiveOps.Editor.Tests
             };
         }
 
+        /// <summary>
+        /// (R-F4 lượt soát G-W11-EYE2) Bề dày của đúng bốn cạnh ấy, cùng thứ tự; mặt nền luôn "có" nên nhận
+        /// <see cref="float.PositiveInfinity"/>. Vì sao cần: một cạnh bề dày 0 VẪN có màu trong <c>resolvedStyle</c>, nên
+        /// không đọc bề dày thì một component có thể ĐẠT bậc nhờ một nét KHÔNG BAO GIỜ ĐƯỢC VẼ — đúng hạng "đạt giả" mà
+        /// bộ đo này được dựng ra để chặn.
+        /// </summary>
+        private static float[] ShapeWidthsOf(VisualElement element)
+        {
+            IResolvedStyle style = element.resolvedStyle;
+            return new[]
+            {
+                style.borderTopWidth, style.borderRightWidth, style.borderBottomWidth, style.borderLeftWidth,
+                float.PositiveInfinity,
+            };
+        }
+
         private static readonly string[] ShapeColorNames = { "cạnh trên", "cạnh phải", "cạnh dưới", "cạnh trái", "mặt nền" };
+
+        /// <summary>Bốn nét đầu của <see cref="ShapeColorNames"/> là CẠNH; nét thứ năm là mặt nền.</summary>
+        private const int BorderColorCount = 4;
 
         /// <summary>
         /// Đo một component ở MỘT skin và ghi kết quả. Trả về số nét THẬT SỰ được đo ở skin ấy — 0 nghĩa là skin này không
-        /// nói được gì về component này (mọi màu của nó do biến của Unity quyết, không theo class), và điều đó được ghi ra
-        /// bằng chứng chứ không im lặng tính là đạt.
+        /// nói được gì về component này (mọi nét của nó lấy màu từ biến của Unity, không truy được về token nào của hub),
+        /// và điều đó được ghi ra bằng chứng chứ không im lặng tính là đạt.
+        /// <para>
+        /// (R-F1 lượt soát G-W11-EYE2) Ở skin KHÔNG đang chạy, một nét chỉ được tin khi NGUỒN của nó là một custom property
+        /// của hub — tức bảng <see cref="Components"/> khai tên token cho nét ấy VÀ màu đọc được trùng đúng giá trị token
+        /// ấy trên chính root này. Lượt đầu tin theo GIÁ TRỊ ("màu này trùng giá trị một token nào đó của hub") và điều đó
+        /// cho một kết quả ĐẠT GIẢ đo được: mặt nền của dải summary đọc <c>--unity-colors-toolbar-background</c> = #3C3C3C
+        /// ở skin tối đang chạy, mà theme lại khai <c>--liveops-hub-legend-fixed: #3C3C3C</c> trong khối skin sáng — hai
+        /// giá trị trùng nhau, phép lọc tưởng là màu của hub và ghi 6,6:1 cho một mặt nền mà skin sáng KHÔNG BAO GIỜ vẽ
+        /// (pixel ảnh chụp skin sáng: nền #CBCBCB 1,02:1, cạnh #939393 1,84:1). Trùng giá trị không phải là cùng nguồn.
+        /// </para>
         /// </summary>
-        private static int AppendSkin(UxShapeComponent component, string skinName, Color[] colors,
-            List<Color> hubTokenColors, bool darkSkin, string runningSkinName, List<string> failures, List<string> evidence)
+        private static int AppendSkin(UxShapeComponent component, string skinName, VisualElement probe,
+            VisualElement skinRoot, bool darkSkin, string runningSkinName, List<string> failures, List<string> evidence)
         {
             bool isRunningSkin = string.Equals(skinName, runningSkinName, StringComparison.Ordinal);
+            Color[] colors = ShapeColorsOf(probe);
+            float[] widths = ShapeWidthsOf(probe);
             Color backdrop = BackdropColor(component.Backdrop, darkSkin);
             float best = 0f;
             string bestName = string.Empty;
@@ -413,13 +463,36 @@ namespace DreamTech.LiveOps.Editor.Tests
                 Color color = colors[index];
                 // Nét trong suốt không phải nét: không có gì để mắt bám vào.
                 if (color.a < 0.05f) continue;
-                // Ở skin KHÔNG đang chạy chỉ tin được màu nào truy được về một token của hub: token theo class nên nó giải
-                // đúng, còn biến của Unity thì giữ giá trị của skin đang chạy và đọc nó ở đây là đọc một cửa sổ không có
-                // thật. Phép lọc "khác nhau giữa hai root" KHÔNG đủ và lượt đo đầu đã chứng minh: nút phá huỷ lấy
-                // --unity-colors-toolbar-background ở skin tối nhưng --unity-colors-button-background ở skin sáng, hai biến
-                // của Unity, hai giá trị khác nhau — phép lọc ấy tưởng là màu của hub và in ra 4,3:1 cho một mặt nền mà
-                // skin sáng không bao giờ vẽ.
-                if (!isRunningSkin && !IsHubTokenColor(color, hubTokenColors)) continue;
+                // Cạnh bề dày 0 cũng không phải nét: nó có màu nhưng không được vẽ ra pixel nào.
+                if (widths[index] <= 0f) continue;
+                string tokenName = index < BorderColorCount ? component.BorderTokenName : component.BackgroundTokenName;
+                if (!string.IsNullOrEmpty(tokenName))
+                {
+                    Color token;
+                    if (!skinRoot.customStyle.TryGetValue(new CustomStyleProperty<Color>(tokenName), out token))
+                    {
+                        failures.Add(component.Name + " · " + skinName + ": theme không khai " + tokenName
+                            + " cho skin này — bảng Components khai một nguồn không còn tồn tại");
+                        continue;
+                    }
+
+                    if (!SameColor(color, token))
+                    {
+                        // Luật USS thôi đọc token (bị xoá, bị một luật khác đè). Con số tính ra sau đó sẽ nói về màu mặc
+                        // định của Unity chứ không về thứ hub khai, nên đây là ĐỎ, không phải một dòng bằng chứng.
+                        failures.Add(component.Name + " · " + skinName + " (" + component.Place + "): "
+                            + ShapeColorNames[index] + " đọc ra " + HexOf(color) + " nhưng token " + tokenName
+                            + " của skin này là " + HexOf(token)
+                            + " — luật USS thôi đọc token, mọi con số của dòng này sẽ nói về một cửa sổ khác");
+                        continue;
+                    }
+                }
+                else if (!isRunningSkin)
+                {
+                    // Không truy được nguồn về hub: ở skin không đang chạy, màu đọc được là màu của skin ĐANG CHẠY.
+                    continue;
+                }
+
                 float ratio = UxLayoutAuditor.ContrastRatio(UxLayoutAuditor.CompositeOver(color, backdrop), backdrop);
                 measured++;
                 line.Append(ShapeColorNames[index]).Append(' ').Append(HexOf(color)).Append(' ')
@@ -431,8 +504,8 @@ namespace DreamTech.LiveOps.Editor.Tests
 
             if (measured == 0)
             {
-                evidence.Add(line.Append("CHƯA ĐO ĐƯỢC ở skin này — mọi nét của nó lấy màu từ biến của Unity, "
-                    + "mà biến ấy theo skin ĐANG CHẠY của Editor (" + runningSkinName + ") chứ không theo class").ToString());
+                evidence.Add(line.Append("CHƯA ĐO ĐƯỢC ở skin này — không nét nào của nó truy được về một token của hub, "
+                    + "mà biến của Unity thì theo skin ĐANG CHẠY của Editor (" + runningSkinName + ") chứ không theo class").ToString());
                 return 0;
             }
 
@@ -457,39 +530,35 @@ namespace DreamTech.LiveOps.Editor.Tests
         }
 
         /// <summary>
-        /// Mọi giá trị màu mà theme của hub khai cho skin của <paramref name="root"/>. Tên token đọc từ chính file theme
-        /// (không chép tay một danh sách sẽ mốc), giá trị giải qua <c>customStyle</c> của root.
+        /// Mọi TÊN custom property màu mà theme của hub khai, dò trên văn bản file. Dùng để chặn một lời khai nguồn đã mốc:
+        /// bảng <see cref="Components"/> khai tên token cho từng nét, và một tên gõ sai hay một token bị đổi tên sẽ làm mọi
+        /// nét của component ấy lặng lẽ rơi về "chưa đo được" thay vì báo động.
         /// </summary>
-        private static List<Color> HubTokenColorsOf(VisualElement root)
+        private static void AssertDeclaredTokenNamesExist()
         {
             string packageDirectory = UxContrastEvidence.PackageDirectory();
-            Assert.IsNotNull(packageDirectory, "không hỏi được gốc package — không đọc được theme để biết token nào của hub");
+            Assert.IsNotNull(packageDirectory, "không hỏi được gốc package — không đọc được theme để kiểm tên token");
             string themeText = File.ReadAllText(Path.Combine(packageDirectory, ThemeRelativePath));
-            List<Color> colors = new List<Color>();
             HashSet<string> names = new HashSet<string>(StringComparer.Ordinal);
             foreach (Match match in ColorTokenDeclarationPattern.Matches(themeText))
             {
                 names.Add(match.Groups[1].Value);
             }
 
-            foreach (string name in names)
+            Assert.IsNotEmpty(names, "không đọc được token màu nào của hub trong theme — phép kiểm nguồn sẽ vô nghĩa");
+            for (int index = 0; index < Components.Length; index++)
             {
-                Color value;
-                if (!root.customStyle.TryGetValue(new CustomStyleProperty<Color>(name), out value)) continue;
-                colors.Add(value);
+                UxShapeComponent component = Components[index];
+                AssertTokenNameExists(names, component.Name, component.BorderTokenName);
+                AssertTokenNameExists(names, component.Name, component.BackgroundTokenName);
             }
-
-            return colors;
         }
 
-        private static bool IsHubTokenColor(Color color, List<Color> hubTokenColors)
+        private static void AssertTokenNameExists(HashSet<string> declaredNames, string componentName, string tokenName)
         {
-            for (int index = 0; index < hubTokenColors.Count; index++)
-            {
-                if (SameColor(color, hubTokenColors[index])) return true;
-            }
-
-            return false;
+            if (string.IsNullOrEmpty(tokenName)) return;
+            Assert.IsTrue(declaredNames.Contains(tokenName),
+                componentName + " khai nguồn màu là " + tokenName + " nhưng theme không khai token tên ấy");
         }
 
         private static bool TryFindDebt(string componentName, string skinName, out UxShapeDebt found)

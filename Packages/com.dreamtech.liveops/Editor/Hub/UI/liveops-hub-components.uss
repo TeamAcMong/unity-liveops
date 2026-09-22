@@ -251,6 +251,12 @@
     align-self: flex-start;
     flex-grow: 0;
     flex-shrink: 0;
+    /* (R-F2 lượt soát G-W11-EYE2) Trần 100% để luật này dùng được cho CẢ nút xuống dòng. Không có nó, một nút
+       white-space: normal bỏ stretch sẽ lấy max-content và chui ra ngoài pane 280px — đúng lỗi C4 mà
+       .liveops-hub-calendar-finding-card--stacked được dựng ra để chữa, và cũng là lý do lượt đầu phải chừa hẳn
+       hạng nút xuống dòng ra ngoài lưới. Có trần thì bề ngang là min(chữ, hộp): chữ ngắn thì ôm chữ, chữ dài thì
+       vẫn gói đúng trong hộp như trước. */
+    max-width: 100%;
 }
 
 /* Nút chính không tô nền, chỉ chữ đậm. */

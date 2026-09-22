@@ -894,11 +894,13 @@ namespace DreamTech.LiveOps.Editor.Tests
         {
             if (!IsHubButton(child)) return;
             if (parent.resolvedStyle.flexDirection != FlexDirection.Column) return;
-            // Nút XUỐNG DÒNG ra khỏi diện, và đây là miễn trừ có GỐC đo được chứ không phải một lỗ chừa sẵn: với
-            // white-space: normal, bề ngang do hộp chứa cấp CHÍNH LÀ bề ngang mà chữ gói vào. Bỏ stretch ở đó là quay về
-            // max-content, tức đúng lỗi C4 mà .liveops-hub-calendar-finding-card--stacked được dựng ra để chữa ("hàng ngang
-            // đẩy hai nút đề xuất ra ngoài pane 280px"). Nút không xuống dòng thì không có lý do ấy.
-            if (child.resolvedStyle.whiteSpace == WhiteSpace.Normal) return;
+            // (R-F2 lượt soát G-W11-EYE2) Miễn trừ ĐO ĐƯỢC, không miễn trừ theo khai báo. Lượt đầu bỏ qua MỌI nút mang
+            // white-space: normal, mà hai nút PHÁ HUỶ của chính phiếu J3-01 đều mang class ấy — lưới vì vậy chưa bao giờ
+            // nhìn thấy đúng hạng nút mà phiếu nói, và ba nút một dòng khác cũng lọt. Nay chỉ nút ĐANG GÓI DÒNG THẬT ở cỡ
+            // đang đo mới ra khỏi diện: ở đó bề ngang hộp chứa cấp CHÍNH LÀ bề ngang chữ gói vào, nên "dãn" không còn là
+            // một lỗi đọc được bằng mắt. Nút gói dòng mà vẫn muốn ôm chữ thì dùng ButtonSelfStart — class ấy có trần
+            // max-width: 100% nên không quay lại lỗi C4 ("hàng ngang đẩy hai nút đề xuất ra ngoài pane 280px").
+            if (IsWrappingText(child)) return;
             Align self = child.resolvedStyle.alignSelf;
             Align effective = self == Align.Auto ? parent.resolvedStyle.alignItems : self;
             if (effective != Align.Stretch) return;
@@ -907,6 +909,27 @@ namespace DreamTech.LiveOps.Editor.Tests
                 + Number(childBound.width) + "px theo hộp chứ không theo chữ của nó — thêm class "
                 + LiveOpsHubClassNames.ButtonSelfStart + " @" + RectText(childBound, result.RootBound));
         }
+
+        /// <summary>
+        /// Chữ của phần tử này có ĐANG gói xuống dòng ở bề ngang hiện tại không — đo, không đọc khai báo: chữ đo trên MỘT
+        /// dòng rộng hơn phần bề ngang hộp chứa cấp cho nó thì nó đang gói. Hai điều kiện đều cần: <c>white-space: normal</c>
+        /// mới cho phép gói, và chữ phải thật sự dài hơn chỗ trống.
+        /// </summary>
+        private static bool IsWrappingText(VisualElement element)
+        {
+            TextElement text = element as TextElement;
+            if (text == null) return false;
+            if (element.resolvedStyle.whiteSpace != WhiteSpace.Normal) return false;
+            if (string.IsNullOrEmpty(text.text)) return false;
+            float available = element.contentRect.width;
+            if (available <= 0f) return false;
+            Vector2 oneLine = text.MeasureTextSize(text.text, 0f, VisualElement.MeasureMode.Undefined,
+                0f, VisualElement.MeasureMode.Undefined);
+            return oneLine.x > available + WrapMeasureTolerance;
+        }
+
+        /// <summary>Sai số khi so bề ngang chữ với bề ngang hộp — dưới một pixel là làm tròn, không phải gói dòng.</summary>
+        private const float WrapMeasureTolerance = 1f;
 
         /// <summary>
         /// Phần tử này có phải một NÚT của hub không: <c>Button</c>, hoặc một <c>ToolbarMenu</c> (nút mở menu — phiếu J3-03 đo

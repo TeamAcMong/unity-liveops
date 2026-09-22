@@ -38,11 +38,6 @@ namespace DreamTech.LiveOps.Editor.Tests
         /// </summary>
         private const float DestructiveButtonWidthRatio = 0.5f;
 
-        /// <summary>Cỡ cửa sổ dùng cho ca màn Xuất JSON — cỡ mà lượt đi dạo đã chụp thẻ ĐỊNH DẠNG.</summary>
-        private const int ExportWidth = 1440;
-
-        private const int ExportHeight = 900;
-
         private const int MaximumLayoutFrames = 60;
 
         private const double MaximumLayoutSeconds = 5d;
@@ -130,30 +125,55 @@ namespace DreamTech.LiveOps.Editor.Tests
         /// vẫn KHÔNG mang chữ — [SD2 §3.5] cấm in con số định dạng hai lần trên cùng một tile, và bản vá này không được
         /// lén đổi quyết định thiết kế ấy.
         /// </para>
+        /// <para>
+        /// (R-F6 lượt soát G-W11-EYE2) Chạy đủ BẢY cỡ của ma trận, không chỉ 1440×900: lượt đi dạo chụp thẻ ở 1280 và bản
+        /// soát đòi xem 820 — một ca khoá đúng một cỡ thì hai cỡ kia không có gì canh.
+        /// </para>
         /// </summary>
         [UnityTest]
         public IEnumerator ExportFormatMenu_LooksLikeMenu_NotEmptyInputField()
         {
-            yield return OpenHub(LiveOpsHubSections.Ids.Export, new UxWindowSize(ExportWidth, ExportHeight));
+            List<string> wrong = new List<string>();
+            int measured = 0;
+            foreach (UxWindowSize size in UxHubWindowFixture.AllLayoutSizes)
+            {
+                yield return OpenHub(LiveOpsHubSections.Ids.Export, size);
 
-            ToolbarMenu menu = _window.rootVisualElement.Q<ToolbarMenu>(ExportMetrics.FormatMenuElementName);
-            Assert.IsNotNull(menu, "thẻ ĐỊNH DẠNG thiếu menu đổi định dạng");
-            Assert.IsTrue(UxLayoutAuditor.IsShownOnScreen(menu), "menu đổi định dạng không hiện — không đo được gì");
+                ToolbarMenu menu = _window.rootVisualElement.Q<ToolbarMenu>(ExportMetrics.FormatMenuElementName);
+                Assert.IsNotNull(menu, "thẻ ĐỊNH DẠNG thiếu menu đổi định dạng @" + size);
+                if (!UxLayoutAuditor.IsShownOnScreen(menu))
+                {
+                    CloseHub();
+                    continue;
+                }
 
-            VisualElement tile = menu.hierarchy.parent;
-            Assert.IsNotNull(tile, "menu đổi định dạng không có hộp chứa");
-            float tileWidth = tile.contentRect.width;
-            float menuWidth = menu.resolvedStyle.width;
-            Assert.Greater(tileWidth, 0f, "thẻ ĐỊNH DẠNG chưa có bề ngang thì phép đo dưới đây vô nghĩa");
-            Assert.Less(menuWidth, tileWidth * DestructiveButtonWidthRatio,
-                "menu đổi định dạng rộng " + Number(menuWidth) + "px trên thẻ " + Number(tileWidth)
-                + "px — nó vẫn dãn theo thẻ nên mắt đọc ra một trường dữ liệu, không phải một nút");
-            Assert.AreNotEqual(Align.Stretch, EffectiveAlign(menu),
-                "menu đổi định dạng vẫn lấy align stretch trong tile xếp dọc");
-            Assert.IsNotEmpty(menu.tooltip ?? string.Empty,
-                "menu đổi định dạng KHÔNG có chữ theo thiết kế, nên tooltip là chỗ duy nhất nói nó dùng để làm gì");
-            Assert.IsEmpty(menu.text ?? string.Empty,
-                "menu đổi định dạng không được mang chữ: giá trị đã in ở dòng value của tile [SD2 §3.5]");
+                VisualElement tile = menu.hierarchy.parent;
+                Assert.IsNotNull(tile, "menu đổi định dạng không có hộp chứa @" + size);
+                float tileWidth = tile.contentRect.width;
+                float menuWidth = menu.resolvedStyle.width;
+                if (tileWidth <= 0f)
+                {
+                    wrong.Add("@" + size + ": thẻ ĐỊNH DẠNG chưa có bề ngang thì phép đo vô nghĩa");
+                    CloseHub();
+                    continue;
+                }
+
+                measured++;
+                if (menuWidth >= tileWidth * DestructiveButtonWidthRatio)
+                {
+                    wrong.Add("@" + size + ": menu rộng " + Number(menuWidth) + "px trên thẻ " + Number(tileWidth)
+                        + "px — vẫn dãn theo thẻ nên mắt đọc ra một trường dữ liệu, không phải một nút");
+                }
+
+                if (EffectiveAlign(menu) == Align.Stretch) wrong.Add("@" + size + ": menu vẫn lấy align stretch trong tile xếp dọc");
+                if (string.IsNullOrEmpty(menu.tooltip)) wrong.Add("@" + size + ": menu KHÔNG có chữ theo thiết kế, nên tooltip là chỗ duy nhất nói nó dùng để làm gì");
+                if (!string.IsNullOrEmpty(menu.text)) wrong.Add("@" + size + ": menu không được mang chữ — giá trị đã in ở dòng value của tile [SD2 §3.5]");
+                CloseHub();
+            }
+
+            Assert.Greater(measured, 0, "không cỡ nào dựng được menu đổi định dạng — kết luận từ vòng lặp rỗng là xanh giả");
+            Assert.IsEmpty(wrong, "menu đổi định dạng vẫn đọc ra như một ô nhập rỗng:" + Environment.NewLine
+                + string.Join(Environment.NewLine, wrong.ToArray()));
             LogAssert.NoUnexpectedReceived();
         }
 

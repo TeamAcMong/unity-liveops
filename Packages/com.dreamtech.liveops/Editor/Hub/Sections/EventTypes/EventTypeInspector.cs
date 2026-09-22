@@ -117,6 +117,10 @@ namespace DreamTech.LiveOps.Editor
             _resetColorButton = new Button(OnResetColorClicked) { name = ResetColorButtonName, text = LiveOpsHubStrings.EventTypesResetColorButton };
             _resetColorButton.AddToClassList(LiveOpsHubClassNames.Button);
             _resetColorButton.AddToClassList(LiveOpsHubClassNames.EventTypesFieldSub);
+            // (R-F2) Cột field của inspector xếp DỌC: nút "Về màu theo băm" đo được 188px ở ảnh 1280 skin tối, tức trọn
+            // cột, trong khi chữ của nó nằm gọn MỘT dòng. EventTypesFieldSub có white-space: normal nên lượt đầu nó rơi
+            // vào miễn trừ của lưới mà không hề gói dòng.
+            _resetColorButton.AddToClassList(LiveOpsHubClassNames.ButtonSelfStart);
             _fields.Add(_resetColorButton);
 
             _requiresJoinToggle = new Toggle { name = RequiresJoinToggleName };

@@ -641,6 +641,9 @@ namespace DreamTech.LiveOps.Editor
             };
             button.AddToClassList(LiveOpsHubClassNames.Button);
             button.AddToClassList(LiveOpsHubClassNames.CalendarWrapText);
+            // (R-F2) Card "Vấn đề" xếp DỌC với align-items: stretch, nên nút đề xuất lấy trọn bề ngang card. Nút xuống
+            // dòng vẫn gói đúng trong card nhờ trần max-width: 100% của chính class này.
+            button.AddToClassList(LiveOpsHubClassNames.ButtonSelfStart);
             return button;
         }
 
@@ -661,6 +664,9 @@ namespace DreamTech.LiveOps.Editor
             };
             button.AddToClassList(LiveOpsHubClassNames.Button);
             button.AddToClassList(LiveOpsHubClassNames.CalendarWrapText);
+            // (R-F2) Nút "Sửa thành …" nằm trong unity-content của foldout — hộp xếp DỌC, nên nó cũng lấy trọn bề ngang
+            // pane. Lượt đầu để lọt vì lưới miễn trừ mọi nút white-space: normal; miễn trừ ấy nay đo gói dòng THẬT.
+            button.AddToClassList(LiveOpsHubClassNames.ButtonSelfStart);
             return button;
         }
 
